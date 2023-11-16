@@ -8,15 +8,18 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.AspNetCore.HttpOverrides;
-using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Polly;
 using Polly.Extensions.Http;
 using PortaleFatture.BE.Api.Infrastructure.Culture;
 using PortaleFatture.BE.Core.Exceptions;
+using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Infrastructure;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
+using PortaleFatture.BE.Infrastructure.Common.Persistence.Schemas;
+using PortaleFatture.BE.Infrastructure.Gateway;
 
 namespace PortaleFatture.BE.Api.Infrastructure;
 public static class ConfigurationExtensions
@@ -97,22 +100,13 @@ public static class ConfigurationExtensions
                     }
                 });
             })
-            .AddCors(options => options
-                .AddPolicy("cors", b =>
-                {
-                    var builder = b.AllowAnyHeader().AllowAnyMethod();
-                    var origins = configuration.GetSection("Origins").Value?.ToArray() ??
-                                  Array.Empty<string>();
-
-                    if (origins.Length == 0)
-                    {
-                        builder.AllowAnyOrigin();
-                    }
-                    else
-                    {
-                        builder.WithOrigins(origins);
-                    }
-                }))
+            .AddCors(options =>
+            {
+                options.AddPolicy("portalefatture", o =>
+                    o.AllowAnyOrigin()
+                    .AllowAnyHeader()
+                    .AllowAnyMethod());
+            })
             .AddGateways()
             .AddInfrastructure(configuration)
             .AddLocalization();
@@ -155,7 +149,7 @@ public static class ConfigurationExtensions
     }
 
     [DebuggerStepThrough]
-    public static async Task<WebApplication> UseModulesAsync(this WebApplication application)
+    public static WebApplication UseModules(this WebApplication application)
     {
         if (!application.Environment.IsDevelopment())
             application.UseHttpsRedirection();
@@ -174,7 +168,7 @@ public static class ConfigurationExtensions
                     var problem = exception switch
                     {
                         SecurityException => Results.Problem(statusCode: StatusCodes.Status401Unauthorized),
-                        DomainException => Results.Problem(statusCode: StatusCodes.Status500InternalServerError, detail: exception.Message), 
+                        DomainException => Results.Problem(statusCode: StatusCodes.Status500InternalServerError, detail: exception.Message),
                         ValidationException => Results.Problem(statusCode: StatusCodes.Status400BadRequest, detail: exception.Message),
                         NotFoundException => Results.Problem(statusCode: StatusCodes.Status404NotFound, detail: exception.Message),
                         not null => Results.Problem(statusCode: StatusCodes.Status500InternalServerError, detail: exception.Message),
@@ -206,12 +200,13 @@ public static class ConfigurationExtensions
     this IServiceCollection services,
     IConfiguration configuration)
     {
+        services.Configure<PortaleFattureOptions>(configuration.GetSection(nameof(PortaleFattureOptions)));
         services
-            .AddPersistence(configuration)
+            .AddPersistence()
             .AddAuthentication(JwtBearerDefaults.AuthenticationScheme);
 
         services
-            .AddPortaleFattureHealthChecks(configuration);
+        .AddPortaleFattureHealthChecks();
 
         services.AddMediatR(x => x.RegisterServicesFromAssembly(typeof(RootInfrastructure).Assembly));
 
@@ -221,21 +216,31 @@ public static class ConfigurationExtensions
             options.SerializerOptions.WriteIndented = true;
             options.SerializerOptions.IncludeFields = true;
         });
+
+        services.AddHttpClient();
+        services.AddSingleton<IPagoPaHttpClient, PagoPaHttpClient>();
         return services;
-    }
-
-    public static IServiceCollection AddPersistence(this IServiceCollection services, IConfiguration? configuration)
+    } 
+ 
+    public static IServiceCollection AddPersistence(this IServiceCollection services)
     {
-        var dbConnectionString = configuration?.GetSection("ConnectionStrings:PortaleFatture").Value ??
-                 throw new ConfigurationException("Db connection string not configured");
+        var optionsMonitor = services
+            .BuildServiceProvider()
+            .GetRequiredService<IOptionsMonitor<PortaleFattureOptions>>();
 
-        services.AddSingleton<IUnitOfWorkFactory>(new UnitOfWorkFactory(dbConnectionString)); 
+        var options = optionsMonitor.CurrentValue;
+        var dbConnectionString = options.ConnectionString ??
+                      throw new ConfigurationException("Db connection string not configured");
+        var fattureSchema = options.FattureSchema ??
+                      throw new ConfigurationException($"Db schema fatture not existent");
+
+        services.AddSingleton<IFattureDbContextFactory>(new DbContextFactory(dbConnectionString, fattureSchema));
+        services.AddSingleton<IDbContextFactory>(new DbContextFactory(dbConnectionString, fattureSchema));
         return services;
     }
 
     private static IServiceCollection AddPortaleFattureHealthChecks(
-        this IServiceCollection services,
-        IConfiguration configuration)
+        this IServiceCollection services)
     {
         services
             .AddHealthChecks();
@@ -253,25 +258,25 @@ public static class ConfigurationExtensions
             .RequireCors("portalefatture")
             .WithTags(tags);
 
-        if (securityPolicy is not null) 
-            builder.RequireAuthorization(securityPolicy); 
-        else 
-            builder.RequireAuthorization(); 
+        if (securityPolicy is not null)
+            builder.RequireAuthorization(securityPolicy);
+        else
+            builder.RequireAuthorization();
 
-        if (name is not null) 
-            result = result.WithSummary(name); 
+        if (name is not null)
+            result = result.WithSummary(name);
 
-        if (displayName is not null) 
-            result = result.WithName(displayName); 
+        if (displayName is not null)
+            result = result.WithName(displayName);
 
-        if (description is not null) 
-            result = result.WithDescription(description); 
+        if (description is not null)
+            result = result.WithDescription(description);
 
-        if (summary is not null) 
-            result = result.WithSummary(summary); 
+        if (summary is not null)
+            result = result.WithSummary(summary);
 
-        if (metadata.Any()) 
-            result = result.WithMetadata(metadata); 
+        if (metadata.Any())
+            result = result.WithMetadata(metadata);
 
         return result;
     }

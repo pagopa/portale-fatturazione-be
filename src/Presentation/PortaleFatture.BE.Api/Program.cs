@@ -5,9 +5,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services
     .AddModules(builder.Configuration);
 
-var configuredBuilder = await builder
+var configuredBuilder = builder
     .Build()
-    .UseModulesAsync();
+    .UseModules();
 
 configuredBuilder.Run();
 

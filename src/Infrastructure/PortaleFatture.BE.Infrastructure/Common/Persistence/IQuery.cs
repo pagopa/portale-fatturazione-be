@@ -2,5 +2,5 @@
 namespace PortaleFatture.BE.Infrastructure.Common.Persistence; 
 public interface IQuery<T>
 {
-    Task<T> Execute(IDbConnection? connection, IDbTransaction? transaction, CancellationToken cancellationToken = default);
+    Task<T> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken ct = default);
 }

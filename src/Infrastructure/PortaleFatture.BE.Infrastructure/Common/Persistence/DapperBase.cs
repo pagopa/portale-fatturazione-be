@@ -1,10 +1,11 @@
 ﻿using System.Data;
 using Dapper;
+using static Dapper.SqlMapper;
 
 namespace PortaleFatture.BE.Infrastructure.Common.Persistence;
 
 public abstract class DapperBase : IDatabase
-{
+{ 
     private async Task<T> Execute<T>(Task<T> task, IDbConnection connection, IDbTransaction? transaction)
     {
         if (transaction is null)
@@ -50,6 +51,17 @@ public abstract class DapperBase : IDatabase
         return await Execute(task, connection, transaction);
     }
 
+    public async Task<GridReader> QueryMultipleAsync<T>(
+    IDbConnection connection,
+    string sqlQuery,
+    object? parameters,
+    IDbTransaction? transaction,
+    CommandType type,
+    int? commandTimeout = null)
+    {
+        return await connection.QueryMultipleAsync(sqlQuery, parameters, transaction, commandTimeout, type); 
+    } 
+ 
     public async Task<T> SingleAsync<T>(
         IDbConnection connection,
         string sqlQuery,

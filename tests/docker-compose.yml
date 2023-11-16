@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  database:
+    container_name: portalefatture_db
+    hostname: PortaleFatture.BE.Api.Tests
+    image: portalefatture_mssql/server
+    build:
+      context: .
+      dockerfile: data/Dockerfile
+    restart: unless-stopped
+    environment:
+      SA_PASSWORD: "39276f68-9858"
+      ACCEPT_EULA: "Y"
+    ports:
+      - "1433:1433" 
+    volumes:
+      - mssqldata:/var/opt/mssql   
+volumes:
+  mssqldata:       

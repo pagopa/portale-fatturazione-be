@@ -117,49 +117,85 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="DatiCommessaCigInvalid" xml:space="preserve">
+  <data name="DatiFatturazioneCigInvalid" xml:space="preserve">
     <value>Il cig  è obbligatorio e deve avere al massimo 10 caratteri.</value>
   </data>
-  <data name="DatiCommessaCodiceInvalid" xml:space="preserve">
+  <data name="DatiFatturazioneCodiceInvalid" xml:space="preserve">
     <value>Il codice commessa è obbligatorio e deve avere al massimo 100 caratteri.</value>
   </data>
-  <data name="DatiCommessaContattoEmailInvalid" xml:space="preserve">
+  <data name="DatiFatturazioneContattoEmailInvalid" xml:space="preserve">
     <value>La email del contatto non è valida.</value>
   </data>
-  <data name="DatiCommessaContattoInvalid" xml:space="preserve">
+  <data name="DatiFatturazioneContattoInvalid" xml:space="preserve">
     <value>Il numero di contatti deve essere non superiore a tre.</value>
   </data>
-  <data name="DatiCommessaCupInvalid" xml:space="preserve">
+  <data name="DatiFatturazioneCupInvalid" xml:space="preserve">
     <value>Il cup è obbligatorio e deve avere al massimo 15 caratteri.</value>
   </data>
-  <data name="DatiCommessaEmptyIdEnte" xml:space="preserve">
+  <data name="DatiFatturazioneEmptyIdEnte" xml:space="preserve">
     <value>L'id ente non può essere nullo.</value>
   </data>
-  <data name="DatiCommessaFlagOrdineContrattoInvalid" xml:space="preserve">
+  <data name="DatiFatturazioneEnteDuplicate" xml:space="preserve">
+    <value>Sono stati trovati dati fatturazione duplicati per lo stesso ente id: "{0}".</value>
+  </data>
+  <data name="DatiFatturazioneFlagOrdineContrattoInvalid" xml:space="preserve">
     <value>Il flag ordine contratto è obbligatorio e deve avere al massimo 1 carattere.</value>
   </data>
-  <data name="DatiCommessaGetError" xml:space="preserve">
-    <value>Non ho trovato i dati commessa con id: "{0}".</value>
+  <data name="DatiFatturazioneGetError" xml:space="preserve">
+    <value>Non ho trovato i dati fatturazione con id: "{0}".</value>
   </data>
-  <data name="DatiCommessaIdDocumentoInvalid" xml:space="preserve">
+  <data name="DatiFatturazioneGetErrorIdEnte" xml:space="preserve">
+    <value>Non ho trovato i dati fatturazione con id ente: "{0}".</value>
+  </data>
+  <data name="DatiFatturazioneIdDocumentoInvalid" xml:space="preserve">
     <value>L'id documento è obbligatorio e deve avere al massimo 20 caratteri.</value>
   </data>
-  <data name="DatiCommessaIdTipoContrattoInvalid" xml:space="preserve">
+  <data name="DatiFatturazioneIdEnteExistent" xml:space="preserve">
+    <value>Esiste già un dato fatturazione per l'ente specificato id: "{0}".</value>
+  </data>
+  <data name="DatiFatturazioneIdExistent" xml:space="preserve">
+    <value>Non esiste un dato fatturazione per il valore specificato id: "{0}".</value>
+  </data>
+  <data name="DatiFatturazioneIdTipoContrattoInvalid" xml:space="preserve">
     <value>L'id tipo contratto deve essere un valore maggiore di zero.</value>
   </data>
-  <data name="DatiCommessaInputEmpty" xml:space="preserve">
-    <value>Passare un valore per i dati commessa.</value>
+  <data name="DatiFatturazioneInputEmpty" xml:space="preserve">
+    <value>Passare un valore per i dati fatturazione.</value>
   </data>
-  <data name="DatiCommessaInputError" xml:space="preserve">
+  <data name="DatiFatturazioneInputError" xml:space="preserve">
     <value>Si è verificato un errore nell'inserire i dati commessa.</value>
   </data>
-  <data name="DatiCommessaMapInvalid" xml:space="preserve">
+  <data name="DatiFatturazioneMapInvalid" xml:space="preserve">
     <value>Il map deve avere al massimo 100 caratteri.</value>
   </data>
-  <data name="DatiCommessaUpdateError" xml:space="preserve">
-    <value>Si è verificato un errore nel modificare i dati commessa.</value>
+  <data name="DatiFatturazionePecInvalid" xml:space="preserve">
+    <value>La pec fornita non è una email valida.</value>
+  </data>
+  <data name="DatiFatturazioneProdottoInvalid" xml:space="preserve">
+    <value>Il prodotto è obbligatorio.</value>
+  </data>
+  <data name="DatiFatturazioneTipoCommessaInvalid" xml:space="preserve">
+    <value>Il tipo commessa è obbligatorio.</value>
+  </data>
+  <data name="DatiFatturazioneUpdateError" xml:space="preserve">
+    <value>Si è verificato un errore nel modificare i dati fatturazione.</value>
+  </data>
+  <data name="DatiProdottoMissing" xml:space="preserve">
+    <value>Non sono stati configurati i prodotti.</value>
+  </data>
+  <data name="DatiTipoCommessaMissing" xml:space="preserve">
+    <value>Non sono stati configurati e inseriti i dati tipo commessa.</value>
   </data>
   <data name="DatiTipoContrattoMissing" xml:space="preserve">
     <value>Non sono stati configurati e inseriti i dati tipo contratto.</value>
+  </data>
+  <data name="DescrizioneConfiguazioneModuloCommessaInvalid" xml:space="preserve">
+    <value>Inserire un valore descrizione configurazione modulo commessa.</value>
+  </data>
+  <data name="MediaNotificaInternazionaleInvalid" xml:space="preserve">
+    <value>Inserire un valore per la media notifica internazionale.</value>
+  </data>
+  <data name="MediaNotificaNazionaleInvalid" xml:space="preserve">
+    <value>Inserire un valore per la media notifica nazionale.</value>
   </data>
 </root>
