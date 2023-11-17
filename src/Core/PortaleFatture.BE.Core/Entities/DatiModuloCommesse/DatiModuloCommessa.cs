@@ -21,6 +21,7 @@ public class DatiModuloCommessa
     [Column("FkIdTipoSpedizione")]
     public int IdTipoSpedizione { get; set; }
 
+    [Column("FkIdStato")]
     public string? Stato { get; set; }
 
     [Column("FkProdotto")]

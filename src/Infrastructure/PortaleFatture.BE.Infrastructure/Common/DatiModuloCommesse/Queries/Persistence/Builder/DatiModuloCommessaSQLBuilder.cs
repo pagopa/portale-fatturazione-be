@@ -29,7 +29,7 @@ public class DatiModuloCommessaSQLBuilder
         builder.Select(nameof(@obj.AnnoValidita));
         builder.Select(nameof(@obj.NumeroNotificheInternazionali));
         builder.Select(nameof(@obj.NumeroNotificheNazionali));
-        builder.Select(nameof(@obj.Stato));
+        builder.Select(nameof(@obj.Stato).GetAsColumn<DatiModuloCommessa>());
         return builder;
     }
 

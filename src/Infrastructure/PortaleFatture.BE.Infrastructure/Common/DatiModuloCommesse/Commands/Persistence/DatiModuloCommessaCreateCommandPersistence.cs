@@ -47,7 +47,7 @@ INSERT
               datacreazione,
               fkidente,
               fkidtipocontratto,
-              stato,
+              fkidstato,
               fkprodotto,
               fkidtipospedizione,
               annovalidita,
