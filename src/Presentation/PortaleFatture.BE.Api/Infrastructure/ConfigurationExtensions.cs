@@ -8,15 +8,18 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Polly;
 using Polly.Extensions.Http;
 using PortaleFatture.BE.Api.Infrastructure.Culture;
+using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Infrastructure;
+using PortaleFatture.BE.Infrastructure.Common.Identity;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.Persistence.Schemas;
 using PortaleFatture.BE.Infrastructure.Gateway;
@@ -220,8 +223,49 @@ public static class ConfigurationExtensions
         services.AddHttpClient();
         services.AddSingleton<IPagoPaHttpClient, PagoPaHttpClient>();
         return services;
-    } 
- 
+    }
+
+    private static IServiceCollection AddIdentities(this IServiceCollection services)
+    {
+        services
+            .AddIdentityCore<AuthenticationInfo>(options =>
+            {
+                options.Lockout.AllowedForNewUsers = false;
+                options.Tokens.PasswordResetTokenProvider = TokenOptions.DefaultEmailProvider;
+            })
+            .AddRoles<IdentityRole>() 
+            .AddDefaultTokenProviders()
+            .AddTokenProvider<DataProtectorTokenProvider<AuthenticationInfo>>(TokenOptions.DefaultProvider);
+
+        services
+            .AddScoped<ITokensService, JwtTokenService>()
+            .AddScoped<IRolesService, IdentityRolesService>()
+            .AddScoped<IUsersService, IdentityUsersService>();
+
+        services
+            .AddAuthorization();
+
+        return services;
+    }
+
+    private static IServiceCollection AddJwtOrApiKeyAuthentication(this IServiceCollection services,
+        JwtConfiguration jwtAuth)
+    {
+        services
+            .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer(options => options.JwtAuthenticationConfiguration(jwtAuth));
+
+        services
+            .AddAuthentication(MerchantApiKeyDefaults.AuthenticationScheme)
+            .AddScheme<MerchantApiKeyDefaults, MerchantApiKeySchemeHandler>(
+                MerchantApiKeyDefaults.AuthenticationScheme, _ => { });
+
+        services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+        services.AddSingleton<IAuthenticationSchemeProvider, CustomAuthenticationSchemeProvider>();
+
+        return services;
+    }
+
     public static IServiceCollection AddPersistence(this IServiceCollection services)
     {
         var optionsMonitor = services

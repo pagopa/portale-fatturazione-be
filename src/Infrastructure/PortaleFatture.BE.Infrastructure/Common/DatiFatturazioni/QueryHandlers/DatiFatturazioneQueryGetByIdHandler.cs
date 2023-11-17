@@ -28,6 +28,7 @@ public class DatiFatturazioneQueryGetByIdHandler : IRequestHandler<DatiFatturazi
 
     public async Task<DatiFatturazione> Handle(DatiFatturazioneQueryGetById command, CancellationToken ct)
     {
+        // 403
         using var uow = await _factory.Create(true, cancellationToken: ct);
         var datiCommessa = await uow.Query(new DatiFatturazioneWithContattiQueryGetByIdPersistence(command.Id), ct);
         return datiCommessa is null ? throw new NotFoundException(_localizer["DatiFatturazioneGetError", command.Id]) : datiCommessa;

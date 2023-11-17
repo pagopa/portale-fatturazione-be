@@ -30,7 +30,7 @@ public class DatiFatturazioneCreateCommandHandler : IRequestHandler<DatiFatturaz
     }
 
     public async Task<DatiFatturazione> Handle(DatiFatturazioneCreateCommand command, CancellationToken ct)
-    {
+    { 
         var (error, errorDetails) = DatiFatturazioneValidator.Validate(command);
         if (!string.IsNullOrEmpty(error))
             throw new DomainException(_localizer[error, errorDetails]); 

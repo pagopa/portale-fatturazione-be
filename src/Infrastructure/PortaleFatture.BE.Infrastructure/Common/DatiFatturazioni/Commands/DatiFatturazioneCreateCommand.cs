@@ -6,7 +6,7 @@ namespace PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni.Commands;
 
 public sealed class DatiFatturazioneCreateCommand : IRequest<DatiFatturazione>
 {
-    IAuthenticationInfo? AuthenticationInfo { get; set; } 
+    public IAuthenticationInfo? AuthenticationInfo { get; set; } 
     public string? Cup { get; set; }
     public string? Cig { get; set; }
     public string? CodCommessa { get; set; }
