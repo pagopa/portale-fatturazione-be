@@ -12,7 +12,7 @@ public class DatiConfigurazioneModuloTipoCommessa
     [Column("FkProdotto")]
     public string? Prodotto { get; set; }
 
-    [Column("FkTipoSpedizione")]
+    [Column("FkIdTipoSpedizione")]
     public int TipoSpedizione { get; set; } 
     public decimal MediaNotificaNazionale { get; set; }  
     public decimal MediaNotificaInternazionale { get; set; }  

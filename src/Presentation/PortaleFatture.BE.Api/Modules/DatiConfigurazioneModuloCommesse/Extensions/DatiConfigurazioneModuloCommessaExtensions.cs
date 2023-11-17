@@ -24,7 +24,7 @@ public static class DatiConfigurazioneModuloCommessaExtensions
                     Prodotto = prodotto,
                     MediaNotificaInternazionale = x.PrezzoNotificaInternazionale,
                     MediaNotificaNazionale = x.PrezzoNotificaNazionale,
-                    TipoSpedizione = x.IdTipoSpedizione
+                    IdTipoSpedizione = x.IdTipoSpedizione
                 }).ToList(),
                 Categorie = categorie!.Select(x => new DatiConfigurazioneModuloCommessaCreateCategoriaCommand()
                 {

@@ -15,7 +15,7 @@ public class DatiConfigurazioneModuloCommessaCreateCommandPersistence : DapperBa
 INSERT INTO [schema]costonotifiche
             (medianotificanazionale,
              medianotificainternazionale,
-             fktipospedizione,
+             fkidtipospedizione,
              fkidtipocontratto,
              fkprodotto,
              datainiziovalidita, 
