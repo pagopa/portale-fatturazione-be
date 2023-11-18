@@ -15,6 +15,19 @@ CREATE TABLE pfw.CategoriaSpedizione (
 );
 
 
+-- pfw.Form definition
+
+-- Drop table
+
+-- DROP TABLE pfw.Form;
+
+CREATE TABLE pfw.Form (
+	IdForm int NOT NULL,
+	Descrizione varchar(250) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	CONSTRAINT PK__Form__007D03D97A238DBC PRIMARY KEY (IdForm)
+);
+
+
 -- pfw.Log definition
 
 -- Drop table
@@ -39,6 +52,32 @@ CREATE TABLE pfw.Log (
 CREATE TABLE pfw.Prodotti (
 	Prodotto nvarchar(15) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	CONSTRAINT PK__Prodotti__3EE5F2F6209BD2F1 PRIMARY KEY (Prodotto)
+);
+
+
+-- pfw.Stato definition
+
+-- Drop table
+
+-- DROP TABLE pfw.Stato;
+
+CREATE TABLE pfw.Stato (
+	Stato nvarchar(50) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	[Default] bit NULL,
+	CONSTRAINT PK__Stato__BA803DA6AD8CBD05 PRIMARY KEY (Stato)
+);
+
+
+-- pfw.Step definition
+
+-- Drop table
+
+-- DROP TABLE pfw.Step;
+
+CREATE TABLE pfw.Step (
+	IdStep int NOT NULL,
+	Descrizione varchar(250) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	CONSTRAINT PK__Step__A3FC8BAD5173134C PRIMARY KEY (IdStep)
 );
 
 
@@ -108,6 +147,29 @@ CREATE TABLE pfw.DatiFatturazioneContatti (
 );
 
 
+-- pfw.DatiModuloCommessaTotali definition
+
+-- Drop table
+
+-- DROP TABLE pfw.DatiModuloCommessaTotali;
+
+CREATE TABLE pfw.DatiModuloCommessaTotali (
+	FkIdEnte nvarchar(50) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	FkIdTipoContratto bigint NOT NULL,
+	FkProdotto nvarchar(15) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	AnnoValidita int NOT NULL,
+	MeseValidita int NOT NULL,
+	FkIdCategoriaSpedizione int NOT NULL,
+	FkStato nvarchar(50) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	TotaleCategoria decimal(9,2) NOT NULL,
+	CONSTRAINT PK_DatiModuloCommessaTotali PRIMARY KEY (FkIdEnte,FkIdTipoContratto,FkProdotto,AnnoValidita,MeseValidita,FkIdCategoriaSpedizione),
+	CONSTRAINT FK_DatiModuloCommessaTotali_CategoriaSpedizione FOREIGN KEY (FkIdCategoriaSpedizione) REFERENCES pfw.CategoriaSpedizione(IdCategoriaSpedizione),
+	CONSTRAINT FK_DatiModuloCommessaTotali_Prodotti FOREIGN KEY (FkProdotto) REFERENCES pfw.Prodotti(Prodotto),
+	CONSTRAINT FK_DatiModuloCommessaTotali_Stato FOREIGN KEY (FkStato) REFERENCES pfw.Stato(Stato),
+	CONSTRAINT FK_DatiModuloCommessaTotali_TipoContratto FOREIGN KEY (FkIdTipoContratto) REFERENCES pfw.TipoContratto(IdTipoContratto)
+);
+
+
 -- pfw.PercentualeAnticipo definition
 
 -- Drop table
@@ -127,6 +189,28 @@ CREATE TABLE pfw.PercentualeAnticipo (
 	CONSTRAINT FkIdCategoriaSpedizioneAnticipo FOREIGN KEY (FkIdCategoriaSpedizione) REFERENCES pfw.CategoriaSpedizione(IdCategoriaSpedizione),
 	CONSTRAINT FkIdTipoContratto FOREIGN KEY (FkIdTipoContratto) REFERENCES pfw.TipoContratto(IdTipoContratto),
 	CONSTRAINT FkProdotto FOREIGN KEY (FkProdotto) REFERENCES pfw.Prodotti(Prodotto)
+);
+
+
+-- pfw.Scadenziario definition
+
+-- Drop table
+
+-- DROP TABLE pfw.Scadenziario;
+
+CREATE TABLE pfw.Scadenziario (
+	FkIdProdotto nvarchar(15) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	FkIdStep int NOT NULL,
+	FkIdForm int NULL,
+	Ordine int NOT NULL,
+	GiornoInizio int NOT NULL,
+	OraInizio time NULL,
+	GiornoFine int NOT NULL,
+	OraFine time NULL,
+	ProcessoBatch bit NULL,
+	CONSTRAINT FK_Scadenziario_Form FOREIGN KEY (FkIdForm) REFERENCES pfw.Form(IdForm),
+	CONSTRAINT FK_Scadenziario_Prodotti FOREIGN KEY (FkIdProdotto) REFERENCES pfw.Prodotti(Prodotto),
+	CONSTRAINT FK_Scadenziario_Step FOREIGN KEY (FkIdStep) REFERENCES pfw.Step(IdStep)
 );
 
 
@@ -156,7 +240,7 @@ CREATE TABLE pfw.CostoNotifiche (
 	MediaNotificaNazionale decimal(5,2) NOT NULL,
 	MediaNotificaInternazionale decimal(5,2) NULL,
 	FkIdTipoSpedizione int NOT NULL,
-	FkTipoContratto bigint NOT NULL,
+	FkIdTipoContratto bigint NOT NULL,
 	FkProdotto nvarchar(15) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	DataInizioValidita datetime NOT NULL,
 	DataFineValidita datetime NULL,
@@ -164,7 +248,7 @@ CREATE TABLE pfw.CostoNotifiche (
 	DataModifica datetime NULL,
 	Descrizione varchar(250) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 	CONSTRAINT FkProdottoNotifiche FOREIGN KEY (FkProdotto) REFERENCES pfw.Prodotti(Prodotto),
-	CONSTRAINT FkTipoContratto FOREIGN KEY (FkTipoContratto) REFERENCES pfw.TipoContratto(IdTipoContratto),
+	CONSTRAINT FkTipoContratto FOREIGN KEY (FkIdTipoContratto) REFERENCES pfw.TipoContratto(IdTipoContratto),
 	CONSTRAINT FkTipoSpedizione FOREIGN KEY (FkIdTipoSpedizione) REFERENCES pfw.TipoSpedizione(IdTipoSpedizione)
 );
 
@@ -178,19 +262,20 @@ CREATE TABLE pfw.CostoNotifiche (
 CREATE TABLE pfw.DatiModuloCommessa (
 	NumeroNotificheNazionali int NOT NULL,
 	NumeroNotificheInternazionali int NOT NULL,
-	FkIdTipoSpedizione int NULL,
+	FkIdTipoSpedizione int NOT NULL,
 	DataCreazione datetime NOT NULL,
 	DataModifica datetime NULL,
 	FkIdEnte nvarchar(50) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
-	FKTipoContratto bigint NOT NULL,
-	Stato nvarchar(50) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	FKIdTipoContratto bigint NOT NULL,
+	FkIdStato nvarchar(50) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	FkProdotto nvarchar(15) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	AnnoValidita int NOT NULL,
 	MeseValidita int NOT NULL,
-	CONSTRAINT PK_DatiModuloCommessa PRIMARY KEY (FkIdEnte,FKTipoContratto,FkProdotto,AnnoValidita,MeseValidita),
-	CONSTRAINT FKProdotto_ModuloCommessa FOREIGN KEY (FkProdotto) REFERENCES pfw.Prodotti(Prodotto),
-	CONSTRAINT FKTipoContratto_ModuloCommessa FOREIGN KEY (FKTipoContratto) REFERENCES pfw.TipoContratto(IdTipoContratto),
-	CONSTRAINT FKTipoSpedizione_ModuloCommessa FOREIGN KEY (FkIdTipoSpedizione) REFERENCES pfw.TipoSpedizione(IdTipoSpedizione)
+	CONSTRAINT PK_DatiModuloCommessa PRIMARY KEY (FkIdEnte,FKIdTipoContratto,FkProdotto,AnnoValidita,MeseValidita,FkIdTipoSpedizione),
+	CONSTRAINT FKIdStatoCommessa FOREIGN KEY (FkIdStato) REFERENCES pfw.Stato(Stato),
+	CONSTRAINT FK_DatiModuloCommessa_Prodotti FOREIGN KEY (FkProdotto) REFERENCES pfw.Prodotti(Prodotto),
+	CONSTRAINT FK_DatiModuloCommessa_TipoContratto FOREIGN KEY (FKIdTipoContratto) REFERENCES pfw.TipoContratto(IdTipoContratto),
+	CONSTRAINT FK_DatiModuloCommessa_TipoSpedizione FOREIGN KEY (FkIdTipoSpedizione) REFERENCES pfw.TipoSpedizione(IdTipoSpedizione)
 );
 
 INSERT INTO  pfw.TipoContratto

@@ -5,6 +5,13 @@ namespace PortaleFatture.BE.Core.Entities.DatiModuloCommesse;
 
 public class DatiModuloCommessa
 {
+    public int TotaleNotifiche
+    {
+        get
+        {
+            return this.NumeroNotificheInternazionali + this.NumeroNotificheNazionali;
+        }
+    }
     public int NumeroNotificheNazionali { get; set; }
     public int NumeroNotificheInternazionali { get; set; }
     public DateTime DataCreazione { get; set; }
