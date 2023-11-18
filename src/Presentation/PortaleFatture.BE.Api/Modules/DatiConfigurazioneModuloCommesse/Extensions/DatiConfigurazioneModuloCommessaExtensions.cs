@@ -13,7 +13,7 @@ public static class DatiConfigurazioneModuloCommessaExtensions
         {
             var idTipoContratto = model.IdTipoContratto;
             var prodotto = model.Prodotto;
-            var tipi = model.TipiSpedizione;
+            var tipi = model.Tipi;
             var categorie = model.Categorie;
 
             return new()
@@ -22,8 +22,8 @@ public static class DatiConfigurazioneModuloCommessaExtensions
                 {
                     IdTipoContratto = idTipoContratto,
                     Prodotto = prodotto,
-                    MediaNotificaInternazionale = x.PrezzoNotificaInternazionale,
-                    MediaNotificaNazionale = x.PrezzoNotificaNazionale,
+                    MediaNotificaInternazionale = x.PrezzoMedioNotificaInternazionale,
+                    MediaNotificaNazionale = x.PrezzoMedioNotificaNazionale,
                     IdTipoSpedizione = x.IdTipoSpedizione
                 }).ToList(),
                 Categorie = categorie!.Select(x => new DatiConfigurazioneModuloCommessaCreateCategoriaCommand()
@@ -64,7 +64,7 @@ public static class DatiConfigurazioneModuloCommessaExtensions
            Descrizione = model.Descrizione,
            MediaNotificaInternazionale = model.MediaNotificaInternazionale,
            MediaNotificaNazionale = model.MediaNotificaNazionale,
-           TipoSpedizione = model.TipoSpedizione
+           IdTipoSpedizione = model.IdTipoSpedizione
        };
 }
 

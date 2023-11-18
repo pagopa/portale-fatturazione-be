@@ -11,7 +11,7 @@ public record DatiConfigurazioneModuloCommessaCreateRequest
     public string? Prodotto { get; set; }
 
     public List<DatiConfigurazioneModuloCommessaCreateCategoriaRequest>? Categorie { get; set; }
-    public List<DatiConfigurazioneModuloCommessaCreateTipoSpedizioneRequest>? TipiSpedizione { get; set; }
+    public List<DatiConfigurazioneModuloCommessaCreateTipoSpedizioneRequest>? Tipi { get; set; }
 }
 
 public record DatiConfigurazioneModuloCommessaCreateCategoriaRequest
@@ -29,8 +29,8 @@ public record DatiConfigurazioneModuloCommessaCreateTipoSpedizioneRequest
     public int IdTipoSpedizione { get; set; }
 
     [Required]
-    public decimal PrezzoNotificaNazionale { get; set; }
+    public decimal PrezzoMedioNotificaNazionale { get; set; }
 
     [Required]
-    public decimal PrezzoNotificaInternazionale { get; set; }
+    public decimal PrezzoMedioNotificaInternazionale { get; set; }
 }
