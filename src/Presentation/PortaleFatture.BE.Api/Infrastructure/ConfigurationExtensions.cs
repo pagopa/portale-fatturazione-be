@@ -234,8 +234,11 @@ public static class ConfigurationExtensions
         var fattureSchema = options.FattureSchema ??
                       throw new ConfigurationException($"Db schema fatture not existent");
 
-        services.AddSingleton<IFattureDbContextFactory>(new DbContextFactory(dbConnectionString, fattureSchema));
-        services.AddSingleton<IDbContextFactory>(new DbContextFactory(dbConnectionString, fattureSchema));
+        var selfCareSchema = options.FattureSchema ??
+              throw new ConfigurationException($"Db schema fatture not existent");
+
+        services.AddSingleton<ISelfCareDbContextFactory>(new DbContextFactory(dbConnectionString, fattureSchema));
+        services.AddSingleton<IFattureDbContextFactory>(new DbContextFactory(dbConnectionString, selfCareSchema)); 
         return services;
     }
 
