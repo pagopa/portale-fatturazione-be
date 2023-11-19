@@ -3,8 +3,8 @@
 public class DatiModuloCommessaResponse
 {
     public List<DatiModuloCommessaSimpleResponse>? ModuliCommessa { get; set; }
-    public List<TotaleDatiModuloCommessa>? TotaliDatiModuloCommessa { get; set; } 
-    public decimal  Totale { get; set; }
+    public TotaleDatiModuloCommessaNotifica? TotaleModuloCommessaNotifica { get; set; }
+    public List<TotaleDatiModuloCommessa>? Totale { get; set; }
 }
 public class DatiModuloCommessaSimpleResponse
 {
@@ -18,7 +18,8 @@ public class TotaleDatiModuloCommessaNotifica
 {
     public int TotaleNumeroNotificheNazionali { get; set; }
     public int TotaleNumeroNotificheInternazionali { get; set; } 
-    public int TotaleNumeroNotificheDaProcessare { get; set; }
+    public int TotaleNumeroNotificheDaProcessare { get; set; } 
+    public decimal Totale { get; set; }
 }
 
 public class TotaleDatiModuloCommessa

@@ -43,9 +43,9 @@ public partial class DatiModuloCommessaModule
             cmd.IdEnte = idente;
 
         var moduli = await handler.Send(command);
-        if (moduli.IsNullNotAny())
+        if (moduli == null)
             throw new DomainException(localizer["xxx"]);
-        return Ok(moduli.Mapper()); 
+        return Ok(new DatiModuloCommessaResponse()); 
     }
 
     [AllowAnonymous]
