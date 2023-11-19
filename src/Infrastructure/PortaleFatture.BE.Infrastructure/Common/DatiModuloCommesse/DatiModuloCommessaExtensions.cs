@@ -33,12 +33,13 @@ public static class DatiModuloCommessaExtensions
             .ToDictionary(x => x.Key, x => x.Value);
 
         var categoriePercentuali = confModuloCommessa!.Categorie!
-            .Select(x => new KeyValuePair<int, decimal>(x.IdCategoriaSpedizione, 0M))
+            .Select(x => new KeyValuePair<int, decimal>(x.IdCategoriaSpedizione, x.Percentuale))
             .ToDictionary(x => x.Key, x => x.Value);
- 
+
         foreach (var cmd in command.DatiModuloCommessaListCommand!) // per id tipo spedizione
-        { 
-            var idCategoria = categorie!.SelectMany(x => x.TipoSpedizione!).Where(x => x.Id == cmd.IdTipoSpedizione).FirstOrDefault()!.Id;
+        {
+
+            var idCategoria = categorie!.SelectMany(x => x.TipoSpedizione!).Where(x => x.Id == cmd.IdTipoSpedizione).FirstOrDefault()!.IdCategoriaSpedizione;
 
             var fNotifica = categorieTotale.TryGetValue(idCategoria, out decimal totale);
             var fprezzoInter = categorieTipiPrezziInter.TryGetValue(cmd.IdTipoSpedizione, out decimal prezzoInter);

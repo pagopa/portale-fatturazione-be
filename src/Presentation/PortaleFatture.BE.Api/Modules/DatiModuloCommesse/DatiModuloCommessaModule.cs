@@ -9,7 +9,6 @@ using PortaleFatture.BE.Api.Modules.DatiModuloCommesse.Extensions;
 using PortaleFatture.BE.Api.Modules.DatiModuloCommesse.Payload;
 using PortaleFatture.BE.Api.Modules.DatiModuloCommesse.Payload.Response;
 using PortaleFatture.BE.Core.Exceptions;
-using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Core.Resources;
 using PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.Queries;
 using static Microsoft.AspNetCore.Http.TypedResults;
@@ -42,10 +41,10 @@ public partial class DatiModuloCommessaModule
         foreach (var cmd in command.DatiModuloCommessaListCommand!) 
             cmd.IdEnte = idente;
 
-        var moduli = await handler.Send(command);
-        if (moduli == null)
+        var modulo = await handler.Send(command);
+        if (modulo == null)
             throw new DomainException(localizer["xxx"]);
-        return Ok(new DatiModuloCommessaResponse()); 
+        return Ok(modulo.Mapper()); 
     }
 
     [AllowAnonymous]
@@ -63,13 +62,13 @@ public partial class DatiModuloCommessaModule
         if (string.IsNullOrEmpty(idente))
             throw new DomainException(localizer["xxx"]); 
 
-        var moduli = await handler.Send(new DatiModuloCommessaQueryGet()
+        var modulo = await handler.Send(new DatiModuloCommessaQueryGet()
         {
              IdEnte = idente
         });
-        if (moduli!.IsNullNotAny())
+        if (modulo == null)
             NotFound(localizer["xxx"]);
 
-        return Ok(moduli!.ToList().Mapper());
+        return Ok(modulo!.Mapper());
     }
 }

@@ -1,9 +1,9 @@
 ﻿using MediatR;
 using PortaleFatture.BE.Core.Auth;
-using PortaleFatture.BE.Core.Entities.DatiModuloCommesse;
+using PortaleFatture.BE.Core.Entities.DatiModuloCommesse.Dto;
 
 namespace PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.Queries;
-public class DatiModuloCommessaQueryGet : IRequest<IEnumerable<DatiModuloCommessa>?>
+public class DatiModuloCommessaQueryGet : IRequest<ModuloCommessaDto?>
 {
     IAuthenticationInfo? AuthenticationInfo { get; set; }
     public string? Prodotto { get; set; }

@@ -25,7 +25,7 @@ using        (VALUES
                 @stato
              )
              ) AS source (idente, idtipocontratto, prodotto, IdCategoriaSpedizione, annovalidita, mesevalidita, TotaleCategoria, stato )
-ON dm.fkidente = source.idente
+ON           dm.fkidente = source.idente
 AND          dm.fkidtipocontratto = source.idtipocontratto
 AND          dm.fkprodotto = source.prodotto
 AND          dm.fkIdCategoriaSpedizione = source.IdCategoriaSpedizione
@@ -33,7 +33,7 @@ AND          dm.annovalidita = source.annovalidita
 AND          dm.mesevalidita = source.mesevalidita
 WHEN matched THEN
 UPDATE
-SET              TotaleCategoria = source.TotaleCategoria, 
+SET              TotaleCategoria = source.TotaleCategoria
 WHEN NOT matched THEN
 INSERT
        (
@@ -41,7 +41,7 @@ INSERT
               fkidtipocontratto,
               fkidstato,
               fkprodotto,
-              fkidtipospedizione,
+              fkIdCategoriaSpedizione,
               annovalidita,
               mesevalidita,
               TotaleCategoria
@@ -52,7 +52,7 @@ INSERT
               source.idtipocontratto,
               source.stato,
               source.prodotto,
-              source.idtipospedizione,
+              source.IdCategoriaSpedizione,
               source.annovalidita,
               source.mesevalidita,
               source.TotaleCategoria

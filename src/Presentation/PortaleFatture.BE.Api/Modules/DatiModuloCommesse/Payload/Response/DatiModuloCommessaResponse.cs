@@ -11,7 +11,7 @@ public class DatiModuloCommessaSimpleResponse
     public int NumeroNotificheNazionali { get; set; }
     public int NumeroNotificheInternazionali { get; set; }
     public int IdTipoSpedizione { get; set; } 
-    public int TotaleTipoSpedizione { get; set; }
+    public int TotaleNotifiche { get; set; }
 }
 
 public class TotaleDatiModuloCommessaNotifica

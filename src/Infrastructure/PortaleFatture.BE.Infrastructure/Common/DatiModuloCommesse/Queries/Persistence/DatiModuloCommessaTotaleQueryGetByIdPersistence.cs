@@ -31,7 +31,9 @@ public class DatiModuloCommessaTotaleQueryGetByIdPersistence : DapperBase, IQuer
             {
                 idEnte = _idEnte,
                 meseValidita = _meseValidita,
-                annoValidita = _annoValidita
-            }, transaction);;
+                annoValidita = _annoValidita,
+                prodotto = _prodotto,
+                idTipoContratto = _idTipoContratto
+            }, transaction); 
     }
 }

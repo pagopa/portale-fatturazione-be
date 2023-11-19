@@ -37,9 +37,7 @@ public class DatiModuloCommessaCreateCommandHandler : IRequestHandler<DatiModulo
         //validare calendario
         var prodotto = string.Empty;
         long idTipoContratto = 0;
-        string? idEnte = string.Empty;
-        string? stato = string.Empty;
-
+ 
         Dictionary<int, decimal> categorieTotale = new();
         IEnumerable<CategoriaSpedizione>? categorie;
         DatiConfigurazioneModuloCommessa? confModuloCommessa = null;
@@ -57,16 +55,7 @@ public class DatiModuloCommessaCreateCommandHandler : IRequestHandler<DatiModulo
         }
 
         foreach (var cmd in command.DatiModuloCommessaListCommand!) // validazione per id tipo spedizione
-        {
-            //
-            idEnte = cmd.IdEnte;
-            anno = cmd.AnnoValidita;
-            mese = cmd.MeseValidita;
-            idTipoContratto = cmd.IdTipoContratto;
-            prodotto = cmd.Prodotto;
-            stato = cmd.Stato;
-            //
-            idEnte = cmd.IdEnte!;
+        { 
             cmd.Stato ??= StatoModuloCommessa.ApertaCaricato;
             cmd.Prodotto = prodotto;
             cmd.IdTipoContratto = idTipoContratto;
@@ -79,8 +68,9 @@ public class DatiModuloCommessaCreateCommandHandler : IRequestHandler<DatiModulo
             if (!string.IsNullOrEmpty(error))
                 throw new DomainException(_localizer[error, errorDetails]);
         }
+        var common = command.DatiModuloCommessaListCommand!.FirstOrDefault();
 
-        var commandTotale = command.GetTotali(categorie, confModuloCommessa, idEnte, anno, mese, idTipoContratto, prodotto, stato);
+        var commandTotale = command.GetTotali(categorie, confModuloCommessa, common!.IdEnte, anno, mese, idTipoContratto, prodotto, common!.Stato);
 
         using var uow = await _factory.Create(true, cancellationToken: ct);
         try
@@ -107,11 +97,11 @@ public class DatiModuloCommessaCreateCommandHandler : IRequestHandler<DatiModulo
         {
             uow.Rollback();
             var methodName = nameof(DatiConfigurazioneModuloCommessaCreateCommandHandler);
-            _logger.LogError(e, "Errore nel salvataggio del modulo commessa: \"{MethodName}\" per tipo ente: \"{idEnte}\"", methodName, idEnte);
+            _logger.LogError(e, "Errore nel salvataggio del modulo commessa: \"{MethodName}\" per tipo ente: \"{idEnte}\"", methodName, common!.IdEnte);
             throw new DomainException(_localizer["xxx"]);
         }
-        var datic = await uow.Query(new DatiModuloCommessaQueryGetByIdPersistence(idEnte, anno, mese, idTipoContratto, prodotto), ct);
-        var datit = await uow.Query(new DatiModuloCommessaTotaleQueryGetByIdPersistence(idEnte, anno, mese, idTipoContratto, prodotto), ct);
+        var datic = await uow.Query(new DatiModuloCommessaQueryGetByIdPersistence(common!.IdEnte, anno, mese, idTipoContratto, prodotto), ct);
+        var datit = await uow.Query(new DatiModuloCommessaTotaleQueryGetByIdPersistence(common!.IdEnte, anno, mese, idTipoContratto, prodotto), ct);
         return new ModuloCommessaDto()
         {
             DatiModuloCommessa = datic!,
