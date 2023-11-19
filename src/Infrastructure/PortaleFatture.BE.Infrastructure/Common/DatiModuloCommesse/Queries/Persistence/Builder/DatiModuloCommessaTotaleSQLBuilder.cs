@@ -1,4 +1,5 @@
 ﻿using Dapper;
+using PortaleFatture.BE.Core.Entities.DatiFatturazioni;
 using PortaleFatture.BE.Core.Entities.DatiModuloCommesse;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 
@@ -33,6 +34,7 @@ public class DatiModuloCommessaTotaleSQLBuilder
     public static string SelectBy()
     {
         var tableName = nameof(DatiModuloCommessaTotale); 
+        tableName = tableName.GetTable<DatiModuloCommessaTotale>();
         var builder = CreateSelect();
         var where = WhereById();
         builder.Where(where); 

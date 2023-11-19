@@ -3,11 +3,13 @@ using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using PortaleFatture.BE.Core.Entities.DatiModuloCommesse;
 using PortaleFatture.BE.Core.Entities.DatiModuloCommesse.Dto;
+using PortaleFatture.BE.Core.Entities.Tipologie;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Core.Resources;
 using PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.Queries;
 using PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.Queries.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.Persistence.Schemas;
+using PortaleFatture.BE.Infrastructure.Common.Tipologie.Queries.Persistence;
 
 namespace PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.QueryHandlers
 {
@@ -31,8 +33,23 @@ namespace PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.QueryHandle
         {
             var adesso = DateTime.UtcNow.ItalianTime();
             var (anno, mese) = adesso.YearMonth();
+            var prodotto = string.Empty;
+            long idTipoContratto = 0;
+
+
+            using (var rs = await _factory.Create(true, cancellationToken: ct))
+            {
+                var prodotti = await rs.Query(new ProdottoQueryGetAllPersistence(), ct); // prenderlo dal token
+                prodotto = prodotti.FirstOrDefault()!.Nome;
+
+                var contratti = await rs.Query(new TipoContrattoQueryGetAllPersistence(), ct); //???
+                idTipoContratto = contratti.Select(x => x.Id).FirstOrDefault(); 
+            }
             request.AnnoValidita = anno;
             request.MeseValidita = mese;
+            request.Prodotto = prodotto;
+            request.IdTipoContratto = idTipoContratto;
+
             using var uow = await _factory.Create(true, cancellationToken: ct); 
             var datic = await uow.Query(new DatiModuloCommessaQueryGetByIdPersistence(request.IdEnte, anno, mese, request.IdTipoContratto, request.Prodotto), ct);
             var datit = await uow.Query(new DatiModuloCommessaTotaleQueryGetByIdPersistence(request.IdEnte, anno, mese, request.IdTipoContratto, request.Prodotto), ct);

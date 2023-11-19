@@ -14,7 +14,7 @@ public class DatiModuloCommessaTotaleQueryGetByIdPersistence : DapperBase, IQuer
     private readonly int _annoValidita;
     private readonly long _meseValidita;
     private readonly string? _idEnte;
-    private static readonly string _sqlSelect = DatiModuloCommessaSQLBuilder.SelectBy();
+    private static readonly string _sqlSelect = DatiModuloCommessaTotaleSQLBuilder.SelectBy();
 
     public DatiModuloCommessaTotaleQueryGetByIdPersistence(string? idEnte, int annoValidita, int meseValidita, long? idTipoContratto, string? prodotto)
     {
