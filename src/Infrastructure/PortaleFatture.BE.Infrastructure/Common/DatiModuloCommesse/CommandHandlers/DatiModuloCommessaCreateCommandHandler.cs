@@ -37,7 +37,8 @@ public class DatiModuloCommessaCreateCommandHandler : IRequestHandler<DatiModulo
         //validare calendario
         var prodotto = string.Empty;
         long idTipoContratto = 0;
- 
+        string? stato = string.Empty;
+
         Dictionary<int, decimal> categorieTotale = new();
         IEnumerable<CategoriaSpedizione>? categorie;
         DatiConfigurazioneModuloCommessa? confModuloCommessa = null;
@@ -52,11 +53,14 @@ public class DatiModuloCommessaCreateCommandHandler : IRequestHandler<DatiModulo
 
             categorie = await rs.Query(new SpedizioneQueryGetAllPersistence());
             confModuloCommessa = await rs.Query(new DatiConfigurazioneModuloCommessaQueryGetPersistence(idTipoContratto, prodotto), ct);
+
+            var statoCommessa = await rs.Query(new StatoCommessaQueryGetByDefaultPersistence(), ct);
+            stato = statoCommessa!.Stato;
         }
 
         foreach (var cmd in command.DatiModuloCommessaListCommand!) // validazione per id tipo spedizione
         { 
-            cmd.Stato ??= StatoModuloCommessa.ApertaCaricato;
+            cmd.Stato = stato;
             cmd.Prodotto = prodotto;
             cmd.IdTipoContratto = idTipoContratto;
             cmd.AnnoValidita = anno;
