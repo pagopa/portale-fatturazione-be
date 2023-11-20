@@ -13,17 +13,17 @@ public class DatiConfigurazioneModuloCommessaCreateCommandPersistence : DapperBa
 
     private static readonly string _sqlInsertTipo = @"
 INSERT INTO [schema]costonotifiche
-            (medianotificanazionale,
-             medianotificainternazionale,
-             fktipospedizione,
-             fkidtipocontratto,
-             fkprodotto,
-             datainiziovalidita, 
-             datacreazione, 
-             descrizione)
+           (MediaNotificaNazionale,
+            MediaNotificaInternazionale,
+            FkIdTipoSpedizione,
+            FkIdTipoContratto,
+            FkProdotto,
+            DataInizioValidita, 
+            DataCreazione, 
+            Descrizione)
 VALUES     (@medianotificanazionale,
             @medianotificainternazionale, 
-            @tipospedizione,
+            @idtipospedizione,
             @idtipocontratto,
             @prodotto,
             @datainiziovalidita,
@@ -48,8 +48,17 @@ VALUES     (@prodotto,
             @datacreazione); ";
     public async Task<int> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
     {
-        var resultTipi = await ((IDatabase)this).ExecuteAsync(connection!, _sqlInsertTipo.Add(schema), _command.Tipi, transaction);
-        var resultCategorie = await ((IDatabase)this).ExecuteAsync(connection!, _sqlInsertCategoria.Add(schema), _command.Categorie, transaction);
-        return resultTipi + resultCategorie;
+        try
+        {
+            var resultTipi = await ((IDatabase)this).ExecuteAsync(connection!, _sqlInsertTipo.Add(schema), _command.Tipi, transaction);
+            var resultCategorie = await ((IDatabase)this).ExecuteAsync(connection!, _sqlInsertCategoria.Add(schema), _command.Categorie, transaction);
+            return resultTipi + resultCategorie;
+        }
+        catch (Exception ex)
+        {
+            var dummy = ex;
+            return 0;
+        }
+ 
     }
 }

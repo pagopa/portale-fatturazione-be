@@ -4,7 +4,7 @@ using PortaleFatture.BE.Infrastructure.Common.Persistence.Schemas;
 
 namespace PortaleFatture.BE.Infrastructure.Common.Persistence;
 
-public class DbContextFactory : IDbContextFactory, IFattureDbContextFactory
+public class DbContextFactory : IDbContextFactory, IFattureDbContextFactory, ISelfCareDbContextFactory
 {
     private readonly string _schema;
     private readonly string _connectionString;

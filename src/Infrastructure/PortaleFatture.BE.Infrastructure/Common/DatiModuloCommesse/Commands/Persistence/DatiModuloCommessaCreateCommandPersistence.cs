@@ -28,7 +28,7 @@ using        (VALUES
                           @stato
              )
              ) AS source (numeronotifichenazionali, numeronotificheinternazionali, datamodifica, idente, idtipocontratto, prodotto, idtipospedizione, annovalidita, mesevalidita, datacreazione, stato )
-ON dm.fkidente = source.idente
+ON           dm.fkidente = source.idente
 AND          dm.fkidtipocontratto = source.idtipocontratto
 AND          dm.fkprodotto = source.prodotto
 AND          dm.fkidtipospedizione = source.idtipospedizione
@@ -47,7 +47,7 @@ INSERT
               datacreazione,
               fkidente,
               fkidtipocontratto,
-              stato,
+              fkidstato,
               fkprodotto,
               fkidtipospedizione,
               annovalidita,

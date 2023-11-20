@@ -15,7 +15,7 @@ public record DatiConfigurazioneModuloCategoriaCommessaResponse
 
 public record DatiConfigurazioneModuloTipoCommessaResponse
 { 
-    public int TipoSpedizione { get; set; }
+    public int IdTipoSpedizione { get; set; }
     public decimal MediaNotificaNazionale { get; set; }
     public decimal MediaNotificaInternazionale { get; set; } 
     public string? Descrizione { get; set; }

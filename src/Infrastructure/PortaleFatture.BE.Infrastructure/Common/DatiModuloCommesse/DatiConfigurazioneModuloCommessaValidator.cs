@@ -22,7 +22,7 @@ public static class DatiConfigurazioneModuloCommessaValidator
             foundCat.DataInizioValidita = dataCreazione;
             foreach (var tp in cat.TipoSpedizione!)
             {
-                var foundTipo = command.Tipi!.Where(x => x.TipoSpedizione == tp.Id).FirstOrDefault();
+                var foundTipo = command.Tipi!.Where(x => x.IdTipoSpedizione == tp.Id).FirstOrDefault();
                 if (foundTipo == null)
                     return ("xxx", Array.Empty<string>());
                 foundTipo.Descrizione = tp.Descrizione;

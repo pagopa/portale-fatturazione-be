@@ -35,7 +35,7 @@ public class DatiConfigurazioneModuloCommessaSQLBuilder
         var builder = new SqlBuilder(); 
         builder.Select(nameof(@obj.IdTipoContratto).GetAsColumn<DatiConfigurazioneModuloTipoCommessa>());
         builder.Select(nameof(@obj.Prodotto).GetAsColumn<DatiConfigurazioneModuloTipoCommessa>());
-        builder.Select(nameof(@obj.TipoSpedizione).GetAsColumn<DatiConfigurazioneModuloTipoCommessa>());
+        builder.Select(nameof(@obj.IdTipoSpedizione).GetAsColumn<DatiConfigurazioneModuloTipoCommessa>());
         builder.Select(nameof(@obj.MediaNotificaNazionale));
         builder.Select(nameof(@obj.MediaNotificaInternazionale));
         builder.Select(nameof(@obj.DataCreazione));

@@ -56,7 +56,7 @@ public class DatiConfigurazioneModuloCommessaCreateCommandTests
         {
             command.Tipi.Add(new DatiConfigurazioneModuloCommessaCreateTipoCommand()
             {
-                TipoSpedizione = tipo.Id,
+                IdTipoSpedizione = tipo.Id,
                 DataCreazione = adesso,
                 DataInizioValidita = adesso,
                 Descrizione = expectedDescrizione,

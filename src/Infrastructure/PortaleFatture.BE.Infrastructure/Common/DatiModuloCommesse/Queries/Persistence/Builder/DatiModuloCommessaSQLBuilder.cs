@@ -12,7 +12,9 @@ public class DatiModuloCommessaSQLBuilder
         var fieldIdEnte = nameof(@obj.IdEnte).GetColumn<DatiModuloCommessa>();
         var fieldAnno = nameof(@obj.AnnoValidita);
         var fieldMese = nameof(@obj.MeseValidita);
-        return $"{fieldIdEnte} = @{nameof(@obj.IdEnte)} AND {fieldAnno} = @{nameof(@obj.AnnoValidita)} AND  {fieldMese} = @{nameof(@obj.MeseValidita)}";
+        var prodotto = nameof(@obj.Prodotto).GetColumn<DatiModuloCommessa>();
+        var idTipoContratto = nameof(@obj.IdTipoContratto).GetColumn<DatiModuloCommessa>();
+        return $"{idTipoContratto} = @{nameof(@obj.IdTipoContratto)} AND {fieldIdEnte} = @{nameof(@obj.IdEnte)} AND {fieldAnno} = @{nameof(@obj.AnnoValidita)} AND  {fieldMese} = @{nameof(@obj.MeseValidita)} AND  {prodotto} = @{nameof(@obj.Prodotto)}";
     }
 
     private static SqlBuilder CreateSelect()
@@ -29,7 +31,7 @@ public class DatiModuloCommessaSQLBuilder
         builder.Select(nameof(@obj.AnnoValidita));
         builder.Select(nameof(@obj.NumeroNotificheInternazionali));
         builder.Select(nameof(@obj.NumeroNotificheNazionali));
-        builder.Select(nameof(@obj.Stato));
+        builder.Select(nameof(@obj.Stato).GetAsColumn<DatiModuloCommessa>());
         return builder;
     }
 
