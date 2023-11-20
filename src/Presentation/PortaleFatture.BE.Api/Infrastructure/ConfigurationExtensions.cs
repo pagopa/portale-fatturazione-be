@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Security;
 using System.Text;
 using System.Text.Json;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics;
@@ -253,16 +254,9 @@ public static class ConfigurationExtensions
     {
         services
             .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddJwtBearer(options => options.JwtAuthenticationConfiguration(jwtAuth));
+            .AddJwtBearer(options => options.JwtAuthenticationConfiguration(jwtAuth)); 
 
-        services
-            .AddAuthentication(MerchantApiKeyDefaults.AuthenticationScheme)
-            .AddScheme<MerchantApiKeyDefaults, MerchantApiKeySchemeHandler>(
-                MerchantApiKeyDefaults.AuthenticationScheme, _ => { });
-
-        services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
-        services.AddSingleton<IAuthenticationSchemeProvider, CustomAuthenticationSchemeProvider>();
-
+        services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>(); 
         return services;
     }
 
