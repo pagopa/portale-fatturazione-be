@@ -36,6 +36,7 @@ public static class DatiModuloCommessaExtensions
             .Select(x => new KeyValuePair<int, decimal>(x.IdCategoriaSpedizione, x.Percentuale))
             .ToDictionary(x => x.Key, x => x.Value);
 
+        var numeroTotaleNotifiche = command.DatiModuloCommessaListCommand!.Select(x => x.NumeroNotificheNazionali + x.NumeroNotificheInternazionali).Sum();
         foreach (var cmd in command.DatiModuloCommessaListCommand!) // per id tipo spedizione
         {
 
@@ -46,10 +47,17 @@ public static class DatiModuloCommessaExtensions
             var fprezzoNaz = categorieTipiPrezziNaz.TryGetValue(cmd.IdTipoSpedizione, out decimal prezzoNaz);
             var prezzo = cmd.NumeroNotificheInternazionali * prezzoInter + cmd.NumeroNotificheNazionali * prezzoNaz;
 
-            if (fNotifica)
-                categorieTotale[idCategoria] += prezzo;
+            var categoriaDigitale = categorie!.Where(x => x.Tipo!.ToLower().Contains("digitale")).FirstOrDefault(); // seleziono digitale
+
+            if(categoriaDigitale!.Id == idCategoria) 
+                categorieTotale[idCategoria] = prezzoNaz * numeroTotaleNotifiche; 
             else
-                categorieTotale.Add(idCategoria, prezzo);
+            {
+                if (fNotifica)
+                    categorieTotale[idCategoria] += prezzo;
+                else
+                    categorieTotale.Add(idCategoria, prezzo);
+            } 
         }
 
 

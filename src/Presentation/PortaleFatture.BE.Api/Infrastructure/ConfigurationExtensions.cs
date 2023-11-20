@@ -231,6 +231,8 @@ public static class ConfigurationExtensions
         var options = optionsMonitor.CurrentValue;
         var dbConnectionString = options.ConnectionString ??
                       throw new ConfigurationException("Db connection string not configured");
+
+
         var fattureSchema = options.FattureSchema ??
                       throw new ConfigurationException($"Db schema fatture not existent");
 
