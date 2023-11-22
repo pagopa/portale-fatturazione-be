@@ -15,7 +15,9 @@ public static class ServiceProvider
     {
         var services = new ServiceCollection();
         var configurationBuilder = new ConfigurationBuilder()
-            .AddJsonFile("appsettings.Development.json").Build();
+            .AddJsonFile("appsettings.Development.json")
+            .AddEnvironmentVariables()
+            .Build();
 
         services.AddSingleton<IConfiguration>(configurationBuilder);
 

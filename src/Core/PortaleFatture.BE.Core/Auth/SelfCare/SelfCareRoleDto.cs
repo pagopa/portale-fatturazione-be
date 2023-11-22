@@ -2,7 +2,7 @@
 
 namespace PortaleFatture.BE.Core.Auth.SelfCare;
 
-public class SelfCareRole
+public class SelfCareRoleDto
 {
     [JsonPropertyName("partyRole")]
     public string? PartyRole { get; set; }

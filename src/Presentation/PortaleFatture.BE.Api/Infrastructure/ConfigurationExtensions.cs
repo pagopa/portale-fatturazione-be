@@ -1,17 +1,13 @@
 ﻿using System.Diagnostics;
 using System.Reflection;
 using System.Security;
-using System.Text;
 using System.Text.Json;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.AspNetCore.HttpOverrides;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Polly;
 using Polly.Extensions.Http;
@@ -30,11 +26,6 @@ public static class ConfigurationExtensions
 {
     private static readonly ModuleManager ModuleManager = new();
 
-    [DebuggerStepThrough]
-    private static string[] ToArray(this string list, char separator = ';')
-    {
-        return list.Split(separator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToArray();
-    }
 
     public static IServiceCollection AddModules(
         this IServiceCollection services,
@@ -43,36 +34,17 @@ public static class ConfigurationExtensions
         services.AddAssemblyToModuleRegistration(typeof(ConfigurationExtensions).Assembly);
 
         services.AddLogging(o => o.AddConfiguration(configuration.GetSection("Logging")));
+ 
+        var jwtAuth = new JwtConfiguration()
+        {
+            Secret = configuration.GetSection("PortaleFattureOptions:JWT:Secret").Value,
+            ValidIssuer = configuration.GetSection("PortaleFattureOptions:JWT:ValidIssuer").Value,
+            ValidAudience = configuration.GetSection("PortaleFattureOptions:JWT:ValidAudience").Value
+        };
 
         services
-            .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddJwtBearer(options =>
-            {
-                options.TokenValidationParameters = new TokenValidationParameters
-                {
-                    ValidateIssuer = true,
-                    ValidIssuer = "issuer",
-                    ValidateAudience = true,
-                    ValidAudience = "audience",
-                    ValidateLifetime = true,
-                    ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("secret")),
-                    RequireExpirationTime = true,
-                    ClockSkew = TimeSpan.Zero
-                };
-                options.Events = new JwtBearerEvents
-                {
-                    OnAuthenticationFailed = context =>
-                    {
-                        if (context.Exception.GetType() == typeof(SecurityTokenExpiredException))
-                        {
-                            context.Response.Headers.Add("Is-Token-Expired", "true");
-                        }
-
-                        return Task.CompletedTask;
-                    }
-                };
-            });
+            .AddJwtOrApiKeyAuthentication(jwtAuth)
+            .AddIdentities(jwtAuth);
 
         services
             .AddAuthorization()
@@ -162,7 +134,7 @@ public static class ConfigurationExtensions
             .UseCulture()
             .UseSwagger()
             .UseSwaggerUI()
-            .UseCors("portalefatture")
+            .UseCors(Module.CORSLabel)
             .UseHttpsRedirection()
             .UseExceptionHandler(exceptionHandlerApp =>
                 exceptionHandlerApp.Run(context =>
@@ -206,8 +178,7 @@ public static class ConfigurationExtensions
     {
         services.Configure<PortaleFattureOptions>(configuration.GetSection(nameof(PortaleFattureOptions)));
         services
-            .AddPersistence()
-            .AddAuthentication(JwtBearerDefaults.AuthenticationScheme);
+            .AddPersistence();
 
         services
         .AddPortaleFattureHealthChecks();
@@ -222,41 +193,31 @@ public static class ConfigurationExtensions
         });
 
         services.AddHttpClient();
-        services.AddSingleton<IPagoPaHttpClient, PagoPaHttpClient>();
+        services.AddSingleton<ISelfCareHttpClient, SelfCareHttpClient>();
         return services;
     }
 
-    private static IServiceCollection AddIdentities(this IServiceCollection services)
+    private static IServiceCollection AddIdentities(this IServiceCollection services, JwtConfiguration jwtAuth)
     {
-        services
-            .AddIdentityCore<AuthenticationInfo>(options =>
-            {
-                options.Lockout.AllowedForNewUsers = false;
-                options.Tokens.PasswordResetTokenProvider = TokenOptions.DefaultEmailProvider;
-            })
-            .AddRoles<IdentityRole>() 
-            .AddDefaultTokenProviders()
-            .AddTokenProvider<DataProtectorTokenProvider<AuthenticationInfo>>(TokenOptions.DefaultProvider);
 
         services
-            .AddScoped<ITokensService, JwtTokenService>()
-            .AddScoped<IRolesService, IdentityRolesService>()
-            .AddScoped<IUsersService, IdentityUsersService>();
-
+            .AddScoped<ITokenService>(_ => new JwtTokenService(jwtAuth))
+            .AddScoped<IIdentityUsersService, IdentityUsersService>()
+            .AddSingleton<ISelfCareTokenService, SelfCareTokenService>() 
+            .AddSingleton<IProfileService, ProfileService>();
         services
             .AddAuthorization();
 
         return services;
     }
 
-    private static IServiceCollection AddJwtOrApiKeyAuthentication(this IServiceCollection services,
-        JwtConfiguration jwtAuth)
+    private static IServiceCollection AddJwtOrApiKeyAuthentication(this IServiceCollection services, JwtConfiguration jwtAuth)
     {
         services
             .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddJwtBearer(options => options.JwtAuthenticationConfiguration(jwtAuth)); 
+            .AddJwtBearer(options => options.JwtAuthenticationConfiguration(jwtAuth));
 
-        services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>(); 
+        services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
         return services;
     }
 
@@ -274,11 +235,11 @@ public static class ConfigurationExtensions
         var fattureSchema = options.FattureSchema ??
                       throw new ConfigurationException($"Db schema fatture not existent");
 
-        var selfCareSchema = options.FattureSchema ??
+        var selfCareSchema = options.SelfCareSchema ??
               throw new ConfigurationException($"Db schema fatture not existent");
 
-        services.AddSingleton<ISelfCareDbContextFactory>(new DbContextFactory(dbConnectionString, fattureSchema));
-        services.AddSingleton<IFattureDbContextFactory>(new DbContextFactory(dbConnectionString, selfCareSchema)); 
+        services.AddSingleton<ISelfCareDbContextFactory>(new DbContextFactory(dbConnectionString, selfCareSchema));
+        services.AddSingleton<IFattureDbContextFactory>(new DbContextFactory(dbConnectionString, fattureSchema ));
         return services;
     }
 

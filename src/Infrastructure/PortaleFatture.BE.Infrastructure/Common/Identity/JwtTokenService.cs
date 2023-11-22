@@ -3,25 +3,34 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
 using PortaleFatture.BE.Core.Auth;
+using PortaleFatture.BE.Core.Extensions;
+using PortaleFatture.BE.Infrastructure.Extensions;
 
 namespace PortaleFatture.BE.Infrastructure.Common.Identity;
 
-public class JwtTokenService : ITokensService
+public class JwtTokenService : ITokenService
 {
     private readonly string _audience;
     private readonly string _issuer;
     private readonly byte[] _tokenKey;
+    private const int HOURS = 4;
     public JwtTokenService(string audience, string issuer, string secret)
-    { 
+    {
         _tokenKey = Encoding.UTF8.GetBytes(secret);
         _audience = audience;
         _issuer = issuer;
     }
 
-    public (string token, DateTime validTo) GenerateJwtTokens(string username, IList<Claim> authClaims)
+    public JwtTokenService(JwtConfiguration conf)
+    {
+        _tokenKey = Encoding.UTF8.GetBytes(conf.Secret!);
+        _audience = conf.ValidAudience!;
+        _issuer = conf.ValidIssuer!;
+    }
+    public ProfileInfo GenerateJwtToken(IList<Claim> authClaims)
     {
         var tokenHandler = new JwtSecurityTokenHandler();
-        var validTo = DateTime.UtcNow.AddHours(1);
+        var validTo = DateTime.UtcNow.ItalianTime().AddHours(HOURS);
         var tokenDescriptor = new SecurityTokenDescriptor
         {
             Audience = _audience,
@@ -33,8 +42,9 @@ public class JwtTokenService : ITokensService
                 SecurityAlgorithms.HmacSha256Signature)
         };
         var token = tokenHandler.CreateToken(tokenDescriptor);
+        var jwt = tokenHandler.WriteToken(token);
 
-        return (tokenHandler.WriteToken(token), validTo);
+        return authClaims.Mapper(jwt, validTo);
     }
 
     public ClaimsPrincipal GetPrincipalFromExpiredToken(string token)
@@ -60,4 +70,4 @@ public class JwtTokenService : ITokensService
 
         return principal;
     }
-} 
+}

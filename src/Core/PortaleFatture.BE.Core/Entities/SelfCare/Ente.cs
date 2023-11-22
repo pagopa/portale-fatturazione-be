@@ -9,7 +9,7 @@ public class Ente
     public string? IdEnte { get; set; }
 
     [Column("institutionType")]
-    public string? Ruolo { get; set; }
+    public string? Profilo { get; set; }
 
     [Column("description")]
     public string? Descrizione { get; set; }

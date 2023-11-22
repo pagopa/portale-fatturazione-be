@@ -53,7 +53,7 @@ public static class DatiConfigurazioneModuloCommessaExtensions
     public static DatiConfigurazioneModuloCategoriaCommessaResponse Mapper(this DatiConfigurazioneModuloCategoriaCommessa model) =>
        new()
        {
-           Descrizione = model.Descrizione,
+           Descrizione = model.Descrizione!.Replace("[percent]", model.Percentuale.ToString()),
            IdCategoriaSpedizione = model.IdCategoriaSpedizione,
            Percentuale = model.Percentuale
        };

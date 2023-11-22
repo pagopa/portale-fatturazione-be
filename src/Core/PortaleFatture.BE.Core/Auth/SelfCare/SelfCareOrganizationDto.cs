@@ -1,7 +1,8 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Data;
+using System.Text.Json.Serialization;
 
 namespace PortaleFatture.BE.Core.Auth.SelfCare; 
-public class SelfCareOrganization
+public class SelfCareOrganizationDto
 {
     [JsonPropertyName("id")]
     public string? Id { get; set; }
@@ -12,8 +13,11 @@ public class SelfCareOrganization
     [JsonPropertyName("name")]
     public string? Name { get; set; }
 
+    [JsonPropertyName("ipaCode")]
+    public string? IpaCode { get; set; }
+
     [JsonPropertyName("roles")]
-    public List<SelfCareRole>? Roles { get; set; }
+    public List<SelfCareRoleDto>? Roles { get; set; }
 
     [JsonPropertyName("groups")]
     public List<string>? Groups { get; set; }

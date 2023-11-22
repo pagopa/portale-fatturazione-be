@@ -15,7 +15,10 @@ public static class ServiceProvider
     {
         var services = new ServiceCollection();
         var configurationBuilder = new ConfigurationBuilder()
-            .AddJsonFile("appsettings.Development.json").Build();
+            .AddJsonFile("appsettings.Development.json", optional: true)
+            .AddUserSecrets("27e0801e-8863-4e92-af93-631a5685fed4")
+            .AddEnvironmentVariables()
+            .Build();
 
         services.AddSingleton<IConfiguration>(configurationBuilder);
 
@@ -24,10 +27,12 @@ public static class ServiceProvider
             .GetRequiredService<IConfiguration>();
 
         var sconf = configuration!.GetSection(nameof(PortaleFattureOptions));
-        services.Configure<PortaleFattureOptions>(o => { o.SelfCareCertEndpoint = configuration.GetSection("PortaleFattureOptions:SelfCareCertEndpoint").Value;
+        services.Configure<PortaleFattureOptions>(o =>
+        {
+            o.SelfCareCertEndpoint = configuration.GetSection("PortaleFattureOptions:SelfCareCertEndpoint").Value;
             o.ConnectionString = configuration.GetSection("PortaleFattureOptions:ConnectionString").Value;
             o.SelfCareUri = configuration.GetSection("PortaleFattureOptions:SelfCareUri").Value;
-            });
+        });
 
         var options = services
             .BuildServiceProvider()
@@ -46,7 +51,8 @@ public static class ServiceProvider
 
         services.AddHttpClient();
 
-        services.AddSingleton<IPagoPaHttpClient, PagoPaHttpClient>();
+        services.AddSingleton<ISelfCareHttpClient, SelfCareHttpClient>();
+        services.AddSingleton<ISelfCareTokenService, SelfCareTokenService>();
 
         return services.BuildServiceProvider();
     }

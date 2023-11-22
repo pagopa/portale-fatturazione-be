@@ -17,6 +17,7 @@ namespace PortaleFatture.BE.Api.Modules.DatiFatturazioni;
 public partial class TipologieModule
 {
     [AllowAnonymous]
+    [Authorize()]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

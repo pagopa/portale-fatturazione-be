@@ -9,25 +9,25 @@ using PortaleFatture.BE.Infrastructure.Common.SelfCare.Queries.Persistence;
 
 namespace PortaleFatture.BE.Infrastructure.Common.SelfCare.QueryHandlers;
 
-public class ContrattoQueryHandler : IRequestHandler<ContrattoQueryGetById, Contratto?>
+public class EnteQueryHandler : IRequestHandler<EnteQueryGetById, Ente?>
 {
     private readonly ISelfCareDbContextFactory _factory;
-    private readonly ILogger<ContrattoQueryHandler> _logger;
+    private readonly ILogger<EnteQueryGetById> _logger;
     private readonly IStringLocalizer<Localization> _localizer;
 
-    public ContrattoQueryHandler(
+    public EnteQueryHandler(
      ISelfCareDbContextFactory factory,
      IStringLocalizer<Localization> localizer,
-     ILogger<ContrattoQueryHandler> logger)
+     ILogger<EnteQueryGetById> logger)
     {
         _factory = factory;
         _localizer = localizer;
         _logger = logger;
     }
-    public async Task<Contratto?> Handle(ContrattoQueryGetById request, CancellationToken ct)
+    public async Task<Ente?> Handle(EnteQueryGetById request, CancellationToken ct)
     {
         var idEnte = request.AuthenticationInfo!.IdEnte;
         using var uow = await _factory.Create(cancellationToken: ct);
-        return await uow.Query(new ContrattoQueryGetByIdPersistence(idEnte!), ct);
+        return await uow.Query(new EnteQueryGetByIdPersistence(idEnte!), ct);
     }
 }
