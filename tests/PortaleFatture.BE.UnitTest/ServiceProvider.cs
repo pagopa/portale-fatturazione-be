@@ -39,6 +39,7 @@ public static class ServiceProvider
         var dbConnectionString = options.CurrentValue.ConnectionString ??
                       throw new ConfigurationException("Db connection string not configured");
 
+        services.AddSingleton<ISelfCareDbContextFactory>(new DbContextFactory(dbConnectionString, "pfd"));
         services.AddSingleton<IFattureDbContextFactory>(new DbContextFactory(dbConnectionString, "pfw"));
 
         services.AddMediatR(x => x.RegisterServicesFromAssembly(typeof(RootInfrastructure).Assembly));

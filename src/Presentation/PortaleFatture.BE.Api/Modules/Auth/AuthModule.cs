@@ -47,10 +47,6 @@ public partial class AuthModule : Module, IRegistrableModule
     [FromServices] ITokenService tokensService,
     [FromServices] IStringLocalizer<Localization> localizer)
     {
-        var identity = context.User.Identity as ClaimsIdentity;
-        if (identity != null)
-            return Ok(identity.Claims.Mapper());
-
-        return NotFound();
+        return Ok(context.GetAuthInfo());
     }
 }

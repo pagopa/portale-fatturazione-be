@@ -31,11 +31,12 @@ public class IdentityUsersService : IIdentityUsersService
                 {
                     new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                     new(ClaimTypes.Name, authInfo.Id ?? throw new SecurityException()),
-                    new Claim(ClaimTypes.Role, authInfo.Ruolo ?? throw new SecurityException()),
-                    new Claim(CustomClaim.DescrizioneRuolo, authInfo.DescrizioneRuolo! ?? throw new SecurityException()),
-                    new Claim(CustomClaim.Profilo, authInfo.Profilo ?? throw new SecurityException()),
-                    new Claim(CustomClaim.Prodotto, authInfo.Prodotto ?? throw new SecurityException()),
-                    new Claim(CustomClaim.IdEnte, authInfo.IdEnte ?? throw new SecurityException())
+                    new(ClaimTypes.Role, authInfo.Ruolo ?? throw new SecurityException()),
+                    new(CustomClaim.DescrizioneRuolo, authInfo.DescrizioneRuolo! ?? throw new SecurityException()),
+                    new(CustomClaim.Profilo, authInfo.Profilo ?? throw new SecurityException()),
+                    new(CustomClaim.Prodotto, authInfo.Prodotto ?? throw new SecurityException()),
+                    new(CustomClaim.IdEnte, authInfo.IdEnte ?? throw new SecurityException()),
+                    new(CustomClaim.NomeEnte, authInfo.NomeEnte ?? throw new SecurityException())
               };
 
         if (authInfo.IdTipoContratto != null)

@@ -6,6 +6,9 @@ namespace PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni.Queries;
 
 public class DatiFatturazioneQueryGetByIdEnte : IRequest<DatiFatturazione?>
 {
-    IAuthenticationInfo? AuthenticationInfo { get; set; }
-    public string? IdEnte { get; set; }
+    public IAuthenticationInfo? AuthenticationInfo { get; internal set; }
+    public DatiFatturazioneQueryGetByIdEnte(IAuthenticationInfo? authenticationInfo)
+    {
+        this.AuthenticationInfo = authenticationInfo;
+    } 
 } 

@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Localization;
 using PortaleFatture.BE.Api.Modules.DatiFatturazioni.Extensions;
 using PortaleFatture.BE.Api.Modules.DatiFatturazioni.Payload.Response;
+using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Core.Resources;
@@ -16,7 +17,7 @@ namespace PortaleFatture.BE.Api.Modules.DatiFatturazioni;
 
 public partial class TipologieModule
 {
-    [AllowAnonymous]
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}")]
     [Authorize()]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -34,7 +35,7 @@ public partial class TipologieModule
         return Ok(tipiContratto.Mapper()); 
     }
 
-    [AllowAnonymous]
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}")]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -51,7 +52,7 @@ public partial class TipologieModule
         return Ok(tipiCommessa.Mapper());
     }
 
-    [AllowAnonymous]
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}")]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -68,7 +69,7 @@ public partial class TipologieModule
         return Ok(prodotti.Mapper());
     }
 
-    [AllowAnonymous]
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}")]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

@@ -1,9 +1,8 @@
 ﻿using MediatR;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
-using PortaleFatture.BE.Core.Entities.DatiModuloCommesse;
 using PortaleFatture.BE.Core.Entities.DatiModuloCommesse.Dto;
-using PortaleFatture.BE.Core.Entities.Tipologie;
+using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Core.Resources;
 using PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.Queries;
@@ -32,27 +31,52 @@ namespace PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.QueryHandle
         public async Task<ModuloCommessaDto?> Handle(DatiModuloCommessaQueryGet request, CancellationToken ct)
         {
             var adesso = DateTime.UtcNow.ItalianTime();
-            var (anno, mese) = adesso.YearMonth();
-            var prodotto = string.Empty;
-            long idTipoContratto = 0;
-
+            var (anno, mese) = adesso.YearMonth(); 
+            var idTipoContratto = request.AuthenticationInfo.IdTipoContratto; 
+            var prodotto = request.AuthenticationInfo.Prodotto;
 
             using (var rs = await _factory.Create(true, cancellationToken: ct))
             {
-                var prodotti = await rs.Query(new ProdottoQueryGetAllPersistence(), ct); // prenderlo dal token
-                prodotto = prodotti.FirstOrDefault()!.Nome;
-
-                var contratti = await rs.Query(new TipoContrattoQueryGetAllPersistence(), ct); //???
-                idTipoContratto = contratti.Select(x => x.Id).FirstOrDefault(); 
+                var prodotti = await rs.Query(new ProdottoQueryGetAllPersistence(), ct);
+                if (prodotti.IsNullNotAny())
+                {
+                    var msg = "Provide products in configurazion!";
+                    _logger.LogError(msg);
+                    throw new ConfigurationException(msg);
+                } 
+                prodotto = prodotti.Where(x => x.Nome!.ToLower() == prodotto!.ToLower()).Select(x=> x.Nome).FirstOrDefault();
+                if (prodotto == null)
+                {
+                    var msg = "I could not find the specified product!";
+                    _logger.LogError(msg);
+                    throw new ConfigurationException(msg);
+                }
+                var contratti = await rs.Query(new TipoContrattoQueryGetAllPersistence(), ct);
+                if (contratti.IsNullNotAny())
+                {
+                    var msg = "Provide contracts in configurazion!";
+                    _logger.LogError(msg);
+                    throw new ConfigurationException(msg);
+                }
+                idTipoContratto = contratti.Where(x => x.Id! == idTipoContratto!).Select(x => x.Id).FirstOrDefault();
+                if (idTipoContratto == null)
+                {
+                    var msg = "I could not find the specified contruct!";
+                    _logger.LogError(msg);
+                    throw new ConfigurationException(msg);
+                }
             }
+
             request.AnnoValidita = anno;
             request.MeseValidita = mese;
             request.Prodotto = prodotto;
-            request.IdTipoContratto = idTipoContratto;
+            request.IdTipoContratto = idTipoContratto.Value;
+
+            var idEnte = request.AuthenticationInfo.IdEnte;
 
             using var uow = await _factory.Create(true, cancellationToken: ct); 
-            var datic = await uow.Query(new DatiModuloCommessaQueryGetByIdPersistence(request.IdEnte, anno, mese, request.IdTipoContratto, request.Prodotto), ct);
-            var datit = await uow.Query(new DatiModuloCommessaTotaleQueryGetByIdPersistence(request.IdEnte, anno, mese, request.IdTipoContratto, request.Prodotto), ct);
+            var datic = await uow.Query(new DatiModuloCommessaQueryGetByIdPersistence(idEnte, anno, mese, request.IdTipoContratto, request.Prodotto), ct);
+            var datit = await uow.Query(new DatiModuloCommessaTotaleQueryGetByIdPersistence(idEnte, anno, mese, request.IdTipoContratto, request.Prodotto), ct);
             return new ModuloCommessaDto()
             {
                 DatiModuloCommessa = datic!,

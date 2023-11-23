@@ -1,5 +1,6 @@
 ﻿using PortaleFatture.BE.Api.Modules.DatiModuloCommesse.Payload;
 using PortaleFatture.BE.Api.Modules.DatiModuloCommesse.Payload.Response;
+using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Entities.DatiModuloCommesse;
 using PortaleFatture.BE.Core.Entities.DatiModuloCommesse.Dto;
 using PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.Commands;
@@ -8,12 +9,13 @@ namespace PortaleFatture.BE.Api.Modules.DatiModuloCommesse.Extensions;
 
 public static class DatiModuloCommessaViewModelExtensions
 {
-    public static DatiModuloCommessaCreateListCommand Mapper(this DatiModuloCommessaCreateRequest model)
+    public static DatiModuloCommessaCreateListCommand Mapper(this DatiModuloCommessaCreateRequest model, AuthenticationInfo authInfo)
     {
-        var cmd = new DatiModuloCommessaCreateListCommand
+        var cmd = new DatiModuloCommessaCreateListCommand(authInfo)
         {
             DatiModuloCommessaListCommand = new()
         };
+
         foreach (var md in model.ModuliCommessa!)
             cmd.DatiModuloCommessaListCommand.Add(md.Mapper());
         return cmd;
@@ -61,7 +63,7 @@ public static class DatiModuloCommessaViewModelExtensions
         {
             cmd.TotaleModuloCommessaNotifica.TotaleNumeroNotificheNazionali += mdc.NumeroNotificheNazionali;
             cmd.TotaleModuloCommessaNotifica.TotaleNumeroNotificheInternazionali += mdc.NumeroNotificheInternazionali;
-            cmd.TotaleModuloCommessaNotifica.TotaleNumeroNotificheDaProcessare += mdc.TotaleNotifiche; 
+            cmd.TotaleModuloCommessaNotifica.TotaleNumeroNotificheDaProcessare += mdc.TotaleNotifiche;
         }
         cmd.TotaleModuloCommessaNotifica.Totale = cmd.Totale.Select(x => x.TotaleValoreCategoriaSpedizione).Sum();
         return cmd;

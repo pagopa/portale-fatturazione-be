@@ -314,3 +314,10 @@ VALUES('Digitale', 'Numero complessivo delle notifiche da processare in via digi
 INSERT INTO pfw.TipoCommessa (TipoCommessa,Descrizione) VALUES
 	 (N'1',N'Ordine'),
 	 (N'2',N'Contratto');
+
+INSERT INTO pfw.Stato (Stato,[Default]) VALUES
+	 (N'Apera/Non Caricato',0),
+	 (N'Aperta/Caricato',1),
+	 (N'Archiviato',0),
+	 (N'Chiusa/Caricato',0),
+	 (N'Chiusa/Stimato',0);

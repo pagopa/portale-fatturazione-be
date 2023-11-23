@@ -28,12 +28,9 @@ public class DatiFatturazioneQueryGetByIdEnteHandler : IRequestHandler<DatiFattu
 
     public async Task<DatiFatturazione?> Handle(DatiFatturazioneQueryGetByIdEnte command, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(command.IdEnte))
-            throw new DomainException(_localizer["DatiFatturazioneEmptyIdEnte"]);
+        var idEnte = command.AuthenticationInfo!.IdEnte!;
         using var uow = await _factory.Create(true, cancellationToken: ct);
-        var datiCommessa = await uow.Query(new DatiFatturazioneQueryGetByIdEntePersistence(command.IdEnte!), ct);
-        if (datiCommessa is null)
-            throw new NotFoundException(_localizer["DatiFatturazioneGetErrorIdEnte", command.IdEnte]);
+        var datiCommessa = await uow.Query(new DatiFatturazioneQueryGetByIdEntePersistence(idEnte), ct) ?? throw new NotFoundException(_localizer["DatiFatturazioneGetErrorIdEnte", idEnte]);
         datiCommessa.Contatti = await uow.Query(new DatiFatturazioneContattoQueryGetByIdPersistence(datiCommessa.Id), ct);
         return datiCommessa;
     }

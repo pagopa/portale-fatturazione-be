@@ -6,7 +6,11 @@ namespace PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.Commands;
 
 public class DatiModuloCommessaCreateListCommand : IRequest<ModuloCommessaDto?>
 {
-    public IAuthenticationInfo? AuthenticationInfo { get; set; }
+    public IAuthenticationInfo AuthenticationInfo { get; internal set; }
+    public DatiModuloCommessaCreateListCommand(IAuthenticationInfo authenticationInfo)
+    {
+        this.AuthenticationInfo = authenticationInfo;
+    }
 
     public List<DatiModuloCommessaCreateCommand>? DatiModuloCommessaListCommand { get; set; }
 }

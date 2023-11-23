@@ -18,6 +18,6 @@ public partial class DatiModuloCommessaModule : Module, IRegistrableModule
          .MapGet("api/modulocommessa", GetDatiModuloCommessaAsync)
          .WithName("Permette di ottenere i dati relativi al modulo commessa.")
          .SetOpenApi(Module.DatiModuloCommessaLabel)
-         .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+         .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel)); 
     }
 }

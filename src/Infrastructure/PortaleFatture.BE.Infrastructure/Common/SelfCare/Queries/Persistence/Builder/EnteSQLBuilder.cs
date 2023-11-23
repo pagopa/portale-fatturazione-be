@@ -17,7 +17,8 @@ public class EnteSQLBuilder
     {
         Ente? @obj = null;
         var builder = new SqlBuilder(); 
-        builder.Select(nameof(@obj.Profilo).GetAsColumn<Ente>());  
+        builder.Select(nameof(@obj.Profilo).GetAsColumn<Ente>());
+        builder.Select(nameof(@obj.Descrizione).GetAsColumn<Ente>());
         return builder;
     }
 

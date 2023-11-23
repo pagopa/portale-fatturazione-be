@@ -23,6 +23,7 @@ public static class AuthExtensions
                 Id = authInfo.Id,
                 IdEnte = authInfo.IdEnte,
                 IdTipoContratto = authInfo.IdTipoContratto,
+                NomeEnte = authInfo.NomeEnte,
                 Prodotto = authInfo.Prodotto,
                 Profilo = authInfo.Profilo,
                 Ruolo = authInfo.Ruolo,

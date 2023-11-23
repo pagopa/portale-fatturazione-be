@@ -33,8 +33,9 @@ namespace PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.QueryHandle
             request.AnnoValidita = anno;
             request.MeseValidita = mese;
             using var uow = await _factory.Create(cancellationToken: ct);
+            var idEnte = request.AuthenticationInfo.IdEnte;
             return await uow.Query(new DatiModuloCommessaTotaleQueryGetByIdPersistence(
-                idEnte: request.IdEnte,
+                idEnte: idEnte,
                 annoValidita: request.AnnoValidita,
                 meseValidita: request.MeseValidita,
                 idTipoContratto: null,

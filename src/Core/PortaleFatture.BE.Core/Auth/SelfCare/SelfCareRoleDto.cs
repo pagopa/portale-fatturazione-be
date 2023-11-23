@@ -10,6 +10,6 @@ public class SelfCareRoleDto
     [JsonPropertyName("role")]
     public string? Role { get; set; }
 
-    [JsonPropertyName("product")]
+    [JsonPropertyName("productId")]
     public string? Product { get; set; }
 } 

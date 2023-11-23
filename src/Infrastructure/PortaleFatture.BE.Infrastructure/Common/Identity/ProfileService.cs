@@ -35,6 +35,17 @@ public class ProfileService : IProfileService
         return await Mapper(selfcare!);
     }
 
+    private string Mapper(string mapper)
+    {
+        switch (mapper)
+        {
+            case nameof(Ruolo.OPERATOR):
+                return Ruolo.OPERATOR;
+            default:
+                return Ruolo.ADMIN;
+        }
+    }
+
     private async Task<List<AuthenticationInfo>> Mapper(SelfCareDto model)
     {
         List<AuthenticationInfo> infos = new();
@@ -45,10 +56,10 @@ public class ProfileService : IProfileService
                 Email = model.Email,
                 Id = model.Uid,
                 Prodotto = org.Product,
-                Ruolo = org.PartyRole,
+                Ruolo = Mapper(org.PartyRole!),
                 IdEnte = model.Organization!.Id,
-                DescrizioneRuolo = nameof(org.PartyRole),
-                IdTipoContratto = 0,
+                DescrizioneRuolo = org.PartyRole,
+                IdTipoContratto = 1, //leggere successivamente da db
                 Profilo = string.Empty
             };
             // recupero dati db selfcare
@@ -63,6 +74,7 @@ public class ProfileService : IProfileService
             else
             {
                 auhtInfo.Profilo = ente!.Profilo;
+                auhtInfo.NomeEnte = ente!.Descrizione;
                 infos.Add(auhtInfo);
             }
         }
