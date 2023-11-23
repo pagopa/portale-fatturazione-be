@@ -15,7 +15,8 @@ public static class ServiceProvider
     {
         var services = new ServiceCollection();
         var configurationBuilder = new ConfigurationBuilder()
-            .AddJsonFile("appsettings.Development.json")
+            .AddJsonFile("appsettings.Development.json", optional: true)
+            .AddUserSecrets("d0dd11cf-4318-484a-844d-058470676f42")
             .AddEnvironmentVariables()
             .Build();
 
