@@ -12,6 +12,6 @@ public class DatiModuloCommessaQueryGet : IRequest<ModuloCommessaDto?>
     }
     public string? Prodotto { get; set; }
     public long IdTipoContratto { get; set; }  
-    public int AnnoValidita { get; set; } 
-    public int MeseValidita { get; set; }
+    public int? AnnoValidita { get; set; } 
+    public int? MeseValidita { get; set; }
 } 

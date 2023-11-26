@@ -18,8 +18,17 @@ public static class DomainExtensions
         return italianTime;
     }
 
-    public static (int, int) YearMonth(this DateTime dateUtcTime)
+    public static (int, int) YearMonth(this DateTime dateTime)
     { 
-        return (dateUtcTime.Year, dateUtcTime.Month);
+        return (dateTime.Year, dateTime.Month);
     } 
+}
+
+public static class Time 
+{
+    public static (int, int, DateTime) YearMonth()
+    {
+        var adesso = DateTime.UtcNow.ItalianTime();
+        return (adesso.Year, adesso.Month, adesso);
+    }
 }

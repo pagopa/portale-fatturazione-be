@@ -1,4 +1,6 @@
-﻿using MediatR;
+﻿using Azure.Core;
+using MediatR;
+using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using PortaleFatture.BE.Core.Entities.DatiModuloCommesse.Dto;
@@ -30,8 +32,7 @@ namespace PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.QueryHandle
 
         public async Task<ModuloCommessaDto?> Handle(DatiModuloCommessaQueryGet request, CancellationToken ct)
         {
-            var adesso = DateTime.UtcNow.ItalianTime();
-            var (anno, mese) = adesso.YearMonth(); 
+            var (anno, mese, _) = Time.YearMonth();
             var idTipoContratto = request.AuthenticationInfo.IdTipoContratto; 
             var prodotto = request.AuthenticationInfo.Prodotto;
 
@@ -67,16 +68,20 @@ namespace PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.QueryHandle
                 }
             }
 
-            request.AnnoValidita = anno;
-            request.MeseValidita = mese;
+            request.AnnoValidita = request.AnnoValidita != null ? request.AnnoValidita : anno;
+            request.MeseValidita = request.MeseValidita != null ? request.MeseValidita : mese;
             request.Prodotto = prodotto;
             request.IdTipoContratto = idTipoContratto.Value;
 
             var idEnte = request.AuthenticationInfo.IdEnte;
 
             using var uow = await _factory.Create(true, cancellationToken: ct); 
-            var datic = await uow.Query(new DatiModuloCommessaQueryGetByIdPersistence(idEnte, anno, mese, request.IdTipoContratto, request.Prodotto), ct);
-            var datit = await uow.Query(new DatiModuloCommessaTotaleQueryGetByIdPersistence(idEnte, anno, mese, request.IdTipoContratto, request.Prodotto), ct);
+            var datic = await uow.Query(new DatiModuloCommessaQueryGetByIdPersistence(idEnte, request.AnnoValidita.Value, request.MeseValidita.Value, request.IdTipoContratto, request.Prodotto), ct);
+            var datit = await uow.Query(new DatiModuloCommessaTotaleQueryGetByIdPersistence(idEnte, request.AnnoValidita.Value, request.MeseValidita.Value, request.IdTipoContratto, request.Prodotto), ct);
+
+            if (datic!.IsNullNotAny() || datit!.IsNullNotAny())
+                return null;
+
             return new ModuloCommessaDto()
             {
                 DatiModuloCommessa = datic!,

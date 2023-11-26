@@ -8,4 +8,6 @@ public abstract class Module : IModule
     public static string DatiTipologiaLabel = "Dati Tipologie";
     public static string DatiAuthLabel = "Autenticazione";
     public const string CORSLabel = "portalefatture";
+    public const string GatewayLabel = "gateway";
+    public const string HealthcheckLabel = "health";
 }

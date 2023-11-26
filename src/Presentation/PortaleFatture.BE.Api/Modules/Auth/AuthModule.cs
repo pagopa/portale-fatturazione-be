@@ -1,4 +1,6 @@
 ﻿using System.Security.Claims;
+using Azure.Identity;
+using Azure.Security.KeyVault.Secrets;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -48,5 +50,5 @@ public partial class AuthModule : Module, IRegistrableModule
     [FromServices] IStringLocalizer<Localization> localizer)
     {
         return Ok(context.GetAuthInfo());
-    }
+    } 
 }

@@ -7,14 +7,16 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using Polly;
 using Polly.Extensions.Http;
 using PortaleFatture.BE.Api.Infrastructure.Culture;
 using PortaleFatture.BE.Core.Auth;
+using PortaleFatture.BE.Core.Common;
 using PortaleFatture.BE.Core.Exceptions;
-using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Infrastructure;
 using PortaleFatture.BE.Infrastructure.Common.Identity;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
@@ -27,24 +29,27 @@ public static class ConfigurationExtensions
     private static readonly ModuleManager ModuleManager = new();
 
 
-    public static IServiceCollection AddModules(
-        this IServiceCollection services,
-        ConfigurationManager configuration)
+    public static IServiceCollection AddModules(this WebApplicationBuilder builder)
     {
+        var services = builder.Services;
+        var configuration = builder.Configuration;
+        var isProd = builder.Environment.IsProduction();
+
+        PortaleFattureOptions options = new();
+        configuration.GetSection(nameof(PortaleFattureOptions)).Bind(options);
+
+        if (isProd)
+            AsyncHelper.RunSync(options.VaultClientSettings);
+
+        services.AddSingleton<IPortaleFattureOptions>(options);
+
         services.AddAssemblyToModuleRegistration(typeof(ConfigurationExtensions).Assembly);
 
         services.AddLogging(o => o.AddConfiguration(configuration.GetSection("Logging")));
- 
-        var jwtAuth = new JwtConfiguration()
-        {
-            Secret = configuration.GetSection("PortaleFattureOptions:JWT:Secret").Value,
-            ValidIssuer = configuration.GetSection("PortaleFattureOptions:JWT:ValidIssuer").Value,
-            ValidAudience = configuration.GetSection("PortaleFattureOptions:JWT:ValidAudience").Value
-        };
 
         services
-            .AddJwtOrApiKeyAuthentication(jwtAuth)
-            .AddIdentities(jwtAuth);
+            .AddJwtOrApiKeyAuthentication(options.JWT!)
+            .AddIdentities(options.JWT!);
 
         services
             .AddAuthorization()
@@ -78,13 +83,13 @@ public static class ConfigurationExtensions
             })
             .AddCors(options =>
             {
-                options.AddPolicy("portalefatture", o =>
+                options.AddPolicy(Module.CORSLabel, o =>
                     o.AllowAnyOrigin()
                     .AllowAnyHeader()
                     .AllowAnyMethod());
             })
             .AddGateways()
-            .AddInfrastructure(configuration)
+            .AddInfrastructure()
             .AddLocalization();
 
         return services;
@@ -100,7 +105,7 @@ public static class ConfigurationExtensions
                 .WaitAndRetryAsync(10, retryAttempt => TimeSpan.FromSeconds(1));
         }
 
-        services.AddHttpClient("gateway", (_, client) =>
+        services.AddHttpClient(Module.GatewayLabel, (_, client) =>
         {
             client.DefaultRequestHeaders.Add("ConsistencyLevel", "eventual");
         })
@@ -117,7 +122,6 @@ public static class ConfigurationExtensions
 
         return services;
     }
-
 
     private static IApplicationBuilder MapEndpoints(this WebApplication application)
     {
@@ -160,7 +164,7 @@ public static class ConfigurationExtensions
         });
 
         application
-            .MapHealthChecks("health")
+            .MapHealthChecks(Module.HealthcheckLabel)
             .WithMetadata(new AllowAnonymousAttribute());
 
         application
@@ -172,16 +176,15 @@ public static class ConfigurationExtensions
 
         return application;
     }
-    public static IServiceCollection AddInfrastructure(
-    this IServiceCollection services,
-    IConfiguration configuration)
+
+    private static IServiceCollection AddInfrastructure(
+    this IServiceCollection services)
     {
-        services.Configure<PortaleFattureOptions>(configuration.GetSection(nameof(PortaleFattureOptions)));
         services
             .AddPersistence();
 
         services
-        .AddPortaleFattureHealthChecks();
+            .AddPortaleFattureHealthChecks();
 
         services.AddMediatR(x => x.RegisterServicesFromAssembly(typeof(RootInfrastructure).Assembly));
 
@@ -199,11 +202,10 @@ public static class ConfigurationExtensions
 
     private static IServiceCollection AddIdentities(this IServiceCollection services, JwtConfiguration jwtAuth)
     {
-
         services
             .AddScoped<ITokenService>(_ => new JwtTokenService(jwtAuth))
             .AddScoped<IIdentityUsersService, IdentityUsersService>()
-            .AddSingleton<ISelfCareTokenService, SelfCareTokenService>() 
+            .AddSingleton<ISelfCareTokenService, SelfCareTokenService>()
             .AddSingleton<IProfileService, ProfileService>();
         services
             .AddAuthorization();
@@ -223,14 +225,12 @@ public static class ConfigurationExtensions
 
     public static IServiceCollection AddPersistence(this IServiceCollection services)
     {
-        var optionsMonitor = services
+        var options = services
             .BuildServiceProvider()
-            .GetRequiredService<IOptionsMonitor<PortaleFattureOptions>>();
+            .GetRequiredService<IPortaleFattureOptions>();
 
-        var options = optionsMonitor.CurrentValue;
         var dbConnectionString = options.ConnectionString ??
-                      throw new ConfigurationException("Db connection string not configured");
-
+              throw new ConfigurationException("Db connection string not configured");
 
         var fattureSchema = options.FattureSchema ??
                       throw new ConfigurationException($"Db schema fatture not existent");
@@ -239,7 +239,7 @@ public static class ConfigurationExtensions
               throw new ConfigurationException($"Db schema fatture not existent");
 
         services.AddSingleton<ISelfCareDbContextFactory>(new DbContextFactory(dbConnectionString, selfCareSchema));
-        services.AddSingleton<IFattureDbContextFactory>(new DbContextFactory(dbConnectionString, fattureSchema ));
+        services.AddSingleton<IFattureDbContextFactory>(new DbContextFactory(dbConnectionString, fattureSchema));
         return services;
     }
 
@@ -259,7 +259,7 @@ public static class ConfigurationExtensions
     {
         var result = builder
             .WithOpenApi()
-            .RequireCors("portalefatture")
+            .RequireCors(Module.CORSLabel)
             .WithTags(tags);
 
         if (securityPolicy is not null)

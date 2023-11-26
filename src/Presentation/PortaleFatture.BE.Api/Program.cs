@@ -2,8 +2,8 @@ using PortaleFatture.BE.Api.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services
-    .AddModules(builder.Configuration);
+builder
+    .AddModules();
 
 var configuredBuilder = builder
     .Build()

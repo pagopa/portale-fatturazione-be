@@ -134,6 +134,7 @@ public static class DatiFatturazioneExtensions
        {
            Descrizione = model.Descrizione,
            Id = model.Id,
+           Tipo = model.Tipo,
            TipoSpedizione = model.TipoSpedizione!.Mapper().ToList()
        };
 }

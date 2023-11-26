@@ -47,9 +47,7 @@ public partial class DatiConfigurazioneModuloCommessaModule
     [FromServices] IStringLocalizer<Localization> localizer,
     [FromServices] IMediator handler)
     {
-        var command = req.Mapper();
-        if (command == null)
-            throw new ValidationException(localizer["xxx"]);
+        var command = req.Mapper() ?? throw new ValidationException(localizer["xxx"]);
         var configurazione = await handler.Send(command);
         if (configurazione == null)
             throw new DomainException(localizer["xxx"]);

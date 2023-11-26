@@ -1,8 +1,8 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using PortaleFatture.BE.Core.Common;
 using PortaleFatture.BE.Core.Exceptions;
-using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Infrastructure;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 using PortaleFatture.BE.Infrastructure.Gateway;
@@ -19,12 +19,16 @@ public static class ServiceProvider
             .AddUserSecrets("27e0801e-8863-4e92-af93-631a5685fed4")
             .AddEnvironmentVariables()
             .Build();
-
         services.AddSingleton<IConfiguration>(configurationBuilder);
 
         var configuration = services
             .BuildServiceProvider()
-            .GetRequiredService<IConfiguration>();
+            .GetRequiredService<IConfiguration>(); 
+
+        PortaleFattureOptions options = new();
+        configuration.GetSection(nameof(PortaleFattureOptions)).Bind(options);
+
+        services.AddSingleton<IPortaleFattureOptions>(options);
 
         var sconf = configuration!.GetSection(nameof(PortaleFattureOptions));
         services.Configure<PortaleFattureOptions>(o =>
@@ -33,12 +37,8 @@ public static class ServiceProvider
             o.ConnectionString = configuration.GetSection("PortaleFattureOptions:ConnectionString").Value;
             o.SelfCareUri = configuration.GetSection("PortaleFattureOptions:SelfCareUri").Value;
         });
-
-        var options = services
-            .BuildServiceProvider()
-            .GetRequiredService<IOptionsMonitor<PortaleFattureOptions>>();
-
-        var dbConnectionString = options.CurrentValue.ConnectionString ??
+ 
+        var dbConnectionString = options.ConnectionString ??
                       throw new ConfigurationException("Db connection string not configured");
 
         services.AddSingleton<IDbContextFactory>(new DbContextFactory(dbConnectionString, "pfw"));

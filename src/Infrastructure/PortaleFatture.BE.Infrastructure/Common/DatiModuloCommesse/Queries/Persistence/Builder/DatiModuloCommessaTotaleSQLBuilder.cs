@@ -7,6 +7,13 @@ namespace PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.Queries.Per
 
 public class DatiModuloCommessaTotaleSQLBuilder
 {
+    private static string WhereByAnno()
+    {
+        DatiModuloCommessaTotale? obj;
+        var fieldIdEnte = nameof(@obj.IdEnte).GetColumn<DatiModuloCommessaTotale>();
+        var fieldAnno = nameof(@obj.AnnoValidita); 
+        return $"{fieldIdEnte} = @{nameof(@obj.IdEnte)} AND {fieldAnno} = @{nameof(@obj.AnnoValidita)}";
+    }
     private static string WhereById()
     {
         DatiModuloCommessaTotale? obj;
@@ -40,5 +47,16 @@ public class DatiModuloCommessaTotaleSQLBuilder
         builder.Where(where); 
         var builderTemplate = builder.AddTemplate($"Select /**select**/ from [schema]{tableName} /**where**/ ");
         return builderTemplate.RawSql;
-    } 
+    }
+
+    public static string SelectByAnno()
+    {
+        var tableName = nameof(DatiModuloCommessaTotale);
+        tableName = tableName.GetTable<DatiModuloCommessaTotale>();
+        var builder = CreateSelect();
+        var where = WhereByAnno();
+        builder.Where(where);
+        var builderTemplate = builder.AddTemplate($"Select /**select**/ from [schema]{tableName} /**where**/ ");
+        return builderTemplate.RawSql;
+    }
 }

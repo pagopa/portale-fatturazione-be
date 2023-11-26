@@ -17,6 +17,6 @@ public partial class AuthModule
            .MapGet("api/auth/profilo", ProfiloAsync)
            .WithName("Permette di verificare un utente selfcare.")
            .SetOpenApi(Module.DatiAuthLabel)
-           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel)); 
     }
 } 

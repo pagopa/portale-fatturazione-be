@@ -33,8 +33,7 @@ public class DatiModuloCommessaCreateCommandHandler : IRequestHandler<DatiModulo
     }
     public async Task<ModuloCommessaDto?> Handle(DatiModuloCommessaCreateListCommand command, CancellationToken ct)
     {
-        var adesso = DateTime.UtcNow.ItalianTime();
-        var (anno, mese) = adesso.YearMonth();
+        var (anno, mese, adesso) = Time.YearMonth();
         //validare calendario
         var idTipoContratto = command.AuthenticationInfo.IdTipoContratto;
         var prodotto = command.AuthenticationInfo.Prodotto;

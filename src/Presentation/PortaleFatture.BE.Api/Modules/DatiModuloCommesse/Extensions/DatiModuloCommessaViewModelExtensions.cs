@@ -1,4 +1,5 @@
-﻿using PortaleFatture.BE.Api.Modules.DatiModuloCommesse.Payload;
+﻿using Azure;
+using PortaleFatture.BE.Api.Modules.DatiModuloCommesse.Payload;
 using PortaleFatture.BE.Api.Modules.DatiModuloCommesse.Payload.Response;
 using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Entities.DatiModuloCommesse;
@@ -31,13 +32,19 @@ public static class DatiModuloCommessaViewModelExtensions
         };
     }
 
-    public static DatiModuloCommessaResponse Mapper(this ModuloCommessaDto model)
+    public static DatiModuloCommessaResponse? Mapper(this ModuloCommessaDto model, string ruolo)
     {
+        if (model is null)
+            return null;
+
+        var stato = model.DatiModuloCommessaTotale!.Select(x => x.Stato).FirstOrDefault();
+
         var cmd = new DatiModuloCommessaResponse
         {
-            ModuliCommessa = new(),
-            Totale = new(),
-            TotaleModuloCommessaNotifica = new()
+            ModuliCommessa = [],
+            Totale = [],
+            TotaleModuloCommessaNotifica = new(),
+            Modifica = stato == StatoModuloCommessa.ApertaCaricato && ruolo == Ruolo.ADMIN
         };
 
         foreach (var md in model.DatiModuloCommessa!)

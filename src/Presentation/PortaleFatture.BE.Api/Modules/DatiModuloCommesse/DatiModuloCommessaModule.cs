@@ -9,6 +9,7 @@ using PortaleFatture.BE.Api.Modules.DatiModuloCommesse.Extensions;
 using PortaleFatture.BE.Api.Modules.DatiModuloCommesse.Payload;
 using PortaleFatture.BE.Api.Modules.DatiModuloCommesse.Payload.Response;
 using PortaleFatture.BE.Core.Auth;
+using PortaleFatture.BE.Core.Entities.DatiModuloCommesse.Dto;
 using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Core.Resources;
 using PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.Queries;
@@ -39,7 +40,8 @@ public partial class DatiModuloCommessaModule
             cmd.IdEnte = idente;
 
         var modulo = await handler.Send(command) ?? throw new DomainException(localizer["xxx"]);
-        return Ok(modulo.Mapper()); 
+        var response = modulo!.Mapper(authInfo.Ruolo!);
+        return Ok(response);
     }
 
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}")]
@@ -58,6 +60,75 @@ public partial class DatiModuloCommessaModule
         if (modulo == null)
             NotFound(localizer["xxx"]);
 
-        return Ok(modulo!.Mapper());
+        var response = modulo!.Mapper(authInfo.Ruolo!);
+        return Ok(response);
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}")]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<DatiModuloCommessaResponse>, NotFound>> GetDatiModuloCommessaByAnnoMeseAsync(
+    HttpContext context,
+    [FromRoute] int anno,
+    [FromRoute] int mese,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var modulo = await handler.Send(new DatiModuloCommessaQueryGet(authInfo)
+        {
+             AnnoValidita = anno,
+             MeseValidita = mese
+        });
+
+        if (modulo == null)
+            return NotFound();
+
+        var response = modulo!.Mapper(authInfo.Ruolo!); 
+        return Ok(response);
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}")]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<ModuloCommessaByAnnoDto>>, NotFound>> GetDatiModuloCommessaByAnnoAsync(
+    HttpContext context,
+    [FromRoute] int? anno,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var modulo = await handler.Send(new DatiModuloCommessaQueryGetByAnno(authInfo)
+        {
+            AnnoValidita = anno,
+        });
+        if (modulo == null)
+            return NotFound();
+        //var response = modulo!.Mapper(authInfo.Ruolo!);
+         return Ok(modulo);
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}")]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<string>>, NotFound>> GetDatiModuloCommessaAnniAsync(
+    HttpContext context, 
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var anni = await handler.Send(new DatiModuloCommessaGetAnni(authInfo));
+        if (anni == null)
+            return NotFound();
+        return Ok(anni);
     }
 }

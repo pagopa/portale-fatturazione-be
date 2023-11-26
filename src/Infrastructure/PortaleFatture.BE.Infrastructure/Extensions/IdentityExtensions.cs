@@ -1,18 +1,21 @@
-﻿using System.Security;
+﻿using System;
+using System.Security;
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.AspNetCore.Http;
 using PortaleFatture.BE.Core.Auth;
 
 namespace PortaleFatture.BE.Infrastructure.Extensions;
 
+
 public static class IdentityExtensions
-{
+{ 
     public static AuthenticationInfo GetAuthInfo(this HttpContext context)
     {
         var identity = context.User.Identity as ClaimsIdentity ?? throw new SecurityException();
-        return identity.Claims.Mapper(); 
-    }
-
+        return identity.Claims.Mapper();
+    } 
 
     public static ProfileInfo Mapper(this IList<Claim> authClaims, string jwt, DateTime validTo)
     {

@@ -1,14 +1,59 @@
 using System.Diagnostics;
 using System.Reflection;
+using Azure.Identity;
+using Azure.Security.KeyVault.Secrets;
+using PortaleFatture.BE.Core.Common;
+using PortaleFatture.BE.Core.Exceptions;
 
 namespace PortaleFatture.BE.Api.Infrastructure;
 
 public static class ModuleExtensions
 {
-    public static IEndpointRouteBuilder Map(this IEndpointRouteBuilder app, Type moduleType)
+    public static async Task<PortaleFattureOptions> VaultClientSettings(this PortaleFattureOptions model)
     {
-        //Guard.Against.Null(app, nameof(app));
-        //Guard.Against.Null(moduleType, nameof(moduleType));
+        model.JWT ??= new();
+
+        var selfCareUri = Environment.GetEnvironmentVariable("SELF_CARE_URI") ??
+             throw new ConfigurationException("Please specify a SELF_CARE_URI!");
+
+        var selfCareCertEndpoint = Environment.GetEnvironmentVariable("SELFCARE_CERT_ENDPOINT") ??
+             throw new ConfigurationException("Please specify a SELFCARE_CERT_ENDPOINT!");
+
+        var validAudience = Environment.GetEnvironmentVariable("JWT_VALID_AUDIENCE") ??
+             throw new ConfigurationException("Please specify a JWT_VALID_AUDIENCE!");
+
+        var validIssuer = Environment.GetEnvironmentVariable("JWT_VALID_ISSUER") ??
+             throw new ConfigurationException("Please specify a JWT_VALID_ISSUER!");
+
+
+        model.ConnectionString = await model.ConnectionString.Mapper();
+        model.SelfCareUri = selfCareUri;
+        model.SelfCareCertEndpoint = selfCareCertEndpoint;
+        model.JWT.ValidAudience = validAudience;
+        model.JWT.Secret = await model.JWT.Secret.Mapper();
+        model.JWT.ValidIssuer = validIssuer;
+
+        return model;
+    }
+
+    private static string _kvUri = "https://{0}.vault.azure.net";
+    private static async Task<string> Mapper(this string? secretName)
+    {
+        var keyVaultName = Environment.GetEnvironmentVariable("KEY_VAULT_NAME") ??
+            throw new ConfigurationException("Please specify an KEY_VAULT_NAME!");
+
+        var kvUri = String.Format(_kvUri, keyVaultName);
+        var client = new SecretClient(new Uri(kvUri), new DefaultAzureCredential()) ??
+            throw new ConfigurationException("Could not find any vault holy connected to KEY_VAULT_NAME!");
+
+        var secret = await client.GetSecretAsync(secretName);
+        return secret.Value.Value;
+    }
+
+    public static IEndpointRouteBuilder Map(this IEndpointRouteBuilder app, Type moduleType)
+    { 
+        if (app == null || moduleType == null)
+            throw new ConfigurationException("Please specify an IEndpointRouteBuilder OR Module Type!");
 
         foreach (var method in moduleType.GetMethods(BindingFlags.Instance | BindingFlags.Public))
         {
@@ -20,10 +65,9 @@ public static class ModuleExtensions
 
     public static IEndpointConventionBuilder? Map(this IEndpointRouteBuilder app, MethodInfo method, Type moduleType,
         string? routePrefix = null)
-    {
-        //Guard.Against.Null(app, nameof(app));
-        //Guard.Against.Null(method, nameof(method));
-        //Guard.Against.Null(moduleType, nameof(moduleType));
+    { 
+        if (app == null || moduleType == null || method == null)
+            throw new ConfigurationException("Please specify an IEndpointRouteBuilder OR MethodInfo OR Module Type!");
 
         var mapAttr = method.GetCustomAttribute<MapAttribute>();
         if (mapAttr is null)
@@ -47,9 +91,9 @@ public static class ModuleExtensions
     [DebuggerStepThrough]
     public static IEndpointConventionBuilder Map(this IEndpointRouteBuilder app, MapMethod method, string route,
         RequestDelegate mapDelegate)
-    {
-        //Guard.Against.NullOrEmpty(route, nameof(route));
-        //Guard.Against.Null(mapDelegate, nameof(mapDelegate));
+    { 
+        if (app == null || mapDelegate == null)
+            throw new ConfigurationException("Please specify an IEndpointRouteBuilder OR Map RequestDelegate!");
 
         return method switch
         {

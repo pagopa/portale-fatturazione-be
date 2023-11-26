@@ -1,9 +1,7 @@
-﻿using PortaleFatture.BE.Core.Entities.DatiModuloCommesse;
-using System.Data;
+﻿using System.Data;
+using PortaleFatture.BE.Core.Entities.DatiModuloCommesse;
 using PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.Queries.Persistence.Builder;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
-using PortaleFatture.BE.Core.Entities.DatiFatturazioni;
-using System.Security.Cryptography;
 
 namespace PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.Queries.Persistence;
 
