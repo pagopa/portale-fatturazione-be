@@ -32,17 +32,17 @@ public class DatiFatturazioneUpdateCommandTests
         string? expectedCup = "ecup";
         string? expectedCig = "ecig";
         string? expectedCodCommessa = "ecommmessa";
-        DateTimeOffset expectedDataDocumento = DateTime.UtcNow.ItalianTime();
+        DateTime  expectedDataDocumento = DateTime.UtcNow.ItalianTime();
         bool? expectedSplitPayment = false;
         string? expectedTipoCommessa = "1";
         string? expectedIdDocumento = "eiddocumento";
         string? expectedMap = "emap";
-        DateTimeOffset expectedDataCreazione = DateTime.UtcNow.ItalianTime();
+        DateTime expectedDataCreazione = DateTime.UtcNow.ItalianTime();
         string? expectedIdEnte = TestExtensions.GetRandomIdEnte();
         string? expectedPec = "pippo@pec.it";
-        string? expectedProdotto = "prodotto1";
-
-        var request = new DatiFatturazioneCreateCommand()
+        string? expectedProdotto = "prod-pn";
+        var authInfo = TestExtensions.GetAuthInfo(expectedIdEnte, expectedProdotto);
+        var request = new DatiFatturazioneCreateCommand(authInfo)
         {
             Cig = expectedCig,
             CodCommessa = expectedCodCommessa,
@@ -50,11 +50,9 @@ public class DatiFatturazioneUpdateCommandTests
             Cup = expectedCup,
             DataCreazione = expectedDataCreazione,
             DataDocumento = expectedDataDocumento,
-            Pec = expectedPec,
-            Prodotto = expectedProdotto,
+            Pec = expectedPec, 
             TipoCommessa = expectedTipoCommessa,
-            IdDocumento = expectedIdDocumento,
-            IdEnte = expectedIdEnte,
+            IdDocumento = expectedIdDocumento, 
             Map = expectedMap,
             SplitPayment = expectedSplitPayment
         };
@@ -62,9 +60,9 @@ public class DatiFatturazioneUpdateCommandTests
         var actualDatiFatturazione = await _handler.Send(request);
         Assert.IsNotNull(actualDatiFatturazione);
 
-        DateTimeOffset expectedDataModifica = DateTime.UtcNow.AddMinutes(1);
+        DateTime expectedDataModifica = DateTime.UtcNow.AddMinutes(1);
         var expectedUpdatedPec = "modified@pec.it";
-        var updateRequest = new DatiFatturazioneUpdateCommand()
+        var updateRequest = new DatiFatturazioneUpdateCommand(authInfo)
         {
             Id = actualDatiFatturazione.Id,
             Cig = expectedCig,
@@ -73,11 +71,9 @@ public class DatiFatturazioneUpdateCommandTests
             Cup = expectedCup,
             DataModifica = expectedDataModifica,
             DataDocumento = expectedDataDocumento,
-            Pec = expectedUpdatedPec,
-            Prodotto = expectedProdotto,
+            Pec = expectedUpdatedPec, 
             TipoCommessa = expectedTipoCommessa,
-            IdDocumento = expectedIdDocumento,
-            IdEnte = expectedIdEnte,
+            IdDocumento = expectedIdDocumento, 
             Map = expectedMap,
             SplitPayment = expectedSplitPayment
         };

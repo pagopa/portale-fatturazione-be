@@ -15,14 +15,16 @@ public class DatiFatturazioneQueryGetByIdPersistence : DapperBase, IQuery<DatiFa
     public DatiFatturazioneQueryGetByIdPersistence(long id)
     {
         this._id = id;
-    } 
+    }
     public async Task<DatiFatturazione?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
-    { 
-        var values = await ((IDatabase)this).SelectAsync<DatiFatturazione>(connection!, _sqlSelect.Add(schema), new { id = _id }, transaction);
-        if (values.IsNullNotAny())
+    {
+        try
+        {
+            return await ((IDatabase)this).SingleAsync<DatiFatturazione>(connection!, _sqlSelect.Add(schema), new { id = _id }, transaction);
+        }
+        catch  
+        { 
             return null;
-        if (values.Count() > 1)
-            throw new DomainException($"Duplicate values in dati fatturazione for id: {_id}");
-        return values.FirstOrDefault();
+        } 
     }
 }

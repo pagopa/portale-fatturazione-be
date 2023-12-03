@@ -9,8 +9,6 @@ using PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni.Commands;
 using PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni.Commands.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni.Queries.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.Persistence.Schemas;
-using PortaleFatture.BE.Infrastructure.Common.Tipologie.Queries;
-using PortaleFatture.BE.Infrastructure.Common.Tipologie.Queries.Persistence;
 
 namespace PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni.CommandHandlers;
 
@@ -30,45 +28,51 @@ public class DatiFatturazioneCreateCommandHandler : IRequestHandler<DatiFatturaz
     }
 
     public async Task<DatiFatturazione> Handle(DatiFatturazioneCreateCommand command, CancellationToken ct)
-    { 
+    {
+        var (anno, mese, adesso) = Time.YearMonth();
+
         var (error, errorDetails) = DatiFatturazioneValidator.Validate(command);
         if (!string.IsNullOrEmpty(error))
-            throw new DomainException(_localizer[error, errorDetails]); 
- 
-        command.DataCreazione = command.DataCreazione == null ? DateTime.UtcNow.ItalianTime() : command.DataCreazione;
-        using var uow = await _factory.Create(true, cancellationToken: ct);
-        var products = await uow.Query(new ProdottoQueryGetAllPersistence(), ct);
-        command.Prodotto = products.FirstOrDefault()!.Nome;
-     
-        // verifico se esiste già un valore per l'ente
-        var actualValue = await uow.Query(new DatiFatturazioneQueryGetByIdEntePersistence(command.IdEnte!), ct);
+            throw new DomainException(_localizer[error, errorDetails]);
+
+        command.DataCreazione = command.DataCreazione == null ? adesso : command.DataCreazione; 
+
+        using var uow = await _factory.Create(true, cancellationToken: ct);  
+        var actualValue = await uow.Query(new DatiFatturazioneQueryGetByIdEntePersistence(command.AuthenticationInfo.IdEnte!), ct);
         if (actualValue != null)
-            throw new DomainException(_localizer["DatiFatturazioneIdEnteExistent", command.IdEnte!]);
+            throw new DomainException(_localizer["DatiFatturazioneIdEnteExistent", command.AuthenticationInfo.IdEnte!]);
         try
         {
-            var id = await uow.Execute(new DatiFatturazioneCreateCommandPersistence(command), ct); 
+            var rowAffected = 0;
+            var id = await uow.Execute(new DatiFatturazioneCreateCommandPersistence(command), ct);
+            if(id == null)
+            {
+                uow.Rollback();
+                throw new DomainException(_localizer["DatiFatturazioneInputError"]);
+            }
+
             if (!command.Contatti!.IsNullNotAny())
             {
-                var rowAffected = 0; 
-                foreach (var commandContatto in command.Contatti!) 
-                    commandContatto.IdDatiFatturazione = id;  
+                foreach (var commandContatto in command.Contatti!)
+                    commandContatto.IdDatiFatturazione = id.Value;
 
                 rowAffected += await uow.Execute(new DatiFatturazioneContattoCreateListCommandPersistence(command.Contatti!), ct);
-                
+
                 if (rowAffected != command.Contatti.Count)
                 {
                     uow.Rollback();
                     throw new DomainException(_localizer["DatiFatturazioneInputError"]);
                 }
             }
-            var actualDatiFatturazione = command.Mapper(id);
+            var actualDatiFatturazione = command.Mapper(id.Value);
             uow.Commit();
             return actualDatiFatturazione;
         }
         catch (Exception e)
         {
+            uow.Rollback();
             var methodName = nameof(DatiFatturazioneCreateCommandHandler);
-            _logger.LogError(e, "Errore nel commando: \"{MethodName}\" per ente: \"{IdEnte}\"", methodName, command.IdEnte);
+            _logger.LogError(e, "Errore nel commando: \"{MethodName}\" per ente: \"{IdEnte}\"", methodName, command.AuthenticationInfo.IdEnte);
             throw new DomainException(_localizer["DatiFatturazioneInputError"]);
         }
     }

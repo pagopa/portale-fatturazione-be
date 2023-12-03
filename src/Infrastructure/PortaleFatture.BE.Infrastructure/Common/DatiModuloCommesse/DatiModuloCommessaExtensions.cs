@@ -24,47 +24,80 @@ public static class DatiModuloCommessaExtensions
             .Select(x => new KeyValuePair<int, decimal>(x.Id, 0M))
             .ToDictionary(x => x.Key, x => x.Value);
 
-        var categorieTipiPrezziInter = confModuloCommessa!.Tipi!
+        var categoriePercentuali = confModuloCommessa!.Categorie!
+            .Select(x => new KeyValuePair<int, int>(x.IdCategoriaSpedizione, x.Percentuale))
+            .ToDictionary(x => x.Key, x => x.Value);
+
+        var tipiSpedizionePrezziInter = confModuloCommessa!.Tipi!
             .Select(x => new KeyValuePair<int, decimal>(x.IdTipoSpedizione, x.MediaNotificaInternazionale))
             .ToDictionary(x => x.Key, x => x.Value);
 
-        var categorieTipiPrezziNaz = confModuloCommessa!.Tipi!
+        var tipiSpedizionePrezziNaz = confModuloCommessa!.Tipi!
             .Select(x => new KeyValuePair<int, decimal>(x.IdTipoSpedizione, x.MediaNotificaNazionale))
             .ToDictionary(x => x.Key, x => x.Value);
 
-        var categoriePercentuali = confModuloCommessa!.Categorie!
-            .Select(x => new KeyValuePair<int, decimal>(x.IdCategoriaSpedizione, x.Percentuale))
+        var tipiSpedizionePercentualeAggiunta = confModuloCommessa!.Tipi!
+            .Select(x => new KeyValuePair<int, int>(x.IdTipoSpedizione, x.PercentualeAggiunta))
             .ToDictionary(x => x.Key, x => x.Value);
 
+
         var numeroTotaleNotifiche = command.DatiModuloCommessaListCommand!.Select(x => x.NumeroNotificheNazionali + x.NumeroNotificheInternazionali).Sum();
+        Dictionary<long, ParzialiTipoCommessa>? parzialiTipoCommessa = [];
         foreach (var cmd in command.DatiModuloCommessaListCommand!) // per id tipo spedizione
         {
 
             var idCategoria = categorie!.SelectMany(x => x.TipoSpedizione!).Where(x => x.Id == cmd.IdTipoSpedizione).FirstOrDefault()!.IdCategoriaSpedizione;
 
             var fNotifica = categorieTotale.TryGetValue(idCategoria, out decimal totale);
-            var fprezzoInter = categorieTipiPrezziInter.TryGetValue(cmd.IdTipoSpedizione, out decimal prezzoInter);
-            var fprezzoNaz = categorieTipiPrezziNaz.TryGetValue(cmd.IdTipoSpedizione, out decimal prezzoNaz);
-            var prezzo = cmd.NumeroNotificheInternazionali * prezzoInter + cmd.NumeroNotificheNazionali * prezzoNaz;
+            var fprezzoInter = tipiSpedizionePrezziInter.TryGetValue(cmd.IdTipoSpedizione, out decimal prezzoInter);
+            var fprezzoNaz = tipiSpedizionePrezziNaz.TryGetValue(cmd.IdTipoSpedizione, out decimal prezzoNaz);
+            var fPercentuale = tipiSpedizionePercentualeAggiunta.TryGetValue(cmd.IdTipoSpedizione, out int percentualeAggiunta); 
 
-            var categoriaDigitale = categorie!.Where(x => x.Tipo!.ToLower().Contains("digitale")).FirstOrDefault(); // seleziono digitale
+            var categoriaDigitale = categorie!.Where(x => x.Tipo!.Contains("digitale", StringComparison.CurrentCultureIgnoreCase)).FirstOrDefault(); // seleziono digitale
 
-            if(categoriaDigitale!.Id == idCategoria) 
-                categorieTotale[idCategoria] = prezzoNaz * numeroTotaleNotifiche; 
-            else
+            var isCategoriaDigitale = categoriaDigitale!.Id == idCategoria;
+
+
+            decimal prezzo;
+
+            if (isCategoriaDigitale)
+            { 
+                parzialiTipoCommessa.TryAdd(cmd.IdTipoSpedizione, new ParzialiTipoCommessa()
+                {
+                    PrezzoInternazionali = prezzoInter,
+                    PrezzoNazionali = prezzoNaz,
+                    ValoreInternazionali = prezzoInter * cmd.NumeroNotificheInternazionali,
+                    ValoreNazionali = prezzoNaz * cmd.NumeroNotificheNazionali
+                });  
+
+                categorieTotale[idCategoria] = prezzoNaz * numeroTotaleNotifiche;
+            }
+            else // analogico
             {
+                var prezzoAggiuntoInter = prezzoInter + prezzoInter / 100M * percentualeAggiunta;
+                var prezzoAggiuntoNaz = prezzoNaz + prezzoNaz / 100M * percentualeAggiunta;
+                parzialiTipoCommessa.TryAdd(cmd.IdTipoSpedizione, new ParzialiTipoCommessa()
+                {
+                    PrezzoInternazionali = prezzoAggiuntoInter,
+                    PrezzoNazionali = prezzoAggiuntoNaz,
+                    ValoreInternazionali = cmd.NumeroNotificheInternazionali * prezzoAggiuntoInter,
+                    ValoreNazionali = cmd.NumeroNotificheNazionali * prezzoAggiuntoNaz,
+                }); ;
+
+                prezzo = cmd.NumeroNotificheInternazionali * prezzoAggiuntoInter + cmd.NumeroNotificheNazionali * prezzoAggiuntoNaz;
+
                 if (fNotifica)
                     categorieTotale[idCategoria] += prezzo;
                 else
                     categorieTotale.Add(idCategoria, prezzo);
-            } 
+            }
         }
 
 
-        tCommand.DatiModuloCommessaTotaleListCommand = new();
+        tCommand.DatiModuloCommessaTotaleListCommand = [];
         foreach (var keyValue in categorieTotale)
         {
-            var fpercent = categoriePercentuali.TryGetValue(keyValue.Key, out decimal percent);
+            var fpercent = categoriePercentuali.TryGetValue(keyValue.Key, out int percent);
             var apercent = (keyValue.Value / 100M) * percent;
             tCommand.DatiModuloCommessaTotaleListCommand.Add(new DatiModuloCommessaTotaleCreateCommand()
             {
@@ -75,9 +108,13 @@ public static class DatiModuloCommessaExtensions
                 IdTipoContratto = idTipoContratto,
                 Prodotto = prodotto,
                 Stato = stato,
-                TotaleCategoria = apercent
+                TotaleCategoria = apercent,
+                PercentualeCategoria = percent,
+                Totale = keyValue.Value
             });
         }
+
+        tCommand.ParzialiTipoCommessa = parzialiTipoCommessa;
         return tCommand;
     }
 }

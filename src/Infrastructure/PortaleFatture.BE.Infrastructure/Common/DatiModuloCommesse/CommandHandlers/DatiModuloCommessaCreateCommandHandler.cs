@@ -1,5 +1,4 @@
-﻿using Azure.Core;
-using MediatR;
+﻿using MediatR;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using PortaleFatture.BE.Core.Entities.DatiModuloCommesse;
@@ -70,7 +69,7 @@ public class DatiModuloCommessaCreateCommandHandler : IRequestHandler<DatiModulo
             idTipoContratto = contratti.Where(x => x.Id! == idTipoContratto!).Select(x => x.Id).FirstOrDefault();
             if (idTipoContratto == null)
             {
-                var msg = "I could not find the specified contruct!";
+                var msg = "I could not find the specified coontract!";
                 _logger.LogError(msg);
                 throw new ConfigurationException(msg);
             }
@@ -82,8 +81,11 @@ public class DatiModuloCommessaCreateCommandHandler : IRequestHandler<DatiModulo
             stato = statoCommessa!.Stato;
         }
 
+        var commandTotale = command.GetTotali(categorie, confModuloCommessa, idEnte, anno, mese, idTipoContratto.Value, prodotto, stato);
+
+
         foreach (var cmd in command.DatiModuloCommessaListCommand!) // validazione per id tipo spedizione
-        { 
+        {  
             cmd.Stato = stato;
             cmd.Prodotto = prodotto;
             cmd.IdTipoContratto = idTipoContratto.Value;
@@ -95,10 +97,13 @@ public class DatiModuloCommessaCreateCommandHandler : IRequestHandler<DatiModulo
             var (error, errorDetails) = DatiModuloCommessaValidator.Validate(cmd);
             if (!string.IsNullOrEmpty(error))
                 throw new DomainException(_localizer[error, errorDetails]);
-        } 
 
-        var commandTotale = command.GetTotali(categorie, confModuloCommessa, idEnte, anno, mese, idTipoContratto.Value, prodotto, stato);
-
+            cmd.ValoreNazionali = commandTotale.ParzialiTipoCommessa![cmd.IdTipoSpedizione].ValoreNazionali;
+            cmd.ValoreInternazionali = commandTotale.ParzialiTipoCommessa![cmd.IdTipoSpedizione].ValoreInternazionali;
+            cmd.PrezzoNazionali = commandTotale.ParzialiTipoCommessa![cmd.IdTipoSpedizione].PrezzoNazionali;
+            cmd.PrezzoInternazionali = commandTotale.ParzialiTipoCommessa![cmd.IdTipoSpedizione].PrezzoInternazionali;
+        }  
+    
         using var uow = await _factory.Create(true, cancellationToken: ct);
         try
         {
@@ -111,13 +116,13 @@ public class DatiModuloCommessaCreateCommandHandler : IRequestHandler<DatiModulo
                 else
                 {
                     uow.Rollback();
-                    throw new DomainException(_localizer["xxx"]);
+                    throw new DomainException(_localizer["DatiModuloCommessaError", idEnte!]);
                 }
             }
             else
             {
                 uow.Rollback();
-                throw new DomainException(_localizer["xxx"]);
+                throw new DomainException(_localizer["DatiModuloCommessaError", idEnte!]);
             }
         }
         catch (Exception e)
@@ -125,7 +130,7 @@ public class DatiModuloCommessaCreateCommandHandler : IRequestHandler<DatiModulo
             uow.Rollback();
             var methodName = nameof(DatiConfigurazioneModuloCommessaCreateCommandHandler);
             _logger.LogError(e, "Errore nel salvataggio del modulo commessa: \"{MethodName}\" per tipo ente: \"{idEnte}\"", methodName, idEnte);
-            throw new DomainException(_localizer["xxx"]);
+            throw new DomainException(_localizer["DatiModuloCommessaError", idEnte!]);
         }
         var datic = await uow.Query(new DatiModuloCommessaQueryGetByIdPersistence(idEnte, anno, mese, idTipoContratto, prodotto), ct);
         var datit = await uow.Query(new DatiModuloCommessaTotaleQueryGetByIdPersistence(idEnte, anno, mese, idTipoContratto, prodotto), ct);

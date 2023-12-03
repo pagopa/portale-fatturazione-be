@@ -9,6 +9,8 @@ namespace PortaleFatture.BE.Core.Entities.SelfCare
         [Column("internalistitutionid")]
         public string? IdEnte { get; set; }
         [Column("product")]
-        public string? Prodotto { get; set; } 
+        public string? Prodotto { get; set; }
+        [Column("FkIdTipoContratto")]
+        public long IdTipoContratto { get; set; }
     }
 } 

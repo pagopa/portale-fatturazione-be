@@ -21,4 +21,5 @@ public class DatiConfigurazioneModuloTipoCommessa
     public DateTime  DataInizioValidita { get; set; }
     public DateTime  DataFineValidita { get; set; } 
     public string? Descrizione { get; set; }
+    public int PercentualeAggiunta { get; set; } = 10;
 } 

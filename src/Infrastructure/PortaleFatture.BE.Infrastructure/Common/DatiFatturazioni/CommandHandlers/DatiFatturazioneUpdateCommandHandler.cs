@@ -1,4 +1,5 @@
 ﻿using MediatR;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using PortaleFatture.BE.Core.Entities.DatiFatturazioni;
@@ -31,30 +32,31 @@ public class DatiFatturazioneUpdateCommandHandler : IRequestHandler<DatiFatturaz
 
     public async Task<DatiFatturazione> Handle(DatiFatturazioneUpdateCommand command, CancellationToken ct)
     {
+        var (anno, mese, adesso) = Time.YearMonth();
+
         var (error, errorDetails) = DatiFatturazioneValidator.Validate(command);
         if (!string.IsNullOrEmpty(error))
             throw new ValidationException(_localizer[error, errorDetails]);
  
-        command.DataModifica = command.DataModifica == null ? DateTime.UtcNow.ItalianTime() : command.DataModifica;
+        command.DataModifica = command.DataModifica == null ? adesso : command.DataModifica; 
 
-        using var uow = await _factory.Create(true, cancellationToken: ct); 
-        var products = await uow.Query(new ProdottoQueryGetAllPersistence(), ct);
-        command.Prodotto = products.FirstOrDefault()!.Nome;
-
-        // verifico se esiste già un valore per l'id dati fatturazione
-        var actualValue = await uow.Query(new DatiFatturazioneQueryGetByIdPersistence(command.Id!), ct);
-        if (actualValue == null)
-            throw new DomainException(_localizer["DatiFatturazioneIdExistent", command.Id!]);
+        using var uow = await _factory.Create(true, cancellationToken: ct);
+        var actualValue = await uow.Query(new DatiFatturazioneQueryGetByIdPersistence(command.Id!), ct) ?? throw new DomainException(_localizer["DatiFatturazioneIdExistent", command.Id!]);
+     
+        //verifico coerenza dati
+        if(actualValue.IdEnte!= command.AuthenticationInfo.IdEnte || actualValue.Prodotto!= command.AuthenticationInfo.Prodotto)
+            throw new DomainException(_localizer["DatiFatturazioneMismatchError"]);
 
         try
         {
             var updatedDatiFatturazione = await uow.Execute(new DatiFatturazioneUpdateCommandPersistence(command), ct) ??
-                throw new DomainException(_localizer["DatiFatturazioneUpdateError"]);
-
+                throw new DomainException(_localizer["DatiFatturazioneUpdateError"]); 
+       
             if (!command.Contatti!.IsNullNotAny())
             {
-                await uow.Execute(new DatiFatturazioneContattoDeleteCommandPersistence(new DatiFatturazioneContattoDeleteCommand() { IdDatiFatturazione = command.Id }), ct);
                 var rowAffected = 0;
+                await uow.Execute(new DatiFatturazioneContattoDeleteCommandPersistence(new DatiFatturazioneContattoDeleteCommand() { IdDatiFatturazione = command.Id }), ct);
+          
                 foreach (var commandContatto in command.Contatti!)
                     commandContatto.IdDatiFatturazione = command.Id!;
 
@@ -72,6 +74,7 @@ public class DatiFatturazioneUpdateCommandHandler : IRequestHandler<DatiFatturaz
         }
         catch (Exception e)
         {
+            uow.Rollback();
             var methodName = nameof(DatiFatturazioneUpdateCommandHandler);
             _logger.LogError(e, "Errore nel commando: \"{MethodName}\" per dati commessa id: \"{Id}\"", methodName, command.Id);
             throw new DomainException(_localizer["DatiFatturazioneUpdateError"]);

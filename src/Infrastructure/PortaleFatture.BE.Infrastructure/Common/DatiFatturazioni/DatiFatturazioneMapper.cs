@@ -27,15 +27,15 @@ public static class DatiFatturazioneMapper
            CodCommessa = model.CodCommessa,
            Cup = model.Cup,
            DataCreazione = model.DataCreazione!.Value,
-           Id = id,
-           IdEnte = model.IdEnte,
+           Id = id, 
            DataDocumento = model.DataDocumento,
            SplitPayment = model.SplitPayment,
            IdDocumento = model.IdDocumento,
            Map = model.Map,
-           Pec = model.Pec,
-           Prodotto = model.Prodotto,
+           Pec = model.Pec, 
            TipoCommessa = model.TipoCommessa,
-           Contatti = model.Contatti!.Mapper() 
+           Contatti = model.Contatti!.Mapper(),
+           IdEnte = model.AuthenticationInfo.IdEnte,
+           Prodotto = model.AuthenticationInfo.Prodotto
        };
 }

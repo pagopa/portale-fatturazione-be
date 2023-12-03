@@ -8,5 +8,14 @@ public class DatiModuloCommessaTotaleCreateListCommand : IRequest<List<DatiModul
 {
     public IAuthenticationInfo? AuthenticationInfo { get; set; }
 
-    public List<DatiModuloCommessaTotaleCreateCommand>? DatiModuloCommessaTotaleListCommand { get; set; }
-}
+    public List<DatiModuloCommessaTotaleCreateCommand>? DatiModuloCommessaTotaleListCommand { get; set; } 
+    public Dictionary<long, ParzialiTipoCommessa>? ParzialiTipoCommessa { get; set; }
+}  
+
+public class ParzialiTipoCommessa()
+{
+    public decimal ValoreNazionali { get; set; }
+    public decimal PrezzoNazionali { get; set; }
+    public decimal ValoreInternazionali { get; set; }
+    public decimal PrezzoInternazionali { get; set; }
+} 

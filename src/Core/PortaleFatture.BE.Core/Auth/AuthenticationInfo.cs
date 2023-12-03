@@ -10,5 +10,5 @@ public class AuthenticationInfo : IAuthenticationInfo
     public string? Profilo { get; set; }
     public string? Email { get; set; }
     public string? Ruolo { get; set; }
-    public string? DescrizioneRuolo { get; set; }
+    public string? DescrizioneRuolo { get; set; }  
 } 

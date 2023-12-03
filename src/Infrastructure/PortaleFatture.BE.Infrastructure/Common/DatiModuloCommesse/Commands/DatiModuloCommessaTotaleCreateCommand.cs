@@ -16,4 +16,6 @@ public class DatiModuloCommessaTotaleCreateCommand : IRequest<DatiModuloCommessa
     public string? Prodotto { get; set; } 
     public int IdCategoriaSpedizione { get; set; } 
     public decimal TotaleCategoria { get; set; }
+    public int PercentualeCategoria { get; set; } 
+    public decimal Totale { get; set; }
 }

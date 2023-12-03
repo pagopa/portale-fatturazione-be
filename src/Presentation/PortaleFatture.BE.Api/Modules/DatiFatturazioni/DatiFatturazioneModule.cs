@@ -28,7 +28,7 @@ public partial class DatiFatturazioneModule
     [FromServices] IMediator handler)
     {
         var authInfo = context.GetAuthInfo();
-        var command = req.Mapper(authInfo.IdEnte!);
+        var command = req.Mapper(authInfo!);
         var createdDatiFatturazione = await handler.Send(command);
         return Ok(createdDatiFatturazione.Mapper());
     }
@@ -43,8 +43,9 @@ public partial class DatiFatturazioneModule
     HttpContext context,
     [FromBody] DatiFatturazioneUpdateRequest req,
     [FromServices] IMediator handler)
-    { 
-        var command = req.Mapper();
+    {
+        var authInfo = context.GetAuthInfo();
+        var command = req.Mapper(authInfo);
         var updatedDatiFatturazione = await handler.Send(command);
         return Ok(updatedDatiFatturazione.Mapper());
     }

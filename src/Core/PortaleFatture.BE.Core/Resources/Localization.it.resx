@@ -117,6 +117,15 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="DatiConfigurazioneModuloCommessaError" xml:space="preserve">
+    <value>Si è verificato un errore nell'inserire i dati di configurazione commessa.</value>
+  </data>
+  <data name="DatiConfigurazioneModuloCommessaInvalid" xml:space="preserve">
+    <value>Si è verificato un errore nella validazione dati configuazione commessa.</value>
+  </data>
+  <data name="DatiConfigurazioneModuloCommessaMissing" xml:space="preserve">
+    <value>Non sono stati configurati i dati configurazione modulo commessa.</value>
+  </data>
   <data name="DatiFatturazioneCigInvalid" xml:space="preserve">
     <value>Il cig  è obbligatorio e deve avere al massimo 10 caratteri.</value>
   </data>
@@ -168,6 +177,9 @@
   <data name="DatiFatturazioneMapInvalid" xml:space="preserve">
     <value>Il map deve avere al massimo 100 caratteri.</value>
   </data>
+  <data name="DatiFatturazioneMismatchError" xml:space="preserve">
+    <value>I dati passati per l'inserimento dati fatturazione non corrispondono ai dati di autenticazione.</value>
+  </data>
   <data name="DatiFatturazionePecInvalid" xml:space="preserve">
     <value>La pec fornita non è una email valida.</value>
   </data>
@@ -179,6 +191,21 @@
   </data>
   <data name="DatiFatturazioneUpdateError" xml:space="preserve">
     <value>Si è verificato un errore nel modificare i dati fatturazione.</value>
+  </data>
+  <data name="DatiModuloCommessaDataInvalid" xml:space="preserve">
+    <value>Il valore deve essere relativo all'anno e mese attuale.</value>
+  </data>
+  <data name="DatiModuloCommessaError" xml:space="preserve">
+    <value>Si è verificato un errore nell'inserire i dati commessa  con idEnte: "{0}".</value>
+  </data>
+  <data name="DatiModuloCommessaInvalid" xml:space="preserve">
+    <value>Il valore deve essere numerico non negativo.</value>
+  </data>
+  <data name="DatiModuloCommessaInvalidMapping" xml:space="preserve">
+    <value>Errore nell'inserimento valori modulo commessa.</value>
+  </data>
+  <data name="DatiModuloCommessaStatoInvalid" xml:space="preserve">
+    <value>Il valore dello stato non è valido.</value>
   </data>
   <data name="DatiProdottoMissing" xml:space="preserve">
     <value>Non sono stati configurati i prodotti.</value>
@@ -197,5 +224,11 @@
   </data>
   <data name="MediaNotificaNazionaleInvalid" xml:space="preserve">
     <value>Inserire un valore per la media notifica nazionale.</value>
+  </data>
+  <data name="PercentoConfiguazioneModuloCommessaInvalid" xml:space="preserve">
+    <value>Il valore della percentuale deve essere un numero positivo.</value>
+  </data>
+  <data name="UtenteProfiloError" xml:space="preserve">
+    <value>Si è verificato un errore nel recuperare il profilo utente.</value>
   </data>
 </root>

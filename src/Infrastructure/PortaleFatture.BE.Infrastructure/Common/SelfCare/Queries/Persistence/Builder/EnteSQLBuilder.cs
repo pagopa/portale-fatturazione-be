@@ -16,9 +16,18 @@ public class EnteSQLBuilder
     private static SqlBuilder CreateSelect()
     {
         Ente? @obj = null;
-        var builder = new SqlBuilder(); 
+        var builder = new SqlBuilder();
+        builder.Select(nameof(@obj.IdEnte).GetAsColumn<Ente>());
         builder.Select(nameof(@obj.Profilo).GetAsColumn<Ente>());
         builder.Select(nameof(@obj.Descrizione).GetAsColumn<Ente>());
+        builder.Select(nameof(@obj.Email).GetAsColumn<Ente>());
+        builder.Select(nameof(@obj.Address).GetAsColumn<Ente>());
+        builder.Select(nameof(@obj.Cap).GetAsColumn<Ente>());
+        builder.Select(nameof(@obj.CodiceIstat).GetAsColumn<Ente>());
+        builder.Select(nameof(@obj.Citta).GetAsColumn<Ente>());
+        builder.Select(nameof(@obj.Provincia).GetAsColumn<Ente>());
+        builder.Select(nameof(@obj.Nazione).GetAsColumn<Ente>());
+        builder.Select(nameof(@obj.PartitaIva).GetAsColumn<Ente>());
         return builder;
     }
 

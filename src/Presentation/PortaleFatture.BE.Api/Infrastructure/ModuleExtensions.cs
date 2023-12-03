@@ -25,12 +25,17 @@ public static class ModuleExtensions
         var validIssuer = Environment.GetEnvironmentVariable("JWT_VALID_ISSUER") ??
              throw new ConfigurationException("Please specify a JWT_VALID_ISSUER!");
 
+        var connectionString = Environment.GetEnvironmentVariable("CONNECTION_STRING") ??
+             throw new ConfigurationException("Please specify a CONNECTION_STRING!");
 
-        model.ConnectionString = await model.ConnectionString.Mapper();
+        var secret = Environment.GetEnvironmentVariable("JWT_SECRET") ??
+             throw new ConfigurationException("Please specify a JWT_VALID_ISSUER!");
+
+        model.ConnectionString = connectionString; //await model.ConnectionString.Mapper();
         model.SelfCareUri = selfCareUri;
         model.SelfCareCertEndpoint = selfCareCertEndpoint;
         model.JWT.ValidAudience = validAudience;
-        model.JWT.Secret = await model.JWT.Secret.Mapper();
+        model.JWT.Secret = secret; //await model.JWT.Secret.Mapper();
         model.JWT.ValidIssuer = validIssuer;
 
         return model;

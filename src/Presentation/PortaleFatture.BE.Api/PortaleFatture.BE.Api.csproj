@@ -21,4 +21,10 @@
         <ProjectReference Include="..\..\Infrastructure\PortaleFatture.BE.Infrastructure\PortaleFatture.BE.Infrastructure.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <None Update="Infrastructure\Documenti\daticommessa.html">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
 </Project>

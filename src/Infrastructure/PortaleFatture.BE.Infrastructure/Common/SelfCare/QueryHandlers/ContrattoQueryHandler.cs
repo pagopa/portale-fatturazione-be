@@ -9,21 +9,15 @@ using PortaleFatture.BE.Infrastructure.Common.SelfCare.Queries.Persistence;
 
 namespace PortaleFatture.BE.Infrastructure.Common.SelfCare.QueryHandlers;
 
-public class ContrattoQueryHandler : IRequestHandler<ContrattoQueryGetById, Contratto?>
+public class ContrattoQueryHandler(
+ ISelfCareDbContextFactory factory,
+ IStringLocalizer<Localization> localizer,
+ ILogger<ContrattoQueryHandler> logger) : IRequestHandler<ContrattoQueryGetById, Contratto?>
 {
-    private readonly ISelfCareDbContextFactory _factory;
-    private readonly ILogger<ContrattoQueryHandler> _logger;
-    private readonly IStringLocalizer<Localization> _localizer;
+    private readonly ISelfCareDbContextFactory _factory = factory;
+    private readonly ILogger<ContrattoQueryHandler> _logger = logger;
+    private readonly IStringLocalizer<Localization> _localizer = localizer;
 
-    public ContrattoQueryHandler(
-     ISelfCareDbContextFactory factory,
-     IStringLocalizer<Localization> localizer,
-     ILogger<ContrattoQueryHandler> logger)
-    {
-        _factory = factory;
-        _localizer = localizer;
-        _logger = logger;
-    }
     public async Task<Contratto?> Handle(ContrattoQueryGetById request, CancellationToken ct)
     {
         var idEnte = request.AuthenticationInfo!.IdEnte;

@@ -34,13 +34,16 @@ namespace PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.QueryHandle
         public async Task<IEnumerable<ModuloCommessaByAnnoDto>?> Handle(DatiModuloCommessaQueryGetByAnno request, CancellationToken ct)
         {
             var (anno, _, _) = Time.YearMonth();
-            request.AnnoValidita = request.AnnoValidita != null ? request.AnnoValidita : anno;
-            var idEnte = request.AuthenticationInfo.IdEnte;
+            request.AnnoValidita = request.AnnoValidita != null ? request.AnnoValidita : anno; 
             IEnumerable<DatiModuloCommessaTotale>? dati;
             IEnumerable<CategoriaSpedizione>? categorie;
             using (var uow = await _factory.Create(true, cancellationToken: ct))
             {
-                dati = await uow.Query(new DatiModuloCommessaQueryGetByAnnoPersistence(idEnte, request.AnnoValidita.Value), ct);
+                dati = await uow.Query(new DatiModuloCommessaQueryGetByAnnoPersistence(
+                    request.AuthenticationInfo.IdEnte, 
+                    request.AnnoValidita.Value,
+                    request.AuthenticationInfo.IdTipoContratto,
+                    request.AuthenticationInfo.Prodotto), ct);
                 categorie = await uow.Query(new SpedizioneQueryGetAllPersistence(), ct);
             }
 

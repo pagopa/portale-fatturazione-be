@@ -10,13 +10,13 @@ public static class DatiConfigurazioneModuloCommessaValidator
     {
         var dataCreazione = DateTime.UtcNow.ItalianTime();
         if (model.IsNullNotAny() || command == null || command.Tipi!.IsNullNotAny() || command.Categorie!.IsNullNotAny())
-            return ("xxx", Array.Empty<string>());
+            return ("DatiConfigurazioneModuloCommessaInvalid", Array.Empty<string>());
 
         foreach (var cat in model)
         {
             var foundCat = command.Categorie!.Where(x => x.IdCategoriaSpedizione == cat.Id).FirstOrDefault();
             if (foundCat == null)
-                return ("xxx", Array.Empty<string>());
+                return ("DatiConfigurazioneModuloCommessaInvalid", Array.Empty<string>());
             foundCat.Descrizione = cat.Descrizione;
             foundCat.DataCreazione = dataCreazione;
             foundCat.DataInizioValidita = dataCreazione;
@@ -24,14 +24,14 @@ public static class DatiConfigurazioneModuloCommessaValidator
             {
                 var foundTipo = command.Tipi!.Where(x => x.IdTipoSpedizione == tp.Id).FirstOrDefault();
                 if (foundTipo == null)
-                    return ("xxx", Array.Empty<string>());
+                    return ("DatiConfigurazioneModuloCommessaInvalid", Array.Empty<string>());
                 foundTipo.Descrizione = tp.Descrizione;
                 foundTipo.DataCreazione = dataCreazione;
                 foundTipo.DataInizioValidita = dataCreazione;
             }
         }
         if (model.Count() != command.Categorie!.Count() || model.SelectMany(x => x.TipoSpedizione!).Count() != command.Tipi!.Count())
-            return ("xxx", Array.Empty<string>());
+            return ("DatiConfigurazioneModuloCommessaInvalid", Array.Empty<string>());
 
         return (null, null)!;
     }
@@ -73,7 +73,7 @@ public static class DatiConfigurazioneModuloCommessaValidator
       string? descrizione)
     {
         if (percentuale < 0)
-            return ("xxx", Array.Empty<string>());
+            return ("PercentoConfiguazioneModuloCommessaInvalid", Array.Empty<string>());
 
         if (!string.IsNullOrEmpty(descrizione) && descrizione.Length > 250)
             return ("DescrizioneConfiguazioneModuloCommessaInvalid", Array.Empty<string>());

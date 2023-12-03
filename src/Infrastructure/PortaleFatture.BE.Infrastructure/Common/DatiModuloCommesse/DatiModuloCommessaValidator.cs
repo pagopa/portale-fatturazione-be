@@ -27,19 +27,19 @@ public static class DatiModuloCommessaValidator
         var hereNow = DateTime.UtcNow.ItalianTime();
 
         if (numeroNotificheNazionali == null || numeroNotificheNazionali < 0)
-            return ("xxx", Array.Empty<string>());
+            return ("DatiModuloCommessaInvalid", Array.Empty<string>());
 
         if (numeroNotificheInternazionali == null || numeroNotificheInternazionali < 0)
-            return ("xxx", Array.Empty<string>()); 
+            return ("DatiModuloCommessaInvalid", Array.Empty<string>()); 
 
         if (annoValidita == null || annoValidita != hereNow.Year)
-            return ("xxx", Array.Empty<string>());
+            return ("DatiModuloCommessaDataInvalid", Array.Empty<string>());
 
         if (meseValidita == null || meseValidita != hereNow.Month)
-            return ("xxx", Array.Empty<string>());
+            return ("DatiModuloCommessaDataInvalid", Array.Empty<string>());
 
         if (string.IsNullOrEmpty(stato))
-            return ("xxx", Array.Empty<string>());
+            return ("DatiModuloCommessaStatoInvalid", Array.Empty<string>());
 
         return (null, null)!;
     } 

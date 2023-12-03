@@ -18,8 +18,10 @@ public record DatiFatturazioneUpdateRequest
     public bool? SplitPayment { get; set; }
     [Required]
     public string? IdDocumento { get; set; }
-    public string? Map { get; set; }
+    public string? Map { get; set; } 
+    [Required]
     public string? TipoCommessa { get; set; }
+    [Required]
     public string? Pec { get; set; }
     public List<DatiFatturazioneContattoCreateRequest>? Contatti { get; set; }
 }

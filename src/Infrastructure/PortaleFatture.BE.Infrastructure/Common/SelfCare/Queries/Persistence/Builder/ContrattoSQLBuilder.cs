@@ -19,7 +19,8 @@ public class ContrattoSQLBuilder
         Contratto? @obj = null;
         var builder = new SqlBuilder(); 
         builder.Select(nameof(@obj.Prodotto).GetAsColumn<Contratto>()); 
-        builder.Select(nameof(@obj.IdEnte).GetAsColumn<Contratto>()); 
+        builder.Select(nameof(@obj.IdEnte).GetAsColumn<Contratto>());
+        builder.Select(nameof(@obj.IdTipoContratto).GetAsColumn<Contratto>());
         return builder;
     }
 

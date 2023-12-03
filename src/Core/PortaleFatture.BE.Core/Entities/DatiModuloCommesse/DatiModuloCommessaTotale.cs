@@ -21,5 +21,7 @@ public class DatiModuloCommessaTotale
     public string? Prodotto { get; set; } 
     public int AnnoValidita { get; set; }
     public int MeseValidita { get; set; } 
-    public decimal TotaleCategoria { get; set; }
+    public decimal TotaleCategoria { get; set; } 
+    public int PercentualeCategoria { get; set; } 
+    public decimal Totale { get; set; }
 } 

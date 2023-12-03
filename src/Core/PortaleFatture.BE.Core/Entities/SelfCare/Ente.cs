@@ -37,4 +37,12 @@ public class Ente
 
     [Column("vatnumber")]
     public string? PartitaIva { get; set; }
-} 
+
+    public string? IndirizzoCompleto
+    {
+        get
+        {
+            return $"{Address}, {Cap} {Citta} ({Provincia}) - {Nazione}";
+        }
+    }
+}

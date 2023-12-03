@@ -11,8 +11,14 @@ public class DatiModuloCommessaTotaleSQLBuilder
     {
         DatiModuloCommessaTotale? obj;
         var fieldIdEnte = nameof(@obj.IdEnte).GetColumn<DatiModuloCommessaTotale>();
-        var fieldAnno = nameof(@obj.AnnoValidita); 
-        return $"{fieldIdEnte} = @{nameof(@obj.IdEnte)} AND {fieldAnno} = @{nameof(@obj.AnnoValidita)}";
+        var fieldAnno = nameof(@obj.AnnoValidita);
+        var fieldidTipoContratto = nameof(@obj.IdTipoContratto).GetColumn<DatiModuloCommessaTotale>();
+        var fieldProdotto = nameof(@obj.Prodotto).GetColumn<DatiModuloCommessaTotale>();
+        return String.Join(" AND ",
+            $"{fieldIdEnte} = @{nameof(@obj.IdEnte)}",
+            $"{fieldAnno} = @{nameof(@obj.AnnoValidita)}",
+            $"{fieldidTipoContratto} = @{nameof(@obj.IdTipoContratto)}",
+            $"{fieldProdotto} = @{nameof(@obj.Prodotto)}");
     }
     private static string WhereById()
     {
@@ -20,7 +26,14 @@ public class DatiModuloCommessaTotaleSQLBuilder
         var fieldIdEnte = nameof(@obj.IdEnte).GetColumn<DatiModuloCommessaTotale>();
         var fieldAnno = nameof(@obj.AnnoValidita);
         var fieldMese = nameof(@obj.MeseValidita);
-        return $"{fieldIdEnte} = @{nameof(@obj.IdEnte)} AND {fieldAnno} = @{nameof(@obj.AnnoValidita)} AND  {fieldMese} = @{nameof(@obj.MeseValidita)}";
+        var fieldidTipoContratto = nameof(@obj.IdTipoContratto).GetColumn<DatiModuloCommessaTotale>();
+        var fieldProdotto = nameof(@obj.Prodotto).GetColumn<DatiModuloCommessaTotale>();
+        return String.Join(" AND ", 
+            $"{fieldIdEnte} = @{nameof(@obj.IdEnte)}",
+            $"{fieldAnno} = @{ nameof(@obj.AnnoValidita)}",
+            $"{fieldMese} = @{nameof(@obj.MeseValidita)}",
+            $"{fieldidTipoContratto} = @{nameof(@obj.IdTipoContratto)}",
+            $"{fieldProdotto} = @{nameof(@obj.Prodotto)}"); 
     }
 
     private static SqlBuilder CreateSelect()
@@ -34,7 +47,9 @@ public class DatiModuloCommessaTotaleSQLBuilder
         builder.Select(nameof(@obj.Stato).GetAsColumn<DatiModuloCommessaTotale>());
         builder.Select(nameof(@obj.MeseValidita)); 
         builder.Select(nameof(@obj.AnnoValidita));
-        builder.Select(nameof(@obj.TotaleCategoria)); 
+        builder.Select(nameof(@obj.TotaleCategoria));
+        builder.Select(nameof(@obj.PercentualeCategoria));
+        builder.Select(nameof(@obj.Totale));
         return builder;
     }
 
@@ -56,7 +71,15 @@ public class DatiModuloCommessaTotaleSQLBuilder
         var builder = CreateSelect();
         var where = WhereByAnno();
         builder.Where(where);
-        var builderTemplate = builder.AddTemplate($"Select /**select**/ from [schema]{tableName} /**where**/ ");
+        builder.OrderBy($"{OrderByMeseValidita()} DESC");
+        var builderTemplate = builder.AddTemplate($"Select /**select**/ from [schema]{tableName} /**where**/ /**orderby**/");
         return builderTemplate.RawSql;
+    }
+
+    private static string OrderByMeseValidita()
+    {
+        DatiModuloCommessaTotale? obj;
+        var fieldMeseValidita = nameof(@obj.MeseValidita);
+        return $"{fieldMeseValidita}";
     }
 }

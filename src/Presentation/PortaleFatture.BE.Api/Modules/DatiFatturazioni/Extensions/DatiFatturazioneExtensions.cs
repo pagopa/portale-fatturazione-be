@@ -1,5 +1,6 @@
 ﻿using PortaleFatture.BE.Api.Modules.DatiFatturazioni.Payload.Request;
 using PortaleFatture.BE.Api.Modules.DatiFatturazioni.Payload.Response;
+using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Entities.DatiFatturazioni;
 using PortaleFatture.BE.Core.Entities.Tipologie;
 using PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni.Commands;
@@ -15,11 +16,11 @@ public static class DatiFatturazioneExtensions
     public static DatiFatturazioneContattoCreateCommand Mapper(this DatiFatturazioneContattoCreateRequest model) =>
        new()
        {
-           Email = model.Email 
+           Email = model.Email
        };
 
-    public static DatiFatturazioneCreateCommand Mapper(this DatiFatturazioneCreateRequest model, string idEnte) =>
-       new()
+    public static DatiFatturazioneCreateCommand Mapper(this DatiFatturazioneCreateRequest model, AuthenticationInfo info) =>
+       new(info)
        {
            Cig = model.Cig,
            CodCommessa = model.CodCommessa,
@@ -28,16 +29,15 @@ public static class DatiFatturazioneExtensions
            SplitPayment = model.SplitPayment,
            IdDocumento = model.IdDocumento,
            Map = model.Map,
-           IdEnte = idEnte,
            Contatti = model.Contatti?.Select(x => x.Mapper()).ToList(),
            Pec = model.Pec,
-           TipoCommessa = model.TipoCommessa,
+           TipoCommessa = model.TipoCommessa 
        };
 
-    public static DatiFatturazioneUpdateCommand Mapper(this DatiFatturazioneUpdateRequest model) =>
-       new()
+    public static DatiFatturazioneUpdateCommand Mapper(this DatiFatturazioneUpdateRequest model, AuthenticationInfo authInfo) =>
+       new(authInfo)
        {
-           Id = model.Id, 
+           Id = model.Id,
            Cig = model.Cig,
            CodCommessa = model.CodCommessa,
            Cup = model.Cup,
@@ -53,7 +53,7 @@ public static class DatiFatturazioneExtensions
     public static DatiFatturazioneContattoResponse Mapper(this DatiFatturazioneContatto model) =>
        new()
        {
-           Email = model.Email 
+           Email = model.Email
        };
 
     public static DatiFatturazioneResponse Mapper(this DatiFatturazione model) =>

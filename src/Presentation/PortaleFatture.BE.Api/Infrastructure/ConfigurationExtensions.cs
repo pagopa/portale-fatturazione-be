@@ -7,9 +7,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.AspNetCore.HttpOverrides;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using Polly;
 using Polly.Extensions.Http;
@@ -18,6 +15,7 @@ using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Common;
 using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Infrastructure;
+using PortaleFatture.BE.Infrastructure.Common.Documenti;
 using PortaleFatture.BE.Infrastructure.Common.Identity;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.Persistence.Schemas;
@@ -197,6 +195,12 @@ public static class ConfigurationExtensions
 
         services.AddHttpClient();
         services.AddSingleton<ISelfCareHttpClient, SelfCareHttpClient>();
+
+        var hostingEnvironment = services
+            .BuildServiceProvider()
+            .GetRequiredService<IWebHostEnvironment>();
+        var rootPath = hostingEnvironment.ContentRootPath;
+        services.AddSingleton<IDocumentBuilder>(new DocumentBuilder(rootPath));
         return services;
     }
 
@@ -206,7 +210,9 @@ public static class ConfigurationExtensions
             .AddScoped<ITokenService>(_ => new JwtTokenService(jwtAuth))
             .AddScoped<IIdentityUsersService, IdentityUsersService>()
             .AddSingleton<ISelfCareTokenService, SelfCareTokenService>()
-            .AddSingleton<IProfileService, ProfileService>();
+            .AddSingleton<IProfileService, ProfileService>()
+            .AddSingleton<IAesEncryption>(new AesEncryption(jwtAuth.Secret!));
+
         services
             .AddAuthorization();
 

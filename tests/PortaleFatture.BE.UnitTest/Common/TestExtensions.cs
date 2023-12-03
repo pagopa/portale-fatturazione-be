@@ -1,4 +1,4 @@
-﻿using System.Text;
+﻿using PortaleFatture.BE.Core.Auth;
 
 namespace PortaleFatture.BE.UnitTest.Common;
 
@@ -14,4 +14,13 @@ public static class TestExtensions
     {
         return Guid.NewGuid().ToString();
     }
-} 
+
+    public static AuthenticationInfo GetAuthInfo(string? idEnte, string? prodotto)
+    {
+        return new AuthenticationInfo()
+        {
+            IdEnte = idEnte ?? Guid.NewGuid().ToString(),
+            Prodotto = prodotto ?? "prod-pn"
+        };
+    }
+}

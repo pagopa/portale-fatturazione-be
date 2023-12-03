@@ -4,21 +4,19 @@ using PortaleFatture.BE.Core.Entities.DatiFatturazioni;
 
 namespace PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni.Commands;
 
-public sealed class DatiFatturazioneUpdateCommand : IRequest<DatiFatturazione>
+public sealed class DatiFatturazioneUpdateCommand(IAuthenticationInfo authenticationInfo) : IRequest<DatiFatturazione>
 {
-    IAuthenticationInfo? AuthenticationInfo { get; set; }
-    public long Id { get; set; }
+    public IAuthenticationInfo AuthenticationInfo { get; internal set; } = authenticationInfo;
+    public long Id { get; set; } 
     public string? Cup { get; set; }
     public string? Cig { get; set; }
     public string? CodCommessa { get; set; }
-    public DateTimeOffset DataDocumento { get; set; }
-    public bool? SplitPayment { get; set; }
-    public string? IdEnte { get; set; }
+    public DateTime DataDocumento { get; set; }
+    public bool? SplitPayment { get; set; } 
     public string? IdDocumento { get; set; }
     public string? Map { get; set; }
-    public string? TipoCommessa { get; set; }
-    public string? Prodotto { get; set; }
-    public string? Pec { get; set; }
-    public DateTimeOffset? DataModifica { get; set; }
+    public string? TipoCommessa { get; set; } 
+    public string? Pec { get; set; }  
+    public DateTime? DataModifica { get; set; }
     public List<DatiFatturazioneContattoCreateCommand>? Contatti { get; set; }
 }

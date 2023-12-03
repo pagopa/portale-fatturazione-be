@@ -94,7 +94,7 @@ public class DatiConfigurazioneModuloCommessaCreateCommandHandler : IRequestHand
                 if (updateRowAffected != count)
                 {
                     uow.Rollback();
-                    throw new DomainException(_localizer["xxx"]);
+                    throw new DomainException(_localizer["DatiConfigurazioneModuloCommessaError"]);
                 }
             }
 
@@ -102,7 +102,7 @@ public class DatiConfigurazioneModuloCommessaCreateCommandHandler : IRequestHand
             if (rowAffected != count)
             {
                 uow.Rollback();
-                throw new DomainException(_localizer["xxx"]);
+                throw new DomainException(_localizer["DatiConfigurazioneModuloCommessaError"]);
             }
             else
                 uow.Commit();
@@ -113,7 +113,7 @@ public class DatiConfigurazioneModuloCommessaCreateCommandHandler : IRequestHand
             uow.Rollback();
             var methodName = nameof(DatiConfigurazioneModuloCommessaCreateCommandHandler);
             _logger.LogError(e, "Errore nel salvataggio dei dati configurazione: \"{MethodName}\" per tipo contratto: \"{TipoContratto}\"", methodName, firstTipoRequest.IdTipoContratto);
-            throw new DomainException(_localizer["xxx"]);
+            throw new DomainException(_localizer["DatiConfigurazioneModuloCommessaError"]);
         }
     }
 }

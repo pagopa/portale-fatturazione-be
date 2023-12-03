@@ -21,8 +21,7 @@ public class DatiConfigurazioneModuloCommessaQueryGetPersistence : DapperBase, I
         var values = await ((IDatabase)this).QueryMultipleAsync<DatiConfigurazioneModuloTipoCommessa>(connection!, _sqlSelect.Add(schema),
             new
             {
-                prodotto = _prodotto,
-                tipoContratto = _idTipoContratto,
+                prodotto = _prodotto, 
                 idTipoContratto = _idTipoContratto
             }, transaction);
 

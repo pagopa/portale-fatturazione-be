@@ -1,5 +1,4 @@
 ﻿using Dapper;
-using PortaleFatture.BE.Core.Entities.DatiFatturazioni;
 using PortaleFatture.BE.Core.Entities.DatiModuloCommesse;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 
@@ -10,8 +9,14 @@ public class DatiModuloCommessaAnniSQLBuilder
     private static string WhereById()
     {
         DatiModuloCommessaTotale? obj;
-        var fieldIdEnte = nameof(@obj.IdEnte).GetColumn<DatiModuloCommessaTotale>(); 
-        return $"{fieldIdEnte} = @{nameof(@obj.IdEnte)}";
+        var fieldIdEnte = nameof(@obj.IdEnte).GetColumn<DatiModuloCommessaTotale>();
+        var fieldidTipoContratto = nameof(@obj.IdTipoContratto).GetColumn<DatiModuloCommessaTotale>();
+        var fieldProdotto = nameof(@obj.Prodotto).GetColumn<DatiModuloCommessaTotale>();
+
+        return String.Join(" AND ",
+            $"{fieldIdEnte} = @{nameof(@obj.IdEnte)}", 
+            $"{fieldidTipoContratto} = @{nameof(@obj.IdTipoContratto)}",
+            $"{fieldProdotto} = @{nameof(@obj.Prodotto)}"); 
     }
 
     private static SqlBuilder CreateSelect()

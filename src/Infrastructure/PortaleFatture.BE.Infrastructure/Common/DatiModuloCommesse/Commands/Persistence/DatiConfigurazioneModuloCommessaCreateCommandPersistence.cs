@@ -48,17 +48,9 @@ VALUES     (@prodotto,
             @datacreazione); ";
     public async Task<int> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var resultTipi = await ((IDatabase)this).ExecuteAsync(connection!, _sqlInsertTipo.Add(schema), _command.Tipi, transaction);
-            var resultCategorie = await ((IDatabase)this).ExecuteAsync(connection!, _sqlInsertCategoria.Add(schema), _command.Categorie, transaction);
-            return resultTipi + resultCategorie;
-        }
-        catch (Exception ex)
-        {
-            var dummy = ex;
-            return 0;
-        }
- 
+
+        var resultTipi = await ((IDatabase)this).ExecuteAsync(connection!, _sqlInsertTipo.Add(schema), _command.Tipi, transaction);
+        var resultCategorie = await ((IDatabase)this).ExecuteAsync(connection!, _sqlInsertCategoria.Add(schema), _command.Categorie, transaction);
+        return resultTipi + resultCategorie;
     }
 }

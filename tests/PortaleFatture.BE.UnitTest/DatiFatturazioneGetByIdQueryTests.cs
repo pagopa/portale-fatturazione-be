@@ -32,17 +32,17 @@ public class DatiFatturazioneGetByIdQueryTests
         string? expectedCup = "ecup";
         string? expectedCig = "ecig";
         string? expectedCodCommessa = "ecommmessa";
-        DateTimeOffset expectedDataDocumento = DateTime.UtcNow;
+        DateTime expectedDataDocumento = DateTime.UtcNow;
         bool? expectedSplitPayment = false;
         string? expectedTipoCommessa = "1";
         string? expectedIdDocumento = "eiddocumento";
         string? expectedMap = "emap";
-        DateTimeOffset expectedDataCreazione = DateTime.UtcNow;
+        DateTime  expectedDataCreazione = DateTime.UtcNow;
         string? expectedIdEnte = TestExtensions.GetRandomIdEnte();
         string? expectedPec = "pippo@pec.it";
-        string? expectedProdotto = "prodotto1";
-
-        var req = new DatiFatturazioneCreateCommand()
+        string? expectedProdotto = "prod-pn";
+        var authInfo = TestExtensions.GetAuthInfo(expectedIdEnte, expectedProdotto);
+        var req = new DatiFatturazioneCreateCommand(authInfo)
         {
             Cig = expectedCig,
             CodCommessa = expectedCodCommessa,
@@ -50,11 +50,9 @@ public class DatiFatturazioneGetByIdQueryTests
             Cup = expectedCup,
             DataCreazione = expectedDataCreazione,
             DataDocumento = expectedDataDocumento,
-            Pec = expectedPec,
-            Prodotto = expectedProdotto,
+            Pec = expectedPec, 
             TipoCommessa = expectedTipoCommessa,
-            IdDocumento = expectedIdDocumento,
-            IdEnte = expectedIdEnte,
+            IdDocumento = expectedIdDocumento, 
             Map = expectedMap,
             SplitPayment = expectedSplitPayment             
         };
@@ -81,16 +79,16 @@ public class DatiFatturazioneGetByIdQueryTests
         string? expectedCup = "ecup";
         string? expectedCig = "ecig";
         string? expectedCodCommessa = "ecommmessa";
-        DateTimeOffset expectedDataDocumento = DateTime.UtcNow;
+        DateTime expectedDataDocumento = DateTime.UtcNow;
         bool? expectedSplitPayment = false;
         string? expectedTipoCommessa = "1";
         string? expectedIdDocumento = "eiddocumento";
         string? expectedMap = "emap";
-        DateTimeOffset expectedDataCreazione = DateTime.UtcNow;
+        DateTime  expectedDataCreazione = DateTime.UtcNow;
         string? expectedIdEnte = TestExtensions.GetRandomIdEnte();
         string? expectedPec = "pippo@pec.it";
-        string? expectedProdotto = "prodotto1";
-
+        string? expectedProdotto = "prod-pn";
+        var authInfo = TestExtensions.GetAuthInfo(expectedIdEnte, expectedProdotto);
         var expectedContatti = new List<DatiFatturazioneContattoCreateCommand>()
         { new()
             {
@@ -101,7 +99,7 @@ public class DatiFatturazioneGetByIdQueryTests
                  Email = "expected2@pippo.com" 
             },
         };
-        var req = new DatiFatturazioneCreateCommand()
+        var req = new DatiFatturazioneCreateCommand(authInfo)
         {
             Cig = expectedCig,
             CodCommessa = expectedCodCommessa,
@@ -109,19 +107,15 @@ public class DatiFatturazioneGetByIdQueryTests
             Cup = expectedCup,
             DataCreazione = expectedDataCreazione,
             DataDocumento = expectedDataDocumento,
-            Pec = expectedPec,
-            Prodotto = expectedProdotto,
+            Pec = expectedPec, 
             TipoCommessa = expectedTipoCommessa,
-            IdDocumento = expectedIdDocumento,
-            IdEnte = expectedIdEnte,
+            IdDocumento = expectedIdDocumento, 
             Map = expectedMap,
             SplitPayment = expectedSplitPayment
         };
 
         var actualDatiFatturazione = await _handler.Send(req);
-        Assert.IsNotNull(actualDatiFatturazione);
-
-        Assert.IsNotNull(actualDatiFatturazione);
+        Assert.IsNotNull(actualDatiFatturazione); 
 
         var id = actualDatiFatturazione.Id;
         var select = new DatiFatturazioneQueryGetById()

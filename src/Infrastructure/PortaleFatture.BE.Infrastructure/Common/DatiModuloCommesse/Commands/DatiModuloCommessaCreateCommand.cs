@@ -1,5 +1,4 @@
-﻿using System.Runtime.Serialization;
-using MediatR;
+﻿using MediatR;
 using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Entities.DatiModuloCommesse;
 
@@ -18,5 +17,9 @@ public class DatiModuloCommessaCreateCommand : IRequest<DatiModuloCommessa>
     public long IdTipoContratto { get; set; }
     public string? Stato { get; set; } 
     public string? Prodotto { get; set; } 
-    public int IdTipoSpedizione { get; set; }
+    public int IdTipoSpedizione { get; set; } 
+    public decimal ValoreNazionali { get; set; } 
+    public decimal PrezzoNazionali { get; set; } 
+    public decimal ValoreInternazionali { get; set; }
+    public decimal PrezzoInternazionali { get; set; }
 }

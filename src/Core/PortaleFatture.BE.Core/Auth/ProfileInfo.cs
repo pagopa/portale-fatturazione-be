@@ -11,6 +11,7 @@ public record ProfileInfo
     public string? DescrizioneRuolo { get; set; } 
     public string? NomeEnte { get; set; }
     public string? Id { get; set; }
+    public string? Nonce { get; set; }
     public DateTime? Valido { get; set; }
     public string? JWT { get; set; }
 }

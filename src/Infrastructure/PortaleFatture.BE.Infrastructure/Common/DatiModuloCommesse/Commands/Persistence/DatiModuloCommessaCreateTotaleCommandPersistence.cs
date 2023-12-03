@@ -18,22 +18,26 @@ using        (VALUES
                 @idente,
                 @IdTipoContratto,
                 @Prodotto,
-                @IdCategoriaSpedizione,
+                @idCategoriaSpedizione,
                 @annovalidita,
                 @mesevalidita,
                 @TotaleCategoria,
-                @stato
+                @stato,
+                @percentualeCategoria,
+                @totale
              )
-             ) AS source (idente, idtipocontratto, prodotto, IdCategoriaSpedizione, annovalidita, mesevalidita, TotaleCategoria, stato )
+             ) AS source (idente, idtipocontratto, prodotto, idCategoriaSpedizione, annovalidita, mesevalidita, totaleCategoria, stato, percentualeCategoria, totale)
 ON           dm.fkidente = source.idente
 AND          dm.fkidtipocontratto = source.idtipocontratto
 AND          dm.fkprodotto = source.prodotto
-AND          dm.fkIdCategoriaSpedizione = source.IdCategoriaSpedizione
+AND          dm.fkIdCategoriaSpedizione = source.idCategoriaSpedizione
 AND          dm.annovalidita = source.annovalidita
 AND          dm.mesevalidita = source.mesevalidita
 WHEN matched THEN
 UPDATE
-SET              TotaleCategoria = source.TotaleCategoria
+SET              totaleCategoria = source.totaleCategoria,
+                 percentualeCategoria = source.percentualeCategoria,
+                 totale =source.totale
 WHEN NOT matched THEN
 INSERT
        (
@@ -44,7 +48,9 @@ INSERT
               fkIdCategoriaSpedizione,
               annovalidita,
               mesevalidita,
-              TotaleCategoria
+              totaleCategoria,
+              percentualeCategoria,
+              totale
        )
        VALUES
        (
@@ -52,10 +58,12 @@ INSERT
               source.idtipocontratto,
               source.stato,
               source.prodotto,
-              source.IdCategoriaSpedizione,
+              source.idCategoriaSpedizione,
               source.annovalidita,
               source.mesevalidita,
-              source.TotaleCategoria
+              source.totaleCategoria,
+              source.percentualeCategoria,
+              source.totale
        );
 ";
 

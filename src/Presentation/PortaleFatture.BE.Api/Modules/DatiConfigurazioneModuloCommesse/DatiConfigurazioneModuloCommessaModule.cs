@@ -31,7 +31,7 @@ public partial class DatiConfigurazioneModuloCommessaModule
     {
         var configurazione = await handler.Send(new DatiConfigurazioneModuloCommessaQueryGet() { Prodotto = prodotto, IdTipoContratto = idTipoContratto });
         if (configurazione == null)
-            throw new NotFoundException(localizer["xxx"]);
+            throw new NotFoundException(localizer["DatiConfigurazioneModuloCommessaMissing"]);
         return Ok(configurazione.Mapper());
     }
 
@@ -47,10 +47,10 @@ public partial class DatiConfigurazioneModuloCommessaModule
     [FromServices] IStringLocalizer<Localization> localizer,
     [FromServices] IMediator handler)
     {
-        var command = req.Mapper() ?? throw new ValidationException(localizer["xxx"]);
+        var command = req.Mapper() ?? throw new ValidationException(localizer["DatiConfigurazioneModuloCommessaInvalid"]);
         var configurazione = await handler.Send(command);
         if (configurazione == null)
-            throw new DomainException(localizer["xxx"]);
+            throw new DomainException(localizer["DatiConfigurazioneModuloCommessaError"]);
         return Ok(configurazione.Mapper());
     }
 } 

@@ -27,8 +27,10 @@ namespace PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.QueryHandle
         public async Task<IEnumerable<string>?> Handle(DatiModuloCommessaGetAnni request, CancellationToken ct)
         {
             var idEnte = request.AuthenticationInfo.IdEnte;
-            using var uow = await _factory.Create(true, cancellationToken: ct);
-            return await uow.Query(new DatiModuloCommessaQueryGetAnniPersistence(idEnte), ct);
+            var prodotto = request.AuthenticationInfo.Prodotto;
+            var idTipoContratto = request.AuthenticationInfo.IdTipoContratto;
+            using var uow = await _factory.Create(cancellationToken: ct);
+            return await uow.Query(new DatiModuloCommessaQueryGetAnniPersistence(idEnte,  idTipoContratto,  prodotto), ct);
         }
     }
 }

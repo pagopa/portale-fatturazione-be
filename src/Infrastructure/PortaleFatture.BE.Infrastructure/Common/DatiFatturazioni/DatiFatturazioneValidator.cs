@@ -1,3 +1,4 @@
+using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni.Commands;
 
@@ -16,16 +17,12 @@ public static class DatiFatturazioneValidator
             cmd.IdDocumento,
             cmd.Map,
             cmd.TipoCommessa,
-            cmd.Pec,
-            cmd.Prodotto,
+            cmd.Pec,  
             cmd.Contatti);
     }
 
     public static (string, string[]) Validate(DatiFatturazioneCreateCommand cmd)
-    {
-        if (string.IsNullOrEmpty(cmd.IdEnte) || cmd.IdEnte.Length > 50)
-            return ("", Array.Empty<string>());
-
+    { 
         return Validate(
             cmd.Cup,
             cmd.Cig,
@@ -35,8 +32,7 @@ public static class DatiFatturazioneValidator
             cmd.IdDocumento,
             cmd.Map,
             cmd.TipoCommessa,
-            cmd.Pec,
-            cmd.Prodotto,
+            cmd.Pec,  
             cmd.Contatti); 
     }
 
@@ -49,8 +45,7 @@ public static class DatiFatturazioneValidator
         string? idDocumento,
         string? map,
         string? tipoCommessa,
-        string? pec,
-        string? prodotto)
+        string? pec )
     {
         if (string.IsNullOrEmpty(cup) || cup.Length > 15)
             return ("DatiFatturazioneCupInvalid", Array.Empty<string>());
@@ -71,10 +66,7 @@ public static class DatiFatturazioneValidator
             return ("DatiFatturazioneTipoCommessaInvalid", Array.Empty<string>());
 
         if (!string.IsNullOrEmpty(pec) && pec.IsNotValidEmail())
-            return ("DatiFatturazionePecInvalid", Array.Empty<string>());
-
-        if (!string.IsNullOrEmpty(prodotto) && prodotto.Length <= 0)
-            return ("DatiFatturazioneProdottoInvalid", Array.Empty<string>());
+            return ("DatiFatturazionePecInvalid", Array.Empty<string>());  
 
         return (null, null)!;
     }
@@ -89,7 +81,6 @@ public static class DatiFatturazioneValidator
         string? map,
         string? tipoCommessa,
         string? pec,
-        string? prodotto,
         List<DatiFatturazioneContattoCreateCommand>? contatti)
     {  
         if (!contatti!.IsNullNotAny())
@@ -103,6 +94,6 @@ public static class DatiFatturazioneValidator
             }
         }
 
-        return Validate(cup, cig, codCommessa, dataDocumento, splitPayment, idDocumento, map, tipoCommessa, pec, prodotto);
+        return Validate(cup, cig, codCommessa, dataDocumento, splitPayment, idDocumento, map, tipoCommessa, pec);
     }
 }

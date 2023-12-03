@@ -17,6 +17,16 @@ public class DatiModuloCommessaSQLBuilder
         return $"{idTipoContratto} = @{nameof(@obj.IdTipoContratto)} AND {fieldIdEnte} = @{nameof(@obj.IdEnte)} AND {fieldAnno} = @{nameof(@obj.AnnoValidita)} AND  {fieldMese} = @{nameof(@obj.MeseValidita)} AND  {prodotto} = @{nameof(@obj.Prodotto)}";
     }
 
+    private static string WhereByAnno()
+    {
+        DatiModuloCommessa? obj;
+        var fieldIdEnte = nameof(@obj.IdEnte).GetColumn<DatiModuloCommessa>();
+        var fieldAnno = nameof(@obj.AnnoValidita); 
+        var prodotto = nameof(@obj.Prodotto).GetColumn<DatiModuloCommessa>();
+        var idTipoContratto = nameof(@obj.IdTipoContratto).GetColumn<DatiModuloCommessa>();
+        return $"{idTipoContratto} = @{nameof(@obj.IdTipoContratto)} AND {fieldIdEnte} = @{nameof(@obj.IdEnte)} AND {fieldAnno} = @{nameof(@obj.AnnoValidita)} AND  {prodotto} = @{nameof(@obj.Prodotto)}";
+    }
+
     private static SqlBuilder CreateSelect()
     {
         DatiModuloCommessa? @obj = null;
@@ -32,6 +42,10 @@ public class DatiModuloCommessaSQLBuilder
         builder.Select(nameof(@obj.NumeroNotificheInternazionali));
         builder.Select(nameof(@obj.NumeroNotificheNazionali));
         builder.Select(nameof(@obj.Stato).GetAsColumn<DatiModuloCommessa>());
+        builder.Select(nameof(@obj.ValoreNazionali));
+        builder.Select(nameof(@obj.PrezzoNazionali));
+        builder.Select(nameof(@obj.ValoreInternazionali));
+        builder.Select(nameof(@obj.PrezzoInternazionali)); 
         return builder;
     }
 
@@ -43,5 +57,23 @@ public class DatiModuloCommessaSQLBuilder
         builder.Where(where); 
         var builderTemplate = builder.AddTemplate($"Select /**select**/ from [schema]{tableName} /**where**/ ");
         return builderTemplate.RawSql;
+    }
+
+    public static string SelectByAnno()
+    {
+        var tableName = nameof(DatiModuloCommessa);
+        var builder = CreateSelect();
+        var where = WhereByAnno();
+        builder.Where(where);
+        builder.OrderBy($"{OrderByMeseValidita()} DESC");
+        var builderTemplate = builder.AddTemplate($"Select /**select**/ from [schema]{tableName} /**where**/ /**orderby**/");
+        return builderTemplate.RawSql;
     } 
+
+    private static string OrderByMeseValidita()
+    {
+        DatiModuloCommessa? obj;
+        var fieldMeseValidita = nameof(@obj.MeseValidita);
+        return $"{fieldMeseValidita}";
+    }
 }

@@ -14,7 +14,7 @@ public static class DatiModuloCommessaViewModelExtensions
     {
         var cmd = new DatiModuloCommessaCreateListCommand(authInfo)
         {
-            DatiModuloCommessaListCommand = new()
+            DatiModuloCommessaListCommand = []
         };
 
         foreach (var md in model.ModuliCommessa!)
@@ -34,18 +34,18 @@ public static class DatiModuloCommessaViewModelExtensions
 
     public static DatiModuloCommessaResponse? Mapper(this ModuloCommessaDto model, string ruolo)
     {
-        if (model is null)
-            return null;
-
-        var stato = model.DatiModuloCommessaTotale!.Select(x => x.Stato).FirstOrDefault();
-
+        var stato = model == null ? null : model.DatiModuloCommessaTotale!.Select(x => x.Stato).FirstOrDefault();
+ 
         var cmd = new DatiModuloCommessaResponse
         {
             ModuliCommessa = [],
             Totale = [],
             TotaleModuloCommessaNotifica = new(),
-            Modifica = stato == StatoModuloCommessa.ApertaCaricato && ruolo == Ruolo.ADMIN
-        };
+            Modifica = stato == null ? ruolo == Ruolo.ADMIN : stato == StatoModuloCommessa.ApertaCaricato && ruolo == Ruolo.ADMIN
+        }; 
+
+        if (model is null)
+            return cmd;
 
         foreach (var md in model.DatiModuloCommessa!)
             cmd.ModuliCommessa.Add(new DatiModuloCommessaSimpleResponse()

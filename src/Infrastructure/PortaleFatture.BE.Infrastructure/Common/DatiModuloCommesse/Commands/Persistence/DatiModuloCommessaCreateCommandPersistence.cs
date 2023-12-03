@@ -25,9 +25,13 @@ using        (VALUES
                           @annovalidita,
                           @mesevalidita,
                           @datacreazione,
-                          @stato
+                          @stato,
+                          @valoreNazionali,
+                          @prezzoNazionali,
+                          @valoreInternazionali,
+                          @prezzoInternazionali
              )
-             ) AS source (numeronotifichenazionali, numeronotificheinternazionali, datamodifica, idente, idtipocontratto, prodotto, idtipospedizione, annovalidita, mesevalidita, datacreazione, stato )
+             ) AS source (numeronotifichenazionali, numeronotificheinternazionali, datamodifica, idente, idtipocontratto, prodotto, idtipospedizione, annovalidita, mesevalidita, datacreazione, stato, valoreNazionali, prezzoNazionali, valoreInternazionali, prezzoInternazionali)
 ON           dm.fkidente = source.idente
 AND          dm.fkidtipocontratto = source.idtipocontratto
 AND          dm.fkprodotto = source.prodotto
@@ -38,7 +42,11 @@ WHEN matched THEN
 UPDATE
 SET              numeronotifichenazionali = source.numeronotifichenazionali,
                  numeronotificheinternazionali = source.numeronotificheinternazionali,
-                 datamodifica = source.datamodifica
+                 datamodifica = source.datamodifica,
+                 valoreNazionali = source.valoreNazionali,
+                 prezzoNazionali = source.prezzoNazionali,
+                 valoreInternazionali = source.valoreInternazionali,
+                 prezzoInternazionali = source.prezzoInternazionali
 WHEN NOT matched THEN
 INSERT
        (
@@ -51,7 +59,11 @@ INSERT
               fkprodotto,
               fkidtipospedizione,
               annovalidita,
-              mesevalidita
+              mesevalidita,
+              valoreNazionali,
+              prezzoNazionali,
+              valoreInternazionali,
+              prezzoInternazionali
        )
        VALUES
        (
@@ -64,7 +76,11 @@ INSERT
               source.prodotto,
               source.idtipospedizione,
               source.annovalidita,
-              source.mesevalidita
+              source.mesevalidita,
+              source.valoreNazionali,
+              source.prezzoNazionali,
+              source.valoreInternazionali,
+              source.prezzoInternazionali
        );
 ";
 
