@@ -2,7 +2,9 @@
 
 public class DatiModuloCommessaResponse
 {
-    public bool Modifica { get; set; } 
+    public bool Modifica { get; set; }
+    public int Anno { get; set; }
+    public int Mese { get; set; }
     public List<DatiModuloCommessaSimpleResponse>? ModuliCommessa { get; set; }
     public TotaleDatiModuloCommessaNotifica? TotaleModuloCommessaNotifica { get; set; }
     public List<TotaleDatiModuloCommessa>? Totale { get; set; }

@@ -34,14 +34,16 @@ public static class DatiModuloCommessaViewModelExtensions
 
     public static DatiModuloCommessaResponse? Mapper(this ModuloCommessaDto model)
     {
-   
+
         var cmd = new DatiModuloCommessaResponse
         {
             ModuliCommessa = [],
             Totale = [],
             TotaleModuloCommessaNotifica = new(),
-            Modifica = model.Modifica
-        }; 
+            Modifica = model.Modifica,
+            Anno = model.Anno,
+            Mese = model.Mese
+        };
 
         if (model is null)
             return cmd;

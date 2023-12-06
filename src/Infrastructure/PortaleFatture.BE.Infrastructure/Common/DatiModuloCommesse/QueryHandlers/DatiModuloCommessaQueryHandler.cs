@@ -91,7 +91,9 @@ namespace PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.QueryHandle
             {
                 Modifica = valid && (datic!.IsNullNotAny() || datic!.Select(x=>x.Stato).FirstOrDefault() == StatoModuloCommessa.ApertaCaricato),
                 DatiModuloCommessa = datic!,
-                DatiModuloCommessaTotale = datit!
+                DatiModuloCommessaTotale = datit!,
+                Anno = datic!.Select(x => x.AnnoValidita).FirstOrDefault(),
+                Mese = datic!.Select(x => x.MeseValidita).FirstOrDefault(),
             };
         }
     }
