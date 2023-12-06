@@ -1,7 +1,5 @@
 ﻿using PortaleFatture.BE.Core.Entities.DatiFatturazioni;
-using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni.Commands;
-using PortaleFatture.BE.Infrastructure.Extensions;
 
 namespace PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni;
 public static class DatiFatturazioneMapper

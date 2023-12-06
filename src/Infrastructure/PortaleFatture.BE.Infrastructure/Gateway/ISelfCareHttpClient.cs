@@ -1,6 +1,4 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
-using Microsoft.IdentityModel.Tokens;
-using PortaleFatture.BE.Core.Auth.SelfCare;
 
 namespace PortaleFatture.BE.Infrastructure.Gateway
 {

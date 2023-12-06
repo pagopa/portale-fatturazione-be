@@ -23,9 +23,9 @@ namespace PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.QueryHandle
 
         public async Task<ModuloCommessaDocumentoDto?> Handle(DatiModuloCommessaDocumentoQueryGet request, CancellationToken ct)
         {
-            var (anno, mese, _) = Time.YearMonth();
-            request.AnnoValidita = request.AnnoValidita != null ? request.AnnoValidita : anno;
-            request.MeseValidita = request.MeseValidita != null ? request.MeseValidita : mese;
+            var (annoFatturazione, meseFatturazione, _, _) = Time.YearMonthDayFatturazione();
+            request.AnnoValidita = request.AnnoValidita != null ? request.AnnoValidita : annoFatturazione;
+            request.MeseValidita = request.MeseValidita != null ? request.MeseValidita : meseFatturazione;
             var authInfo = request.AuthenticationInfo;
 
             var datiFatturazione = await _handler.Send(new DatiFatturazioneQueryGetByIdEnte(authInfo));

@@ -31,13 +31,28 @@ public static class ModuleExtensions
         var secret = Environment.GetEnvironmentVariable("JWT_SECRET") ??
              throw new ConfigurationException("Please specify a JWT_VALID_ISSUER!");
 
+        var corsOrigins = Environment.GetEnvironmentVariable("CORS_ORIGINS") ??
+             throw new ConfigurationException("Please specify a CORS_ORIGINS!");
+
+        var selfCareTimeOut = Environment.GetEnvironmentVariable("SELF_CARE_TIMEOUT") ??
+             throw new ConfigurationException("Please specify a SELF_CARE_TIMEOUT!");
+
+        var selfCareAudience = Environment.GetEnvironmentVariable("SELF_CARE_AUDIENCE") ??
+             throw new ConfigurationException("Please specify a SELF_CARE_AUDIENCE!");
+
+        var adminKey = Environment.GetEnvironmentVariable("ADMIN_KEY") ??
+             throw new ConfigurationException("Please specify a ADMIN_KEY!");
+
         model.ConnectionString = connectionString; //await model.ConnectionString.Mapper();
         model.SelfCareUri = selfCareUri;
         model.SelfCareCertEndpoint = selfCareCertEndpoint;
         model.JWT.ValidAudience = validAudience;
         model.JWT.Secret = secret; //await model.JWT.Secret.Mapper();
         model.JWT.ValidIssuer = validIssuer;
-
+        model.CORSOrigins = corsOrigins;
+        model.SelfCareTimeOut = selfCareTimeOut;
+        model.SelfCareAudience = selfCareAudience;
+        model.AdminKey = adminKey;
         return model;
     }
 

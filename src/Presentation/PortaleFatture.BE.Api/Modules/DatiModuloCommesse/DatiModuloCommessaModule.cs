@@ -1,5 +1,4 @@
-﻿using System.Reflection.Metadata;
-using MediatR;
+﻿using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -15,11 +14,8 @@ using PortaleFatture.BE.Core.Entities.DatiModuloCommesse.Dto;
 using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Core.Resources;
-using PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni.Queries;
 using PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.Queries;
 using PortaleFatture.BE.Infrastructure.Common.Documenti;
-using PortaleFatture.BE.Infrastructure.Common.SelfCare.Queries;
-using PortaleFatture.BE.Infrastructure.Common.Tipologie.Queries;
 using PortaleFatture.BE.Infrastructure.Extensions;
 using static Microsoft.AspNetCore.Http.TypedResults;
 
@@ -47,7 +43,7 @@ public partial class DatiModuloCommessaModule
             cmd.IdEnte = idente;
 
         var modulo = await handler.Send(command) ?? throw new DomainException(localizer["DatiModuloCommessaInvalidMapping"]);
-        var response = modulo!.Mapper(authInfo.Ruolo!);
+        var response = modulo!.Mapper();
         return Ok(response);
     }
 
@@ -64,7 +60,7 @@ public partial class DatiModuloCommessaModule
     {
         var authInfo = context.GetAuthInfo();
         var modulo = await handler.Send(new DatiModuloCommessaQueryGet(authInfo));
-        var response = modulo!.Mapper(authInfo.Ruolo!);
+        var response = modulo!.Mapper();
         return Ok(response);
     }
 
@@ -88,7 +84,7 @@ public partial class DatiModuloCommessaModule
             MeseValidita = mese
         });
 
-        var response = modulo!.Mapper(authInfo.Ruolo!);
+        var response = modulo!.Mapper();
         return Ok(response);
     }
 
@@ -190,6 +186,7 @@ public partial class DatiModuloCommessaModule
     HttpContext context,
     [FromRoute] int? anno,
     [FromRoute] int? mese,
+    [FromQuery] string? tipo,
     [FromServices] IMediator handler,
     [FromServices] IDocumentBuilder documentBuilder,
     [FromServices] IStringLocalizer<Localization> localizer)
@@ -203,9 +200,18 @@ public partial class DatiModuloCommessaModule
         if (dati == null)
             return NotFound();
 
-        var bytes = documentBuilder.CreateModuloCommessaPdf(dati!);
-        var filename = $"{Guid.NewGuid()}.pdf";
-        var mime = "application/pdf";
-        return Results.File(bytes!, mime, filename);
+        if(tipo != null && tipo == "pdf")
+        {
+            var bytes = documentBuilder.CreateModuloCommessaPdf(dati!);
+            var filename = $"{Guid.NewGuid()}.pdf";
+            var mime = "application/pdf";
+            return Results.File(bytes!, mime, filename);
+        }
+        else
+        {
+            var content = documentBuilder.CreateModuloCommessaHtml(dati!);
+            var mime = "text/html";
+            return Results.Text(content!, mime);
+        } 
     }
 }

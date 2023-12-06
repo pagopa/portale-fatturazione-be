@@ -15,6 +15,6 @@ public record DatiFatturazioneResponse
     public string? Prodotto { get; set; }
     public string? Pec { get; set; }
     public DateTime DataCreazione { get; set; }
-    public DateTime DataModifica { get; set; }
+    public DateTime? DataModifica { get; set; }
     public IEnumerable<DatiFatturazioneContattoResponse>? Contatti { get; set; }
 }

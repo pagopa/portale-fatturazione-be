@@ -69,6 +69,7 @@ public static class DatiFatturazioneExtensions
            IdEnte = model.IdEnte,
            Id = model.Id,
            DataCreazione = model.DataCreazione.DateTime,
+           DataModifica = model.DataModifica != null? model.DataModifica!.Value.DateTime: null,
            Pec = model.Pec,
            TipoCommessa = model.TipoCommessa,
            Prodotto = model.Prodotto,

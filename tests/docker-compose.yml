@@ -10,7 +10,7 @@ services:
       dockerfile: data/Dockerfile
     restart: unless-stopped
     environment:
-      SA_PASSWORD: "39276f68-9858"
+      SA_PASSWORD: "52JdGnzZaANhf"
       ACCEPT_EULA: "Y"
     ports:
       - "1433:1433" 

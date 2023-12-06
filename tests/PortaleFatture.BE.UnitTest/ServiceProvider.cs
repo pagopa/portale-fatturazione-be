@@ -6,6 +6,7 @@ using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Infrastructure;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.Persistence.Schemas;
+using PortaleFatture.BE.Infrastructure.Common.Scadenziari;
 
 namespace PortaleFatture.BE.UnitTest;
 
@@ -42,6 +43,7 @@ public static class ServiceProvider
 
         services.AddSingleton<ISelfCareDbContextFactory>(new DbContextFactory(dbConnectionString, "pfd"));
         services.AddSingleton<IFattureDbContextFactory>(new DbContextFactory(dbConnectionString, "pfw"));
+        services.AddSingleton<IScadenziarioService, ScadenziarioService>();
 
         services.AddMediatR(x => x.RegisterServicesFromAssembly(typeof(RootInfrastructure).Assembly));
 

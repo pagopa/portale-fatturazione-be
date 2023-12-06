@@ -17,6 +17,14 @@ public class DocumentBuilder : IDocumentBuilder
         this._directoryPath = Path.Combine([_root, _directory]);
     }
 
+    public string? CreateModuloCommessaHtml(ModuloCommessaDocumentoDto dati)
+    {
+        var filePath = Path.Combine([_directoryPath, _fileModuloCommessa]);
+        var moduloCommessaText = ReadFromFile(filePath);
+        moduloCommessaText = dati.Replace(moduloCommessaText!);
+        return moduloCommessaText;
+    }
+
     public byte[] CreateModuloCommessaPdf(ModuloCommessaDocumentoDto dati)
     {
         var filePath = Path.Combine([_directoryPath, _fileModuloCommessa]);

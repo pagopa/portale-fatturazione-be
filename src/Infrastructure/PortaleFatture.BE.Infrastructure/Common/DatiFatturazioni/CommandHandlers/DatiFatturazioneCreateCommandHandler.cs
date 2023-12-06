@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using PortaleFatture.BE.Core.Entities.DatiFatturazioni;
+using PortaleFatture.BE.Core.Entities.Storici;
 using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Core.Resources;
@@ -9,6 +10,8 @@ using PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni.Commands;
 using PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni.Commands.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni.Queries.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.Persistence.Schemas;
+using PortaleFatture.BE.Infrastructure.Common.Storici.Commands;
+using PortaleFatture.BE.Infrastructure.Common.Storici.Commands.Persistence;
 
 namespace PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni.CommandHandlers;
 
@@ -29,15 +32,15 @@ public class DatiFatturazioneCreateCommandHandler : IRequestHandler<DatiFatturaz
 
     public async Task<DatiFatturazione> Handle(DatiFatturazioneCreateCommand command, CancellationToken ct)
     {
-        var (anno, mese, adesso) = Time.YearMonth();
+        var (_, _, _, adesso) = Time.YearMonthDay();
 
         var (error, errorDetails) = DatiFatturazioneValidator.Validate(command);
         if (!string.IsNullOrEmpty(error))
             throw new DomainException(_localizer[error, errorDetails]);
 
-        command.DataCreazione = command.DataCreazione == null ? adesso : command.DataCreazione; 
+        command.DataCreazione = command.DataCreazione == null ? adesso : command.DataCreazione;
 
-        using var uow = await _factory.Create(true, cancellationToken: ct);  
+        using var uow = await _factory.Create(true, cancellationToken: ct);
         var actualValue = await uow.Query(new DatiFatturazioneQueryGetByIdEntePersistence(command.AuthenticationInfo.IdEnte!), ct);
         if (actualValue != null)
             throw new DomainException(_localizer["DatiFatturazioneIdEnteExistent", command.AuthenticationInfo.IdEnte!]);
@@ -45,7 +48,7 @@ public class DatiFatturazioneCreateCommandHandler : IRequestHandler<DatiFatturaz
         {
             var rowAffected = 0;
             var id = await uow.Execute(new DatiFatturazioneCreateCommandPersistence(command), ct);
-            if(id == null)
+            if (id == null)
             {
                 uow.Rollback();
                 throw new DomainException(_localizer["DatiFatturazioneInputError"]);
@@ -65,7 +68,20 @@ public class DatiFatturazioneCreateCommandHandler : IRequestHandler<DatiFatturaz
                 }
             }
             var actualDatiFatturazione = command.Mapper(id.Value);
-            uow.Commit();
+            rowAffected = await uow.Execute(new StoricoCreateCommandPersistence(new StoricoCreateCommand(
+                command.AuthenticationInfo,
+                adesso,
+                TipoStorico.DatiFatturazione,
+                actualDatiFatturazione.Serialize())), ct);
+
+            if (rowAffected == 1) 
+                uow.Commit(); 
+            else
+            {
+                uow.Rollback();
+                throw new DomainException(_localizer["DatiFatturazioneInputError"]);
+            }
+
             return actualDatiFatturazione;
         }
         catch (Exception e)

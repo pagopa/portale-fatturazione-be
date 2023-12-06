@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Auth.SelfCare;
+using PortaleFatture.BE.Core.Common;
 using PortaleFatture.BE.Core.Extensions;
 
 namespace PortaleFatture.BE.Infrastructure.Gateway;
@@ -16,10 +17,15 @@ public class SelfCareTokenService : ISelfCareTokenService
 {
     private readonly ISelfCareHttpClient _httpClient;
     private readonly ILogger<SelfCareTokenService> _logger;
-    public SelfCareTokenService(ISelfCareHttpClient httpClient, ILogger<SelfCareTokenService> logger)
+    private readonly IPortaleFattureOptions _options;
+    public SelfCareTokenService(
+        ISelfCareHttpClient httpClient, 
+        IPortaleFattureOptions options,
+        ILogger<SelfCareTokenService> logger)
     {
         this._httpClient = httpClient;
         this._logger = logger;
+        this._options = options;
     }
 
     public async Task<(ClaimsPrincipal?, bool)> Validate(string selfcareToken, bool requireExpirationTime = false, CancellationToken ct = default)
@@ -62,9 +68,11 @@ public class SelfCareTokenService : ISelfCareTokenService
         var validationParameters = new TokenValidationParameters
         {
             RequireExpirationTime = requireExpirationTime,
-            RequireSignedTokens = true,
-            ValidateAudience = false,
-            ValidateIssuer = false,
+            RequireSignedTokens = true, 
+            ValidAudience = _options.SelfCareAudience,
+            ValidateAudience = true,
+            ValidIssuer = _options.SelfCareUri,
+            ValidateIssuer = true,
             ValidateLifetime = requireExpirationTime,
             IssuerSigningKey = new RsaSecurityKey(rsa)
         };

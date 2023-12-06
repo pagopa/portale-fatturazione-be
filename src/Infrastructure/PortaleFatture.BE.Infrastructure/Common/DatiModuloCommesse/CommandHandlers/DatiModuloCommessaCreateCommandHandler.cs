@@ -3,6 +3,8 @@ using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using PortaleFatture.BE.Core.Entities.DatiModuloCommesse;
 using PortaleFatture.BE.Core.Entities.DatiModuloCommesse.Dto;
+using PortaleFatture.BE.Core.Entities.Scadenziari;
+using PortaleFatture.BE.Core.Entities.Storici;
 using PortaleFatture.BE.Core.Entities.Tipologie;
 using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Core.Extensions;
@@ -11,33 +13,38 @@ using PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.Commands;
 using PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.Commands.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.Queries.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.Persistence.Schemas;
+using PortaleFatture.BE.Infrastructure.Common.Scadenziari;
+using PortaleFatture.BE.Infrastructure.Common.Scadenziari.Queries;
+using PortaleFatture.BE.Infrastructure.Common.Storici.Commands;
+using PortaleFatture.BE.Infrastructure.Common.Storici.Commands.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.Tipologie.Queries.Persistence;
 
 namespace PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.CommandHandlers;
 
-public class DatiModuloCommessaCreateCommandHandler : IRequestHandler<DatiModuloCommessaCreateListCommand, ModuloCommessaDto?>
+public class DatiModuloCommessaCreateCommandHandler(
+ IFattureDbContextFactory factory,
+ IScadenziarioService scadenziarioService,
+ IStringLocalizer<Localization> localizer,
+ ILogger<DatiModuloCommessaCreateCommandHandler> logger) : IRequestHandler<DatiModuloCommessaCreateListCommand, ModuloCommessaDto?>
 {
-    private readonly IFattureDbContextFactory _factory;
-    private readonly ILogger<DatiModuloCommessaCreateCommandHandler> _logger;
-    private readonly IStringLocalizer<Localization> _localizer;
+    private readonly IFattureDbContextFactory _factory = factory;
+    private readonly ILogger<DatiModuloCommessaCreateCommandHandler> _logger = logger;
+    private readonly IStringLocalizer<Localization> _localizer = localizer;
+    private readonly IScadenziarioService _scadenziarioService = scadenziarioService;
 
-    public DatiModuloCommessaCreateCommandHandler(
-     IFattureDbContextFactory factory,
-     IStringLocalizer<Localization> localizer,
-     ILogger<DatiModuloCommessaCreateCommandHandler> logger)
-    {
-        _factory = factory;
-        _localizer = localizer;
-        _logger = logger;
-    }
     public async Task<ModuloCommessaDto?> Handle(DatiModuloCommessaCreateListCommand command, CancellationToken ct)
     {
-        var (anno, mese, adesso) = Time.YearMonth();
-        //validare calendario
+        var (annoAttuale, meseAttuale, giornoAttuale, adesso) = Time.YearMonthDayFatturazione();
+
+        var (valid, scadenziario) = await _scadenziarioService.GetScadenziario(command.AuthenticationInfo, TipoScadenziario.DatiModuloCommessa, annoAttuale, meseAttuale);
+
+        if (!valid)
+            throw new ValidationException(_localizer["DataScadenziarioValidationError", $"{scadenziario.GiornoInizio}-{scadenziario.GiornoFine}"]);
+
         var idTipoContratto = command.AuthenticationInfo.IdTipoContratto;
         var prodotto = command.AuthenticationInfo.Prodotto;
         var idEnte = command.AuthenticationInfo.IdEnte;
-        string? stato = string.Empty;
+        var stato = string.Empty;
 
         Dictionary<int, decimal> categorieTotale = [];
         IEnumerable<CategoriaSpedizione>? categorie;
@@ -81,16 +88,16 @@ public class DatiModuloCommessaCreateCommandHandler : IRequestHandler<DatiModulo
             stato = statoCommessa!.Stato;
         }
 
-        var commandTotale = command.GetTotali(categorie, confModuloCommessa, idEnte, anno, mese, idTipoContratto.Value, prodotto, stato);
+        var commandTotale = command.GetTotali(categorie, confModuloCommessa, idEnte, annoAttuale, meseAttuale, idTipoContratto.Value, prodotto, stato);
 
 
         foreach (var cmd in command.DatiModuloCommessaListCommand!) // validazione per id tipo spedizione
-        {  
+        {
             cmd.Stato = stato;
             cmd.Prodotto = prodotto;
             cmd.IdTipoContratto = idTipoContratto.Value;
-            cmd.AnnoValidita = anno;
-            cmd.MeseValidita = mese;
+            cmd.AnnoValidita = annoAttuale;
+            cmd.MeseValidita = meseAttuale;
             cmd.DataCreazione = adesso;
             cmd.DataModifica = adesso;
 
@@ -102,8 +109,8 @@ public class DatiModuloCommessaCreateCommandHandler : IRequestHandler<DatiModulo
             cmd.ValoreInternazionali = commandTotale.ParzialiTipoCommessa![cmd.IdTipoSpedizione].ValoreInternazionali;
             cmd.PrezzoNazionali = commandTotale.ParzialiTipoCommessa![cmd.IdTipoSpedizione].PrezzoNazionali;
             cmd.PrezzoInternazionali = commandTotale.ParzialiTipoCommessa![cmd.IdTipoSpedizione].PrezzoInternazionali;
-        }  
-    
+        }
+
         using var uow = await _factory.Create(true, cancellationToken: ct);
         try
         {
@@ -132,12 +139,22 @@ public class DatiModuloCommessaCreateCommandHandler : IRequestHandler<DatiModulo
             _logger.LogError(e, "Errore nel salvataggio del modulo commessa: \"{MethodName}\" per tipo ente: \"{idEnte}\"", methodName, idEnte);
             throw new DomainException(_localizer["DatiModuloCommessaError", idEnte!]);
         }
-        var datic = await uow.Query(new DatiModuloCommessaQueryGetByIdPersistence(idEnte, anno, mese, idTipoContratto, prodotto), ct);
-        var datit = await uow.Query(new DatiModuloCommessaTotaleQueryGetByIdPersistence(idEnte, anno, mese, idTipoContratto, prodotto), ct);
-        return new ModuloCommessaDto()
+        var datic = await uow.Query(new DatiModuloCommessaQueryGetByIdPersistence(idEnte, annoAttuale, meseAttuale, idTipoContratto, prodotto), ct);
+        var datit = await uow.Query(new DatiModuloCommessaTotaleQueryGetByIdPersistence(idEnte, annoAttuale, meseAttuale, idTipoContratto, prodotto), ct);
+        var moduloCommessa = new ModuloCommessaDto()
         {
+            Modifica = valid && stato == StatoModuloCommessa.ApertaCaricato,
             DatiModuloCommessa = datic!,
             DatiModuloCommessaTotale = datit!
         };
+
+        using var usto = await _factory.Create(cancellationToken: ct);
+        await uow.Execute(new StoricoCreateCommandPersistence(new StoricoCreateCommand(
+             command.AuthenticationInfo,
+             adesso,
+             TipoStorico.DatiModuloCommessa,
+             moduloCommessa.Serialize())), ct);
+
+        return moduloCommessa;
     }
 }

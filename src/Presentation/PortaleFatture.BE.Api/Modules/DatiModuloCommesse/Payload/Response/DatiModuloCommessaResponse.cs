@@ -2,7 +2,7 @@
 
 public class DatiModuloCommessaResponse
 {
-    public bool Modifica { get; set; } = true;
+    public bool Modifica { get; set; } 
     public List<DatiModuloCommessaSimpleResponse>? ModuliCommessa { get; set; }
     public TotaleDatiModuloCommessaNotifica? TotaleModuloCommessaNotifica { get; set; }
     public List<TotaleDatiModuloCommessa>? Totale { get; set; }

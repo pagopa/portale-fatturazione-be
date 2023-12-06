@@ -1,6 +1,4 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
-using System.Runtime.Serialization;
-using PortaleFatture.BE.Core.Entities.DatiFatturazioni;
 
 namespace PortaleFatture.BE.Core.Entities.DatiModuloCommesse;
 

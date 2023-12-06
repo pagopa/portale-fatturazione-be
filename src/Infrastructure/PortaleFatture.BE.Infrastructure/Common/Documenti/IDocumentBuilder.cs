@@ -4,6 +4,7 @@ namespace PortaleFatture.BE.Infrastructure.Common.Documenti
 {
     public interface IDocumentBuilder
     {
-        byte[] CreateModuloCommessaPdf(ModuloCommessaDocumentoDto dati);
+        byte[] CreateModuloCommessaPdf(ModuloCommessaDocumentoDto dati); 
+        string? CreateModuloCommessaHtml(ModuloCommessaDocumentoDto dati);
     }
 }

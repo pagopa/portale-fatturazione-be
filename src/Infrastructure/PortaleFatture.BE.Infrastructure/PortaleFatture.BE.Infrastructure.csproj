@@ -28,6 +28,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <Folder Include="Common\Storici\CommandHandlers\" />
       <Folder Include="Common\Tipologie\CommandHandles\" />
       <Folder Include="Common\Tipologie\Commands\Persistence\" />
     </ItemGroup>

@@ -26,9 +26,16 @@ public static class DomainExtensions
 
 public static class Time 
 {
-    public static (int, int, DateTime) YearMonth()
+    public static (int, int, int, DateTime) YearMonthDay()
     {
         var adesso = DateTime.UtcNow.ItalianTime();
-        return (adesso.Year, adesso.Month, adesso);
+        return (adesso.Year, adesso.Month, adesso.Day, adesso);
+    }
+
+    public static (int, int, int, DateTime) YearMonthDayFatturazione()
+    {
+        var adesso = DateTime.UtcNow.ItalianTime();
+        var refFatturazione = DateTime.UtcNow.ItalianTime().AddMonths(1); // mese riferimento fatturazione = mese attuale + 1
+        return (refFatturazione.Year, refFatturazione.Month, adesso.Day, adesso);
     }
 }

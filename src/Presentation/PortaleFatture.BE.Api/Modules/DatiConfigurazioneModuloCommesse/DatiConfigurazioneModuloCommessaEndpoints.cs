@@ -9,7 +9,7 @@ public partial class DatiConfigurazioneModuloCommessaModule : Module, IRegistrab
     public void RegisterEndpoints(IEndpointRouteBuilder endpointRouteBuilder)
     {
 
-#if DEBUG
+
         endpointRouteBuilder
            .MapGet("api/configurazionemodulocommessa", GetDatiConfigurazioneModuloCommessaAsync)
            .WithName("Permette di ottenere i dati relativi alla configurazione modulo commessa.")
@@ -20,8 +20,6 @@ public partial class DatiConfigurazioneModuloCommessaModule : Module, IRegistrab
            .MapPost("api/configurazionemodulocommessa", CreateDatiConfigurazioneModuloCommessaAsync)
            .WithName("Permette di ottenere creare/aggiornare i dati relativi alla configurazione modulo commessa.")
            .SetOpenApi(Module.DatiConfigurazioneModuloCommessaLabel)
-           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
-#endif
-
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel)); 
     }
 }

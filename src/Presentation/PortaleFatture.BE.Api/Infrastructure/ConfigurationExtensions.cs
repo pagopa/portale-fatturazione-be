@@ -19,12 +19,13 @@ using PortaleFatture.BE.Infrastructure.Common.Documenti;
 using PortaleFatture.BE.Infrastructure.Common.Identity;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.Persistence.Schemas;
+using PortaleFatture.BE.Infrastructure.Common.Scadenziari;
 using PortaleFatture.BE.Infrastructure.Gateway;
 
 namespace PortaleFatture.BE.Api.Infrastructure;
 public static class ConfigurationExtensions
 {
-    private static readonly ModuleManager ModuleManager = new();
+    private static readonly ModuleManager _moduleManager = new();
 
 
     public static IServiceCollection AddModules(this WebApplicationBuilder builder)
@@ -43,7 +44,7 @@ public static class ConfigurationExtensions
 
         services.AddAssemblyToModuleRegistration(typeof(ConfigurationExtensions).Assembly);
 
-        services.AddLogging(o => o.AddConfiguration(configuration.GetSection("Logging")));
+        services.AddLogging(o => o.AddConfiguration(configuration.GetSection(Module.LoggingLabel)));
 
         services
             .AddJwtOrApiKeyAuthentication(options.JWT!)
@@ -79,10 +80,11 @@ public static class ConfigurationExtensions
                     }
                 });
             })
-            .AddCors(options =>
+            .AddCors(opt =>
             {
-                options.AddPolicy(Module.CORSLabel, o =>
-                    o.AllowAnyOrigin()
+                opt.AddPolicy(Module.CORSLabel, o =>
+                    o  
+                    .WithOrigins(options.CORSOrigins!.Split(";")) 
                     .AllowAnyHeader()
                     .AllowAnyMethod());
             })
@@ -115,15 +117,15 @@ public static class ConfigurationExtensions
 
     public static IServiceCollection AddAssemblyToModuleRegistration(this IServiceCollection services, Assembly assembly)
     {
-        ModuleManager.AddModulesFromAssembly(assembly);
-        ModuleManager.RegisterModules(services);
+        _moduleManager.AddModulesFromAssembly(assembly);
+        _moduleManager.RegisterModules(services);
 
         return services;
     }
 
     private static IApplicationBuilder MapEndpoints(this WebApplication application)
     {
-        return ModuleManager.MapEndpoints(application);
+        return _moduleManager.MapEndpoints(application);
     }
 
     [DebuggerStepThrough]
@@ -146,6 +148,7 @@ public static class ConfigurationExtensions
                     var problem = exception switch
                     {
                         SecurityException => Results.Problem(statusCode: StatusCodes.Status401Unauthorized),
+                        RoleException => Results.Problem(statusCode: StatusCodes.Status403Forbidden),
                         DomainException => Results.Problem(statusCode: StatusCodes.Status500InternalServerError, detail: exception.Message),
                         ValidationException => Results.Problem(statusCode: StatusCodes.Status400BadRequest, detail: exception.Message),
                         NotFoundException => Results.Problem(statusCode: StatusCodes.Status404NotFound, detail: exception.Message),
@@ -246,6 +249,8 @@ public static class ConfigurationExtensions
 
         services.AddSingleton<ISelfCareDbContextFactory>(new DbContextFactory(dbConnectionString, selfCareSchema));
         services.AddSingleton<IFattureDbContextFactory>(new DbContextFactory(dbConnectionString, fattureSchema));
+        services.AddSingleton<IScadenziarioService, ScadenziarioService>();
+
         return services;
     }
 

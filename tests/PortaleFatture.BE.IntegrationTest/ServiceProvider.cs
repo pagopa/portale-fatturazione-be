@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using PortaleFatture.BE.Core.Common;
 using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Infrastructure;

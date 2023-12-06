@@ -117,6 +117,9 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="DataScadenziarioValidationError" xml:space="preserve">
+    <value>L'operazione è consentita solo nei seguenti giorni corrente mese: "{0}".</value>
+  </data>
   <data name="DatiConfigurazioneModuloCommessaError" xml:space="preserve">
     <value>Si è verificato un errore nell'inserire i dati di configurazione commessa.</value>
   </data>
@@ -227,6 +230,9 @@
   </data>
   <data name="PercentoConfiguazioneModuloCommessaInvalid" xml:space="preserve">
     <value>Il valore della percentuale deve essere un numero positivo.</value>
+  </data>
+  <data name="RoleError" xml:space="preserve">
+    <value>Ruolo non abilitato per l'esecuzione dell'operazione.</value>
   </data>
   <data name="UtenteProfiloError" xml:space="preserve">
     <value>Si è verificato un errore nel recuperare il profilo utente.</value>

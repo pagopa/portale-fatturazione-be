@@ -29,7 +29,7 @@ public class UtenteCreateCommandHandler : IRequestHandler<UtenteCreateCommand, U
     }
     public async Task<Utente?> Handle(UtenteCreateCommand command, CancellationToken ct)
     {
-        var (_, _, adesso) = Time.YearMonth();
+        var (_, _, _, adesso) = Time.YearMonthDay();
         command.DataUltimo = command.DataUltimo == null ? adesso : command.DataUltimo.Value;
         command.DataPrimo = command.DataPrimo == null ? adesso : command.DataPrimo.Value;
         using var uow = await _factory.Create(cancellationToken: ct);

@@ -1,4 +1,5 @@
-﻿using MediatR;
+﻿using System.Security;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -7,6 +8,7 @@ using Microsoft.Extensions.Localization;
 using PortaleFatture.BE.Api.Modules.DatiConfigurazioneModuloCommesse.Extensions;
 using PortaleFatture.BE.Api.Modules.DatiConfigurazioneModuloCommesse.Request;
 using PortaleFatture.BE.Api.Modules.DatiConfigurazioneModuloCommesse.Response;
+using PortaleFatture.BE.Core.Common;
 using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Core.Resources;
 using PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.Queries;
@@ -43,14 +45,18 @@ public partial class DatiConfigurazioneModuloCommessaModule
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     private async Task<Results<Ok<DatiConfigurazioneModuloCommessaResponse>, NotFound>> CreateDatiConfigurazioneModuloCommessaAsync(
     HttpContext context,
-    [FromBody] DatiConfigurazioneModuloCommessaCreateRequest req, 
+    [FromBody] DatiConfigurazioneModuloCommessaCreateRequest req,
+    [FromQuery] string? adminKey,
     [FromServices] IStringLocalizer<Localization> localizer,
-    [FromServices] IMediator handler)
+    [FromServices] IMediator handler,
+    [FromServices] IPortaleFattureOptions options)
     {
+        if (options.AdminKey != adminKey)
+            throw new SecurityException();
         var command = req.Mapper() ?? throw new ValidationException(localizer["DatiConfigurazioneModuloCommessaInvalid"]);
         var configurazione = await handler.Send(command);
-        if (configurazione == null)
-            throw new DomainException(localizer["DatiConfigurazioneModuloCommessaError"]);
-        return Ok(configurazione.Mapper());
+        return configurazione == null
+            ? throw new DomainException(localizer["DatiConfigurazioneModuloCommessaError"])
+            : (Results<Ok<DatiConfigurazioneModuloCommessaResponse>, NotFound>)Ok(configurazione.Mapper());
     }
 } 

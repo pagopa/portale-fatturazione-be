@@ -32,16 +32,15 @@ public static class DatiModuloCommessaViewModelExtensions
         };
     }
 
-    public static DatiModuloCommessaResponse? Mapper(this ModuloCommessaDto model, string ruolo)
+    public static DatiModuloCommessaResponse? Mapper(this ModuloCommessaDto model)
     {
-        var stato = model == null ? null : model.DatiModuloCommessaTotale!.Select(x => x.Stato).FirstOrDefault();
- 
+   
         var cmd = new DatiModuloCommessaResponse
         {
             ModuliCommessa = [],
             Totale = [],
             TotaleModuloCommessaNotifica = new(),
-            Modifica = stato == null ? ruolo == Ruolo.ADMIN : stato == StatoModuloCommessa.ApertaCaricato && ruolo == Ruolo.ADMIN
+            Modifica = model.Modifica
         }; 
 
         if (model is null)

@@ -2,40 +2,46 @@
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using PortaleFatture.BE.Core.Entities.DatiModuloCommesse;
+using PortaleFatture.BE.Core.Entities.Scadenziari;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Core.Resources;
 using PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.Queries;
 using PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.Queries.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.Persistence.Schemas;
+using PortaleFatture.BE.Infrastructure.Common.Scadenziari;
 
 namespace PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.QueryHandlers
 {
-    public class DatiModuloCommessaQueryByParzialiAnnoHandler : IRequestHandler<DatiModuloCommessaParzialiQueryGetByAnno, IEnumerable<DatiModuloCommessaParzialiTotale>?>
+    public class DatiModuloCommessaQueryByParzialiAnnoHandler(
+     IFattureDbContextFactory factory,
+     IStringLocalizer<Localization> localizer,
+     IScadenziarioService scadenziarioService,
+     ILogger<DatiModuloCommessaQueryByParzialiAnnoHandler> logger) : IRequestHandler<DatiModuloCommessaParzialiQueryGetByAnno, IEnumerable<DatiModuloCommessaParzialiTotale>?>
     {
-        private readonly IFattureDbContextFactory _factory;
-        private readonly ILogger<DatiModuloCommessaQueryByParzialiAnnoHandler> _logger;
-        private readonly IStringLocalizer<Localization> _localizer;
+        private readonly IFattureDbContextFactory _factory = factory;
+        private readonly ILogger<DatiModuloCommessaQueryByParzialiAnnoHandler> _logger = logger;
+        private readonly IStringLocalizer<Localization> _localizer = localizer;
+        private readonly IScadenziarioService _scadenziarioService = scadenziarioService;
 
-        public DatiModuloCommessaQueryByParzialiAnnoHandler(
-         IFattureDbContextFactory factory,
-         IStringLocalizer<Localization> localizer,
-         ILogger<DatiModuloCommessaQueryByParzialiAnnoHandler> logger)
+        public async Task<IEnumerable<DatiModuloCommessaParzialiTotale>?> Handle(DatiModuloCommessaParzialiQueryGetByAnno command, CancellationToken ct)
         {
-            _factory = factory;
-            _localizer = localizer;
-            _logger = logger;
-        }
-
-        public async Task<IEnumerable<DatiModuloCommessaParzialiTotale>?> Handle(DatiModuloCommessaParzialiQueryGetByAnno request, CancellationToken ct)
-        {
-            var (anno, _, _) = Time.YearMonth();
-            request.AnnoValidita = request.AnnoValidita != null ? request.AnnoValidita : anno;
-            var idEnte = request.AuthenticationInfo.IdEnte;
-            var idTipoContratto = request.AuthenticationInfo.IdTipoContratto;
-            var prodotto = request.AuthenticationInfo.Prodotto;
-            var ruolo = request.AuthenticationInfo.Ruolo;
+            var (annoFatturazione, _, _, _) = Time.YearMonthDayFatturazione();
+            command.AnnoValidita = command.AnnoValidita != null ? command.AnnoValidita : annoFatturazione;
+            var idEnte = command.AuthenticationInfo.IdEnte;
+            var idTipoContratto = command.AuthenticationInfo.IdTipoContratto;
+            var prodotto = command.AuthenticationInfo.Prodotto;
+            var ruolo = command.AuthenticationInfo.Ruolo;
             using var uow = await _factory.Create(true, cancellationToken: ct);
-            return await uow.Query(new DatiModuloCommessaParzialiTotaleQueryGetByIdPersistence(idEnte, request.AnnoValidita.Value, idTipoContratto, prodotto, ruolo), ct);
+            var parzialiTotale = await uow.Query(new DatiModuloCommessaParzialiTotaleQueryGetByIdPersistence(idEnte, command.AnnoValidita.Value, idTipoContratto, prodotto, ruolo), ct);
+            if (parzialiTotale!.IsNullNotAny())
+                return null;
+
+            foreach (var parziali in parzialiTotale!)
+            {
+                var(valid, _) = await _scadenziarioService.GetScadenziario(command.AuthenticationInfo, TipoScadenziario.DatiModuloCommessa, parziali.AnnoValidita, parziali.MeseValidita); 
+                parziali.Modifica = parziali.Stato == StatoModuloCommessa.ApertaCaricato && valid;
+            }
+            return parzialiTotale;
         }
     }
 }

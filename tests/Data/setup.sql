@@ -1,11 +1,12 @@
--- DROP SCHEMA pfw;
+IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'pfw')
+    BEGIN
+    EXEC ('CREATE SCHEMA pfw;');
+    END;
 
-CREATE SCHEMA pfw;
--- pfw.CategoriaSpedizione definition
-
--- Drop table
-
--- DROP TABLE pfw.CategoriaSpedizione;
+IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'pfd')
+    BEGIN
+    EXEC ('CREATE SCHEMA pfd;');
+    END; 
 
 CREATE TABLE pfw.CategoriaSpedizione (
 	IdCategoriaSpedizione int IDENTITY(1,1) NOT NULL,
@@ -13,26 +14,14 @@ CREATE TABLE pfw.CategoriaSpedizione (
 	Tipo nvarchar(50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 	CONSTRAINT PK__Categori__0E5B57A455A55002 PRIMARY KEY (IdCategoriaSpedizione)
 );
-
-
--- pfw.Form definition
-
--- Drop table
-
--- DROP TABLE pfw.Form;
+ 
 
 CREATE TABLE pfw.Form (
 	IdForm int NOT NULL,
 	Descrizione varchar(250) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 	CONSTRAINT PK__Form__007D03D97A238DBC PRIMARY KEY (IdForm)
 );
-
-
--- pfw.Log definition
-
--- Drop table
-
--- DROP TABLE pfw.Log;
+ 
 
 CREATE TABLE pfw.Log (
 	FkIdEnte nvarchar(50) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
@@ -41,25 +30,14 @@ CREATE TABLE pfw.Log (
 	DescrizioneEvento nvarchar(255) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	JsonTransazione text COLLATE SQL_Latin1_General_CP1_CI_AS NULL
 );
-
-
--- pfw.Prodotti definition
-
--- Drop table
-
--- DROP TABLE pfw.Prodotti;
+ 
 
 CREATE TABLE pfw.Prodotti (
 	Prodotto nvarchar(15) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	CONSTRAINT PK__Prodotti__3EE5F2F6209BD2F1 PRIMARY KEY (Prodotto)
 );
 
-
--- pfw.Stato definition
-
--- Drop table
-
--- DROP TABLE pfw.Stato;
+ 
 
 CREATE TABLE pfw.Stato (
 	Stato nvarchar(50) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
@@ -67,12 +45,7 @@ CREATE TABLE pfw.Stato (
 	CONSTRAINT PK__Stato__BA803DA6AD8CBD05 PRIMARY KEY (Stato)
 );
 
-
--- pfw.Step definition
-
--- Drop table
-
--- DROP TABLE pfw.Step;
+ 
 
 CREATE TABLE pfw.Step (
 	IdStep int NOT NULL,
@@ -80,12 +53,7 @@ CREATE TABLE pfw.Step (
 	CONSTRAINT PK__Step__A3FC8BAD5173134C PRIMARY KEY (IdStep)
 );
 
-
--- pfw.TipoCommessa definition
-
--- Drop table
-
--- DROP TABLE pfw.TipoCommessa;
+ 
 
 CREATE TABLE pfw.TipoCommessa (
 	TipoCommessa nvarchar(1) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
@@ -93,12 +61,7 @@ CREATE TABLE pfw.TipoCommessa (
 	CONSTRAINT PK__TipoComm__E5339F96F1E97E24 PRIMARY KEY (TipoCommessa)
 );
 
-
--- pfw.TipoContratto definition
-
--- Drop table
-
--- DROP TABLE pfw.TipoContratto;
+ 
 
 CREATE TABLE pfw.TipoContratto (
 	IdTipoContratto bigint IDENTITY(1,1) NOT NULL,
@@ -106,12 +69,7 @@ CREATE TABLE pfw.TipoContratto (
 	CONSTRAINT PK__TipoCont__D8826341BD065CDF PRIMARY KEY (IdTipoContratto)
 );
 
-
--- pfw.DatiFatturazione definition
-
--- Drop table
-
--- DROP TABLE pfw.DatiFatturazione;
+ 
 
 CREATE TABLE pfw.DatiFatturazione (
 	IdDatiFatturazione bigint IDENTITY(1,1) NOT NULL,
@@ -131,14 +89,8 @@ CREATE TABLE pfw.DatiFatturazione (
 	CONSTRAINT PK__DatiFatt__5A190E0F178A5F57 PRIMARY KEY (IdDatiFatturazione),
 	CONSTRAINT FkProdotto_DatiFatturazione FOREIGN KEY (FkProdotto) REFERENCES pfw.Prodotti(Prodotto),
 	CONSTRAINT FkTipoCommessaDatiFatturazione FOREIGN KEY (FkTipoCommessa) REFERENCES pfw.TipoCommessa(TipoCommessa)
-);
-
-
--- pfw.DatiFatturazioneContatti definition
-
--- Drop table
-
--- DROP TABLE pfw.DatiFatturazioneContatti;
+); 
+ 
 
 CREATE TABLE pfw.DatiFatturazioneContatti (
 	FkIdDatiFatturazione bigint NOT NULL,
@@ -146,12 +98,7 @@ CREATE TABLE pfw.DatiFatturazioneContatti (
 	CONSTRAINT FkIdDatiFatturazioneContatti FOREIGN KEY (FkIdDatiFatturazione) REFERENCES pfw.DatiFatturazione(IdDatiFatturazione)
 );
 
-
--- pfw.DatiModuloCommessaTotali definition
-
--- Drop table
-
--- DROP TABLE pfw.DatiModuloCommessaTotali;
+ 
 
 CREATE TABLE pfw.DatiModuloCommessaTotali (
 	FkIdEnte nvarchar(50) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
@@ -169,12 +116,7 @@ CREATE TABLE pfw.DatiModuloCommessaTotali (
 	CONSTRAINT FK_DatiModuloCommessaTotali_TipoContratto FOREIGN KEY (FkIdTipoContratto) REFERENCES pfw.TipoContratto(IdTipoContratto)
 );
 
-
--- pfw.PercentualeAnticipo definition
-
--- Drop table
-
--- DROP TABLE pfw.PercentualeAnticipo;
+ 
 
 CREATE TABLE pfw.PercentualeAnticipo (
 	FkProdotto nvarchar(15) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
@@ -191,12 +133,7 @@ CREATE TABLE pfw.PercentualeAnticipo (
 	CONSTRAINT FkProdotto FOREIGN KEY (FkProdotto) REFERENCES pfw.Prodotti(Prodotto)
 );
 
-
--- pfw.Scadenziario definition
-
--- Drop table
-
--- DROP TABLE pfw.Scadenziario;
+ 
 
 CREATE TABLE pfw.Scadenziario (
 	FkIdProdotto nvarchar(15) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
@@ -213,12 +150,7 @@ CREATE TABLE pfw.Scadenziario (
 	CONSTRAINT FK_Scadenziario_Step FOREIGN KEY (FkIdStep) REFERENCES pfw.Step(IdStep)
 );
 
-
--- pfw.TipoSpedizione definition
-
--- Drop table
-
--- DROP TABLE pfw.TipoSpedizione;
+ 
 
 CREATE TABLE pfw.TipoSpedizione (
 	IdTipoSpedizione int IDENTITY(1,1) NOT NULL,
@@ -228,13 +160,7 @@ CREATE TABLE pfw.TipoSpedizione (
 	CONSTRAINT PK__TipoSped__33BE995DD9717E6A PRIMARY KEY (IdTipoSpedizione),
 	CONSTRAINT FkIdCategoriaSpedizione FOREIGN KEY (FkIdCategoriaSpedizione) REFERENCES pfw.CategoriaSpedizione(IdCategoriaSpedizione)
 );
-
-
--- pfw.CostoNotifiche definition
-
--- Drop table
-
--- DROP TABLE pfw.CostoNotifiche;
+ 
 
 CREATE TABLE pfw.CostoNotifiche (
 	MediaNotificaNazionale decimal(5,2) NOT NULL,
@@ -252,12 +178,7 @@ CREATE TABLE pfw.CostoNotifiche (
 	CONSTRAINT FkTipoSpedizione FOREIGN KEY (FkIdTipoSpedizione) REFERENCES pfw.TipoSpedizione(IdTipoSpedizione)
 );
 
-
--- pfw.DatiModuloCommessa definition
-
--- Drop table
-
--- DROP TABLE pfw.DatiModuloCommessa;
+ 
 
 CREATE TABLE pfw.DatiModuloCommessa (
 	NumeroNotificheNazionali int NOT NULL,
@@ -321,3 +242,41 @@ INSERT INTO pfw.Stato (Stato,[Default]) VALUES
 	 (N'Archiviato',0),
 	 (N'Chiusa/Caricato',0),
 	 (N'Chiusa/Stimato',0);
+ 
+CREATE TABLE pfd.Contratti (
+	internalistitutionid nvarchar(MAX) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	product nvarchar(MAX) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	filename nvarchar(MAX) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	onboardingtokenid nvarchar(MAX) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	pricingplan nvarchar(MAX) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	updatedat nvarchar(MAX) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	createdat datetime2 NULL,
+	closedat datetime2 NULL,
+	[year] int NULL,
+	[month] int NULL,
+	daily nvarchar(MAX) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	LastModified datetime2 NULL,
+	FkIdTipoContratto bigint NULL
+);
+ 
+CREATE TABLE pfd.Enti (
+	InternalIstitutionId nvarchar(50) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	institutionType nvarchar(MAX) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	description nvarchar(MAX) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	digitalAddress nvarchar(MAX) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	address nvarchar(MAX) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	originId nvarchar(MAX) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	zipCode nvarchar(MAX) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	istatCode nvarchar(MAX) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	city nvarchar(MAX) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	country nvarchar(MAX) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	county nvarchar(MAX) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	subUnitCode nvarchar(MAX) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	subUnitType nvarchar(MAX) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	paymentServiceProvider nvarchar(MAX) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	vatnumber nvarchar(MAX) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	publicservices nvarchar(MAX) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	LastModified datetime2 NULL,
+	Category nvarchar(MAX) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	CONSTRAINT PK__Enti__16EA308B3ABC1682 PRIMARY KEY (InternalIstitutionId)
+);
