@@ -8,7 +8,6 @@ using PortaleFatture.BE.Core.Resources;
 using PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni.Queries;
 using PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.Queries;
 using PortaleFatture.BE.Infrastructure.Common.SelfCare.Queries;
-using PortaleFatture.BE.Infrastructure.Common.Tipologie.Queries;
 
 namespace PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.QueryHandlers
 {
@@ -21,40 +20,49 @@ namespace PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.QueryHandle
         private readonly ILogger<DatiModuloCommessaQueryDocumentoHandler> _logger = logger;
         private readonly IStringLocalizer<Localization> _localizer = localizer;
 
-        public async Task<ModuloCommessaDocumentoDto?> Handle(DatiModuloCommessaDocumentoQueryGet request, CancellationToken ct)
+        public async Task<ModuloCommessaDocumentoDto?> Handle(DatiModuloCommessaDocumentoQueryGet command, CancellationToken ct)
         {
             var (annoFatturazione, meseFatturazione, _, _) = Time.YearMonthDayFatturazione();
-            request.AnnoValidita = request.AnnoValidita != null ? request.AnnoValidita : annoFatturazione;
-            request.MeseValidita = request.MeseValidita != null ? request.MeseValidita : meseFatturazione;
-            var authInfo = request.AuthenticationInfo;
+            command.AnnoValidita = command.AnnoValidita != null ? command.AnnoValidita : annoFatturazione;
+            command.MeseValidita = command.MeseValidita != null ? command.MeseValidita : meseFatturazione;
+            var authInfo = command.AuthenticationInfo;
 
-            var datiFatturazione = await _handler.Send(new DatiFatturazioneQueryGetByIdEnte(authInfo));
+            var datiFatturazione = await _handler.Send(new DatiFatturazioneQueryGetByIdEnte(authInfo), ct);
             if (datiFatturazione == null)
                 return null;
 
             var datiModuloCommessa = await _handler.Send(new DatiModuloCommessaQueryGet(authInfo)
             {
-                AnnoValidita = request.AnnoValidita,
-                MeseValidita = request.MeseValidita,
-            });
+                AnnoValidita = command.AnnoValidita,
+                MeseValidita = command.MeseValidita,
+            }, ct);
             if (datiModuloCommessa == null)
-                return null;
+                return null; 
+          
+            var ente = await _handler.Send(new EnteQueryGetById(authInfo)) ?? throw new DomainException("EnteSelfCareError");
 
-            var ente = await _handler.Send(new EnteQueryGetById(authInfo));
-            if (ente == null)
-                throw new DomainException("xxx");
+            var prodotto = datiModuloCommessa.DatiModuloCommessa!.Select(x => x.Prodotto).FirstOrDefault();
+            var idTipoContratto = datiModuloCommessa.DatiModuloCommessa!.Select(x => x.IdTipoContratto).FirstOrDefault(); 
+            var configurazioneModuloCommessa = await _handler.Send(new DatiConfigurazioneModuloCommessaQueryGet()
+            {
+                Prodotto = prodotto,
+                IdTipoContratto = idTipoContratto
+            }, ct);
 
-            var categorie = await _handler.Send(new SpedizioneQueryGetAll());
-            if (categorie == null)
-                if (ente == null)
-                    throw new DomainException("xxx");
+            var moduliTotaleAnno = await _handler.Send(new DatiModuloCommessaQueryGetByAnno(authInfo)
+            {
+                AnnoValidita = command.AnnoValidita,
+            }); 
+         
+            var moduloTotaleMese = moduliTotaleAnno!.Where(x => x.MeseValidita == command.MeseValidita).FirstOrDefault();
 
             var prepare = new ModuloCommessaAggregateDto()
             {
                 Ente = ente,
                 DatiFatturazione = datiFatturazione,
                 DatiModuloCommessa = datiModuloCommessa.DatiModuloCommessa,
-                Categorie = categorie
+                DatiModuloCommessaTotale = moduloTotaleMese,
+                DatiConfigurazioneModuloCommessa = configurazioneModuloCommessa
             };
 
             return prepare.Mapper();

@@ -12,7 +12,8 @@ public class ModuloCommessaByAnnoDto
     public long IdTipoContratto { get; set; }  
     public string? Stato { get; set; } 
     public string? Prodotto { get; set; } 
-    public decimal Totale { get; set; }
+    public decimal Totale { get; set; } 
+    public DateTime DataModifica { get; set; }
     public Dictionary<int, ModuloCommessaMeseTotaleDto>? Totali { get; set; } 
 } 
 

@@ -10,6 +10,53 @@ namespace PortaleFatture.BE.Api.Modules.DatiModuloCommesse.Extensions;
 
 public static class DatiModuloCommessaViewModelExtensions
 {
+    public static DatiModuloCommessaByAnnoResponse Mapper(this ModuloCommessaByAnnoDto model)
+    {
+        Dictionary<int, ModuloCommessaMeseTotaleResponse>? totali = [];
+        foreach (var tot in model.Totali!)
+        {
+            totali.Add(tot.Key, new ModuloCommessaMeseTotaleResponse()
+            {
+                IdCategoriaSpedizione = tot.Value.IdCategoriaSpedizione,
+                Tipo = tot.Value.Tipo,
+                TotaleCategoria = $"{tot.Value.TotaleCategoria} €"
+            });
+        }
+        return new DatiModuloCommessaByAnnoResponse()
+        { 
+            TotaleAnalogico = totali.Where(x => x.Key == 1).FirstOrDefault().Value.TotaleCategoria,
+            TotaleDigitale = totali.Where(x => x.Key == 2).FirstOrDefault().Value.TotaleCategoria,
+            AnnoValidita = model.AnnoValidita,
+            IdEnte = model.IdEnte,
+            IdTipoContratto = model.IdTipoContratto,
+            MeseValidita = model.MeseValidita,
+            Modifica = model.Modifica,
+            Prodotto = model.Prodotto,
+            Stato = model.Stato,
+            Totale = $"{model.Totale} €",
+            DataModifica = model.DataModifica.ToString("d")
+        };
+    }
+
+    public static DatiModuloCommessaParzialiTotaleResponse Mapper(this DatiModuloCommessaParzialiTotale model)
+    {
+        return new DatiModuloCommessaParzialiTotaleResponse()
+        {
+            Analogico890Nazionali = $"{model.Analogico890Nazionali} €",
+            AnalogicoARInternazionali = $"{model.AnalogicoARInternazionali} €",
+            AnalogicoARNazionali = $"{model.AnalogicoARNazionali} €",
+            Digitale = $"{model.Digitale} €",
+            AnnoValidita = model.AnnoValidita,
+            IdEnte = model.IdEnte,
+            IdTipoContratto = model.IdTipoContratto,
+            MeseValidita = model.MeseValidita,
+            Modifica = model.Modifica,
+            Prodotto = model.Prodotto,
+            Stato = model.Stato,
+            Totale = $"{model.Totale} €",
+        };
+    }
+
     public static DatiModuloCommessaCreateListCommand Mapper(this DatiModuloCommessaCreateRequest model, AuthenticationInfo authInfo)
     {
         var cmd = new DatiModuloCommessaCreateListCommand(authInfo)
@@ -74,6 +121,10 @@ public static class DatiModuloCommessaViewModelExtensions
             cmd.TotaleModuloCommessaNotifica.TotaleNumeroNotificheDaProcessare += mdc.TotaleNotifiche;
         }
         cmd.TotaleModuloCommessaNotifica.Totale = cmd.Totale.Select(x => x.TotaleValoreCategoriaSpedizione).Sum();
+
+        var dataCreazione = model.DatiModuloCommessa!.Select(x => x.DataCreazione).FirstOrDefault();
+        var dataModifica = model.DatiModuloCommessa!.Select(x => x.DataModifica).FirstOrDefault();
+        cmd.DataModifica = dataModifica == DateTime.MinValue? dataCreazione: dataModifica;
         return cmd;
     }
 }

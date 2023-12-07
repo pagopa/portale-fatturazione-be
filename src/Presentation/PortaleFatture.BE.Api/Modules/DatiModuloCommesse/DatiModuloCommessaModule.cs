@@ -94,7 +94,7 @@ public partial class DatiModuloCommessaModule
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    private async Task<Results<Ok<IEnumerable<ModuloCommessaByAnnoDto>>, NotFound>> GetDatiModuloCommessaByAnnoAsync(
+    private async Task<Results<Ok<IEnumerable<DatiModuloCommessaByAnnoResponse>>, NotFound>> GetDatiModuloCommessaByAnnoAsync(
     HttpContext context,
     [FromRoute] int? anno,
     [FromServices] IStringLocalizer<Localization> localizer,
@@ -104,11 +104,10 @@ public partial class DatiModuloCommessaModule
         var modulo = await handler.Send(new DatiModuloCommessaQueryGetByAnno(authInfo)
         {
             AnnoValidita = anno,
-        });
+        }); 
         if (modulo == null)
-            return NotFound();
-        //var response = modulo!.Mapper(authInfo.Ruolo!);
-        return Ok(modulo);
+            return NotFound(); 
+        return Ok(modulo.Select(x => x.Mapper()));
     }
 
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}")]
@@ -117,7 +116,7 @@ public partial class DatiModuloCommessaModule
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    private async Task<Results<Ok<IEnumerable<DatiModuloCommessaParzialiTotale>>, NotFound>> GetDatiModuloCommessaParzialiByAnnoAsync(
+    private async Task<Results<Ok<IEnumerable<DatiModuloCommessaParzialiTotaleResponse>>, NotFound>> GetDatiModuloCommessaParzialiByAnnoAsync(
     HttpContext context,
     [FromRoute] int? anno,
     [FromServices] IStringLocalizer<Localization> localizer,
@@ -130,7 +129,7 @@ public partial class DatiModuloCommessaModule
         });
         if (modulo == null)
             return NotFound();
-        return Ok(modulo);
+        return Ok(modulo.Select(x=>x.Mapper()));
     }
 
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}")]

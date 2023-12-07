@@ -148,6 +148,7 @@ public class DatiModuloCommessaCreateCommandHandler(
             DatiModuloCommessaTotale = datit!,
             Anno = datic!.Select(x=>x.AnnoValidita).FirstOrDefault(),
             Mese = datic!.Select(x => x.MeseValidita).FirstOrDefault(),
+            DataModifica = adesso,
         };
 
         using var usto = await _factory.Create(cancellationToken: ct);

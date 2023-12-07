@@ -1,15 +1,17 @@
-﻿using System.Globalization;
+﻿using System.Collections.Generic;
+using System.Globalization;
 using System.Reflection;
 using System.Text;
 using System.Xml.Linq;
 using PortaleFatture.BE.Core.Entities.DatiFatturazioni;
+using PortaleFatture.BE.Core.Entities.DatiModuloCommesse;
 using PortaleFatture.BE.Core.Entities.DatiModuloCommesse.Dto;
 
 namespace PortaleFatture.BE.Core.Extensions;
 
 public static class DocumentExtensions
 {
-    private static string _tableDetails = @"
+    private static string _tableModuloCommessa = @"
             <tr class='{0}'>
                 <td>[Tipo]</td>
                 <td>[NumeroNotificheNazionali]</td>
@@ -18,13 +20,26 @@ public static class DocumentExtensions
             </tr> 
         ";
 
+    private static string _tableTotali = @"
+            <tr class='{0}'>
+                <td colspan='2'>[Descrizione]</td>
+                <td colspan='2'>[Totale] €</td> 
+            </tr> 
+        ";
+
     public static string GetModuloCommessa(this IEnumerable<DatiModuloCommessaTotaleDto>? commesse)
     {
         StringBuilder builder = new();
-        for (var i = 0; i < commesse!.Count(); i++)
+        List<DatiModuloCommessaTotaleDto> ordineCommessa = [];
+        ordineCommessa.Add(commesse!.Where(x => x.IdTipoSpedizione == 3).FirstOrDefault()!);
+        ordineCommessa.Add(commesse!.Where(x => x.IdTipoSpedizione == 1).FirstOrDefault()!);
+        ordineCommessa.Add(commesse!.Where(x => x.IdTipoSpedizione == 2).FirstOrDefault()!);
+        ordineCommessa.Add(commesse!.Where(x => x.IdTipoSpedizione == 0).FirstOrDefault()!);
+
+        for (var i = 0; i < ordineCommessa!.Count; i++)
         {
-            var commessa = commesse!.ToList()[i];
-            var table = String.Format(_tableDetails, i == commesse!.Count() - 1 ? "ending" : "details")
+            var commessa = ordineCommessa!.ToList()[i];
+            var table = String.Format(_tableModuloCommessa, i == commesse!.Count() - 1 ? "ending" : "details")
               .Replace(nameof(commessa.Tipo).GetName<DatiModuloCommessaTotaleDto>(), commessa.Tipo)
               .Replace(nameof(commessa.NumeroNotificheNazionali).GetName<DatiModuloCommessaTotaleDto>(), commessa.NumeroNotificheNazionali.ToString())
               .Replace(nameof(commessa.NumeroNotificheInternazionali).GetName<DatiModuloCommessaTotaleDto>(), commessa.NumeroNotificheInternazionali.ToString())
@@ -32,6 +47,22 @@ public static class DocumentExtensions
               ;
             builder.Append(table);
         }
+        return builder.ToString();
+    }
+
+    public static string GetModuloCommessaTotali(this IEnumerable<DatiModuloCommessaTotaleCostoDto> totali)
+    {
+        StringBuilder builder = new();
+
+        for (var i = 0; i < totali!.Count(); i++)
+        {
+            var totale = totali!.ToList()[i];
+            var table = String.Format(_tableTotali, i == totali!.Count() - 1 ? "ending" : "details")
+            .Replace(nameof(totale.Descrizione).GetName<DatiModuloCommessaTotaleCostoDto>(), totale.Descrizione)
+            .Replace(nameof(totale.Totale).GetName<DatiModuloCommessaTotaleCostoDto>(), totale.Totale.ToString())
+            ;
+            builder.Append(table);
+        } 
         return builder.ToString();
     }
 
@@ -58,21 +89,21 @@ public static class DocumentExtensions
     public static string GetData(this DateTimeOffset? data)
     {
         var d = data!.Value;
-        return new DateTime(d.Year, d.Month, d.Day).ToString("d", new CultureInfo("it-IT"));
+        return new DateTime(d.Year, d.Month, d.Day, d.Hour, d.Minute, d.Second).ToString(new CultureInfo("it-IT"));
     }
 
     private static Dictionary<string, string> _names = new();
     private static string GetName<T>(this string propertyName)
     {
-        _names.TryGetValue(propertyName, out var name); 
-        if(name == null)
+        _names.TryGetValue(propertyName, out var name);
+        if (name == null)
         {
             var propertyInfo = typeof(T)!.GetProperty(propertyName)!;
-            name =  $"[{propertyInfo.Name!}]";
-            _names.TryAdd(propertyName, name); 
+            name = $"[{propertyInfo.Name!}]";
+            _names.TryAdd(propertyName, name);
         }
         return name;
-    } 
+    }
 
     public static string Replace(this ModuloCommessaDocumentoDto model, string template)
     {
@@ -93,9 +124,11 @@ public static class DocumentExtensions
             .Replace(nameof(model.Pec).GetName<ModuloCommessaDocumentoDto>(), model.Pec.GetEmail())
             .Replace(nameof(model.Contatti).GetName<ModuloCommessaDocumentoDto>(), model.Contatti.GetContatti())
             .Replace(nameof(model.DataModifica).GetName<ModuloCommessaDocumentoDto>(), model.DataModifica.GetData())
-            .Replace(nameof(model.MeseAttivita).GetName<ModuloCommessaDocumentoDto>(), model.MeseAttivita.GetMonth())
+            .Replace(nameof(model.MeseAttivita).GetName<ModuloCommessaDocumentoDto>(), model.MeseAttivita) 
 
-            .Replace(nameof(model.DatiModuloCommessa).GetName<ModuloCommessaDocumentoDto>(), model.DatiModuloCommessa.GetModuloCommessa())
+            .Replace(nameof(model.DatiModuloCommessa).GetName<ModuloCommessaDocumentoDto>(), model.DatiModuloCommessa.GetModuloCommessa()) 
+
+            .Replace(nameof(model.DatiModuloCommessaCosti).GetName<ModuloCommessaDocumentoDto>(), model.DatiModuloCommessaCosti!.GetModuloCommessaTotali())
             ;
 
         return template;
@@ -106,8 +139,16 @@ public static class DocumentExtensions
         var fatt = model.DatiFatturazione!;
         var ente = model.Ente!;
         var modulo = model.DatiModuloCommessa!;
-        var categorie = model.Categorie;
-        var tipi = categorie!.SelectMany(x => x.TipoSpedizione!);
+        var tipoContratto = modulo.Select(x=>x.IdTipoContratto).FirstOrDefault();
+        var confModulo = model.DatiConfigurazioneModuloCommessa;
+        var totaleModulo = model.DatiModuloCommessaTotale!;
+
+        var tipi = confModulo!.Tipi;
+        var mese = model.DatiModuloCommessa!.Select(x => x.MeseValidita).FirstOrDefault().GetMonth();
+        var anno = model.DatiModuloCommessa!.Select(x => x.AnnoValidita).FirstOrDefault();
+        var data = $"{mese}/{anno}";
+        var dataModificaCommessa = modulo.Select(x => x.DataModifica).FirstOrDefault();
+        var dataCreazioneCommessa = modulo.Select(x => x.DataCreazione).FirstOrDefault();
 
         var moduloDocumento = new ModuloCommessaDocumentoDto()
         {
@@ -120,22 +161,23 @@ public static class DocumentExtensions
             CodCommessa = fatt.CodCommessa,
             Contatti = fatt.Contatti,
             DataDocumento = fatt.DataDocumento,
-            DataModifica = fatt.DataModifica,
-            SplitPayment = fatt.SplitPayment == true ? "Attivo" : string.Empty,
+            DataModifica = dataModificaCommessa == DateTime.MinValue ? dataCreazioneCommessa : dataModificaCommessa,
+            SplitPayment = fatt.SplitPayment == true ? "SI" : "NO",
             IdDocumento = fatt.IdDocumento,
             Map = fatt.Map,
             TipoCommessa = fatt.TipoCommessa == "1" ? "Ordine" : "Contratto",
             Pec = fatt.Pec,
-            Prodotto = fatt.Prodotto,
-            MeseAttivita = modulo.Select(x => x.MeseValidita).FirstOrDefault(),
+            Prodotto = fatt.Prodotto == "prod-pn" ? "SEND": fatt.Prodotto,
+            MeseAttivita = data,
             DatiModuloCommessa = modulo.Select(x => new DatiModuloCommessaTotaleDto()
             {
-                Tipo = tipi!.Where(y => y.Id == x.IdTipoSpedizione).FirstOrDefault()!.Descrizione,
+                Tipo = tipi!.Where(y => y.IdTipoSpedizione == x.IdTipoSpedizione).FirstOrDefault()!.Descrizione!.Replace("[data]", data),
                 NumeroNotificheInternazionali = x.NumeroNotificheInternazionali,
                 NumeroNotificheNazionali = x.NumeroNotificheNazionali,
                 TotaleNotifiche = x.NumeroNotificheInternazionali + x.NumeroNotificheNazionali,
                 IdTipoSpedizione = x.IdTipoSpedizione
-            })
+            }),
+            DatiModuloCommessaCosti = []
         };
 
         var list = moduloDocumento.DatiModuloCommessa.ToList();
@@ -148,6 +190,39 @@ public static class DocumentExtensions
                Tipo = "Totale notifiche da processare"
            });
         moduloDocumento.DatiModuloCommessa = list;
+
+        var catDigitale = confModulo.Categorie!.Where(x => x.IdCategoriaSpedizione == 2 && x.IdTipoContratto == tipoContratto);
+        var catAnalogico = confModulo.Categorie!.Where(x => x.IdCategoriaSpedizione == 1 && x.IdTipoContratto == tipoContratto);
+
+        var percentDigitale = catDigitale.Select(x => x.Percentuale).FirstOrDefault()!;
+        var percentAnalogico = catAnalogico.Select(x => x.Percentuale).FirstOrDefault()!;
+
+        var digitale = catDigitale.Select(x => x.Descrizione).FirstOrDefault()!.Replace("[data]", data).Replace("[percent]", percentDigitale.ToString());
+        var analogico = catAnalogico.Select(x => x.Descrizione).FirstOrDefault()!.Replace("[data]", data).Replace("[percent]", percentAnalogico.ToString());
+
+        totaleModulo.Totali!.TryGetValue(2, out var totaleDigitale);
+        totaleModulo.Totali!.TryGetValue(1, out var totaleAnalogico);
+
+        var totali = moduloDocumento.DatiModuloCommessaCosti!.ToList();
+        totali.Add(
+           new DatiModuloCommessaTotaleCostoDto()
+           {
+               Totale = totaleDigitale!.TotaleCategoria,
+               Descrizione = digitale
+           });
+        totali.Add(
+           new DatiModuloCommessaTotaleCostoDto()
+           {
+               Totale = totaleAnalogico!.TotaleCategoria,
+               Descrizione = analogico
+           });
+        totali.Add(
+           new DatiModuloCommessaTotaleCostoDto()
+           {
+               Totale = totaleModulo!.Totale,
+               Descrizione = "TOTALE MODULO COMMESSA NETTO IVA"
+           });
+        moduloDocumento.DatiModuloCommessaCosti = totali;
         return moduloDocumento;
     }
 }

@@ -222,6 +222,9 @@
   <data name="DescrizioneConfiguazioneModuloCommessaInvalid" xml:space="preserve">
     <value>Inserire un valore descrizione configurazione modulo commessa.</value>
   </data>
+  <data name="EnteSelfCareError" xml:space="preserve">
+    <value>Non è stato trovato un profilo ente associato.</value>
+  </data>
   <data name="MediaNotificaInternazionaleInvalid" xml:space="preserve">
     <value>Inserire un valore per la media notifica internazionale.</value>
   </data>

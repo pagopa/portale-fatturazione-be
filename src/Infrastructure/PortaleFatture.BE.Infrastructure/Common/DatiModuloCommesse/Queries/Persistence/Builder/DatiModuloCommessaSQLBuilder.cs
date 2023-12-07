@@ -49,12 +49,32 @@ public class DatiModuloCommessaSQLBuilder
         return builder;
     }
 
+    private static SqlBuilder CreateSelectDate()
+    {
+        DatiModuloCommessa? @obj = null;
+        var builder = new SqlBuilder(); 
+        builder.Select(nameof(@obj.MeseValidita));
+        builder.Select(nameof(@obj.DataCreazione));
+        builder.Select(nameof(@obj.DataModifica)); 
+        return builder;
+    }
+
     public static string SelectBy()
     {
         var tableName = nameof(DatiModuloCommessa); 
         var builder = CreateSelect();
         var where = WhereById();
         builder.Where(where); 
+        var builderTemplate = builder.AddTemplate($"Select /**select**/ from [schema]{tableName} /**where**/ ");
+        return builderTemplate.RawSql;
+    }
+
+    public static string SelectByDate()
+    {
+        var tableName = nameof(DatiModuloCommessa);
+        var builder = CreateSelectDate();
+        var where = WhereByAnno();
+        builder.Where(where);
         var builderTemplate = builder.AddTemplate($"Select /**select**/ from [schema]{tableName} /**where**/ ");
         return builderTemplate.RawSql;
     }

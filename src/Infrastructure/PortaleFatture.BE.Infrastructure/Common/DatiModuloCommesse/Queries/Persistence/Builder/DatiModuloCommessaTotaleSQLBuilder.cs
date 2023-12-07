@@ -1,5 +1,4 @@
 ﻿using Dapper;
-using PortaleFatture.BE.Core.Entities.DatiFatturazioni;
 using PortaleFatture.BE.Core.Entities.DatiModuloCommesse;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 
@@ -39,7 +38,7 @@ public class DatiModuloCommessaTotaleSQLBuilder
     private static SqlBuilder CreateSelect()
     {
         DatiModuloCommessaTotale? @obj = null;
-        var builder = new SqlBuilder();
+        var builder = new SqlBuilder(); 
         builder.Select(nameof(@obj.IdTipoContratto).GetAsColumn<DatiModuloCommessaTotale>());
         builder.Select(nameof(@obj.Prodotto).GetAsColumn<DatiModuloCommessaTotale>());
         builder.Select(nameof(@obj.IdCategoriaSpedizione).GetAsColumn<DatiModuloCommessaTotale>());

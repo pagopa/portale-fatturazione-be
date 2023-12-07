@@ -157,8 +157,7 @@ public static class ConfigurationExtensions
                     };
                     return problem.ExecuteAsync(context);
                 }));
-
-        // used by proxy to forward 
+ 
         application.UseForwardedHeaders(new ForwardedHeadersOptions
         {
             ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto

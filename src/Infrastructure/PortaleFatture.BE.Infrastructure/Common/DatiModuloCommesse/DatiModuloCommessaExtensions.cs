@@ -50,8 +50,7 @@ public static class DatiModuloCommessaExtensions
 
             var fNotifica = categorieTotale.TryGetValue(idCategoria, out decimal totale);
             var fprezzoInter = tipiSpedizionePrezziInter.TryGetValue(cmd.IdTipoSpedizione, out decimal prezzoInter);
-            var fprezzoNaz = tipiSpedizionePrezziNaz.TryGetValue(cmd.IdTipoSpedizione, out decimal prezzoNaz);
-            var fPercentuale = tipiSpedizionePercentualeAggiunta.TryGetValue(cmd.IdTipoSpedizione, out int percentualeAggiunta); 
+            var fprezzoNaz = tipiSpedizionePrezziNaz.TryGetValue(cmd.IdTipoSpedizione, out decimal prezzoNaz); 
 
             var categoriaDigitale = categorie!.Where(x => x.Tipo!.Contains("digitale", StringComparison.CurrentCultureIgnoreCase)).FirstOrDefault(); // seleziono digitale
 
@@ -74,8 +73,8 @@ public static class DatiModuloCommessaExtensions
             }
             else // analogico
             {
-                var prezzoAggiuntoInter = prezzoInter + prezzoInter / 100M * percentualeAggiunta;
-                var prezzoAggiuntoNaz = prezzoNaz + prezzoNaz / 100M * percentualeAggiunta;
+                var prezzoAggiuntoInter = prezzoInter;
+                var prezzoAggiuntoNaz = prezzoNaz;
                 parzialiTipoCommessa.TryAdd(cmd.IdTipoSpedizione, new ParzialiTipoCommessa()
                 {
                     PrezzoInternazionali = prezzoAggiuntoInter,

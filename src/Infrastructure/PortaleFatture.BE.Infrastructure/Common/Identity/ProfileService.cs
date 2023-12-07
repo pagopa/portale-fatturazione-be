@@ -40,6 +40,14 @@ public class ProfileService(
         };
     }
 
+    private string MapperRuolo(string descrizioneRuolo)
+    {
+        if (descrizioneRuolo.Equals("operator", StringComparison.CurrentCultureIgnoreCase))
+            return "Operatore";
+        else
+            return "Amministratore";
+    }
+
     private async Task<List<AuthenticationInfo>?> Mapper(SelfCareDto model)
     {
         try
@@ -54,7 +62,7 @@ public class ProfileService(
                     Prodotto = org.Product,
                     Ruolo = Mapper(org.PartyRole!),
                     IdEnte = model.Organization!.Id,
-                    DescrizioneRuolo = org.PartyRole,
+                    DescrizioneRuolo = MapperRuolo(org.PartyRole),
                     IdTipoContratto = 0,
                     Profilo = string.Empty
                 };

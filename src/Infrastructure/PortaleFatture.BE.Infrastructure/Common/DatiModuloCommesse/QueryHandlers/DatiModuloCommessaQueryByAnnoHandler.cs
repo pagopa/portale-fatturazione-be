@@ -35,6 +35,7 @@ namespace PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.QueryHandle
             command.AnnoValidita = command.AnnoValidita != null ? command.AnnoValidita : annoFatturazione;
             IEnumerable<DatiModuloCommessaTotale>? dati;
             IEnumerable<CategoriaSpedizione>? categorie;
+            IEnumerable<ModuloCommesseDateByAnnoDto>? moduloCommesseDate;
             using (var uow = await _factory.Create(true, cancellationToken: ct))
             {
                 dati = await uow.Query(new DatiModuloCommessaQueryGetByAnnoPersistence(
@@ -43,6 +44,11 @@ namespace PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.QueryHandle
                     command.AuthenticationInfo.IdTipoContratto,
                     command.AuthenticationInfo.Prodotto), ct);
                 categorie = await uow.Query(new SpedizioneQueryGetAllPersistence(), ct);
+                moduloCommesseDate = await uow.Query(new DatiModuloCommessaDateQueryGetByIdPersistence(
+                    command.AuthenticationInfo.IdEnte,
+                    command.AnnoValidita.Value,
+                    command.AuthenticationInfo.IdTipoContratto,
+                    command.AuthenticationInfo.Prodotto), ct);
             }
 
             if (categorie!.IsNullNotAny())
@@ -62,6 +68,8 @@ namespace PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.QueryHandle
             Dictionary<int, ModuloCommessaByAnnoDto> lista = new();
             foreach (var dato in dati!)
             {
+                var dates = moduloCommesseDate!.Where(x => x.MeseValidita == dato.MeseValidita).FirstOrDefault()!;
+                var dataModifica = dates.DataModifica == DateTime.MinValue ? dates.DataCreazione : dates.DataModifica;
                 lista.TryGetValue(dato.MeseValidita, out var modulo);
                 modulo ??= new()
                 {
@@ -71,7 +79,8 @@ namespace PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.QueryHandle
                     IdTipoContratto = dato.IdTipoContratto,
                     MeseValidita = dato.MeseValidita,
                     Stato = dato.Stato,
-                    Totali = []
+                    Totali = [], 
+                    DataModifica = dataModifica
                 };
 
                 modulo.Totali!.TryGetValue(dato.IdCategoriaSpedizione, out var totMese);

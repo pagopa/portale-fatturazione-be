@@ -1,6 +1,5 @@
 ﻿using PortaleFatture.BE.Core.Entities.DatiFatturazioni;
 using PortaleFatture.BE.Core.Entities.SelfCare;
-using PortaleFatture.BE.Core.Entities.Tipologie;
 namespace PortaleFatture.BE.Core.Entities.DatiModuloCommesse.Dto;
 
 public class ModuloCommessaAggregateDto
@@ -8,7 +7,8 @@ public class ModuloCommessaAggregateDto
     public Ente? Ente { get; set; }
     public DatiFatturazione? DatiFatturazione { get; set; }
     public IEnumerable<DatiModuloCommessa>? DatiModuloCommessa { get; set; }
-    public IEnumerable<CategoriaSpedizione>? Categorie { get; set; }
+    public DatiConfigurazioneModuloCommessa? DatiConfigurazioneModuloCommessa { get; set; }
+    public ModuloCommessaByAnnoDto? DatiModuloCommessaTotale { get; set; }
 }
 
 public class ModuloCommessaDocumentoDto
@@ -24,8 +24,8 @@ public class ModuloCommessaDocumentoDto
     public string? TipoCommessa { get; set; }
     public string? Prodotto { get; set; }
     public string? Pec { get; set; }
-    public DateTimeOffset? DataModifica { get; set; } 
-    public int MeseAttivita { get; set; }
+    public DateTimeOffset? DataModifica { get; set; }
+    public string? MeseAttivita { get; set; }
     public IEnumerable<DatiFatturazioneContatto>? Contatti { get; set; }
     //fat
 
@@ -38,13 +38,23 @@ public class ModuloCommessaDocumentoDto
     // modulo commessa
     public IEnumerable<DatiModuloCommessaTotaleDto>? DatiModuloCommessa { get; set; }
     // modulo commessa
+
+    // modulo commessa totali
+    public IEnumerable<DatiModuloCommessaTotaleCostoDto>? DatiModuloCommessaCosti { get; set; }
+    // modulo commessa totali
 }
 
 public class DatiModuloCommessaTotaleDto
 {
-    public int TotaleNotifiche { get; set; } 
+    public int TotaleNotifiche { get; set; }
     public int NumeroNotificheNazionali { get; set; }
     public int NumeroNotificheInternazionali { get; set; }
-    public string? Tipo { get; set; } 
+    public string? Tipo { get; set; }
     public int IdTipoSpedizione { get; set; }
+}
+
+public class DatiModuloCommessaTotaleCostoDto
+{
+    public decimal Totale { get; set; }
+    public string? Descrizione { get; set; } 
 }
