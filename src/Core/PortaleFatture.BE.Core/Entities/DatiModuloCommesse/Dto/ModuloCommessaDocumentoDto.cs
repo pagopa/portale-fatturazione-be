@@ -1,4 +1,5 @@
-﻿using PortaleFatture.BE.Core.Entities.DatiFatturazioni;
+﻿using System.Text.Json.Serialization;
+using PortaleFatture.BE.Core.Entities.DatiFatturazioni;
 using PortaleFatture.BE.Core.Entities.SelfCare;
 namespace PortaleFatture.BE.Core.Entities.DatiModuloCommesse.Dto;
 
@@ -55,6 +56,14 @@ public class DatiModuloCommessaTotaleDto
 
 public class DatiModuloCommessaTotaleCostoDto
 {
-    public decimal Totale { get; set; }
+    [JsonIgnore]
+    public decimal Totale { get; set; } 
+
+    [JsonPropertyName("Totale")]
+    public string? TotaleValuta
+    {
+        get {return $"{Totale} €"; } 
+    }
+
     public string? Descrizione { get; set; } 
 }
