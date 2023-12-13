@@ -5,12 +5,11 @@ using PortaleFatture.BE.Infrastructure.Common.Persistence;
 
 namespace PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.Queries.Persistence;
 
-public class DatiModuloCommessaQueryGetByAnnoPersistence(string? idEnte, int annoValidita, long? idTipoContratto, string? prodotto) : DapperBase, IQuery<IEnumerable<DatiModuloCommessaTotale>?>
+public class DatiModuloCommessaQueryGetByAnnoPersistence(string? idEnte, int annoValidita,  string? prodotto) : DapperBase, IQuery<IEnumerable<DatiModuloCommessaTotale>?>
 { 
     private readonly int _annoValidita = annoValidita;
     private readonly string? _idEnte = idEnte;
-    private readonly string? _prodotto = prodotto;
-    private readonly long? _idTipoContratto = idTipoContratto;
+    private readonly string? _prodotto = prodotto; 
     private static readonly string _sqlSelect = DatiModuloCommessaTotaleSQLBuilder.SelectByAnno();
 
     public async Task<IEnumerable<DatiModuloCommessaTotale>?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken ct = default)
@@ -20,8 +19,7 @@ public class DatiModuloCommessaQueryGetByAnnoPersistence(string? idEnte, int ann
              {
                  idEnte = _idEnte, 
                  annoValidita = _annoValidita,
-                 prodotto = _prodotto,
-                 idTipoContratto = _idTipoContratto
+                 prodotto = _prodotto, 
              }, transaction);
     }
 } 

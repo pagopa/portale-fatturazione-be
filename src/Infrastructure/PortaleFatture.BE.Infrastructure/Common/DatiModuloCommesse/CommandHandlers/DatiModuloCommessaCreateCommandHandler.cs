@@ -14,7 +14,6 @@ using PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.Commands.Persis
 using PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.Queries.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.Persistence.Schemas;
 using PortaleFatture.BE.Infrastructure.Common.Scadenziari;
-using PortaleFatture.BE.Infrastructure.Common.Scadenziari.Queries;
 using PortaleFatture.BE.Infrastructure.Common.Storici.Commands;
 using PortaleFatture.BE.Infrastructure.Common.Storici.Commands.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.Tipologie.Queries.Persistence;
@@ -45,6 +44,15 @@ public class DatiModuloCommessaCreateCommandHandler(
         var prodotto = command.AuthenticationInfo.Prodotto;
         var idEnte = command.AuthenticationInfo.IdEnte;
         var stato = string.Empty;
+
+        using (var at = await _factory.Create(cancellationToken: ct))
+        {
+            // recupero sempre lo stesso contratto mese anno prodotto ente
+            // anche se è cambiato il contratto
+            var datiAttivi = await at.Query(new DatiModuloCommessaQueryGetByIdPersistence(idEnte, annoAttuale, meseAttuale, prodotto), ct);
+            if (!datiAttivi!.IsNullNotAny())
+                idTipoContratto = datiAttivi!.Select(x => x.IdTipoContratto).FirstOrDefault();
+        } 
 
         Dictionary<int, decimal> categorieTotale = [];
         IEnumerable<CategoriaSpedizione>? categorie;
@@ -139,8 +147,9 @@ public class DatiModuloCommessaCreateCommandHandler(
             _logger.LogError(e, "Errore nel salvataggio del modulo commessa: \"{MethodName}\" per tipo ente: \"{idEnte}\"", methodName, idEnte);
             throw new DomainException(_localizer["DatiModuloCommessaError", idEnte!]);
         }
-        var datic = await uow.Query(new DatiModuloCommessaQueryGetByIdPersistence(idEnte, annoAttuale, meseAttuale, idTipoContratto, prodotto), ct);
-        var datit = await uow.Query(new DatiModuloCommessaTotaleQueryGetByIdPersistence(idEnte, annoAttuale, meseAttuale, idTipoContratto, prodotto), ct);
+
+        var datic = await uow.Query(new DatiModuloCommessaQueryGetByIdPersistence(idEnte, annoAttuale, meseAttuale, prodotto), ct);
+        var datit = await uow.Query(new DatiModuloCommessaTotaleQueryGetByIdPersistence(idEnte, annoAttuale, meseAttuale, prodotto), ct);
         var moduloCommessa = new ModuloCommessaDto()
         {
             Modifica = valid && stato == StatoModuloCommessa.ApertaCaricato,

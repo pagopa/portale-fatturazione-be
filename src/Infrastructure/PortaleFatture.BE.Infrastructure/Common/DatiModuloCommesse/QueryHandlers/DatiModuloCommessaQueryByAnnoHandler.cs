@@ -40,8 +40,7 @@ namespace PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.QueryHandle
             {
                 dati = await uow.Query(new DatiModuloCommessaQueryGetByAnnoPersistence(
                     command.AuthenticationInfo.IdEnte,
-                    command.AnnoValidita.Value,
-                    command.AuthenticationInfo.IdTipoContratto,
+                    command.AnnoValidita.Value, 
                     command.AuthenticationInfo.Prodotto), ct);
                 categorie = await uow.Query(new SpedizioneQueryGetAllPersistence(), ct);
                 moduloCommesseDate = await uow.Query(new DatiModuloCommessaDateQueryGetByIdPersistence(

@@ -3,7 +3,7 @@
 namespace PortaleFatture.BE.Api.Modules.DatiModuloCommesse.Payload.Response;
 
 public class DatiModuloCommessaByAnnoResponse
-{
+{ 
     public bool Modifica { get; set; }
     public int AnnoValidita { get; set; }
     public int MeseValidita { get; set; }

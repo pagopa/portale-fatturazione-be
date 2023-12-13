@@ -4,11 +4,10 @@ using PortaleFatture.BE.Infrastructure.Common.Persistence;
 
 namespace PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.Queries.Persistence;
 
-public class DatiModuloCommessaQueryGetAnniPersistence(string? idEnte, long? idTipoContratto, string? prodotto) : DapperBase, IQuery<IEnumerable<string>?>
+public class DatiModuloCommessaQueryGetAnniPersistence(string? idEnte, string? prodotto) : DapperBase, IQuery<IEnumerable<string>?>
 {
     private readonly string? _idEnte = idEnte;
-    private readonly string? _prodotto = prodotto;
-    private readonly long? _idTipoContratto = idTipoContratto;
+    private readonly string? _prodotto = prodotto; 
     private static readonly string _sqlSelect = DatiModuloCommessaAnniSQLBuilder.SelectBy();
 
     public async Task<IEnumerable<string>?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken ct = default)
@@ -17,8 +16,7 @@ public class DatiModuloCommessaQueryGetAnniPersistence(string? idEnte, long? idT
             new
             {
                 idEnte = _idEnte,
-                prodotto = _prodotto,
-                idTipoContratto = _idTipoContratto 
+                prodotto = _prodotto 
             }, transaction);
     }
 }

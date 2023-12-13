@@ -2,6 +2,7 @@
 
 public class DatiModuloCommessaResponse
 {
+    public long IdTipoContratto { get; set; }
     public bool Modifica { get; set; }
     public int Anno { get; set; }
     public int Mese { get; set; } 

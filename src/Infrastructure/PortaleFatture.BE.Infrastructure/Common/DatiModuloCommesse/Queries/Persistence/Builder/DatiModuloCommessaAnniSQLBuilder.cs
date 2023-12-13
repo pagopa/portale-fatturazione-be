@@ -9,13 +9,11 @@ public class DatiModuloCommessaAnniSQLBuilder
     private static string WhereById()
     {
         DatiModuloCommessaTotale? obj;
-        var fieldIdEnte = nameof(@obj.IdEnte).GetColumn<DatiModuloCommessaTotale>();
-        var fieldidTipoContratto = nameof(@obj.IdTipoContratto).GetColumn<DatiModuloCommessaTotale>();
+        var fieldIdEnte = nameof(@obj.IdEnte).GetColumn<DatiModuloCommessaTotale>(); 
         var fieldProdotto = nameof(@obj.Prodotto).GetColumn<DatiModuloCommessaTotale>();
 
         return String.Join(" AND ",
-            $"{fieldIdEnte} = @{nameof(@obj.IdEnte)}", 
-            $"{fieldidTipoContratto} = @{nameof(@obj.IdTipoContratto)}",
+            $"{fieldIdEnte} = @{nameof(@obj.IdEnte)}",  
             $"{fieldProdotto} = @{nameof(@obj.Prodotto)}"); 
     }
 

@@ -79,9 +79,8 @@ public static class DatiModuloCommessaViewModelExtensions
         };
     }
 
-    public static DatiModuloCommessaResponse? Mapper(this ModuloCommessaDto model)
-    {
-
+    public static DatiModuloCommessaResponse? Mapper(this ModuloCommessaDto model, AuthenticationInfo info)
+    { 
         var cmd = new DatiModuloCommessaResponse
         {
             ModuliCommessa = [],
@@ -89,13 +88,15 @@ public static class DatiModuloCommessaViewModelExtensions
             TotaleModuloCommessaNotifica = new(),
             Modifica = model.Modifica,
             Anno = model.Anno,
-            Mese = model.Mese
+            Mese = model.Mese,
+            IdTipoContratto = info.IdTipoContratto!.Value
         };
 
         if (model is null)
             return cmd;
 
         foreach (var md in model.DatiModuloCommessa!)
+        {
             cmd.ModuliCommessa.Add(new DatiModuloCommessaSimpleResponse()
             {
                 IdTipoSpedizione = md.IdTipoSpedizione,
@@ -103,6 +104,8 @@ public static class DatiModuloCommessaViewModelExtensions
                 NumeroNotificheNazionali = md.NumeroNotificheNazionali,
                 TotaleNotifiche = md.TotaleNotifiche
             });
+            cmd.IdTipoContratto = md.IdTipoContratto;
+        } 
 
         foreach (var mdt in model.DatiModuloCommessaTotale!)
         {
@@ -118,13 +121,14 @@ public static class DatiModuloCommessaViewModelExtensions
         {
             cmd.TotaleModuloCommessaNotifica.TotaleNumeroNotificheNazionali += mdc.NumeroNotificheNazionali;
             cmd.TotaleModuloCommessaNotifica.TotaleNumeroNotificheInternazionali += mdc.NumeroNotificheInternazionali;
-            cmd.TotaleModuloCommessaNotifica.TotaleNumeroNotificheDaProcessare += mdc.TotaleNotifiche;
+            cmd.TotaleModuloCommessaNotifica.TotaleNumeroNotificheDaProcessare += mdc.TotaleNotifiche; 
         }
         cmd.TotaleModuloCommessaNotifica.Totale = cmd.Totale.Select(x => x.TotaleValoreCategoriaSpedizione).Sum();
 
         var dataCreazione = model.DatiModuloCommessa!.Select(x => x.DataCreazione).FirstOrDefault();
         var dataModifica = model.DatiModuloCommessa!.Select(x => x.DataModifica).FirstOrDefault();
         cmd.DataModifica = dataModifica == DateTime.MinValue? dataCreazione: dataModifica;
+       
         return cmd;
     }
 }

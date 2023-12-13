@@ -1,9 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-using System.Net.Http;
-using PortaleFatture.BE.Core.Auth;
-using PortaleFatture.BE.Core.Exceptions;
-
-namespace PortaleFatture.BE.Core.Extensions;
+﻿namespace PortaleFatture.BE.Core.Extensions;
 
 public static class DomainExtensions
 { 

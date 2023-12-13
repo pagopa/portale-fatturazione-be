@@ -34,12 +34,7 @@ public static class DatiModuloCommessaExtensions
 
         var tipiSpedizionePrezziNaz = confModuloCommessa!.Tipi!
             .Select(x => new KeyValuePair<int, decimal>(x.IdTipoSpedizione, x.MediaNotificaNazionale))
-            .ToDictionary(x => x.Key, x => x.Value);
-
-        var tipiSpedizionePercentualeAggiunta = confModuloCommessa!.Tipi!
-            .Select(x => new KeyValuePair<int, int>(x.IdTipoSpedizione, x.PercentualeAggiunta))
-            .ToDictionary(x => x.Key, x => x.Value);
-
+            .ToDictionary(x => x.Key, x => x.Value); 
 
         var numeroTotaleNotifiche = command.DatiModuloCommessaListCommand!.Select(x => x.NumeroNotificheNazionali + x.NumeroNotificheInternazionali).Sum();
         Dictionary<long, ParzialiTipoCommessa>? parzialiTipoCommessa = [];
@@ -72,18 +67,16 @@ public static class DatiModuloCommessaExtensions
                 categorieTotale[idCategoria] = prezzoNaz * numeroTotaleNotifiche;
             }
             else // analogico
-            {
-                var prezzoAggiuntoInter = prezzoInter;
-                var prezzoAggiuntoNaz = prezzoNaz;
+            { 
                 parzialiTipoCommessa.TryAdd(cmd.IdTipoSpedizione, new ParzialiTipoCommessa()
                 {
-                    PrezzoInternazionali = prezzoAggiuntoInter,
-                    PrezzoNazionali = prezzoAggiuntoNaz,
-                    ValoreInternazionali = cmd.NumeroNotificheInternazionali * prezzoAggiuntoInter,
-                    ValoreNazionali = cmd.NumeroNotificheNazionali * prezzoAggiuntoNaz,
+                    PrezzoInternazionali = prezzoInter,
+                    PrezzoNazionali = prezzoNaz,
+                    ValoreInternazionali = cmd.NumeroNotificheInternazionali * prezzoInter,
+                    ValoreNazionali = cmd.NumeroNotificheNazionali * prezzoNaz,
                 }); ;
 
-                prezzo = cmd.NumeroNotificheInternazionali * prezzoAggiuntoInter + cmd.NumeroNotificheNazionali * prezzoAggiuntoNaz;
+                prezzo = cmd.NumeroNotificheInternazionali * prezzoInter + cmd.NumeroNotificheNazionali * prezzoNaz;
 
                 if (fNotifica)
                     categorieTotale[idCategoria] += prezzo;

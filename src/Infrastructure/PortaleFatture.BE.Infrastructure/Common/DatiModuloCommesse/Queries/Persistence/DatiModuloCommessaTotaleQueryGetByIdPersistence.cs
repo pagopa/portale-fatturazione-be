@@ -8,15 +8,13 @@ namespace PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.Queries.Per
 public class DatiModuloCommessaTotaleQueryGetByIdPersistence : DapperBase, IQuery<IEnumerable<DatiModuloCommessaTotale>?>
 {
     private readonly string? _prodotto;
-    private readonly long? _idTipoContratto;
     private readonly int _annoValidita;
     private readonly long _meseValidita;
     private readonly string? _idEnte;
     private static readonly string _sqlSelect = DatiModuloCommessaTotaleSQLBuilder.SelectBy();
 
-    public DatiModuloCommessaTotaleQueryGetByIdPersistence(string? idEnte, int annoValidita, int meseValidita, long? idTipoContratto, string? prodotto)
+    public DatiModuloCommessaTotaleQueryGetByIdPersistence(string? idEnte, int annoValidita, int meseValidita, string? prodotto)
     {
-        this._idTipoContratto = idTipoContratto;
         this._prodotto = prodotto;
         this._annoValidita = annoValidita;
         this._meseValidita = meseValidita;
@@ -31,7 +29,6 @@ public class DatiModuloCommessaTotaleQueryGetByIdPersistence : DapperBase, IQuer
                 meseValidita = _meseValidita,
                 annoValidita = _annoValidita,
                 prodotto = _prodotto,
-                idTipoContratto = _idTipoContratto
             }, transaction); 
     }
 }

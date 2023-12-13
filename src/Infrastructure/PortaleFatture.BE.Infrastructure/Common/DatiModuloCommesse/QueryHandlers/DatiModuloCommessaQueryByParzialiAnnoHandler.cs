@@ -28,11 +28,10 @@ namespace PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.QueryHandle
             var (annoFatturazione, _, _, _) = Time.YearMonthDayFatturazione();
             command.AnnoValidita = command.AnnoValidita != null ? command.AnnoValidita : annoFatturazione;
             var idEnte = command.AuthenticationInfo.IdEnte;
-            var idTipoContratto = command.AuthenticationInfo.IdTipoContratto;
             var prodotto = command.AuthenticationInfo.Prodotto;
             var ruolo = command.AuthenticationInfo.Ruolo;
             using var uow = await _factory.Create(true, cancellationToken: ct);
-            var parzialiTotale = await uow.Query(new DatiModuloCommessaParzialiTotaleQueryGetByIdPersistence(idEnte, command.AnnoValidita.Value, idTipoContratto, prodotto, ruolo), ct);
+            var parzialiTotale = await uow.Query(new DatiModuloCommessaParzialiTotaleQueryGetByIdPersistence(idEnte, command.AnnoValidita.Value, prodotto, ruolo), ct);
             if (parzialiTotale!.IsNullNotAny())
                 return null;
 

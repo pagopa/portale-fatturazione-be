@@ -11,7 +11,6 @@ public class DatiModuloCommessaQueryGet : IRequest<ModuloCommessaDto?>
         this.AuthenticationInfo = authenticationInfo;
     }
     public string? Prodotto { get; set; }
-    public long IdTipoContratto { get; set; }  
     public int? AnnoValidita { get; set; } 
     public int? MeseValidita { get; set; }
 } 

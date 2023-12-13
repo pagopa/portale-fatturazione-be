@@ -16,9 +16,8 @@ public class DatiModuloCommessaQueryGetByIdPersistence : DapperBase, IQuery<IEnu
     private readonly string? _idEnte;
     private static readonly string _sqlSelect = DatiModuloCommessaSQLBuilder.SelectBy();
 
-    public DatiModuloCommessaQueryGetByIdPersistence(string? idEnte, int annoValidita, int meseValidita, long? idTipoContratto, string? prodotto)
+    public DatiModuloCommessaQueryGetByIdPersistence(string? idEnte, int annoValidita, int meseValidita, string? prodotto)
     {
-        this._idTipoContratto = idTipoContratto;
         this._prodotto = prodotto;
         this._annoValidita = annoValidita;
         this._meseValidita = meseValidita;
@@ -33,7 +32,6 @@ public class DatiModuloCommessaQueryGetByIdPersistence : DapperBase, IQuery<IEnu
                 meseValidita = _meseValidita,
                 annoValidita = _annoValidita,
                 prodotto = _prodotto,
-                idTipoContratto = _idTipoContratto
             }, transaction); 
     }
 }

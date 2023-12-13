@@ -56,19 +56,21 @@ public class DatiFatturazioneUpdateCommandHandler : IRequestHandler<DatiFatturaz
 
             await uow.Execute(new DatiFatturazioneContattoDeleteCommandPersistence(new DatiFatturazioneContattoDeleteCommand() { IdDatiFatturazione = command.Id }), ct);
 
-            foreach (var commandContatto in command.Contatti!)
-                commandContatto.IdDatiFatturazione = command.Id!;
-
-            rowAffected += await uow.Execute(new DatiFatturazioneContattoCreateListCommandPersistence(command.Contatti!), ct);
-
-            if (rowAffected != command.Contatti.Count)
+            if(!command.Contatti!.IsNullNotAny())
             {
-                uow.Rollback();
-                throw new DomainException(_localizer["DatiFatturazioneInputError"]);
-            }
+                foreach (var commandContatto in command.Contatti!)
+                    commandContatto.IdDatiFatturazione = command.Id!;
 
+                rowAffected += await uow.Execute(new DatiFatturazioneContattoCreateListCommandPersistence(command.Contatti!), ct);
 
-            updatedDatiFatturazione.Contatti = command.Contatti!.Mapper();
+                if (rowAffected != command.Contatti.Count)
+                {
+                    uow.Rollback();
+                    throw new DomainException(_localizer["DatiFatturazioneInputError"]);
+                }
+                updatedDatiFatturazione.Contatti = command.Contatti!.Mapper();
+            }  
+         
             rowAffected = await uow.Execute(new StoricoCreateCommandPersistence(new StoricoCreateCommand(
                 command.AuthenticationInfo,
                 adesso,

@@ -15,9 +15,8 @@ public class DatiModuloCommessaParzialiTotaleQueryGetByIdPersistence : DapperBas
     private readonly string? _ruolo;
     private static readonly string _sqlSelect = String.Join(";", DatiModuloCommessaTotaleSQLBuilder.SelectByAnno(), DatiModuloCommessaSQLBuilder.SelectByAnno());
 
-    public DatiModuloCommessaParzialiTotaleQueryGetByIdPersistence(string? idEnte, int annoValidita,  long? idTipoContratto, string? prodotto, string? ruolo)
+    public DatiModuloCommessaParzialiTotaleQueryGetByIdPersistence(string? idEnte, int annoValidita,string? prodotto, string? ruolo)
     {
-        this._idTipoContratto = idTipoContratto;
         this._prodotto = prodotto;
         this._annoValidita = annoValidita; 
         this._idEnte = idEnte;
@@ -32,7 +31,6 @@ public class DatiModuloCommessaParzialiTotaleQueryGetByIdPersistence : DapperBas
                 idEnte = _idEnte, 
                 annoValidita = _annoValidita,
                 prodotto = _prodotto,
-                idTipoContratto = _idTipoContratto
             }, transaction);
 
         var totalePerCategoria = await values.ReadAsync<DatiModuloCommessaTotale>();

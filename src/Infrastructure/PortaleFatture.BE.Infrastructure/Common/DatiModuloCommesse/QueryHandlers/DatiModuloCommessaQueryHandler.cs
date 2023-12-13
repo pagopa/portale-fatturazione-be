@@ -72,13 +72,12 @@ namespace PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.QueryHandle
             request.AnnoValidita = request.AnnoValidita != null ? request.AnnoValidita : annoFatturazione;
             request.MeseValidita = request.MeseValidita != null ? request.MeseValidita : meseFatturazione;
             request.Prodotto = prodotto;
-            request.IdTipoContratto = idTipoContratto.Value;
 
             var idEnte = request.AuthenticationInfo.IdEnte;
 
             using var uow = await _factory.Create(true, cancellationToken: ct); 
-            var datic = await uow.Query(new DatiModuloCommessaQueryGetByIdPersistence(idEnte, request.AnnoValidita.Value, request.MeseValidita.Value, request.IdTipoContratto, request.Prodotto), ct);
-            var datit = await uow.Query(new DatiModuloCommessaTotaleQueryGetByIdPersistence(idEnte, request.AnnoValidita.Value, request.MeseValidita.Value, request.IdTipoContratto, request.Prodotto), ct);
+            var datic = await uow.Query(new DatiModuloCommessaQueryGetByIdPersistence(idEnte, request.AnnoValidita.Value, request.MeseValidita.Value,  request.Prodotto), ct);
+            var datit = await uow.Query(new DatiModuloCommessaTotaleQueryGetByIdPersistence(idEnte, request.AnnoValidita.Value, request.MeseValidita.Value,  request.Prodotto), ct);
 
    
             var (valid, _) = await _scadenziarioService.GetScadenziario(

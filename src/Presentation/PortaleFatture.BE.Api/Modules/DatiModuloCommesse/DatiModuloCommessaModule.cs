@@ -43,7 +43,7 @@ public partial class DatiModuloCommessaModule
             cmd.IdEnte = idente;
 
         var modulo = await handler.Send(command) ?? throw new DomainException(localizer["DatiModuloCommessaInvalidMapping"]);
-        var response = modulo!.Mapper();
+        var response = modulo!.Mapper(authInfo);
         return Ok(response);
     }
 
@@ -60,7 +60,7 @@ public partial class DatiModuloCommessaModule
     {
         var authInfo = context.GetAuthInfo();
         var modulo = await handler.Send(new DatiModuloCommessaQueryGet(authInfo));
-        var response = modulo!.Mapper();
+        var response = modulo!.Mapper(authInfo);
         return Ok(response);
     }
 
@@ -84,7 +84,7 @@ public partial class DatiModuloCommessaModule
             MeseValidita = mese
         });
 
-        var response = modulo!.Mapper();
+        var response = modulo!.Mapper(authInfo);
         return Ok(response);
     }
 
