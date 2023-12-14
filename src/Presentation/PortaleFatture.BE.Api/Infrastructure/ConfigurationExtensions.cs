@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Extensions.Logging.ApplicationInsights;
 using Microsoft.OpenApi.Models;
 using Polly;
 using Polly.Extensions.Http;
@@ -38,13 +39,21 @@ public static class ConfigurationExtensions
         configuration.GetSection(nameof(PortaleFattureOptions)).Bind(options);
 
         if (isProd)
+        {
             AsyncHelper.RunSync(options.VaultClientSettings);
+
+            builder.Logging.AddApplicationInsights(
+                configureTelemetryConfiguration: (config) =>
+                config.ConnectionString = options.ApplicationInsights,
+                configureApplicationInsightsLoggerOptions: (options) => { }
+                );
+        } 
 
         services.AddSingleton<IPortaleFattureOptions>(options);
 
         services.AddAssemblyToModuleRegistration(typeof(ConfigurationExtensions).Assembly);
 
-        services.AddLogging(o => o.AddConfiguration(configuration.GetSection(Module.LoggingLabel)));
+        services.AddLogging(o => o.AddConfiguration(configuration.GetSection(Module.LoggingLabel))); 
 
         services
             .AddJwtOrApiKeyAuthentication(options.JWT!)

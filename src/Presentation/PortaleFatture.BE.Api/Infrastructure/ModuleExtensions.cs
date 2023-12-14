@@ -43,6 +43,9 @@ public static class ModuleExtensions
         var adminKey = Environment.GetEnvironmentVariable("ADMIN_KEY") ??
              throw new ConfigurationException("Please specify a ADMIN_KEY!");
 
+        var applicationInsights = Environment.GetEnvironmentVariable("APPLICATION_INSIGHTS") ??
+             throw new ConfigurationException("Please specify an APPLICATION_INSIGHTS!"); 
+
         model.ConnectionString = connectionString; //await model.ConnectionString.Mapper();
         model.SelfCareUri = selfCareUri;
         model.SelfCareCertEndpoint = selfCareCertEndpoint;
@@ -53,6 +56,7 @@ public static class ModuleExtensions
         model.SelfCareTimeOut = selfCareTimeOut;
         model.SelfCareAudience = selfCareAudience;
         model.AdminKey = adminKey;
+        model.ApplicationInsights = applicationInsights;
         return model;
     }
 
