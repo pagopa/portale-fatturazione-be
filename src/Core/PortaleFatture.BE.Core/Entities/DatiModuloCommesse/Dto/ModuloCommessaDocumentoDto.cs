@@ -17,7 +17,7 @@ public class ModuloCommessaDocumentoDto
     // fatt
     public string? Cup { get; set; } 
     public string? CodCommessa { get; set; }
-    public DateTimeOffset DataDocumento { get; set; }
+    public DateTime? DataDocumento { get; set; }
     public string? SplitPayment { get; set; }
     public string? IdDocumento { get; set; }
     public string? Map { get; set; }

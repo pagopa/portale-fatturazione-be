@@ -156,6 +156,8 @@ public static class ConfigurationExtensions
                     var exception = exceptionHandlerPathFeature?.Error;
                     var problem = exception switch
                     {
+                        SessionException => Results.Problem(statusCode: StatusCodes.Status419AuthenticationTimeout, detail: exception.Message),
+                        ConfigurationException => Results.Problem(statusCode: StatusCodes.Status400BadRequest, detail: exception.Message),
                         SecurityException => Results.Problem(statusCode: StatusCodes.Status401Unauthorized),
                         RoleException => Results.Problem(statusCode: StatusCodes.Status403Forbidden),
                         DomainException => Results.Problem(statusCode: StatusCodes.Status500InternalServerError, detail: exception.Message),
@@ -182,6 +184,8 @@ public static class ConfigurationExtensions
 
         application
             .MapEndpoints();
+
+        application.UseMiddleware<NonceMultiTabsMiddleware>();
 
         return application;
     }

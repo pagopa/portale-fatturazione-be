@@ -1,4 +1,6 @@
-﻿using PortaleFatture.BE.Core.Auth;
+﻿using System.Web;
+using PortaleFatture.BE.Core.Auth;
+using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Infrastructure.Common.Identity;
 using PortaleFatture.BE.Infrastructure.Gateway;
 
@@ -7,7 +9,7 @@ namespace PortaleFatture.BE.Api.Modules.Auth.Extensions;
 public static class AuthExtensions
 {
     public static UtenteInfo Mapper(
-        this AuthenticationInfo info, 
+        this AuthenticationInfo info,
         DateTime dataPrimo,
         DateTime dataUltimo,
         IAesEncryption encryption)
@@ -25,7 +27,7 @@ public static class AuthExtensions
             Ruolo = info.Ruolo,
             DataPrimo = dataPrimo,
             DataUltimo = dataUltimo,
-            Nonce = encryption.EncryptString(String.Join(";", info.Id, info.IdEnte)),
+            Nonce = encryption.EncryptString(info.CreateNonce()),
         };
     }
 
@@ -52,12 +54,40 @@ public static class AuthExtensions
                 Prodotto = authInfo.Prodotto,
                 Profilo = authInfo.Profilo,
                 Ruolo = authInfo.Ruolo,
-                Nonce = encryption.EncryptString(String.Join(";", authInfo.Id, authInfo.IdEnte)),
+                Nonce = encryption.EncryptString(authInfo.CreateNonce()),
                 JWT = tokenProfileInfo.JWT,
                 Valido = tokenProfileInfo.Valido
             };
             profiles.Add(profile);
         }
         return profiles;
+    }
+
+    private const string _separator = "|";
+    private static string CreateNonce(this AuthenticationInfo authInfo)
+    {
+        return (new NonceDto()
+        {
+            Id = authInfo.Id,
+            IdEnte = authInfo.IdEnte,
+            Prodotto = authInfo.Prodotto
+        }).Serialize();
+    }
+
+    private static AuthenticationInfo ReadNonce(this string nonce)
+    {
+        var value = nonce.Deserialize<NonceDto>();
+        return new AuthenticationInfo()
+        {
+            Id = value.Id,
+            IdEnte = value.IdEnte,
+            Prodotto = value.Prodotto
+        };
+    }
+
+    public static bool Verify(this AuthenticationInfo authInfo, string decryptedNonce)
+    {
+        var checkInfo = decryptedNonce.ReadNonce(); 
+        return authInfo.Id == checkInfo.Id && authInfo.IdEnte == checkInfo.IdEnte && authInfo.Prodotto == checkInfo.Prodotto;
     }
 }

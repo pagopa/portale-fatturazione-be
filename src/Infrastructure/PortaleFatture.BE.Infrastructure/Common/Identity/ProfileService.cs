@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Auth.SelfCare;
 using PortaleFatture.BE.Core.Common;
+using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Infrastructure.Common.SelfCare.Queries;
 using PortaleFatture.BE.Infrastructure.Gateway;
 
@@ -62,7 +63,7 @@ public class ProfileService(
                     Prodotto = org.Product,
                     Ruolo = Mapper(org.PartyRole!),
                     IdEnte = model.Organization!.Id,
-                    DescrizioneRuolo = MapperRuolo(org.PartyRole),
+                    DescrizioneRuolo = MapperRuolo(org.PartyRole!),
                     IdTipoContratto = 0,
                     Profilo = string.Empty
                 };
@@ -73,7 +74,7 @@ public class ProfileService(
                 {
                     var msg = "There is no reference in contratti o ente related to id:{idEnte}";
                     _logger.LogError(msg, model.Organization!.Id);
-                    throw new SecurityException(msg);
+                    throw new ConfigurationException(msg);
                 }
                 else
                 {
@@ -84,6 +85,11 @@ public class ProfileService(
                 }
             }
             return infos;
+        }
+        catch (ConfigurationException ex)
+        {
+            _logger.LogError(ex, $"Errore autenticazione {ex.InnerException}");
+            throw;
         }
         catch (Exception ex)
         { 

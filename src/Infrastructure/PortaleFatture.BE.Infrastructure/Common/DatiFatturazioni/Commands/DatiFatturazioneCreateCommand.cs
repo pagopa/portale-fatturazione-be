@@ -10,7 +10,7 @@ public sealed class DatiFatturazioneCreateCommand(IAuthenticationInfo authentica
     public string? Cup { get; set; }
     public bool NotaLegale { get; set; }
     public string? CodCommessa { get; set; }
-    public DateTime  DataDocumento { get; set; }
+    public DateTime?   DataDocumento { get; set; }
     public bool? SplitPayment { get; set; }  
     public string? IdDocumento { get; set; }
     public string? Map { get; set; } 

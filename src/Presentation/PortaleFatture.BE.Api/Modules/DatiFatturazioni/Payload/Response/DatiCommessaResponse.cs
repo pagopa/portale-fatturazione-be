@@ -6,7 +6,7 @@ public record DatiFatturazioneResponse
     public string? Cup { get; set; }
     public bool NotaLegale { get; set; }
     public string? CodCommessa { get; set; }
-    public DateTime DataDocumento { get; set; }
+    public DateTime? DataDocumento { get; set; }
     public bool? SplitPayment { get; set; }
     public string? IdEnte { get; set; }
     public string? IdDocumento { get; set; }

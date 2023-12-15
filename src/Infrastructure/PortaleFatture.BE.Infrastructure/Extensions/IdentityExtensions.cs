@@ -1,8 +1,5 @@
-﻿using System;
-using System.Security;
+﻿using System.Security;
 using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Text;
 using Microsoft.AspNetCore.Http;
 using PortaleFatture.BE.Core.Auth;
 

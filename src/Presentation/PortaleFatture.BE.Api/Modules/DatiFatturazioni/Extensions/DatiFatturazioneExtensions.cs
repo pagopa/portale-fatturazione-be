@@ -62,7 +62,7 @@ public static class DatiFatturazioneExtensions
            NotaLegale = model.NotaLegale,
            CodCommessa = model.CodCommessa,
            Cup = model.Cup,
-           DataDocumento = model.DataDocumento.DateTime,
+           DataDocumento = model.DataDocumento,
            SplitPayment = model.SplitPayment,
            IdDocumento = model.IdDocumento,
            Map = model.Map,

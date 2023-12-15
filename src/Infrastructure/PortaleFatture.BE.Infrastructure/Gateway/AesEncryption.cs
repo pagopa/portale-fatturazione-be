@@ -1,5 +1,6 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
+using Microsoft.AspNetCore.WebUtilities;
 
 namespace PortaleFatture.BE.Infrastructure.Gateway;
 public class AesEncryption(string key) : IAesEncryption
@@ -28,13 +29,13 @@ public class AesEncryption(string key) : IAesEncryption
             array = memoryStream.ToArray();
         }
 
-        return Convert.ToBase64String(array);
+        return ToString(array);
     }
 
     public string DecryptString(string cipherText)
     {
         var iv = new byte[16];
-        var buffer = Convert.FromBase64String(cipherText);
+        var buffer = FromString(cipherText);
 
         using var aes = Aes.Create();
         aes.Key = Encoding.UTF8.GetBytes(_key);
@@ -45,5 +46,14 @@ public class AesEncryption(string key) : IAesEncryption
         using var cryptoStream = new CryptoStream((Stream)memoryStream, decryptor, CryptoStreamMode.Read);
         using var streamReader = new StreamReader((Stream)cryptoStream);
         return streamReader.ReadToEnd();
+    }
+    private string ToString(byte[] input)
+    {
+        return WebEncoders.Base64UrlEncode(input);
+    }
+
+    public byte[] FromString(string input)
+    {
+        return WebEncoders.Base64UrlDecode(input);
     }
 }

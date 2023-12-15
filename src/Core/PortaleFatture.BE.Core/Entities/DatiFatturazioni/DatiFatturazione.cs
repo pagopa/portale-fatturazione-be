@@ -8,7 +8,7 @@ public class DatiFatturazione
     public long Id { get; set; }
     public string? Cup { get; set; } 
     public string? CodCommessa { get; set; } 
-    public DateTimeOffset DataDocumento { get; set; } 
+    public DateTime? DataDocumento { get; set; } 
     public bool? SplitPayment { get; set; }
 
     [Column("FkIdEnte")]

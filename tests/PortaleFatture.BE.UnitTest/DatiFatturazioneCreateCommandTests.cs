@@ -27,7 +27,55 @@ public class DatiFatturazioneCreateCommandTests
     }
 
     [Test]
-    public async Task CreateCommand_ShouldFail_WithoutContatti()
+    public async Task CreateCommand_ShouldSucceed_True()
+    {
+        string? expectedCup = null;
+        bool expectedNotaLegale = false;
+        string? expectedCodCommessa = null;
+        DateTime? expectedDataDocumento = null;
+        bool? expectedSplitPayment = false;
+        string? expectedTipoCommessa = "1";
+        string? expectedIdDocumento = "eiddocumento";
+        string? expectedMap = null;
+        DateTime expectedDataCreazione = DateTime.UtcNow;
+        string? expectedIdEnte = TestExtensions.GetRandomIdEnte();
+        string? expectedPec = "pippo@pec.it";
+        string? expectedProdotto = "prod-pn";
+        var authInfo = TestExtensions.GetAuthInfo(expectedIdEnte, expectedProdotto);
+
+        var expectedContatti = new List<DatiFatturazioneContattoCreateCommand>()
+        { new()
+            {
+                 Email = "expected1@pippo.com"
+            },
+            new()
+            {
+                 Email = "expected2@pippo.com"
+            },
+        };
+
+        var req = new DatiFatturazioneCreateCommand(authInfo)
+        {
+            NotaLegale = expectedNotaLegale,
+            CodCommessa = expectedCodCommessa,
+            Contatti = expectedContatti,
+            Cup = expectedCup,
+            DataCreazione = expectedDataCreazione,
+            DataDocumento = expectedDataDocumento,
+            Pec = expectedPec,
+            TipoCommessa = expectedTipoCommessa,
+            IdDocumento = expectedIdDocumento,
+            Map = expectedMap,
+            SplitPayment = expectedSplitPayment
+        };
+        var datiFatturazione = await _handler.Send(req);
+
+        Assert.IsNotNull(datiFatturazione);
+        Assert.IsNull(datiFatturazione.DataDocumento);
+    }
+
+    [Test]
+    public void CreateCommand_ShouldFail_WithoutContatti()
     {
         string? expectedCup = "ecup";
         bool expectedNotaLegale = false;
@@ -65,7 +113,7 @@ public class DatiFatturazioneCreateCommandTests
     public async Task CreateCommand_ShouldSucceed_WithContatti()
     {
         string? expectedCup = "ecup";
-        bool expectedNotaLegale = false;
+        bool expectedNotaLegale = true;
         string? expectedCodCommessa = "ecommmessa";
         DateTime expectedDataDocumento = DateTime.UtcNow;
         bool? expectedSplitPayment = false;

@@ -8,6 +8,7 @@ using Microsoft.Extensions.Localization;
 using PortaleFatture.BE.Api.Modules.DatiConfigurazioneModuloCommesse.Extensions;
 using PortaleFatture.BE.Api.Modules.DatiConfigurazioneModuloCommesse.Request;
 using PortaleFatture.BE.Api.Modules.DatiConfigurazioneModuloCommesse.Response;
+using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Common;
 using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Core.Resources;
@@ -18,7 +19,7 @@ namespace PortaleFatture.BE.Api.Modules.DatiConfigurazioneModuloCommesse;
 
 public partial class DatiConfigurazioneModuloCommessaModule
 {
-    [AllowAnonymous]
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}")]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -37,7 +38,7 @@ public partial class DatiConfigurazioneModuloCommessaModule
         return Ok(configurazione.Mapper());
     }
 
-    [AllowAnonymous]
+    [Authorize(Roles = $"{Ruolo.ADMIN}")]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
