@@ -139,7 +139,7 @@
     <value>La email del contatto non è valida.</value>
   </data>
   <data name="DatiFatturazioneContattoInvalid" xml:space="preserve">
-    <value>Il numero di contatti deve essere non superiore a tre.</value>
+    <value>Il numero di contatti deve essere almeno pari a uno e non superiore a tre.</value>
   </data>
   <data name="DatiFatturazioneCupInvalid" xml:space="preserve">
     <value>Il cup è obbligatorio e deve avere al massimo 15 caratteri.</value>
