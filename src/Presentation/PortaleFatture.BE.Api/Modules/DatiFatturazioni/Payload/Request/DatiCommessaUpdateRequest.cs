@@ -6,17 +6,17 @@ public record DatiFatturazioneUpdateRequest
 {
     [Required]
     public long Id { get; set; }
-    [Required]
+ 
     public string? Cup { get; set; }
     [Required]
     public bool NotaLegale { get; set; }
-    [Required]
+  
     public string? CodCommessa { get; set; }
-    [Required]
-    public DateTime DataDocumento { get; set; }
+ 
+    public DateTime? DataDocumento { get; set; }
     [Required]
     public bool? SplitPayment { get; set; }
-    [Required]
+ 
     public string? IdDocumento { get; set; }
     public string? Map { get; set; } 
     [Required]
