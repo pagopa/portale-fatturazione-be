@@ -10,53 +10,47 @@ public static class DatiFatturazioneValidator
     {
         return Validate(
             cmd.Cup,
-            cmd.Cig,
             cmd.CodCommessa,
             cmd.DataDocumento,
             cmd.SplitPayment,
             cmd.IdDocumento,
             cmd.Map,
             cmd.TipoCommessa,
-            cmd.Pec,  
+            cmd.Pec,
             cmd.Contatti);
     }
 
     public static (string, string[]) Validate(DatiFatturazioneCreateCommand cmd)
-    { 
+    {
         return Validate(
             cmd.Cup,
-            cmd.Cig,
             cmd.CodCommessa,
-            cmd.DataDocumento, 
+            cmd.DataDocumento,
             cmd.SplitPayment,
             cmd.IdDocumento,
             cmd.Map,
             cmd.TipoCommessa,
-            cmd.Pec,  
-            cmd.Contatti); 
+            cmd.Pec,
+            cmd.Contatti);
     }
 
     private static (string, string[]) Validate(
         string? cup,
-        string? cig,
         string? codCommessa,
-        DateTimeOffset? dataDocumento, 
-        bool? splitPayment, 
+        DateTimeOffset? dataDocumento,
+        bool? splitPayment,
         string? idDocumento,
         string? map,
         string? tipoCommessa,
-        string? pec )
+        string? pec)
     {
-        if (string.IsNullOrEmpty(cup) || cup.Length > 15)
+        if (!string.IsNullOrEmpty(cup) && cup.Length > 15)
             return ("DatiFatturazioneCupInvalid", Array.Empty<string>());
 
-        if (string.IsNullOrEmpty(cig) || cig.Length > 10)
-            return ("DatiFatturazioneCigInvalid", Array.Empty<string>());
+        if (!string.IsNullOrEmpty(codCommessa) && codCommessa.Length > 100)
+            return ("DatiFatturazioneCodiceInvalid", Array.Empty<string>());
 
-        if (string.IsNullOrEmpty(codCommessa) || codCommessa.Length > 100)
-            return ("DatiFatturazioneCodiceInvalid", Array.Empty<string>()); 
-
-        if (string.IsNullOrEmpty(idDocumento) || idDocumento.Length > 20)
+        if (!string.IsNullOrEmpty(idDocumento) && idDocumento.Length > 20)
             return ("DatiFatturazioneIdDocumentoInvalid", Array.Empty<string>());
 
         if (!string.IsNullOrEmpty(map) && map.Length > 100)
@@ -65,15 +59,14 @@ public static class DatiFatturazioneValidator
         if (!string.IsNullOrEmpty(tipoCommessa) && tipoCommessa.Length > 1)
             return ("DatiFatturazioneTipoCommessaInvalid", Array.Empty<string>());
 
-        if (!string.IsNullOrEmpty(pec) && pec.IsNotValidEmail())
-            return ("DatiFatturazionePecInvalid", Array.Empty<string>());  
+        if (string.IsNullOrEmpty(pec) || pec.IsNotValidEmail())
+            return ("DatiFatturazionePecInvalid", Array.Empty<string>());
 
         return (null, null)!;
     }
 
     private static (string, string[]) Validate(
         string? cup,
-        string? cig,
         string? codCommessa,
         DateTimeOffset? dataDocumento,
         bool? splitPayment,
@@ -82,7 +75,7 @@ public static class DatiFatturazioneValidator
         string? tipoCommessa,
         string? pec,
         List<DatiFatturazioneContattoCreateCommand>? contatti)
-    {  
+    {
         if (!contatti!.IsNullNotAny())
         {
             if (contatti!.Count > 3)
@@ -92,8 +85,9 @@ public static class DatiFatturazioneValidator
                 if (contatto.Email!.IsNotValidEmail())
                     return ("DatiFatturazioneContattoEmailInvalid", Array.Empty<string>());
             }
-        }
+        }else  // deve esistere almeno un contatto
+            return ("DatiFatturazioneContattoInvalid", Array.Empty<string>());
 
-        return Validate(cup, cig, codCommessa, dataDocumento, splitPayment, idDocumento, map, tipoCommessa, pec);
+        return Validate(cup, codCommessa, dataDocumento, splitPayment, idDocumento, map, tipoCommessa, pec);
     }
 }

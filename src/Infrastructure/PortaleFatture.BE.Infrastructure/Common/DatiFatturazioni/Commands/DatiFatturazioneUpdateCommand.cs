@@ -9,7 +9,7 @@ public sealed class DatiFatturazioneUpdateCommand(IAuthenticationInfo authentica
     public IAuthenticationInfo AuthenticationInfo { get; internal set; } = authenticationInfo;
     public long Id { get; set; } 
     public string? Cup { get; set; }
-    public string? Cig { get; set; }
+    public bool NotaLegale { get; set; }
     public string? CodCommessa { get; set; }
     public DateTime DataDocumento { get; set; }
     public bool? SplitPayment { get; set; } 

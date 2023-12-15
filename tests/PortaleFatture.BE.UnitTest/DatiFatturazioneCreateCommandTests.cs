@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
+using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Core.Resources;
 using PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni.Commands;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
@@ -26,10 +27,10 @@ public class DatiFatturazioneCreateCommandTests
     }
 
     [Test]
-    public async Task CreateCommand_ShouldSucceed_WithoutContatti()
+    public async Task CreateCommand_ShouldFail_WithoutContatti()
     {
         string? expectedCup = "ecup";
-        string? expectedCig = "ecig";
+        bool expectedNotaLegale = false;
         string? expectedCodCommessa = "ecommmessa";
         DateTime expectedDataDocumento = DateTime.UtcNow;
         bool? expectedSplitPayment = false;
@@ -44,7 +45,7 @@ public class DatiFatturazioneCreateCommandTests
 
         var req = new DatiFatturazioneCreateCommand(authInfo)
         {
-            Cig = expectedCig,
+            NotaLegale = expectedNotaLegale,
             CodCommessa = expectedCodCommessa,
             Contatti = null,
             Cup = expectedCup,
@@ -56,19 +57,15 @@ public class DatiFatturazioneCreateCommandTests
             Map = expectedMap,
             SplitPayment = expectedSplitPayment             
         };
-
-        var actualDatiFatturazione = await _handler.Send(req);
-        Assert.IsNotNull(actualDatiFatturazione);
-        Assert.True(actualDatiFatturazione.Cig == expectedCig);
-        Assert.True(actualDatiFatturazione.CodCommessa == expectedCodCommessa);
-        Assert.IsNull(actualDatiFatturazione.DataModifica);
+ 
+        Assert.ThrowsAsync<ValidationException>(async () => await _handler.Send(req)); 
     }
 
     [Test]
     public async Task CreateCommand_ShouldSucceed_WithContatti()
     {
         string? expectedCup = "ecup";
-        string? expectedCig = "ecig";
+        bool expectedNotaLegale = false;
         string? expectedCodCommessa = "ecommmessa";
         DateTime expectedDataDocumento = DateTime.UtcNow;
         bool? expectedSplitPayment = false;
@@ -92,7 +89,7 @@ public class DatiFatturazioneCreateCommandTests
         };
         var req = new DatiFatturazioneCreateCommand(authInfo)
         {
-            Cig = expectedCig,
+            NotaLegale = expectedNotaLegale,
             CodCommessa = expectedCodCommessa,
             Contatti = expectedContatti,
             Cup = expectedCup,

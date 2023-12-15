@@ -6,8 +6,7 @@ public class DatiFatturazione
 {
     [Column("IdDatiFatturazione")]
     public long Id { get; set; }
-    public string? Cup { get; set; }
-    public string? Cig { get; set; }
+    public string? Cup { get; set; } 
     public string? CodCommessa { get; set; } 
     public DateTimeOffset DataDocumento { get; set; } 
     public bool? SplitPayment { get; set; }
@@ -22,7 +21,8 @@ public class DatiFatturazione
 
     [Column("FkProdotto")]
     public string? Prodotto { get; set; } 
-    public string? Pec { get; set; }
+    public string? Pec { get; set; } 
+    public bool NotaLegale { get; set; }
     public DateTimeOffset DataCreazione { get; set; }
     public DateTimeOffset? DataModifica { get; set; } 
     public IEnumerable<DatiFatturazioneContatto>? Contatti { get; set; }

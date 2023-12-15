@@ -12,7 +12,7 @@ public class DatiFatturazioneUpdateCommandPersistence(DatiFatturazioneUpdateComm
     private static readonly string _sqlUpdate = @"
 UPDATE [schema]DatiFatturazione
 SET    cup = @cup,
-       cig = @cig,
+       notaLegale = @notaLegale,
        codcommessa = @codcommessa,
        datadocumento = @datadocumento,
        splitpayment = @splitpayment, 
@@ -34,7 +34,7 @@ WHERE  IdDatiFatturazione = @id;";
             {
                 id = _command.Id,
                 cup = _command.Cup,
-                cig = _command.Cig,
+                notaLegale = _command.NotaLegale,
                 codCommessa = _command.CodCommessa,
                 dataDocumento = _command.DataDocumento,
                 splitPayment = _command.SplitPayment,

@@ -36,7 +36,7 @@ public class DatiFatturazioneCreateCommandHandler : IRequestHandler<DatiFatturaz
 
         var (error, errorDetails) = DatiFatturazioneValidator.Validate(command);
         if (!string.IsNullOrEmpty(error))
-            throw new DomainException(_localizer[error, errorDetails]);
+            throw new ValidationException(_localizer[error, errorDetails]);
 
         command.DataCreazione = command.DataCreazione == null ? adesso : command.DataCreazione;
 

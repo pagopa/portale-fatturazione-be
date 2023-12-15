@@ -22,7 +22,7 @@ public static class DatiFatturazioneExtensions
     public static DatiFatturazioneCreateCommand Mapper(this DatiFatturazioneCreateRequest model, AuthenticationInfo info) =>
        new(info)
        {
-           Cig = model.Cig,
+           NotaLegale = model.NotaLegale,
            CodCommessa = model.CodCommessa,
            Cup = model.Cup,
            DataDocumento = model.DataDocumento,
@@ -38,7 +38,7 @@ public static class DatiFatturazioneExtensions
        new(authInfo)
        {
            Id = model.Id,
-           Cig = model.Cig,
+           NotaLegale = model.NotaLegale,
            CodCommessa = model.CodCommessa,
            Cup = model.Cup,
            DataDocumento = model.DataDocumento,
@@ -59,7 +59,7 @@ public static class DatiFatturazioneExtensions
     public static DatiFatturazioneResponse Mapper(this DatiFatturazione model) =>
        new()
        {
-           Cig = model.Cig,
+           NotaLegale = model.NotaLegale,
            CodCommessa = model.CodCommessa,
            Cup = model.Cup,
            DataDocumento = model.DataDocumento.DateTime,

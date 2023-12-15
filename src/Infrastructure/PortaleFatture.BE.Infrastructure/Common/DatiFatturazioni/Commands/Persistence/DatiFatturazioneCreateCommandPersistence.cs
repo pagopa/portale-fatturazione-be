@@ -11,7 +11,7 @@ public sealed class DatiFatturazioneCreateCommandPersistence(DatiFatturazioneCre
     private static readonly string _sqlInsert = @"
 INSERT INTO [schema]DatiFatturazione
         (cup,
-        cig,
+        notaLegale,
         codcommessa,
         datadocumento,
         splitpayment,
@@ -23,7 +23,7 @@ INSERT INTO [schema]DatiFatturazione
         pec,
         fkprodotto)
 VALUES (@cup, 
-        @cig,
+        @notaLegale,
         @codcommessa,
         @datadocumento,
         @splitpayment,
@@ -39,7 +39,7 @@ Select SCOPE_IDENTITY() 'SCOPE_IDENTITY'";
               => await ((IDatabase)this).ExecuteAsync<long?>(connection!, _sqlInsert.Add(schema), new
               { 
                   cup = _command.Cup,
-                  cig = _command.Cig,
+                  notaLegale = _command.NotaLegale,
                   codCommessa = _command.CodCommessa,
                   dataDocumento = _command.DataDocumento,
                   splitPayment = _command.SplitPayment,

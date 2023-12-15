@@ -21,7 +21,7 @@ public static class DatiFatturazioneMapper
     public static DatiFatturazione Mapper(this DatiFatturazioneCreateCommand model, long id) =>
        new()
        {
-           Cig = model.Cig,
+           NotaLegale = model.NotaLegale,
            CodCommessa = model.CodCommessa,
            Cup = model.Cup,
            DataCreazione = model.DataCreazione!.Value,

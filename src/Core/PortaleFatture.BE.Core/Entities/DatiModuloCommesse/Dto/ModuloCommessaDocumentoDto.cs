@@ -15,8 +15,7 @@ public class ModuloCommessaAggregateDto
 public class ModuloCommessaDocumentoDto
 {
     // fatt
-    public string? Cup { get; set; }
-    public string? Cig { get; set; }
+    public string? Cup { get; set; } 
     public string? CodCommessa { get; set; }
     public DateTimeOffset DataDocumento { get; set; }
     public string? SplitPayment { get; set; }

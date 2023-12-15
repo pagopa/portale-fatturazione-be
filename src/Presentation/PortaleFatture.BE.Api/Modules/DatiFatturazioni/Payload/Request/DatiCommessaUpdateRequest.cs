@@ -9,7 +9,7 @@ public record DatiFatturazioneUpdateRequest
     [Required]
     public string? Cup { get; set; }
     [Required]
-    public string? Cig { get; set; }
+    public bool NotaLegale { get; set; }
     [Required]
     public string? CodCommessa { get; set; }
     [Required]

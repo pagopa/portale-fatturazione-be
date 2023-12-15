@@ -26,7 +26,7 @@ public static class DatiFatturazioneSQLBuilder
         var builder = new SqlBuilder();
         builder.Select(nameof(@obj.Id).GetAsColumn<DatiFatturazione>());
         builder.Select(nameof(@obj.Cup));
-        builder.Select(nameof(@obj.Cig));
+        builder.Select(nameof(@obj.NotaLegale));
         builder.Select(nameof(@obj.CodCommessa));
         builder.Select(nameof(@obj.DataDocumento));
         builder.Select(nameof(@obj.SplitPayment));

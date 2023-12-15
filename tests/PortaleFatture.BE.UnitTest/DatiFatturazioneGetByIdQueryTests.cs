@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
+using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Core.Resources;
 using PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni.Commands;
 using PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni.Queries;
@@ -27,10 +28,10 @@ public class DatiFatturazioneGetByIdQueryTests
     }
 
     [Test]
-    public async Task GetById_ShouldSucceed_WithoutContatti()
+    public async Task GetById_ShouldFail_WithoutContatti()
     {
         string? expectedCup = "ecup";
-        string? expectedCig = "ecig";
+        bool expectedNotaLegale = false;
         string? expectedCodCommessa = "ecommmessa";
         DateTime expectedDataDocumento = DateTime.UtcNow;
         bool? expectedSplitPayment = false;
@@ -44,7 +45,7 @@ public class DatiFatturazioneGetByIdQueryTests
         var authInfo = TestExtensions.GetAuthInfo(expectedIdEnte, expectedProdotto);
         var req = new DatiFatturazioneCreateCommand(authInfo)
         {
-            Cig = expectedCig,
+            NotaLegale = expectedNotaLegale,
             CodCommessa = expectedCodCommessa,
             Contatti = null,
             Cup = expectedCup,
@@ -57,8 +58,22 @@ public class DatiFatturazioneGetByIdQueryTests
             SplitPayment = expectedSplitPayment             
         };
 
+        Assert.ThrowsAsync<ValidationException>(async () => await _handler.Send(req));
+        var expectedContatti = new List<DatiFatturazioneContattoCreateCommand>()
+        { new()
+            {
+                 Email = "expected1@pippo.com"
+            },
+            new()
+            {
+                 Email = "expected2@pippo.com"
+            },
+        };
+
+        req.Contatti = expectedContatti;
+
         var actualDatiFatturazione = await _handler.Send(req);
-        Assert.IsNotNull(actualDatiFatturazione);
+        Assert.IsNotNull(actualDatiFatturazione);  
 
         var id = actualDatiFatturazione.Id;
         var select = new DatiFatturazioneQueryGetById()
@@ -68,7 +83,7 @@ public class DatiFatturazioneGetByIdQueryTests
             ;
         actualDatiFatturazione = await _handler.Send(select);
         Assert.IsNotNull(actualDatiFatturazione);
-        Assert.True(actualDatiFatturazione.Cig == expectedCig);
+        Assert.True(actualDatiFatturazione.NotaLegale == expectedNotaLegale);
         Assert.True(actualDatiFatturazione.CodCommessa == expectedCodCommessa);
         Assert.IsNull(actualDatiFatturazione.DataModifica);
     }
@@ -77,7 +92,7 @@ public class DatiFatturazioneGetByIdQueryTests
     public async Task GetById_ShouldSucceed_WithContatti()
     {
         string? expectedCup = "ecup";
-        string? expectedCig = "ecig";
+        bool expectedNotaLegale = true;
         string? expectedCodCommessa = "ecommmessa";
         DateTime expectedDataDocumento = DateTime.UtcNow;
         bool? expectedSplitPayment = false;
@@ -101,7 +116,7 @@ public class DatiFatturazioneGetByIdQueryTests
         };
         var req = new DatiFatturazioneCreateCommand(authInfo)
         {
-            Cig = expectedCig,
+            NotaLegale = expectedNotaLegale,
             CodCommessa = expectedCodCommessa,
             Contatti = expectedContatti,
             Cup = expectedCup,
@@ -130,5 +145,6 @@ public class DatiFatturazioneGetByIdQueryTests
         Assert.True(contatti[0].Email == "expected1@pippo.com");
         Assert.True(contatti[1].Email == "expected2@pippo.com");
         Assert.IsNull(actualDatiFatturazione.DataModifica);
+        Assert.IsTrue(actualDatiFatturazione.NotaLegale);
     }
 }

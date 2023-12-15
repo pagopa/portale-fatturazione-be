@@ -113,9 +113,8 @@ public static class DocumentExtensions
             .Replace(nameof(model.PartitaIva).GetName<ModuloCommessaDocumentoDto>(), model.PartitaIva)
             .Replace(nameof(model.IndirizzoCompleto).GetName<ModuloCommessaDocumentoDto>(), model.IndirizzoCompleto)
 
-            .Replace(nameof(model.Cup).GetName<ModuloCommessaDocumentoDto>(), model.Cup)
-            .Replace(nameof(model.Cig).GetName<ModuloCommessaDocumentoDto>(), model.Cig)
-            .Replace(nameof(model.Descrizione).GetName<ModuloCommessaDocumentoDto>(), model.Cig)
+            .Replace(nameof(model.Cup).GetName<ModuloCommessaDocumentoDto>(), model.Cup) 
+            .Replace(nameof(model.Descrizione).GetName<ModuloCommessaDocumentoDto>(), model.Descrizione)
             .Replace(nameof(model.CodCommessa).GetName<ModuloCommessaDocumentoDto>(), model.CodCommessa)
             .Replace(nameof(model.SplitPayment).GetName<ModuloCommessaDocumentoDto>(), model.SplitPayment)
             .Replace(nameof(model.Map).GetName<ModuloCommessaDocumentoDto>(), model.Map)
@@ -156,8 +155,7 @@ public static class DocumentExtensions
             PartitaIva = ente.PartitaIva,
             IndirizzoCompleto = ente.IndirizzoCompleto,
 
-            Cup = fatt.Cup,
-            Cig = fatt.Cig,
+            Cup = fatt.Cup, 
             CodCommessa = fatt.CodCommessa,
             Contatti = fatt.Contatti,
             DataDocumento = fatt.DataDocumento,
