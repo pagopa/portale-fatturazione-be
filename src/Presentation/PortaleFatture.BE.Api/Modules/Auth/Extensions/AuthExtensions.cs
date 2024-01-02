@@ -8,7 +8,7 @@ namespace PortaleFatture.BE.Api.Modules.Auth.Extensions;
 
 public static class AuthExtensions
 {
-    public static UtenteInfo Mapper(
+    public static UtenteInfo MapperSelfCare(
         this AuthenticationInfo info,
         DateTime dataPrimo,
         DateTime dataUltimo,
@@ -28,10 +28,40 @@ public static class AuthExtensions
             DataPrimo = dataPrimo,
             DataUltimo = dataUltimo,
             Nonce = encryption.EncryptString(info.CreateNonce()),
+            GruppoRuolo = info.GruppoRuolo,
+            Auth = info.Auth
         };
     }
 
-    public static List<ProfileInfo> Mapper(
+    public static ProfileInfo MapperPagoPA(
+    this AuthenticationInfo authInfo,
+    IIdentityUsersService usersService,
+    ITokenService tokensService,
+    IAesEncryption encryption)
+    {
+
+        var listAuthClaims = usersService.GetUserClaimsFromPagoPAUserAsync(authInfo);
+        var tokenProfileInfo = tokensService.GenerateJwtToken(listAuthClaims);
+        return new ProfileInfo()
+        {
+            DescrizioneRuolo = authInfo.DescrizioneRuolo,
+            Email = authInfo.Email,
+            Id = authInfo.Id,
+            IdEnte = authInfo.IdEnte,
+            IdTipoContratto = authInfo.IdTipoContratto,
+            NomeEnte = authInfo.NomeEnte,
+            Prodotto = authInfo.Prodotto,
+            Profilo = authInfo.Profilo,
+            Ruolo = authInfo.Ruolo,
+            Nonce = encryption.EncryptString(authInfo.CreateNonce()),
+            JWT = tokenProfileInfo.JWT,
+            Valido = tokenProfileInfo.Valido,
+            GruppoRuolo = authInfo.GruppoRuolo,
+            Auth = authInfo.Auth
+        };
+    }
+
+    public static List<ProfileInfo> MapperSelfCare(
         this List<AuthenticationInfo> infos,
         IIdentityUsersService usersService,
         ITokenService tokensService,
@@ -41,7 +71,7 @@ public static class AuthExtensions
 
         foreach (var authInfo in infos)
         {
-            var listAuthClaims = usersService.GetUserClaimsFromUserAsync(authInfo);
+            var listAuthClaims = usersService.GetUserClaimsFromSelfCareUserAsync(authInfo);
             var tokenProfileInfo = tokensService.GenerateJwtToken(listAuthClaims);
             var profile = new ProfileInfo()
             {
@@ -56,7 +86,9 @@ public static class AuthExtensions
                 Ruolo = authInfo.Ruolo,
                 Nonce = encryption.EncryptString(authInfo.CreateNonce()),
                 JWT = tokenProfileInfo.JWT,
-                Valido = tokenProfileInfo.Valido
+                Valido = tokenProfileInfo.Valido,
+                GruppoRuolo = authInfo.GruppoRuolo,
+                Auth = authInfo.Auth
             };
             profiles.Add(profile);
         }
@@ -69,8 +101,8 @@ public static class AuthExtensions
         return (new NonceDto()
         {
             Id = authInfo.Id,
-            IdEnte = authInfo.IdEnte,
-            Prodotto = authInfo.Prodotto
+            IdEnte = authInfo.IdEnte ?? string.Empty,
+            Prodotto = authInfo.Prodotto ?? string.Empty,
         }).Serialize();
     }
 
@@ -87,7 +119,15 @@ public static class AuthExtensions
 
     public static bool Verify(this AuthenticationInfo authInfo, string decryptedNonce)
     {
-        var checkInfo = decryptedNonce.ReadNonce(); 
-        return authInfo.Id == checkInfo.Id && authInfo.IdEnte == checkInfo.IdEnte && authInfo.Prodotto == checkInfo.Prodotto;
+        var checkInfo = decryptedNonce.ReadNonce();
+        return authInfo.Id == checkInfo.Id && AreEqual(authInfo.IdEnte, checkInfo.IdEnte) && AreEqual(authInfo.Prodotto, checkInfo.Prodotto);
+    }
+
+    private static bool AreEqual(string? a, string? b)
+    {
+        if (string.IsNullOrEmpty(a))
+            return string.IsNullOrEmpty(b);
+        else
+            return string.Equals(a, b);
     }
 }

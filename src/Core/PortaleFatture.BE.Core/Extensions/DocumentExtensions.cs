@@ -1,10 +1,6 @@
-﻿using System.Collections.Generic;
-using System.Globalization;
-using System.Reflection;
+﻿using System.Globalization;
 using System.Text;
-using System.Xml.Linq;
 using PortaleFatture.BE.Core.Entities.DatiFatturazioni;
-using PortaleFatture.BE.Core.Entities.DatiModuloCommesse;
 using PortaleFatture.BE.Core.Entities.DatiModuloCommesse.Dto;
 
 namespace PortaleFatture.BE.Core.Extensions;

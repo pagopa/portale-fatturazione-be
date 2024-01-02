@@ -11,7 +11,7 @@
         <PackageReference Include="Dapper" Version="2.1.24" />
         <PackageReference Include="Dapper.SqlBuilder" Version="2.0.78" />
         <PackageReference Include="Haukcode.WkHtmlToPdfDotNet" Version="1.5.86" />
-        <PackageReference Include="MediatR" Version="12.2.0" />
+        <PackageReference Include="MediatR" Version="12.2.0" /> 
         <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.0" />
         <PackageReference Include="Microsoft.Data.SqlClient" Version="5.1.2" />
         <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="8.0.0" />

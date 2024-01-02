@@ -1,5 +1,7 @@
 ﻿using Dapper;
 using PortaleFatture.BE.Core.Entities.DatiFatturazioni;
+using PortaleFatture.BE.Core.Entities.DatiFatturazioni.Dto;
+using PortaleFatture.BE.Core.Entities.SelfCare;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 
 namespace PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni.Queries.Persistence.Builder;
@@ -37,7 +39,7 @@ public static class DatiFatturazioneSQLBuilder
         builder.Select(nameof(@obj.Prodotto).GetAsColumn<DatiFatturazione>());
         builder.Select(nameof(@obj.Pec));
         builder.Select(nameof(@obj.DataCreazione));
-        builder.Select(nameof(@obj.DataModifica)); 
+        builder.Select(nameof(@obj.DataModifica));
         return builder;
     }
 
@@ -52,12 +54,61 @@ public static class DatiFatturazioneSQLBuilder
     }
 
     public static string SelectByIdEnte()
-    { 
+    {
         var tableName = nameof(DatiFatturazione);
         var builder = CreateSelect();
-        var where =  WhereByIdEnte();
+        var where = WhereByIdEnte();
         builder.Where(where);
         var builderTemplate = builder.AddTemplate($"Select /**select**/ from [schema]{tableName} /**where**/ ");
         return builderTemplate.RawSql;
-    } 
-} 
+    }
+
+    private static int _top = 100;
+    public static string SelectByDescrizione()
+    {
+        DatiFatturazioneEnteDto? @obj = null;
+        var idEnte = nameof(@obj.IdEnte).GetColumn<DatiFatturazioneEnteDto>(); 
+        var internalIdEnte = nameof(@obj.InternalInstituitionId).GetColumn<DatiFatturazioneEnteDto>();
+        var id = nameof(Ente.IdEnte).GetColumn<Ente>();
+        var prodotto = nameof(@obj.Prodotto).GetColumn<DatiFatturazioneEnteDto>();
+        var internalProdotto = nameof(@obj.InternalProduct).GetColumn<DatiFatturazioneEnteDto>();
+        var profilo = nameof(@obj.Profilo).GetColumn<DatiFatturazioneEnteDto>();
+
+        var builder = new SqlBuilder();
+        builder.Select(nameof(@obj.RagioneSociale).GetAsColumn<DatiFatturazioneEnteDto>());
+        builder.Select($"ISNULL({idEnte},e.{internalIdEnte}) as {nameof(@obj.IdEnte)}");
+        builder.Select($"ISNULL({prodotto},{internalProdotto}) as {nameof(@obj.Prodotto)}");
+        builder.Select($"{nameof(@obj.Profilo).GetAsColumn<DatiFatturazioneEnteDto>()}");
+        builder.Select(nameof(@obj.Id).GetAsColumn<DatiFatturazioneEnteDto>());
+        builder.Select(nameof(@obj.Cup));
+        builder.Select(nameof(@obj.NotaLegale));
+        builder.Select(nameof(@obj.CodCommessa));
+        builder.Select(nameof(@obj.DataDocumento));
+        builder.Select(nameof(@obj.SplitPayment)); 
+        builder.Select(nameof(@obj.IdDocumento));
+        builder.Select(nameof(@obj.Map));
+        builder.Select(nameof(@obj.TipoCommessa).GetAsColumn<DatiFatturazioneEnteDto>()); 
+        builder.Select(nameof(@obj.Pec));
+        builder.Select(nameof(@obj.DataCreazione));
+        builder.Select(nameof(@obj.DataModifica));
+        builder.Select(nameof(@obj.DataModifica));
+
+        var tableName = $"[schema]{nameof(DatiFatturazioneEnteDto).GetTable<DatiFatturazioneEnteDto>()} f"; 
+        var rightEnteTable = $"[schema_inner].{nameof(Ente).GetTable<Ente>()}";
+        var innerContrattoTable = $"[schema_inner].{nameof(Contratto).GetTable<Contratto>()}";  
+
+        builder.RightJoin($"{rightEnteTable} e on e.{internalIdEnte} = f.{idEnte}");
+        builder.InnerJoin($"{innerContrattoTable} c on e.{internalIdEnte} = c.{internalIdEnte}");
+
+        builder.Where(WhereBySearch());
+        var builderTemplate = builder.AddTemplate($"Select TOP {_top} /**select**/ from {tableName} /**rightjoin**/ /**innerjoin**/ /**where**/ ");
+        return builderTemplate.RawSql;
+    }
+
+    private static string WhereBySearch()
+    {
+        Ente? obj;
+        var fieldDescription = nameof(@obj.Descrizione).GetColumn<Ente>();
+        return $"{fieldDescription} LIKE '%' + @{nameof(@obj.Descrizione)} + '%'";
+    }
+}

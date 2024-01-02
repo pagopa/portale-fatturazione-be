@@ -18,7 +18,7 @@ public class SelfCareHttpClient(
     {
         if (string.IsNullOrWhiteSpace(baseAddress))
         {
-            var msg = "Pagopa uri certificate missing!";
+            var msg = "SelfCare uri certificate missing!";
             _logger.LogError(msg);
             throw new ConfigurationException(msg);
         } 

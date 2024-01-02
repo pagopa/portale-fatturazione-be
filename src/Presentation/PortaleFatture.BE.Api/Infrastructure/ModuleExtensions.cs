@@ -12,6 +12,7 @@ public static class ModuleExtensions
     public static async Task<PortaleFattureOptions> VaultClientSettings(this PortaleFattureOptions model)
     {
         model.JWT ??= new();
+        model.AzureAd ??= new();
 
         var selfCareUri = Environment.GetEnvironmentVariable("SELF_CARE_URI") ??
              throw new ConfigurationException("Please specify a SELF_CARE_URI!");
@@ -45,6 +46,17 @@ public static class ModuleExtensions
 
         var applicationInsights = Environment.GetEnvironmentVariable("APPLICATION_INSIGHTS") ??
              throw new ConfigurationException("Please specify an APPLICATION_INSIGHTS!"); 
+        var azureADInstance = Environment.GetEnvironmentVariable("AZUREAD_INSTANCE") ??
+             throw new ConfigurationException("Please specify an AZUREAD_INSTANCE!");
+
+        var azureADTenantId = Environment.GetEnvironmentVariable("AZUREAD_TENANTID") ??
+             throw new ConfigurationException("Please specify an AZUREAD_TENANTID!");
+
+        var azureADClientId = Environment.GetEnvironmentVariable("AZUREAD_CLIENTID") ??
+             throw new ConfigurationException("Please specify an AZUREAD_CLIENTID!");
+
+        var azureADGroup = Environment.GetEnvironmentVariable("AZUREAD_ADGROUP") ??
+             throw new ConfigurationException("Please specify an AZUREAD_ADGROUP!");
 
         model.ConnectionString = connectionString; //await model.ConnectionString.Mapper();
         model.SelfCareUri = selfCareUri;
@@ -56,6 +68,11 @@ public static class ModuleExtensions
         model.SelfCareTimeOut = selfCareTimeOut;
         model.SelfCareAudience = selfCareAudience;
         model.AdminKey = adminKey;
+        model.AzureAd.ClientId = azureADClientId;
+        model.AzureAd.TenantId = azureADTenantId;
+        model.AzureAd.Instance = azureADInstance;
+        model.AzureAd.AdGroup = azureADGroup;
+
         model.ApplicationInsights = applicationInsights;
         return model;
     }

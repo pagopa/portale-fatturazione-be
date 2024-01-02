@@ -14,6 +14,7 @@ namespace PortaleFatture.BE.Core.Common
         public JwtConfiguration? JWT { get; set; }
         public string? CORSOrigins { get; set; } 
         public string? AdminKey { get; set; } 
-        public string? SelfCareAudience { get; set; }
+        public string? SelfCareAudience { get; set; } 
+        public AzureAd? AzureAd { get; set; }
     }
 }

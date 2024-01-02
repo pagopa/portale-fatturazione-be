@@ -6,6 +6,11 @@ namespace PortaleFatture.BE.Infrastructure.Common.Persistence;
 
 public static class SqlExtensions
 {
+    public static string AddJoin(this string sql, string schema)
+    {
+        return sql.Replace("[schema_inner]", schema);
+    }
+
     public static string Add(this string sql, string schema)
     {
         return sql.Replace("[schema]", schema);
@@ -22,8 +27,8 @@ public static class SqlExtensions
 
     public static string GetAsColumn<T>(this string propertyName)
     {
-        var filedName = GetColumn<T>(propertyName);
-        return $"{filedName} as {propertyName}";
+        var fieldName = GetColumn<T>(propertyName);
+        return $"{fieldName} as {propertyName}";
     }
 
     public static string GetTable<T>(this string className)

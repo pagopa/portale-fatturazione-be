@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Localization;
+using PortaleFatture.BE.Api.Infrastructure;
 using PortaleFatture.BE.Api.Modules.DatiFatturazioni.Extensions;
 using PortaleFatture.BE.Api.Modules.DatiModuloCommesse.Extensions;
 using PortaleFatture.BE.Api.Modules.DatiModuloCommesse.Payload;
@@ -23,7 +24,7 @@ namespace PortaleFatture.BE.Api.Modules.DatiModuloCommesse;
 
 public partial class DatiModuloCommessaModule
 {
-    [Authorize(Roles = $"{Ruolo.ADMIN}")]
+    [Authorize(Roles = $"{Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -47,7 +48,7 @@ public partial class DatiModuloCommessaModule
         return Ok(response);
     }
 
-    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}")]
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -64,7 +65,7 @@ public partial class DatiModuloCommessaModule
         return Ok(response);
     }
 
-    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}")]
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -88,7 +89,7 @@ public partial class DatiModuloCommessaModule
         return Ok(response);
     }
 
-    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}")]
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -110,7 +111,7 @@ public partial class DatiModuloCommessaModule
         return Ok(modulo.Select(x => x.Mapper()));
     }
 
-    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}")]
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -132,7 +133,7 @@ public partial class DatiModuloCommessaModule
         return Ok(modulo.Select(x=>x.Mapper()));
     }
 
-    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}")]
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -150,7 +151,7 @@ public partial class DatiModuloCommessaModule
         return Ok(anni);
     }
 
-    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}")]
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -175,7 +176,7 @@ public partial class DatiModuloCommessaModule
         return Ok(dati);
     }
 
-    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}")]
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

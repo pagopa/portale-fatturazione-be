@@ -9,21 +9,14 @@ using PortaleFatture.BE.Infrastructure.Common.Tipologie.Queries.Persistence;
 
 namespace PortaleFatture.BE.Infrastructure.Common.Tipologie.QueryHandlers;
 
-public class ProdottoQueryHandler : IRequestHandler<ProdottoQueryGetAll, IEnumerable<Prodotto>>
+public class ProdottoQueryHandler(
+ IFattureDbContextFactory factory,
+ IStringLocalizer<Localization> localizer,
+ ILogger<ProdottoQueryHandler> logger) : IRequestHandler<ProdottoQueryGetAll, IEnumerable<Prodotto>>
 {
-    private readonly IFattureDbContextFactory _factory;
-    private readonly ILogger<ProdottoQueryHandler> _logger;
-    private readonly IStringLocalizer<Localization> _localizer;
-
-    public ProdottoQueryHandler(
-     IFattureDbContextFactory factory,
-     IStringLocalizer<Localization> localizer,
-     ILogger<ProdottoQueryHandler> logger)
-    {
-        _factory = factory;
-        _localizer = localizer;
-        _logger = logger;
-    }
+    private readonly IFattureDbContextFactory _factory = factory;
+    private readonly ILogger<ProdottoQueryHandler> _logger = logger;
+    private readonly IStringLocalizer<Localization> _localizer = localizer;
 
     public async Task<IEnumerable<Prodotto>> Handle(ProdottoQueryGetAll request, CancellationToken ct)
     {

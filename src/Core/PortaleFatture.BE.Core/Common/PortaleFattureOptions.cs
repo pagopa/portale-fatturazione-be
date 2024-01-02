@@ -15,5 +15,14 @@ public sealed class PortaleFattureOptions : IPortaleFattureOptions
     public string? CORSOrigins { get; set; }  
     public string? AdminKey { get; set; }
     public string? SelfCareAudience { get; set; } 
-    public string? ApplicationInsights { get; set; }
+    public string? ApplicationInsights { get; set; } 
+    public AzureAd? AzureAd { get; set; }
 }
+
+public class AzureAd()
+{
+    public string? Instance { get; set; }
+    public string? TenantId { get; set; }
+    public string? ClientId { get; set; } 
+    public string? AdGroup { get; set; }
+} 

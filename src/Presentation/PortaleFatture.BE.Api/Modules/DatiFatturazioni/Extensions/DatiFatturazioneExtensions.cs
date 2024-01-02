@@ -19,8 +19,27 @@ public static class DatiFatturazioneExtensions
            Email = model.Email
        };
 
-    public static DatiFatturazioneCreateCommand Mapper(this DatiFatturazioneCreateRequest model, AuthenticationInfo info) =>
-       new(info)
+    public static DatiFatturazioneCreateCommand Mapper(this DatiFatturazionePagoPACreateRequest model, AuthenticationInfo authInfo)
+    {
+        authInfo.Prodotto = model.Prodotto;
+        authInfo.IdEnte = model.IdEnte;
+        return new DatiFatturazioneCreateCommand(authInfo)
+        {
+            NotaLegale = model.NotaLegale,
+            CodCommessa = model.CodCommessa,
+            Cup = model.Cup,
+            DataDocumento = model.DataDocumento,
+            SplitPayment = model.SplitPayment,
+            IdDocumento = model.IdDocumento,
+            Map = model.Map,
+            Contatti = model.Contatti?.Select(x => x.Mapper()).ToList(),
+            Pec = model.Pec,
+            TipoCommessa = model.TipoCommessa
+        };
+    } 
+
+    public static DatiFatturazioneCreateCommand Mapper(this DatiFatturazioneCreateRequest model, AuthenticationInfo authInfo) =>
+       new(authInfo)
        {
            NotaLegale = model.NotaLegale,
            CodCommessa = model.CodCommessa,
@@ -31,8 +50,29 @@ public static class DatiFatturazioneExtensions
            Map = model.Map,
            Contatti = model.Contatti?.Select(x => x.Mapper()).ToList(),
            Pec = model.Pec,
-           TipoCommessa = model.TipoCommessa 
+           TipoCommessa = model.TipoCommessa
        };
+
+    public static DatiFatturazioneUpdateCommand Mapper(this DatiFatturazionePagoPAUpdateRequest model, AuthenticationInfo authInfo)
+    {
+        authInfo.Prodotto = model.Prodotto;
+        authInfo.IdEnte = model.IdEnte;
+        return new(authInfo)
+        {
+            Id = model.Id,
+            NotaLegale = model.NotaLegale,
+            CodCommessa = model.CodCommessa,
+            Cup = model.Cup,
+            DataDocumento = model.DataDocumento,
+            SplitPayment = model.SplitPayment,
+            IdDocumento = model.IdDocumento,
+            Map = model.Map,
+            Contatti = model.Contatti?.Select(x => x.Mapper()).ToList(),
+            Pec = model.Pec,
+            TipoCommessa = model.TipoCommessa,
+        };
+
+    } 
 
     public static DatiFatturazioneUpdateCommand Mapper(this DatiFatturazioneUpdateRequest model, AuthenticationInfo authInfo) =>
        new(authInfo)
@@ -69,7 +109,7 @@ public static class DatiFatturazioneExtensions
            IdEnte = model.IdEnte,
            Id = model.Id,
            DataCreazione = model.DataCreazione.DateTime,
-           DataModifica = model.DataModifica != null? model.DataModifica!.Value.DateTime: null,
+           DataModifica = model.DataModifica != null ? model.DataModifica!.Value.DateTime : null,
            Pec = model.Pec,
            TipoCommessa = model.TipoCommessa,
            Prodotto = model.Prodotto,

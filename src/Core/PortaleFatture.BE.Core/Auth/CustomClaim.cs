@@ -2,6 +2,7 @@
 
 public static class CustomClaim
 {
+    // SelfCare
     public static string DescrizioneRuolo = "descrizioneRuolo";
     public static string Profilo = "profilo";
     public static string Prodotto = "prodotto";
@@ -11,4 +12,11 @@ public static class CustomClaim
     public static string IdTipoContratto = "idTipoContratto";
     public static string Uid = "uid";
     public static string Organization = "organization";
+    public static string GruppoRuolo = "gruppoRuolo";
+    public static string Auth = "auth";
+    // pagoPA
+    public static string PreferredUsername = "preferred_username";
+    public static string Oid = "http://schemas.microsoft.com/identity/claims/objectidentifier";
+    public static string Name = "name";
+    public static string Roles = "roles";
 } 

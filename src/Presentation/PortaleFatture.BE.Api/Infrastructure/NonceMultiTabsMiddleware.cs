@@ -11,11 +11,10 @@ public class NonceMultiTabsMiddleware(RequestDelegate next, IAesEncryption encry
     private readonly IAesEncryption? _encryption = encryption;
     private static readonly Dictionary<string, string> _whitelist = new()
         {
-            //{ "/swagger/v1/swagger.json", "/swagger/v1/swagger.json"},
-            //{ "/swagger/index.html", "/swagger/index.html"},
             { "/favicon.ico", "/favicon.ico" },
             { "/", "/" },
             { "/health", "/health" },
+            { "/api/auth/pagopa/login", "/api/auth/pagopa/login" },
             { "/api/auth/profilo", "/api/auth/profilo" },
             { "/api/auth/selfcare/login", "/api/auth/selfcare/login" }
         };
@@ -25,7 +24,7 @@ public class NonceMultiTabsMiddleware(RequestDelegate next, IAesEncryption encry
         var isInWhitelist = _whitelist.TryGetValue(url, out var value);
         if (!isInWhitelist)
         {
-            var authInfo = context.GetAuthInfo();
+            var authInfo = context.GetAuthInfo(); 
             var nonce = context.Request.Query["nonce"];
             if (string.IsNullOrWhiteSpace(nonce))
                 throw new SessionException("Session expired!");

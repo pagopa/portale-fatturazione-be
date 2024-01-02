@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Localization;
 using PortaleFatture.BE.Api.Infrastructure;
 using PortaleFatture.BE.Api.Modules.Auth.Extensions;
+using PortaleFatture.BE.Api.Modules.Auth.Payload;
 using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Core.Resources;
@@ -25,7 +26,7 @@ public partial class AuthModule : Module, IRegistrableModule
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    private async Task<Results<Ok<List<ProfileInfo>>, NotFound>> LoginAsync(
+    private async Task<Results<Ok<List<ProfileInfo>>, NotFound>> LoginSelfCareAsync(
     HttpContext context,
     [FromQuery] string? selfcareToken,
     [FromServices] IIdentityUsersService usersService,
@@ -34,8 +35,8 @@ public partial class AuthModule : Module, IRegistrableModule
     [FromServices] IAesEncryption encryption,
     [FromServices] IStringLocalizer<Localization> localizer)
     {
-        var authInfos = await profileService.GetInfo(selfcareToken);
-        return Ok(authInfos.Mapper(usersService, tokensService, encryption));
+        var authInfos = await profileService.GetSelfCareInfo(selfcareToken);
+        return Ok(authInfos!.MapperSelfCare(usersService, tokensService, encryption));
     }
 
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}")]
@@ -53,8 +54,38 @@ public partial class AuthModule : Module, IRegistrableModule
     [FromServices] IMediator handler,
     [FromServices] IStringLocalizer<Localization> localizer)
     {
-        var authInfo = context.GetAuthInfo(); 
-        var modulo = await handler.Send(new UtenteCreateCommand(authInfo)) ?? throw new DomainException(localizer["UtenteProfiloError"]);
-        return Ok(authInfo.Mapper(modulo.DataPrimo, modulo.DataUltimo, encryption));
+        var authInfo = context.GetAuthInfo();
+        UtenteCreateCommand? command;
+        if (authInfo.Auth == AuthType.PAGOPA)
+            command = new UtenteCreateCommand(new AuthenticationInfo()
+            {
+                Id = authInfo!.Id,
+                IdEnte = string.Empty
+            });
+        else
+            command = new UtenteCreateCommand(authInfo);
+        var modulo = await handler.Send(command!) ?? throw new DomainException(localizer["UtenteProfiloError"]);
+        return Ok(authInfo.MapperSelfCare(modulo.DataPrimo, modulo.DataUltimo, encryption));
+    }
+
+    [AllowAnonymous]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<ProfileInfo>, NotFound>> LoginPagoPAAsync(
+    HttpContext context,
+    [FromBody] PagoPaLoginRequest request,
+    [FromServices] IProfileService profileService,
+    [FromServices] IAesEncryption encryption,
+    [FromServices] IMediator handler,
+    [FromServices] ITokenService tokensService,
+    [FromServices] IIdentityUsersService usersService,
+    [FromServices] IStringLocalizer<Localization> localizer)
+    {
+        var authInfo = await profileService.GetPagoPAInfo(request.IdToken, request.AccessToken)!;
+        return Ok(authInfo!.MapperPagoPA(usersService, tokensService, encryption));
     }
 }

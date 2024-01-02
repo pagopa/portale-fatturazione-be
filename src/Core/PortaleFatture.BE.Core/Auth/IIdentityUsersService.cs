@@ -6,6 +6,7 @@ namespace PortaleFatture.BE.Infrastructure.Common.Identity
     public interface IIdentityUsersService
     {
         List<IList<Claim>> GetListUserClaimsFromUserAsync(List<AuthenticationInfo>? authInfos);
-        IList<Claim> GetUserClaimsFromUserAsync(AuthenticationInfo? authInfo);
+        IList<Claim> GetUserClaimsFromSelfCareUserAsync(AuthenticationInfo? authInfo);
+        IList<Claim> GetUserClaimsFromPagoPAUserAsync(AuthenticationInfo? authInfo);
     }
 }

@@ -13,5 +13,7 @@ public class UtenteInfo
     public string? DescrizioneRuolo { get; set; } 
     public DateTime DataPrimo { get; set; }
     public DateTime DataUltimo { get; set; } 
-    public string? Nonce { get; set; }
+    public string? Nonce { get; set; } 
+    public string? GruppoRuolo { get; set; } 
+    public string? Auth { get; set; }
 } 

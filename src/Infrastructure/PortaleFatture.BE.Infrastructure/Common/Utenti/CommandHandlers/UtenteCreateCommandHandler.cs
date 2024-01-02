@@ -1,11 +1,9 @@
 ﻿using MediatR;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
-using PortaleFatture.BE.Core.Entities.DatiModuloCommesse.Dto;
 using PortaleFatture.BE.Core.Entities.Utenti;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Core.Resources;
-using PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.Commands;
 using PortaleFatture.BE.Infrastructure.Common.Persistence.Schemas;
 using PortaleFatture.BE.Infrastructure.Common.Utenti.Commands;
 using PortaleFatture.BE.Infrastructure.Common.Utenti.Commands.Persistence;

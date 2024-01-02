@@ -219,6 +219,9 @@
   <data name="DatiTipoContrattoMissing" xml:space="preserve">
     <value>Non sono stati configurati e inseriti i dati tipo contratto.</value>
   </data>
+  <data name="DatiTipoProfiloMissing" xml:space="preserve">
+    <value>Non sono stati configurati e inseriti i dati tipo profilo (institutionType)</value>
+  </data>
   <data name="DescrizioneConfiguazioneModuloCommessaInvalid" xml:space="preserve">
     <value>Inserire un valore descrizione configurazione modulo commessa.</value>
   </data>
@@ -233,6 +236,9 @@
   </data>
   <data name="PercentoConfiguazioneModuloCommessaInvalid" xml:space="preserve">
     <value>Il valore della percentuale deve essere un numero positivo.</value>
+  </data>
+  <data name="RicercaEnteEmpty" xml:space="preserve">
+    <value>Specificare un parametro di ricerca per l'ente.</value>
   </data>
   <data name="RoleError" xml:space="preserve">
     <value>Ruolo non abilitato per l'esecuzione dell'operazione.</value>

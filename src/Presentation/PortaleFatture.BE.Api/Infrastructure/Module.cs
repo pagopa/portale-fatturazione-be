@@ -10,5 +10,8 @@ public abstract class Module : IModule
     public const string CORSLabel = "portalefatture";
     public const string GatewayLabel = "gateway";
     public const string HealthcheckLabel = "health";
-    public const string LoggingLabel = "Logging";
+    public const string LoggingLabel = "Logging"; 
+    public const string SelfCarePolicy = "SelfCarePolicy";
+    public const string PagoPAPolicy = "PagoPAPolicy";
+    public const string SelfCarePolicyClaim = "auth";
 }

@@ -8,6 +8,18 @@ public partial class TipologieModule : Module, IRegistrableModule
     public void RegisterEndpoints(IEndpointRouteBuilder endpointRouteBuilder)
     {
         endpointRouteBuilder
+           .MapPost("api/tipologia/enti", AllEntiByDescrizioneAsync)
+           .WithName("Permette di ottenere gli enti per ricerca descrizione")
+           .SetOpenApi(Module.DatiTipologiaLabel)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+           .MapGet("api/tipologia/tipoprofilo", GetAllTipoProfiloAsync)
+           .WithName("Permette di ottenere i tipi profilo (institutionType) per la gestione dati commessa/fatturazione.")
+           .SetOpenApi(Module.DatiTipologiaLabel)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
            .MapGet("api/tipologia/tipocontratto", GetAllTipoContrattoAsync)
            .WithName("Permette di ottenere i tipi contratti per la gestione dati commessa/fatturazione.")
            .SetOpenApi(Module.DatiTipologiaLabel)

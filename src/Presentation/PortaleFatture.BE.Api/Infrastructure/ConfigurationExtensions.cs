@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.AspNetCore.HttpOverrides;
-using Microsoft.Extensions.Logging.ApplicationInsights;
+using Microsoft.IdentityModel.Logging;
 using Microsoft.OpenApi.Models;
 using Polly;
 using Polly.Extensions.Http;
@@ -26,9 +26,7 @@ using PortaleFatture.BE.Infrastructure.Gateway;
 namespace PortaleFatture.BE.Api.Infrastructure;
 public static class ConfigurationExtensions
 {
-    private static readonly ModuleManager _moduleManager = new();
-
-
+    private static readonly ModuleManager _moduleManager = new(); 
     public static IServiceCollection AddModules(this WebApplicationBuilder builder)
     {
         var services = builder.Services;
@@ -56,11 +54,10 @@ public static class ConfigurationExtensions
         services.AddLogging(o => o.AddConfiguration(configuration.GetSection(Module.LoggingLabel))); 
 
         services
-            .AddJwtOrApiKeyAuthentication(options.JWT!)
-            .AddIdentities(options.JWT!);
+            .AddJwtOrApiKeyAuthentication(options!)
+            .AddIdentities(options!);
 
-        services
-            .AddAuthorization()
+        services 
             .AddEndpointsApiExplorer()
             .AddSwaggerGen(o =>
             {
@@ -92,8 +89,8 @@ public static class ConfigurationExtensions
             .AddCors(opt =>
             {
                 opt.AddPolicy(Module.CORSLabel, o =>
-                    o  
-                    .WithOrigins(options.CORSOrigins!.Split(";")) 
+                    o
+                    .WithOrigins(options.CORSOrigins!.Split(";"))
                     .AllowAnyHeader()
                     .AllowAnyMethod());
             })
@@ -168,7 +165,7 @@ public static class ConfigurationExtensions
                     };
                     return problem.ExecuteAsync(context);
                 }));
- 
+
         application.UseForwardedHeaders(new ForwardedHeadersOptions
         {
             ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
@@ -210,6 +207,8 @@ public static class ConfigurationExtensions
 
         services.AddHttpClient();
         services.AddSingleton<ISelfCareHttpClient, SelfCareHttpClient>();
+        services.AddSingleton<IPagoPAHttpClient, PagoPAHttpClient>();
+        services.AddSingleton<IMicrosoftGraphHttpClient, MicrosoftGraphHttpClient>();
 
         var hostingEnvironment = services
             .BuildServiceProvider()
@@ -219,12 +218,14 @@ public static class ConfigurationExtensions
         return services;
     }
 
-    private static IServiceCollection AddIdentities(this IServiceCollection services, JwtConfiguration jwtAuth)
+    private static IServiceCollection AddIdentities(this IServiceCollection services, IPortaleFattureOptions options)
     {
+        JwtConfiguration jwtAuth = options.JWT!;
         services
             .AddScoped<ITokenService>(_ => new JwtTokenService(jwtAuth))
             .AddScoped<IIdentityUsersService, IdentityUsersService>()
             .AddSingleton<ISelfCareTokenService, SelfCareTokenService>()
+            .AddSingleton<IPagoPATokenService, PagoPATokenService>()
             .AddSingleton<IProfileService, ProfileService>()
             .AddSingleton<IAesEncryption>(new AesEncryption(jwtAuth.Secret!));
 
@@ -234,11 +235,19 @@ public static class ConfigurationExtensions
         return services;
     }
 
-    private static IServiceCollection AddJwtOrApiKeyAuthentication(this IServiceCollection services, JwtConfiguration jwtAuth)
+    private static IServiceCollection AddJwtOrApiKeyAuthentication(this IServiceCollection services, IPortaleFattureOptions foptions)
     {
+        IdentityModelEventSource.ShowPII = true;
         services
-            .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddJwtBearer(options => options.JwtAuthenticationConfiguration(jwtAuth));
+           .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+           .AddJwtBearer(options => options.JwtAuthenticationConfiguration(foptions.JWT!));
+        services.AddAuthorizationBuilder()
+        .AddPolicy(Module.SelfCarePolicy, policy =>
+            policy 
+                .RequireClaim(Module.SelfCarePolicyClaim, AuthType.SELFCARE))
+        .AddPolicy(Module.PagoPAPolicy, policy =>
+            policy
+                .RequireClaim(Module.SelfCarePolicyClaim, AuthType.PAGOPA));
 
         services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
         return services;
