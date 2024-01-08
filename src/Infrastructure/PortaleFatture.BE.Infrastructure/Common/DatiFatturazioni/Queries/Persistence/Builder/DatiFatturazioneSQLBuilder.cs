@@ -1,7 +1,7 @@
 ﻿using Dapper;
 using PortaleFatture.BE.Core.Entities.DatiFatturazioni;
-using PortaleFatture.BE.Core.Entities.DatiFatturazioni.Dto;
 using PortaleFatture.BE.Core.Entities.SelfCare;
+using PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni.Dto;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 
 namespace PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni.Queries.Persistence.Builder;
@@ -62,8 +62,7 @@ public static class DatiFatturazioneSQLBuilder
         var builderTemplate = builder.AddTemplate($"Select /**select**/ from [schema]{tableName} /**where**/ ");
         return builderTemplate.RawSql;
     }
-
-    private static int _top = 100;
+ 
     public static string SelectByDescrizione()
     {
         DatiFatturazioneEnteDto? @obj = null;
@@ -101,7 +100,7 @@ public static class DatiFatturazioneSQLBuilder
         builder.InnerJoin($"{innerContrattoTable} c on e.{internalIdEnte} = c.{internalIdEnte}");
 
         builder.Where(WhereBySearch());
-        var builderTemplate = builder.AddTemplate($"Select TOP {_top} /**select**/ from {tableName} /**rightjoin**/ /**innerjoin**/ /**where**/ ");
+        var builderTemplate = builder.AddTemplate($"Select /*top*/ /**select**/ from {tableName} /**rightjoin**/ /**innerjoin**/ /**where**/ ");
         return builderTemplate.RawSql;
     }
 

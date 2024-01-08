@@ -198,6 +198,12 @@
   <data name="DatiModuloCommessaDataInvalid" xml:space="preserve">
     <value>Il valore deve essere relativo all'anno e mese attuale.</value>
   </data>
+  <data name="DatiModuloCommessaDoNotCreate" xml:space="preserve">
+    <value>L'utente PagoPA può solo modificare i dati modulo commessa, non crearli!</value>
+  </data>
+  <data name="DatiModuloCommessaEmptyContratto" xml:space="preserve">
+    <value>Non è stato trovato un contratto associato all'ente e al prodotto specificati.</value>
+  </data>
   <data name="DatiModuloCommessaError" xml:space="preserve">
     <value>Si è verificato un errore nell'inserire i dati commessa  con idEnte: "{0}".</value>
   </data>

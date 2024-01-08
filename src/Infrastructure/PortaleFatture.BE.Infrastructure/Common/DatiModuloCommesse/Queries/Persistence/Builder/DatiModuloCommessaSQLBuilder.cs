@@ -57,6 +57,109 @@ public class DatiModuloCommessaSQLBuilder
         return builder;
     }
 
+    public static string SelectByRicerca()
+    {
+        return $@"
+WITH digitali (FkidEnte, description, vatnumber,FkProdotto, TipoSpedizione,NumeroNotificheNazionali, NumeroNotificheInternazionali, Anno, Mese)
+AS
+(
+	select 
+		[pfw].[DatiModuloCommessa].FkidEnte as 'identificativo SC', 
+		[pfd].[Enti].description as 'ragione sociale ente', 
+		[pfd].[Enti].vatnumber as 'codice fiscale',
+		[pfw].[DatiModuloCommessa].FkProdotto as 'prodotto', 
+		'digitale' as 'tipo spedizione',
+		[pfw].[DatiModuloCommessa].NumeroNotificheNazionali as 'N. Notifiche NZ',  
+		[pfw].[DatiModuloCommessa].NumeroNotificheInternazionali as 'N. Notifiche INT',
+		[pfw].[DatiModuloCommessa].AnnoValidita,
+		[pfw].[DatiModuloCommessa].[MeseValidita]
+	from [pfw].[DatiModuloCommessa]
+	inner join [pfd].[Enti] on [pfw].[DatiModuloCommessa].FkidEnte = [pfd].[Enti].internalistitutionid 
+		and [pfw].[DatiModuloCommessa].FkidTipoSpedizione = '3'
+    where pfw.DatiModuloCommessa.AnnoValidita = @Anno AND
+	   pfw.DatiModuloCommessa.MeseValidita = @Mese  
+)
+, 
+raccomandate (FkidEnte, description, vatnumber,FkProdotto, TipoSpedizione,NumeroNotificheNazionali, NumeroNotificheInternazionali, Anno, Mese)
+AS
+(
+	select 
+		[pfw].[DatiModuloCommessa].FkidEnte as 'identificativo SC', 
+		[pfd].[Enti].description as 'ragione sociale ente', 
+		[pfd].[Enti].vatnumber as 'codice fiscale',
+		[pfw].[DatiModuloCommessa].FkProdotto as 'prodotto', 
+		'analogico AR' as 'tipo spedizione',
+		[pfw].[DatiModuloCommessa].NumeroNotificheNazionali as 'N. Notifiche NZ',  
+		[pfw].[DatiModuloCommessa].NumeroNotificheInternazionali as 'N. Notifiche INT',
+		[pfw].[DatiModuloCommessa].AnnoValidita,
+		[pfw].[DatiModuloCommessa].[MeseValidita]
+	from [pfw].[DatiModuloCommessa]
+	inner join [pfd].[Enti] on [pfw].[DatiModuloCommessa].FkidEnte = [pfd].[Enti].internalistitutionid 
+		and [pfw].[DatiModuloCommessa].FkidTipoSpedizione = '1'
+    where pfw.DatiModuloCommessa.AnnoValidita = @Anno AND
+	   pfw.DatiModuloCommessa.MeseValidita = @Mese  
+),
+raccomandate890 (FkidEnte, description, vatnumber,FkProdotto, TipoSpedizione,NumeroNotificheNazionali, NumeroNotificheInternazionali, Anno, Mese)
+AS
+(
+	select 
+		[pfw].[DatiModuloCommessa].FkidEnte as 'identificativo SC', 
+		[pfd].[Enti].description as 'ragione sociale ente', 
+		[pfd].[Enti].vatnumber as 'codice fiscale',
+		[pfw].[DatiModuloCommessa].FkProdotto as 'prodotto', 
+		'analogico 890' as 'tipo spedizione',
+		[pfw].[DatiModuloCommessa].NumeroNotificheNazionali as 'N. Notifiche NZ',  
+		[pfw].[DatiModuloCommessa].NumeroNotificheInternazionali as 'N. Notifiche INT',
+		[pfw].[DatiModuloCommessa].AnnoValidita,
+		[pfw].[DatiModuloCommessa].[MeseValidita]
+	from [pfw].[DatiModuloCommessa]
+	inner join [pfd].[Enti] on [pfw].[DatiModuloCommessa].FkidEnte = [pfd].[Enti].internalistitutionid 
+		and [pfw].[DatiModuloCommessa].FkidTipoSpedizione = '2' 
+    where pfw.DatiModuloCommessa.AnnoValidita = @Anno AND
+	   pfw.DatiModuloCommessa.MeseValidita = @Mese  
+),
+TotaliEconomici (FkidEnte, CategoriaSpedizione, TotaleCategoria, Anno, Mese, Totale, IdTipoContratto)
+AS
+(
+	SELECT [FkIdEnte], [FkIdCategoriaSpedizione], [TotaleCategoria], AnnoValidita, [MeseValidita], [Totale], [FkIdTipoContratto]
+	FROM pfw.DatiModuloCommessaTotali
+	where pfw.DatiModuloCommessaTotali.AnnoValidita = @Anno AND
+	   pfw.DatiModuloCommessaTotali.MeseValidita = @Mese   
+)
+SELECT    d.FkidEnte as 'IdEnte'  
+        , d.description as 'RagioneSociale'
+		, d.vatnumber as 'CodiceFiscale'
+		, d.FkProdotto as 'Prodotto'
+		, d.TipoSpedizione as 'TipoSpedizioneDigitale'
+		, d.NumeroNotificheNazionali as 'NumeroNotificheNazionaliDigitale'
+		, d.NumeroNotificheInternazionali as 'NumeroNotificheInternazionaliDigitale'
+		, r.TipoSpedizione  as 'TipoSpedizioneAnalogicoAR'
+		, r.NumeroNotificheNazionali as 'NumeroNotificheNazionaliAnalogicoAR'
+		, r.NumeroNotificheInternazionali as 'NumeroNotificheInternazionaliAnalogicoAR'
+		, rr.TipoSpedizione  as 'TipoSpedizioneAnalogico890'
+		, rr.NumeroNotificheNazionali as 'NumeroNotificheNazionaliAnalogico890'
+		, rr.NumeroNotificheInternazionali as 'NumeroNotificheInternazionaliAnalogico890'
+		, te.TotaleCategoria as 'TotaleCategoriaAnalogico'
+		, te2.TotaleCategoria as 'TotaleCategoriaDigitale' 
+		, te.Anno  as 'Anno'
+        , te.Mese  As 'Mese'		
+        , te.Totale as 'TotaleAnalogicoLordo'
+		, te2.Totale as 'TotaleDigitaleLordo'
+		, (te.Totale  + te2.Totale) as 'TotaleLordo'
+		, te.IdTipoContratto as 'IdTipoContratto'
+
+
+FROM digitali d
+INNER JOIN raccomandate r on d.FkidEnte = r.FkidEnte
+INNER JOIN raccomandate890 rr on r.FkidEnte = rr.FkidEnte
+INNER JOIN TotaliEconomici te on r.FkidEnte = te.FkidEnte and te.CategoriaSpedizione = 1
+INNER JOIN TotaliEconomici te2 on r.FkidEnte = te2.FkidEnte and te2.CategoriaSpedizione = 2 
+
+WHERE d.Anno = @Anno and d.Mese = @Mese 
+";
+    }
+
+
     public static string SelectBy()
     {
         var tableName = nameof(DatiModuloCommessa); 

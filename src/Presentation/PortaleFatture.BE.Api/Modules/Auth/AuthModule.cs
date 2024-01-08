@@ -12,7 +12,6 @@ using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Core.Resources;
 using PortaleFatture.BE.Infrastructure.Common.Identity;
 using PortaleFatture.BE.Infrastructure.Common.Utenti.Commands;
-using PortaleFatture.BE.Infrastructure.Extensions;
 using PortaleFatture.BE.Infrastructure.Gateway;
 using static Microsoft.AspNetCore.Http.TypedResults;
 

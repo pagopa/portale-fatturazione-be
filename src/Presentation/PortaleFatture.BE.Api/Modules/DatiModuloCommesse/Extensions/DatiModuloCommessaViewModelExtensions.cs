@@ -57,6 +57,22 @@ public static class DatiModuloCommessaViewModelExtensions
         };
     }
 
+    public static DatiModuloCommessaCreateListCommand Mapper(this DatiModuloCommessaPagoPACreateRequest model, AuthenticationInfo authInfo, long idTipoContratto)
+    {
+        authInfo.Prodotto = model.Prodotto;
+        authInfo.IdEnte = model.IdEnte;
+        authInfo.IdTipoContratto = idTipoContratto;
+
+        var cmd = new DatiModuloCommessaCreateListCommand(authInfo)
+        {
+            DatiModuloCommessaListCommand = []
+        };
+
+        foreach (var md in model.ModuliCommessa!)
+            cmd.DatiModuloCommessaListCommand.Add(md.Mapper());
+        return cmd;
+    }
+
     public static DatiModuloCommessaCreateListCommand Mapper(this DatiModuloCommessaCreateRequest model, AuthenticationInfo authInfo)
     {
         var cmd = new DatiModuloCommessaCreateListCommand(authInfo)

@@ -98,7 +98,7 @@ public class DatiModuloCommessaCreateCommandHandler(
 
         var commandTotale = command.GetTotali(categorie, confModuloCommessa, idEnte, annoAttuale, meseAttuale, idTipoContratto.Value, prodotto, stato);
 
-
+        bool fatturabile = true;
         foreach (var cmd in command.DatiModuloCommessaListCommand!) // validazione per id tipo spedizione
         {
             cmd.Stato = stato;
@@ -108,6 +108,7 @@ public class DatiModuloCommessaCreateCommandHandler(
             cmd.MeseValidita = meseAttuale;
             cmd.DataCreazione = adesso;
             cmd.DataModifica = adesso;
+            fatturabile = cmd.Fatturabile; // segno fatturabile se passato
 
             var (error, errorDetails) = DatiModuloCommessaValidator.Validate(cmd);
             if (!string.IsNullOrEmpty(error))
@@ -125,6 +126,7 @@ public class DatiModuloCommessaCreateCommandHandler(
             var rowAffected = await uow.Execute(new DatiModuloCommessaCreateCommandPersistence(command), ct);
             if (rowAffected == command.DatiModuloCommessaListCommand!.Count)
             {
+                commandTotale.DatiModuloCommessaTotaleListCommand!.ForEach(x => x.Fatturabile = fatturabile);
                 rowAffected = await uow.Execute(new DatiModuloCommessaCreateTotaleCommandPersistence(commandTotale), ct);
                 if (rowAffected == commandTotale.DatiModuloCommessaTotaleListCommand!.Count)
                     uow.Commit();

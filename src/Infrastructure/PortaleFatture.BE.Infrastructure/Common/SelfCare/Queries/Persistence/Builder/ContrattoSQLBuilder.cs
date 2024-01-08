@@ -11,7 +11,8 @@ public class ContrattoSQLBuilder
     {
         Contratto? obj;
         var fieldIdEnte = nameof(@obj.IdEnte).GetColumn<Contratto>(); 
-        return $"{fieldIdEnte} = @{nameof(@obj.IdEnte)}";
+        var fieldProdotto = nameof(@obj.Prodotto).GetColumn<Contratto>();
+        return $"{fieldIdEnte} = @{nameof(@obj.IdEnte)} AND {fieldProdotto} = @{nameof(@obj.Prodotto)}";
     }
 
     private static SqlBuilder CreateSelect()

@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Logging;
 using Microsoft.OpenApi.Models;
 using Polly;
@@ -26,7 +27,7 @@ using PortaleFatture.BE.Infrastructure.Gateway;
 namespace PortaleFatture.BE.Api.Infrastructure;
 public static class ConfigurationExtensions
 {
-    private static readonly ModuleManager _moduleManager = new(); 
+    private static readonly ModuleManager _moduleManager = new();
     public static IServiceCollection AddModules(this WebApplicationBuilder builder)
     {
         var services = builder.Services;
@@ -45,23 +46,44 @@ public static class ConfigurationExtensions
                 config.ConnectionString = options.ApplicationInsights,
                 configureApplicationInsightsLoggerOptions: (options) => { }
                 );
-        } 
+        }
 
         services.AddSingleton<IPortaleFattureOptions>(options);
 
         services.AddAssemblyToModuleRegistration(typeof(ConfigurationExtensions).Assembly);
 
-        services.AddLogging(o => o.AddConfiguration(configuration.GetSection(Module.LoggingLabel))); 
+        services.AddLogging(o => o.AddConfiguration(configuration.GetSection(Module.LoggingLabel)));
 
         services
             .AddJwtOrApiKeyAuthentication(options!)
             .AddIdentities(options!);
 
-        services 
+        services
             .AddEndpointsApiExplorer()
             .AddSwaggerGen(o =>
             {
                 o.SwaggerDoc("v1", new OpenApiInfo { Title = "Portale Fatture", Version = "v1" });
+                o.AddSecurityDefinition("nonce", new OpenApiSecurityScheme
+                {
+                    Type = SecuritySchemeType.ApiKey,
+                    In = ParameterLocation.Query,
+                    Name = "nonce",
+                    Description = "Nonce query string expected session key"
+                });
+                o.AddSecurityRequirement(new OpenApiSecurityRequirement
+                {
+                    {
+                        new OpenApiSecurityScheme
+                        {
+                            Reference = new OpenApiReference
+                            {
+                                Type = ReferenceType.SecurityScheme,
+                                Id = "nonce"
+                            }
+                        },
+                        Array.Empty<string>()
+                    }
+                }); 
                 o.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
                     Name = "Authorization",
@@ -243,7 +265,7 @@ public static class ConfigurationExtensions
            .AddJwtBearer(options => options.JwtAuthenticationConfiguration(foptions.JWT!));
         services.AddAuthorizationBuilder()
         .AddPolicy(Module.SelfCarePolicy, policy =>
-            policy 
+            policy
                 .RequireClaim(Module.SelfCarePolicyClaim, AuthType.SELFCARE))
         .AddPolicy(Module.PagoPAPolicy, policy =>
             policy

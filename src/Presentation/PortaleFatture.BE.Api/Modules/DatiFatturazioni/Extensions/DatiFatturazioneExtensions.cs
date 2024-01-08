@@ -1,13 +1,27 @@
-﻿using PortaleFatture.BE.Api.Modules.DatiFatturazioni.Payload.Request;
+﻿using System.Collections.Generic;
+using System.Text;
+using PortaleFatture.BE.Api.Modules.DatiFatturazioni.Payload.Request;
 using PortaleFatture.BE.Api.Modules.DatiFatturazioni.Payload.Response;
 using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Entities.DatiFatturazioni;
 using PortaleFatture.BE.Core.Entities.Tipologie;
 using PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni.Commands;
+using PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni.Dto;
 
 namespace PortaleFatture.BE.Api.Modules.DatiFatturazioni.Extensions;
 public static class DatiFatturazioneExtensions
-{
+{ 
+    public static byte[] ToCsv(this IEnumerable<DatiFatturazioneEnteDto> dati)
+    {
+        var csv = new StringBuilder();
+        foreach (var d in dati)
+        {
+            var newLine = string.Format("{0},{1},{2},{3},{4},{5},{6},{7},{8},{9},{10},{11}", d.RagioneSociale, d.Prodotto, d.Profilo, d.Cup, d.CodCommessa, d.IdDocumento, d.DataDocumento, d.SplitPayment, d.Pec, d.NotaLegale, d.DataCreazione, d.DataModifica);
+            csv.AppendLine(newLine);
+        } 
+        return Encoding.ASCII.GetBytes(csv.ToString());
+    }
+
     public static string GenerateFakeIdEnte()
     {
         return Guid.NewGuid().ToString();
@@ -36,7 +50,7 @@ public static class DatiFatturazioneExtensions
             Pec = model.Pec,
             TipoCommessa = model.TipoCommessa
         };
-    } 
+    }
 
     public static DatiFatturazioneCreateCommand Mapper(this DatiFatturazioneCreateRequest model, AuthenticationInfo authInfo) =>
        new(authInfo)
@@ -72,7 +86,7 @@ public static class DatiFatturazioneExtensions
             TipoCommessa = model.TipoCommessa,
         };
 
-    } 
+    }
 
     public static DatiFatturazioneUpdateCommand Mapper(this DatiFatturazioneUpdateRequest model, AuthenticationInfo authInfo) =>
        new(authInfo)

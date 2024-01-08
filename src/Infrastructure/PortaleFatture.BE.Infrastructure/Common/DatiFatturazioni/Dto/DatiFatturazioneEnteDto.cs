@@ -1,23 +1,24 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
+using PortaleFatture.BE.Infrastructure.Common.Documenti.Common;
 
-namespace PortaleFatture.BE.Core.Entities.DatiFatturazioni.Dto;
+namespace PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni.Dto;
 
 [Table("DatiFatturazione")]
 public class DatiFatturazioneEnteDto
 {
-    [Column("Description")]
     [JsonPropertyOrder(-6)]
     public string? Key
     {
         get
-        { 
+        {
             return $"{IdEnte}_{Prodotto}_{Profilo}";
         }
-    } 
+    }
 
     [Column("Description")]
     [JsonPropertyOrder(-5)]
+    [HeaderAttribute(caption: "Ragione Sociale", Order = 1)]
     public string? RagioneSociale { get; set; }
 
     [Column("FkIdEnte")]
@@ -30,10 +31,12 @@ public class DatiFatturazioneEnteDto
 
     [Column("product")]
     [JsonIgnore]
+    [Header(caption: "Prodotto", Order = 2)]
     public string? InternalProduct { get; set; }
 
     [Column("institutionType")]
     [JsonPropertyOrder(-2)]
+    [Header(caption: "Profilo", Order = 3)]
     public string? Profilo { get; set; }
 
     [Column("IdDatiFatturazione")]
@@ -46,14 +49,44 @@ public class DatiFatturazioneEnteDto
     [Column("FkProdotto")]
     [JsonPropertyOrder(-3)]
     public string? Prodotto { get; set; }
+
+    [Header(caption: "Cup", Order = 4)]
     public string? Cup { get; set; }
+
+    [Header(caption: "Cod. Commessa", Order = 5)]
     public string? CodCommessa { get; set; }
     public DateTime? DataDocumento { get; set; }
     public bool? SplitPayment { get; set; }
+
+    [Header(caption: "Id Documento", Order = 6)]
     public string? IdDocumento { get; set; }
     public string? Map { get; set; }
+
+    [Header(caption: "Pec", Order = 9)]
     public string? Pec { get; set; }
     public bool? NotaLegale { get; set; }
     public DateTimeOffset? DataCreazione { get; set; }
     public DateTimeOffset? DataModifica { get; set; }
+
+
+    [JsonIgnore]
+    [Header(caption: "Data Documento", Order = 7)]
+    public string? SDataDocumento { get { return DataDocumento?.ToString("d"); } }
+
+    [Header(caption: "Split Payment", Order = 8)]
+    [JsonIgnore]
+    public string? SSplitPayment { get { return SplitPayment.To(); } }
+
+    [Header(caption: "Nota Legale", Order = 10)]
+    [JsonIgnore]
+    public string? SNotaLegale { get { return NotaLegale.To(); } }
+
+    [Header(caption: "Data Creazione", Order = 11)]
+    [JsonIgnore]
+    public string? SDataCreazione { get { return DataCreazione?.ToString("d"); } }
+
+    [Header(caption: "Data Modifica", Order = 12)]
+    [JsonIgnore]
+    public string? SDataModifica { get { return DataModifica?.ToString("d"); } }
+
 }

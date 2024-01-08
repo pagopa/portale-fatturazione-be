@@ -34,7 +34,7 @@ namespace PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.QueryHandle
         public async Task<ModuloCommessaDto?> Handle(DatiModuloCommessaQueryGet request, CancellationToken ct)
         {
             var (annoFatturazione, meseFatturazione, _, adesso) = Time.YearMonthDayFatturazione();
-            var idTipoContratto = request.AuthenticationInfo.IdTipoContratto; 
+            var idTipoContratto = request.AuthenticationInfo.IdTipoContratto;
             var prodotto = request.AuthenticationInfo.Prodotto;
 
             using (var rs = await _factory.Create(true, cancellationToken: ct))
@@ -45,8 +45,8 @@ namespace PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.QueryHandle
                     var msg = "Provide products in configurazion!";
                     _logger.LogError(msg);
                     throw new ConfigurationException(msg);
-                } 
-                prodotto = prodotti.Where(x => x.Nome!.ToLower() == prodotto!.ToLower()).Select(x=> x.Nome).FirstOrDefault();
+                }
+                prodotto = prodotti.Where(x => x.Nome!.ToLower() == prodotto!.ToLower()).Select(x => x.Nome).FirstOrDefault();
                 if (prodotto == null)
                 {
                     var msg = "I could not find the specified product!";
@@ -75,11 +75,11 @@ namespace PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.QueryHandle
 
             var idEnte = request.AuthenticationInfo.IdEnte;
 
-            using var uow = await _factory.Create(true, cancellationToken: ct); 
-            var datic = await uow.Query(new DatiModuloCommessaQueryGetByIdPersistence(idEnte, request.AnnoValidita.Value, request.MeseValidita.Value,  request.Prodotto), ct);
-            var datit = await uow.Query(new DatiModuloCommessaTotaleQueryGetByIdPersistence(idEnte, request.AnnoValidita.Value, request.MeseValidita.Value,  request.Prodotto), ct);
+            using var uow = await _factory.Create(true, cancellationToken: ct);
+            var datic = await uow.Query(new DatiModuloCommessaQueryGetByIdPersistence(idEnte, request.AnnoValidita.Value, request.MeseValidita.Value, request.Prodotto), ct);
+            var datit = await uow.Query(new DatiModuloCommessaTotaleQueryGetByIdPersistence(idEnte, request.AnnoValidita.Value, request.MeseValidita.Value, request.Prodotto), ct);
 
-   
+
             var (valid, _) = await _scadenziarioService.GetScadenziario(
                  request.AuthenticationInfo,
                  TipoScadenziario.DatiModuloCommessa,
@@ -88,11 +88,11 @@ namespace PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.QueryHandle
 
             return new ModuloCommessaDto()
             {
-                Modifica = valid && (datic!.IsNullNotAny() || datic!.Select(x=>x.Stato).FirstOrDefault() == StatoModuloCommessa.ApertaCaricato),
+                Modifica = valid && (datic!.IsNullNotAny() || datic!.Select(x => x.Stato).FirstOrDefault() == StatoModuloCommessa.ApertaCaricato),
                 DatiModuloCommessa = datic!,
                 DatiModuloCommessaTotale = datit!,
-                Anno = datic!.Select(x => x.AnnoValidita).FirstOrDefault(),
-                Mese = datic!.Select(x => x.MeseValidita).FirstOrDefault(),
+                Anno = datic!.Select(x => x.AnnoValidita).FirstOrDefault() == 0 ? request.AnnoValidita.Value : datic!.Select(x => x.AnnoValidita).FirstOrDefault(),
+                Mese = datic!.Select(x => x.MeseValidita).FirstOrDefault() == 0 ? request.MeseValidita.Value : datic!.Select(x => x.MeseValidita).FirstOrDefault(),
             };
         }
     }

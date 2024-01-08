@@ -4,7 +4,6 @@ using System.Text;
 using Microsoft.IdentityModel.Tokens;
 using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Extensions;
-using PortaleFatture.BE.Infrastructure.Extensions;
 
 namespace PortaleFatture.BE.Infrastructure.Common.Identity;
 

@@ -12,8 +12,8 @@ using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Core.Resources;
+using PortaleFatture.BE.Infrastructure.Common.Identity;
 using PortaleFatture.BE.Infrastructure.Common.Tipologie.Queries;
-using PortaleFatture.BE.Infrastructure.Extensions;
 using static Microsoft.AspNetCore.Http.TypedResults;
 
 namespace PortaleFatture.BE.Api.Modules.DatiFatturazioni;

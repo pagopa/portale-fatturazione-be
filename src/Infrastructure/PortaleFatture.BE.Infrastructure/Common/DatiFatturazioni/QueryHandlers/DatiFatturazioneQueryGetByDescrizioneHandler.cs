@@ -4,8 +4,8 @@ using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Common;
-using PortaleFatture.BE.Core.Entities.DatiFatturazioni.Dto;
 using PortaleFatture.BE.Core.Resources;
+using PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni.Dto;
 using PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni.Queries;
 using PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni.Queries.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.Persistence.Schemas;
@@ -39,6 +39,7 @@ public class DatiFatturazioneQueryGetByDescrizioneHandler : IRequestHandler<Dati
         return await uow.Query(new DatiFatturazioneQueryGetByDescrizionePersistence(_options, 
             command.Descrizione,
             command.Prodotto,
-            command.Profilo), ct); 
+            command.Profilo,
+            command.Top), ct); 
     }
 }

@@ -10,11 +10,13 @@ using PortaleFatture.BE.Api.Modules.DatiFatturazioni.Payload.Request;
 using PortaleFatture.BE.Api.Modules.DatiFatturazioni.Payload.Response;
 using PortaleFatture.BE.Api.Modules.DatiModuloCommesse.Payload;
 using PortaleFatture.BE.Core.Auth;
-using PortaleFatture.BE.Core.Entities.DatiFatturazioni;
-using PortaleFatture.BE.Core.Entities.DatiFatturazioni.Dto;
+using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Core.Resources;
+using PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni;
+using PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni.Dto;
 using PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni.Queries;
-using PortaleFatture.BE.Infrastructure.Extensions;
+using PortaleFatture.BE.Infrastructure.Common.Documenti.Common;
+using PortaleFatture.BE.Infrastructure.Common.Identity;
 using static Microsoft.AspNetCore.Http.TypedResults;
 
 namespace PortaleFatture.BE.Api.Modules.DatiFatturazioni;
@@ -22,6 +24,7 @@ namespace PortaleFatture.BE.Api.Modules.DatiFatturazioni;
 public partial class DatiFatturazioneModule
 {
     #region PAGOPA
+
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
     [Authorize()]
     [EnableCors(CORSLabel)]
@@ -29,7 +32,41 @@ public partial class DatiFatturazioneModule
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    private async Task<Results<Ok<IEnumerable<DatiFatturazioneEnteDto>>, NotFound>> DatiFatturazioneByDescrizioneAsync(
+    private async Task<IResult> PagoPADatiFatturazioneByDescrizioneDocumentAsync(
+    HttpContext context,
+    [FromBody] EnteRicercaByDescrizioneRequest request,
+    [FromQuery] bool? binary,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var fatturazione = await handler.Send(new DatiFatturazioneQueryGetByDescrizione(authInfo, request.Descrizione!,
+            request.Prodotto,
+            request.Profilo,
+            null));
+        if (fatturazione == null || !fatturazione.Any())
+            return NotFound();
+
+        var mime = "application/vnd.ms-excel";
+        var filename = $"{Guid.NewGuid()}.xlsx";
+
+        var dataSet = fatturazione.FillOneSheet();
+        var content = dataSet.ToExcel();
+        if (binary == null)
+            return Ok(new DocumentDto() { Documento = Convert.ToBase64String(content.ToArray()) });
+        else
+            return Results.File(content!, mime, filename);
+
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [Authorize()]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<DatiFatturazioneEnteDto>>, NotFound>> PagoPADatiFatturazioneByDescrizioneAsync(
     HttpContext context,
     [FromBody] EnteRicercaByDescrizioneRequest request,
     [FromServices] IStringLocalizer<Localization> localizer,
@@ -38,9 +75,11 @@ public partial class DatiFatturazioneModule
         var authInfo = context.GetAuthInfo();
         var fatturazione = await handler.Send(new DatiFatturazioneQueryGetByDescrizione(authInfo, request.Descrizione!,
             request.Prodotto,
-            request.Profilo));
+            request.Profilo,
+            null));
         if (fatturazione == null || !fatturazione.Any())
             return NotFound();
+
         return Ok(fatturazione);
     }
 
@@ -52,7 +91,7 @@ public partial class DatiFatturazioneModule
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     private async Task<Results<Ok<DatiFatturazioneResponse>, BadRequest>> CreatePagoPaDatiFatturazioneAsync(
     HttpContext context,
-    [FromBody] DatiFatturazionePagoPACreateRequest req, 
+    [FromBody] DatiFatturazionePagoPACreateRequest req,
     [FromServices] IMediator handler)
     {
         var authInfo = context.GetAuthInfo();

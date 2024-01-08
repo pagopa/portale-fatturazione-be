@@ -77,14 +77,14 @@ public class ProfileService(
         try
         {
             var allowedGroups = GroupRoles.GetRoles(_options.AzureAd!.AdGroup!);
-            var groups = model.Groups!.Where(x => x!= null && x.Contains(_options.AzureAd!.AdGroup!)).ToList();
+            var groups = model.Groups!.Where(x => x != null && x.Contains(_options.AzureAd!.AdGroup!)).ToList();
             var portaleGroup = allowedGroups.Where(x => x.Value == true).FirstOrDefault();
             var allowedToPortale = groups.Where(x => portaleGroup.Key == x).FirstOrDefault();
             if (String.IsNullOrEmpty(allowedToPortale))
                 throw new SecurityException("You are not allowed in Portale Fatture");
             //groups.Remove(allowedToPortale); da rimettere dopo
 
-            var group = groups.Where(x => allowedGroups.Select(x=>x.Key).Contains(x)).FirstOrDefault();
+            var group = groups.Where(x => allowedGroups.Select(x => x.Key).Contains(x)).FirstOrDefault();
             if (groups.IsNullNotAny() || string.IsNullOrEmpty(group))
                 throw new SecurityException("Azure Ad roles not valid");
 
@@ -131,7 +131,7 @@ public class ProfileService(
                 // recupero dati db selfcare
                 var contratto = await _handler.Send(new ContrattoQueryGetById(auhtInfo));
                 var ente = await _handler.Send(new EnteQueryGetById(auhtInfo));
-                if (contratto == null || ente == null || contratto.Prodotto == null || ente.Profilo == null || contratto.Prodotto.ToLower() != org.Product!.ToLower())
+                if (contratto == null || ente == null || contratto.Prodotto == null || ente.Profilo == null)
                 {
                     var msg = "There is no reference in contratti o ente related to id:{idEnte}";
                     _logger.LogError(msg, model.Organization!.Id);

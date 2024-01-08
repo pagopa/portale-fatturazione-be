@@ -21,7 +21,8 @@ public class ContrattoQueryHandler(
     public async Task<Contratto?> Handle(ContrattoQueryGetById request, CancellationToken ct)
     {
         var idEnte = request.AuthenticationInfo!.IdEnte;
+        var prodotto = request.AuthenticationInfo.Prodotto;
         using var uow = await _factory.Create(cancellationToken: ct);
-        return await uow.Query(new ContrattoQueryGetByIdPersistence(idEnte!), ct);
+        return await uow.Query(new ContrattoQueryGetByIdPersistence(idEnte!, prodotto!), ct);
     }
 }

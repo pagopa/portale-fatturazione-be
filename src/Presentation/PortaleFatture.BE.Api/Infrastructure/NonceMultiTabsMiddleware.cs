@@ -1,6 +1,6 @@
 ﻿using PortaleFatture.BE.Api.Modules.Auth.Extensions;
 using PortaleFatture.BE.Core.Exceptions;
-using PortaleFatture.BE.Infrastructure.Extensions;
+using PortaleFatture.BE.Infrastructure.Common.Identity;
 using PortaleFatture.BE.Infrastructure.Gateway;
 
 namespace PortaleFatture.BE.Api.Infrastructure;

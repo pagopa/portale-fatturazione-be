@@ -4,7 +4,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using PortaleFatture.BE.Core.Auth;
 
-namespace PortaleFatture.BE.Infrastructure.Extensions;
+namespace PortaleFatture.BE.Infrastructure.Common.Identity;
 
 
 public static class IdentityExtensions

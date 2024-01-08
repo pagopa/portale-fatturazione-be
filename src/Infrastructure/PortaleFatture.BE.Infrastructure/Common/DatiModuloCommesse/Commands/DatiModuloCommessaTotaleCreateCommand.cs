@@ -18,4 +18,5 @@ public class DatiModuloCommessaTotaleCreateCommand : IRequest<DatiModuloCommessa
     public decimal TotaleCategoria { get; set; }
     public int PercentualeCategoria { get; set; } 
     public decimal Totale { get; set; }
+    public bool Fatturabile { get; set; } = true;
 }

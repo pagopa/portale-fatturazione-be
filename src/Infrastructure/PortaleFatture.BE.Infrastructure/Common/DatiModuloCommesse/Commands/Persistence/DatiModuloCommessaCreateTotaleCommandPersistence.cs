@@ -24,9 +24,10 @@ using        (VALUES
                 @TotaleCategoria,
                 @stato,
                 @percentualeCategoria,
-                @totale
+                @totale,
+                @fatturabile
              )
-             ) AS source (idente, idtipocontratto, prodotto, idCategoriaSpedizione, annovalidita, mesevalidita, totaleCategoria, stato, percentualeCategoria, totale)
+             ) AS source (idente, idtipocontratto, prodotto, idCategoriaSpedizione, annovalidita, mesevalidita, totaleCategoria, stato, percentualeCategoria, totale, fatturabile)
 ON           dm.fkidente = source.idente
 AND          dm.fkidtipocontratto = source.idtipocontratto
 AND          dm.fkprodotto = source.prodotto
@@ -37,7 +38,8 @@ WHEN matched THEN
 UPDATE
 SET              totaleCategoria = source.totaleCategoria,
                  percentualeCategoria = source.percentualeCategoria,
-                 totale =source.totale
+                 totale =source.totale,
+                 fatturabile = source.fatturabile
 WHEN NOT matched THEN
 INSERT
        (
@@ -50,7 +52,8 @@ INSERT
               mesevalidita,
               totaleCategoria,
               percentualeCategoria,
-              totale
+              totale,
+              fatturabile
        )
        VALUES
        (
@@ -63,7 +66,8 @@ INSERT
               source.mesevalidita,
               source.totaleCategoria,
               source.percentualeCategoria,
-              source.totale
+              source.totale,
+              1
        );
 ";
 

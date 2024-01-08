@@ -1,0 +1,31 @@
+﻿using MediatR;
+using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Logging;
+using PortaleFatture.BE.Core.Resources;
+using PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.Dto;
+using PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.Queries;
+using PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.Queries.Persistence;
+using PortaleFatture.BE.Infrastructure.Common.Persistence.Schemas;
+
+namespace PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.QueryHandlers;
+
+public class DatiModuloCommessaQueryByDescrizioneHandler(
+ IFattureDbContextFactory factory,
+ IStringLocalizer<Localization> localizer, 
+ ILogger<DatiModuloCommessaQueryByDescrizioneHandler> logger) : IRequestHandler<DatiModuloCommessaQueryGetByDescrizione, IEnumerable<ModuloCommessaByRicercaDto>?>
+{
+    private readonly IFattureDbContextFactory _factory = factory;
+    private readonly ILogger<DatiModuloCommessaQueryByDescrizioneHandler> _logger = logger;
+    private readonly IStringLocalizer<Localization> _localizer = localizer; 
+
+    public async Task<IEnumerable<ModuloCommessaByRicercaDto>?> Handle(DatiModuloCommessaQueryGetByDescrizione command, CancellationToken ct)
+    {
+        if (command.MeseValidita == null || command.AnnoValidita == null)
+            throw new ArgumentException("Passare un anno e un mese");
+        using var uow = await _factory.Create(cancellationToken: ct); 
+        return await uow.Query(new DatiModuloCommessaQueryGetByDescrizionePersistence(command.Descrizione, 
+            command.AnnoValidita.Value,
+            command.MeseValidita.Value,
+            command.Prodotto), ct);
+    }
+}
