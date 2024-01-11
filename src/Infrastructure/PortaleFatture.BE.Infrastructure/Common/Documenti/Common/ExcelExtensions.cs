@@ -29,9 +29,7 @@ public static class ExcelExtensions
                 Value = String.Format("{0:X2}{1:X2}{2:X2}{3:X3}", fillColor.R, fillColor.G, fillColor.B, fillColor.A)
             }
         };
-    }
-
-
+    } 
     internal static WorkbookStylesPart AddStyleSheet(this SpreadsheetDocument spreadsheet)
     {
         var stylesheet = spreadsheet.WorkbookPart!.AddNewPart<WorkbookStylesPart>();
@@ -256,6 +254,8 @@ public static class ExcelExtensions
             workbook.WorkbookPart!.Workbook = new Workbook();
             workbook.WorkbookPart.Workbook.Sheets = new Sheets();
 
+            int maxDigitFont = 11; // weight font
+
             // add styles
             workbook.AddStyleSheet();
 
@@ -263,6 +263,17 @@ public static class ExcelExtensions
 
             foreach (DataTable table in ds.Tables)
             {
+                var numbersOfChars = new Dictionary<int, int?>();
+                for (var j = 0; j < table.Columns.Count; j++)
+                {
+                    var len = table.Columns[j].Caption.Length;
+                    numbersOfChars.TryGetValue(j, out var value);
+                    if (value == null)
+                        numbersOfChars.TryAdd(j, len);
+                    else if (value < len)
+                        numbersOfChars[j] = len;
+                }
+
                 int lp = 1;
 
                 var sheetPart = workbook.WorkbookPart.AddNewPart<WorksheetPart>();
@@ -286,20 +297,22 @@ public static class ExcelExtensions
                 foreach (DataColumn column in table.Columns)
                 {
                     columns.Add(column.ColumnName, (XCellStyle)column.ExtendedProperties["Style"]!);
-
+                    var widthPixels = Math.Truncate(((256 * numbersOfChars[index]!.Value + Math.Truncate(128f / maxDigitFont)) / 256f) * maxDigitFont);
+                    var width = Math.Truncate(((widthPixels - 5f) / maxDigitFont * 100f + 0.5f) / 100f);
                     var cln = new Column
                     {
-                        Min = Convert.ToUInt32(index),
-                        Max = Convert.ToUInt32(index),
-                        Width = 14.5f,
-                        BestFit = true,
+                        Min = Convert.ToUInt32(index + 1),
+                        Max = Convert.ToUInt32(index + 1),
+                        Width = width + 5, 
                         CustomWidth = true,
                         Style = Convert.ToUInt32(0),
                     };
                     clmns.Append(cln);
                     index++;
                 }
-                sheetData.AppendChild(clmns);
+
+                var sheetdata = sheetPart.Worksheet.GetFirstChild<SheetData>();
+                sheetPart.Worksheet.InsertBefore(clmns, sheetdata);
 
                 var freezeRow = lp;
                 foreach (DataColumn column in table.Columns)

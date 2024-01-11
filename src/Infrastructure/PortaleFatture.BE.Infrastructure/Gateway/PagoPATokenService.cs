@@ -1,5 +1,4 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
 using System.Security;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -93,8 +92,8 @@ public class PagoPATokenService(
         }
         catch
         {
-            var msg = "Token Exchange Expired!";
-            _logger.LogError(msg);
+            var msg = "Token Exchange Expired! JWT: { jwt }";
+            _logger.LogError(msg, selfcareToken);
             throw new SecurityException(msg);
         }
         return (claimPrincipal, true);

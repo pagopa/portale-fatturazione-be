@@ -7,6 +7,15 @@ namespace PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse;
 
 public static class DatiModuloCommessaExtensions
 {
+    internal static string Map(this long idTipoContratto)
+    {
+        if (idTipoContratto == 1)
+            return "PAL";
+        else if (idTipoContratto == 2)
+            return "PAC";
+        return string.Empty;
+    }
+
     public static DatiModuloCommessaTotaleCreateListCommand GetTotali(
         this DatiModuloCommessaCreateListCommand command,
         IEnumerable<CategoriaSpedizione>? categorie,

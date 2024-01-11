@@ -30,7 +30,7 @@ public class ProfileService(
     {
         if (selfcareToken == null)
         {
-            var msg = "Fatal error with self care exchange token!";
+            var msg = "Fatal error with self care exchange token. SelfcareToken missing!";
             _logger.LogError(msg);
             throw new SecurityException(msg);
         }
@@ -42,7 +42,7 @@ public class ProfileService(
     {
         if (pagoPAIdToken == null)
         {
-            var msg = "Fatal error with pagoPA AzureAD token!";
+            var msg = "Fatal error with pagoPA AzureAD token! AzureAD token missing!";
             _logger.LogError(msg);
             throw new SecurityException(msg);
         }
@@ -81,12 +81,12 @@ public class ProfileService(
             var portaleGroup = allowedGroups.Where(x => x.Value == true).FirstOrDefault();
             var allowedToPortale = groups.Where(x => portaleGroup.Key == x).FirstOrDefault();
             if (String.IsNullOrEmpty(allowedToPortale))
-                throw new SecurityException("You are not allowed in Portale Fatture");
+                throw new SecurityException("You are not allowed in Portale Fatture. There is no group valid Portale Fatture.");
             //groups.Remove(allowedToPortale); da rimettere dopo
 
             var group = groups.Where(x => allowedGroups.Select(x => x.Key).Contains(x)).FirstOrDefault();
             if (groups.IsNullNotAny() || string.IsNullOrEmpty(group))
-                throw new SecurityException("Azure Ad roles not valid");
+                throw new SecurityException("Azure Ad roles not valid.");
 
             return new AuthenticationInfo()
             {
@@ -133,8 +133,8 @@ public class ProfileService(
                 var ente = await _handler.Send(new EnteQueryGetById(auhtInfo));
                 if (contratto == null || ente == null || contratto.Prodotto == null || ente.Profilo == null)
                 {
-                    var msg = "There is no reference in contratti o ente related to id:{idEnte}";
-                    _logger.LogError(msg, model.Organization!.Id);
+                    var msg = "There is no reference in contratti o ente related to id:{idEnte} name:{Name}";
+                    _logger.LogError(msg, model.Organization!.Id, model.Organization.Name);
                     throw new ConfigurationException(msg);
                 }
                 else
