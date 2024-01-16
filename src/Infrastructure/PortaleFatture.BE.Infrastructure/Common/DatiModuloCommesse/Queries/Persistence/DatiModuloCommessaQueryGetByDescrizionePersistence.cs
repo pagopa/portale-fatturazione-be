@@ -17,12 +17,11 @@ public class DatiModuloCommessaQueryGetByDescrizionePersistence(string? descrizi
     {
         string? where = null;
         if (!string.IsNullOrEmpty(_descrizione))
-            where = " AND d.description LIKE '%' + @descrizione + '%'";
+            where = " AND RagioneSociale LIKE '%' + @descrizione + '%'";
 
         if (!string.IsNullOrEmpty(_prodotto))
-            where += " AND d.FkProdotto  = @prodotto";
-
-        return await ((IDatabase)this).SelectAsync<ModuloCommessaByRicercaDto>(connection!, _sqlSelect + where,
+            where += " AND Prodotto  = @prodotto"; 
+        return await ((IDatabase)this).SelectAsync<ModuloCommessaByRicercaDto>(connection!, _sqlSelect.Add(schema) + where,
             new
             {
                 descrizione = _descrizione,

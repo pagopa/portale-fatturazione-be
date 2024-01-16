@@ -10,11 +10,11 @@ using PortaleFatture.BE.Infrastructure.Common.Persistence.Schemas;
 namespace PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.QueryHandlers;
 
 public class DatiModuloCommessaQueryByDescrizioneHandler(
- IFattureDbContextFactory factory,
+ ISelfCareDbContextFactory factory,
  IStringLocalizer<Localization> localizer, 
  ILogger<DatiModuloCommessaQueryByDescrizioneHandler> logger) : IRequestHandler<DatiModuloCommessaQueryGetByDescrizione, IEnumerable<ModuloCommessaByRicercaDto>?>
 {
-    private readonly IFattureDbContextFactory _factory = factory;
+    private readonly ISelfCareDbContextFactory _factory = factory;
     private readonly ILogger<DatiModuloCommessaQueryByDescrizioneHandler> _logger = logger;
     private readonly IStringLocalizer<Localization> _localizer = localizer; 
 
