@@ -17,69 +17,69 @@ public sealed class ModuloCommessaByRicercaDto
         }
     }
 
-    [Column("FkIdEnte")]
-    [HeaderAttribute(caption: "IdEnte", Order = 1)]
+    [Column("FkIdEnte")] 
+    [HeaderAttribute(caption: "identificativo SC", Order = 1)]
     public string? IdEnte { get; set; }
 
-    [HeaderAttribute(caption: "RagioneSociale", Order = 2)]
+    [HeaderAttribute(caption: "ragione sociale ente", Order = 2)]
     [Column("description")]
     public string? RagioneSociale { get; set; }
 
-    [HeaderAttribute(caption: "CodiceFiscale", Order = 3)]
+    [HeaderAttribute(caption: "codice fiscale", Order = 3)]
     [Column("vatnumber")]
     public string? CodiceFiscale { get; set; } 
 
-    [HeaderAttribute(caption: "Prodotto", Order = 4)]
+    [HeaderAttribute(caption: "prodotto", Order = 4)]
     [Column("FkProdotto")]
     public string? Prodotto { get; set; }
 
-    [HeaderAttribute(caption: "TipoSpedizioneDigitale", Order = 5)]
+    [HeaderAttribute(caption: "Tipo Spedizione", Order = 5)]
     [Column("TipoSpedizione")]
     public string? TipoSpedizioneDigitale { get; set; }
 
 
-    [HeaderAttribute(caption: "NumeroNotificheNazionaliDigitale", Order = 6)]
+    [HeaderAttribute(caption: "N. Notifiche NZ", Order = 6)]
 
     [Column("NumeroNotificheNazionali")]
     public int NumeroNotificheNazionaliDigitale { get; set; }
 
 
-    [HeaderAttribute(caption: "NumeroNotificheInternazionaliDigitale", Order = 7)]
+    [HeaderAttribute(caption: "N. Notifiche INT", Order = 7)]
 
     [Column("NumeroNotificheInternazionali")]
     public int NumeroNotificheInternazionaliDigitale { get; set; }
 
 
-    [HeaderAttribute(caption: "TipoSpedizioneAnalogicoAR", Order = 8)]
+    [HeaderAttribute(caption: "Tipo Spedizione", Order = 8)]
 
     [Column("TipoSpedizione")] 
     public string? TipoSpedizioneAnalogicoAR { get; set; }
 
-    [HeaderAttribute(caption: "NumeroNotificheNazionaliAnalogicoAR", Order = 9)]
+    [HeaderAttribute(caption: "N. Notifiche NZ", Order = 9)]
     [Column("NumeroNotificheNazionali")]
     public int NumeroNotificheNazionaliAnalogicoAR { get; set; }
 
-    [HeaderAttribute(caption: "NumeroNotificheInternazionaliAnalogicoAR", Order = 10)]
+    [HeaderAttribute(caption: "N. Notifiche INT", Order = 10)]
     [Column("NumeroNotificheInternazionali")]
     public int NumeroNotificheInternazionaliAnalogicoAR { get; set; }
 
-    [HeaderAttribute(caption: "TipoSpedizioneAnalogico890", Order = 11)]
+    [HeaderAttribute(caption: "Tipo Spedizione", Order = 11)]
     [Column("TipoSpedizione")]
     public string? TipoSpedizioneAnalogico890 { get; set; }
 
-    [HeaderAttribute(caption: "NumeroNotificheNazionaliAnalogico890", Order = 12)]
+    [HeaderAttribute(caption: "N. Notifiche NZ", Order = 12)]
     [Column("NumeroNotificheNazionali")]
     public int NumeroNotificheNazionaliAnalogico890 { get; set; } 
 
-    [HeaderAttribute(caption: "NumeroNotificheInternazionaliAnalogico890", Order = 13)]
+    [HeaderAttribute(caption: "N. Notifiche INT", Order = 13)]
     [Column("NumeroNotificheInternazionali")]
     public int NumeroNotificheInternazionaliAnalogico890 { get; set; }
 
-    [HeaderAttribute(caption: "TotaleCategoriaAnalogico", Order = 14)]
+    [HeaderAttribute(caption: "Totale Spedizioni Analogiche", Order = 14)]
     [Column("TotaleCategoria")]
     public decimal TotaleCategoriaAnalogico { get; set; }
 
-    [HeaderAttribute(caption: "TotaleCategoriaDigitale", Order = 15)]
+    [HeaderAttribute(caption: "Totale Spedizioni Digitali", Order = 15)]
     [Column("TotaleCategoria")]
     public int TotaleCategoriaDigitale { get; set; }
 
@@ -94,19 +94,19 @@ public sealed class ModuloCommessaByRicercaDto
     [Column("Mese")]
     public int Mese { get; set; }
 
-    [HeaderAttribute(caption: "TotaleAnalogicoLordo", Order = 18)]
+    [HeaderAttribute(caption: "Totale Analogiche Lordo", Order = 18)]
     [Column("Totale")]
     public decimal TotaleAnalogicoLordo { get; set; }
 
-    [HeaderAttribute(caption: "TotaleDigitaleLordo", Order = 18)]
+    [HeaderAttribute(caption: "Totale Digitali Lordo", Order = 18)]
     [Column("Totale")]
     public decimal TotaleDigitaleLordo { get; set; }
 
-    [HeaderAttribute(caption: "TotaleLordo", Order = 19)]
+    [HeaderAttribute(caption: "Totale Lordo", Order = 19)]
     [Column("Totale")]
     public decimal TotaleLordo { get; set; }
 
-    [HeaderAttribute(caption: "IdTipoContratto", Order = 20)]
+    [HeaderAttribute(caption: "tipo contratto", Order = 20)]
     [JsonIgnore]
     public string? SIdTipoContratto { get { return IdTipoContratto.Map(); } }
 
