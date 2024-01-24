@@ -81,7 +81,7 @@ public sealed class ModuloCommessaByRicercaDto
 
     [HeaderAttribute(caption: "Totale Spedizioni Digitali", Order = 15)]
     [Column("TotaleCategoria")]
-    public int TotaleCategoriaDigitale { get; set; }
+    public decimal TotaleCategoriaDigitale { get; set; }
 
     [HeaderAttribute(caption: "Anno", Order = 16)]
     [Column("Anno")]
