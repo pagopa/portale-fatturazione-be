@@ -39,7 +39,19 @@ public partial class TipologieModule : Module, IRegistrableModule
 
         endpointRouteBuilder
            .MapGet("api/tipologia/categoriaspedizione", GetAllCategoriaSpedizioneAsync)
-           .WithName("Permette di ottenere le categoire spedizione per la gestione dati configurazione modulo commessa.")
+           .WithName("Permette di ottenere le categorie spedizione per la gestione dati configurazione modulo commessa.")
+           .SetOpenApi(Module.DatiTipologiaLabel)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+           .MapGet("api/tipologia/tipocontestazione", GetAllTipologiaContestazioniAsync)
+           .WithName("Permette di ottenere le tipologie di contestazione per la gestione delle notifiche.")
+           .SetOpenApi(Module.DatiTipologiaLabel)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+           .MapGet("api/tipologia/flagcontestazione", GetAllFlagContestazioniAsync)
+           .WithName("Permette di ottenere i flag di contestazione per la gestione delle notifiche.")
            .SetOpenApi(Module.DatiTipologiaLabel)
            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
     }

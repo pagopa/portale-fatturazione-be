@@ -12,6 +12,8 @@ public static class IdentityExtensions
     public static AuthenticationInfo GetAuthInfo(this HttpContext context)
     {
         var identity = context.User.Identity as ClaimsIdentity ?? throw new SecurityException();
+        if (!identity.IsAuthenticated)
+            throw new SecurityException();
         return identity.Claims.Mapper();
     }
 

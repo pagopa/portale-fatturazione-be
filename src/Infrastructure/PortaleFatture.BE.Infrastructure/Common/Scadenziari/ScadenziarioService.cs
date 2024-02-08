@@ -3,7 +3,6 @@ using Microsoft.Extensions.Logging;
 using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Entities.Scadenziari;
 using PortaleFatture.BE.Infrastructure.Common.Scadenziari.Queries;
-using PortaleFatture.BE.Infrastructure.Common.Scadenziari.QueryHandlers;
 
 namespace PortaleFatture.BE.Infrastructure.Common.Scadenziari;
 

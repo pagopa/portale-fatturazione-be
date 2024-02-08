@@ -1,9 +1,7 @@
-﻿using System;
-using System.IdentityModel.Tokens.Jwt;
+﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security;
 using System.Security.Claims;
 using System.Security.Cryptography;
-using Azure.Core;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using PortaleFatture.BE.Core.Auth;

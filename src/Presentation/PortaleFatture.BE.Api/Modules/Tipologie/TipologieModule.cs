@@ -9,6 +9,7 @@ using PortaleFatture.BE.Api.Modules.DatiFatturazioni.Extensions;
 using PortaleFatture.BE.Api.Modules.DatiFatturazioni.Payload.Response;
 using PortaleFatture.BE.Api.Modules.DatiModuloCommesse.Payload;
 using PortaleFatture.BE.Core.Auth;
+using PortaleFatture.BE.Core.Entities.Notifiche;
 using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Core.Resources;
@@ -40,7 +41,7 @@ public partial class TipologieModule
         return Ok(enti);
     }
 
-    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}")]
     [Authorize()]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -125,5 +126,39 @@ public partial class TipologieModule
         if (categorie.IsNullNotAny())
             throw new ConfigurationException(localizer["DatiProdottoMissing"]);
         return Ok(categorie.Mapper());
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}")]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<TipoContestazione>>, NotFound>> GetAllTipologiaContestazioniAsync(
+    HttpContext context,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var tipologie = await handler.Send(new TipoContestazioneGetAll());
+        if (tipologie.IsNullNotAny())
+            throw new ConfigurationException(localizer["TipoContestazioneMissing"]);
+        return Ok(tipologie);
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}")]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<FlagContestazione>>, NotFound>> GetAllFlagContestazioniAsync(
+    HttpContext context,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var flags = await handler.Send(new FlagContestazioneQueryGetAll());
+        if (flags.IsNullNotAny())
+            throw new ConfigurationException(localizer["FlagContestazioneMissing"]);
+        return Ok(flags);
     }
 }

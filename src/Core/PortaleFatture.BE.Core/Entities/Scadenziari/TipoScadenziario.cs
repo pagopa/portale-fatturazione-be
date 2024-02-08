@@ -3,5 +3,5 @@
 public enum  TipoScadenziario
 {
    DatiModuloCommessa = 1,
-   DatiFatturazione = 2
+   DatiFatturazione = 2 
 }

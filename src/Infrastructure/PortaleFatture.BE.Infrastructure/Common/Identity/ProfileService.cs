@@ -59,6 +59,18 @@ public class ProfileService(
         };
     }
 
+    private string MapperGruppi(string gruppo)
+    {
+        if (gruppo.Contains(GroupRoles.APPROVIGIONAMENTO))
+            return Profilo.Approvigionamento;
+        else if (gruppo.Contains(GroupRoles.FINANZA))
+            return Profilo.Finanza;
+        else if (gruppo.Contains(GroupRoles.ASSISTENZA))
+            return Profilo.Assistenza;
+        else
+            throw new DomainException("Gruppo AD sconosciuto!"); 
+    } 
+
     private string MapperGruppoRuolo(string descrizioneRuolo)
     {
         return descrizioneRuolo;
@@ -82,7 +94,7 @@ public class ProfileService(
             var allowedToPortale = groups.Where(x => portaleGroup.Key == x).FirstOrDefault();
             if (String.IsNullOrEmpty(allowedToPortale))
                 throw new SecurityException("You are not allowed in Portale Fatture. There is no group valid Portale Fatture.");
-            //groups.Remove(allowedToPortale); da rimettere dopo
+            groups.Remove(allowedToPortale);  
 
             var group = groups.Where(x => allowedGroups.Select(x => x.Key).Contains(x)).FirstOrDefault();
             if (groups.IsNullNotAny() || string.IsNullOrEmpty(group))
@@ -97,7 +109,8 @@ public class ProfileService(
                 DescrizioneRuolo = DisplayNameRole.AMMINISTRATORE,
                 NomeEnte = null,
                 GruppoRuolo = group,
-                Auth = AuthType.PAGOPA
+                Auth = AuthType.PAGOPA,
+                Profilo = MapperGruppi(group)
             };
         }
         catch (Exception ex)
@@ -112,7 +125,8 @@ public class ProfileService(
         try
         {
             List<AuthenticationInfo> infos = [];
-            foreach (var org in model.Organization!.Roles!)
+            var roles = model.Organization!.Roles!.OrderByDescending(x=>x.Product);
+            foreach (var org in roles)
             {
                 var auhtInfo = new AuthenticationInfo()
                 {
@@ -135,7 +149,7 @@ public class ProfileService(
                 {
                     var msg = "There is no reference in contratti o ente related to id:{idEnte} name:{Name}";
                     _logger.LogError(msg, model.Organization!.Id, model.Organization.Name);
-                    throw new ConfigurationException(msg);
+                    throw new ConfigurationException(string.Format("There is no reference in contratti o ente related to id:{0} name:{1}", model.Organization!.Id, model.Organization.Name));
                 }
                 else
                 {

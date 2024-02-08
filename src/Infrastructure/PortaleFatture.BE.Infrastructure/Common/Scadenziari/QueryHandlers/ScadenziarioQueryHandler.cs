@@ -21,8 +21,8 @@ public class ScadenziarioQueryHandler(
     {
         var authInfo = request.AuthenticationInfo;
         var tipo = request.Tipo;
-        var mese = request.Mese;
-        var anno = request.Anno;
+        var meseVerifica = request.Mese;
+        var annoVerifica = request.Anno;
 
         Scadenziario scadenziario;
         if (tipo == TipoScadenziario.DatiModuloCommessa)
@@ -31,19 +31,32 @@ public class ScadenziarioQueryHandler(
                 GiornoFine = 19,
                 GiornoInizio = 1
             });
+        else if (tipo == TipoScadenziario.DatiFatturazione)
+            scadenziario = await Task.Run(() => new Scadenziario()
+            {
+                GiornoFine = 31,
+                GiornoInizio = 1
+            }); 
         else
             throw new ConfigurationException("Time table not configured for the specific data.");
 
         if (authInfo.Ruolo != Ruolo.ADMIN)
             return (false, scadenziario);
 
-        var (annoFatturazione, meseFatturazione, giornoAttuale, _) = Time.YearMonthDayFatturazione();
-        if (meseFatturazione != mese || annoFatturazione != anno) // deve essere il mese corrente fatturazione + 1
-            return (false, scadenziario);
+        if (tipo == TipoScadenziario.DatiModuloCommessa)
+        {
+            var (annoFatturazione, meseFatturazione, giornoAttuale, adesso) = Time.YearMonthDayFatturazione();
+            scadenziario.Mese = meseFatturazione;
+            scadenziario.Anno = annoFatturazione;
+            scadenziario.Adesso = adesso;
+            if (meseFatturazione != meseVerifica || annoFatturazione != annoVerifica) // deve essere il mese corrente fatturazione + 1  
+                return (false, scadenziario);
 
-        if (giornoAttuale >= scadenziario.GiornoInizio && giornoAttuale <= scadenziario.GiornoFine)
-            return (true, scadenziario);
-        else
-            return (false, scadenziario); 
+            if (giornoAttuale >= scadenziario.GiornoInizio && giornoAttuale <= scadenziario.GiornoFine)
+                return (true, scadenziario);
+            else
+                return (false, scadenziario);
+        }
+        return (false, scadenziario);
     }
 }

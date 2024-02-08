@@ -1,7 +1,7 @@
 ﻿namespace PortaleFatture.BE.Core.Extensions;
 
 public static class DomainExtensions
-{ 
+{
     private static readonly TimeZoneInfo _italianTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Central European Standard Time");
     public static DateTime ItalianTime(this DateTime dateUtcTime)
     {
@@ -14,12 +14,12 @@ public static class DomainExtensions
     }
 
     public static (int, int) YearMonth(this DateTime dateTime)
-    { 
+    {
         return (dateTime.Year, dateTime.Month);
-    } 
+    }
 }
 
-public static class Time 
+public static class Time
 {
     public static (int, int, int, DateTime) YearMonthDay()
     {
@@ -30,7 +30,7 @@ public static class Time
     public static (int, int, int, DateTime) YearMonthDayFatturazione()
     {
         var adesso = DateTime.UtcNow.ItalianTime();
-        var refFatturazione = DateTime.UtcNow.ItalianTime().AddMonths(1); // mese riferimento fatturazione = mese attuale + 1
+        var refFatturazione = adesso.AddMonths(1); // mese riferimento fatturazione = mese attuale + 1
         return (refFatturazione.Year, refFatturazione.Month, adesso.Day, adesso);
-    }
+    } 
 }

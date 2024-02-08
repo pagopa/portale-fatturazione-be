@@ -117,6 +117,12 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="CreazioneContestazioneDuplicate" xml:space="preserve">
+    <value>Esiste già una contestazione relativa alla notifica: "{0}".</value>
+  </data>
+  <data name="CreazioneContestazioneError" xml:space="preserve">
+    <value>Si è verificato un errore nel salvare la contestazione relativa alla notifica: "{0}".</value>
+  </data>
   <data name="DataScadenziarioValidationError" xml:space="preserve">
     <value>L'operazione è consentita solo nei seguenti giorni corrente mese: "{0}".</value>
   </data>
@@ -234,11 +240,17 @@
   <data name="EnteSelfCareError" xml:space="preserve">
     <value>Non è stato trovato un profilo ente associato.</value>
   </data>
+  <data name="FlagContestazioneMissing" xml:space="preserve">
+    <value>Non sono stati configurati i flag di contestazione</value>
+  </data>
   <data name="MediaNotificaInternazionaleInvalid" xml:space="preserve">
     <value>Inserire un valore per la media notifica internazionale.</value>
   </data>
   <data name="MediaNotificaNazionaleInvalid" xml:space="preserve">
     <value>Inserire un valore per la media notifica nazionale.</value>
+  </data>
+  <data name="NotificaContestazioneValidationError" xml:space="preserve">
+    <value>Non è possibile contestare la notifica, controllare lo scadenziario, validità: {0}</value>
   </data>
   <data name="PercentoConfiguazioneModuloCommessaInvalid" xml:space="preserve">
     <value>Il valore della percentuale deve essere un numero positivo.</value>
@@ -248,6 +260,9 @@
   </data>
   <data name="RoleError" xml:space="preserve">
     <value>Ruolo non abilitato per l'esecuzione dell'operazione.</value>
+  </data>
+  <data name="TipoContestazioneMissing" xml:space="preserve">
+    <value>Non sono state configurate le tipologie di contestazione</value>
   </data>
   <data name="UtenteProfiloError" xml:space="preserve">
     <value>Si è verificato un errore nel recuperare il profilo utente.</value>

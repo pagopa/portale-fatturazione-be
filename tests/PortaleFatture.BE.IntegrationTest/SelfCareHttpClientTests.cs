@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using NUnit.Framework.Legacy;
 using PortaleFatture.BE.Infrastructure.Gateway;
 
 namespace PortaleFatture.BE.IntegrationTest;
@@ -21,8 +22,8 @@ public class SelfCareHttpClientTests
     public async Task GetCertificates_ShouldSucceed_ReturnList()
     {
         var certificates = await _client.GetCertificatesAsync();
-        Assert.IsNotNull(certificates);
-        Assert.True(certificates.Count > 0);
+        ClassicAssert.IsNotNull(certificates);
+        ClassicAssert.True(certificates.Count > 0);
     }
 
     [Test]
@@ -30,6 +31,6 @@ public class SelfCareHttpClientTests
     {
         var selfCareToken = _conf.GetSection("PortaleFattureOptions:JWT:TestToken").Value;
         var jwt = _client.GetSelfCareTokenAsync(selfCareToken);
-        Assert.NotNull(jwt);
+        ClassicAssert.NotNull(jwt);
     }
 }

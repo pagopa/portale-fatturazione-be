@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
+using NUnit.Framework.Legacy;
 using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Core.Resources;
 using PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni.Commands;
@@ -58,7 +59,7 @@ public class DatiFatturazioneGetByIdQueryTests
             SplitPayment = expectedSplitPayment             
         };
 
-        Assert.ThrowsAsync<ValidationException>(async () => await _handler.Send(req));
+        ClassicAssert.ThrowsAsync<ValidationException>(async () => await _handler.Send(req));
         var expectedContatti = new List<DatiFatturazioneContattoCreateCommand>()
         { new()
             {
@@ -73,7 +74,7 @@ public class DatiFatturazioneGetByIdQueryTests
         req.Contatti = expectedContatti;
 
         var actualDatiFatturazione = await _handler.Send(req);
-        Assert.IsNotNull(actualDatiFatturazione);  
+        ClassicAssert.IsNotNull(actualDatiFatturazione);  
 
         var id = actualDatiFatturazione.Id;
         var select = new DatiFatturazioneQueryGetById()
@@ -82,10 +83,10 @@ public class DatiFatturazioneGetByIdQueryTests
         };
             ;
         actualDatiFatturazione = await _handler.Send(select);
-        Assert.IsNotNull(actualDatiFatturazione);
-        Assert.True(actualDatiFatturazione.NotaLegale == expectedNotaLegale);
-        Assert.True(actualDatiFatturazione.CodCommessa == expectedCodCommessa);
-        Assert.IsNull(actualDatiFatturazione.DataModifica);
+        ClassicAssert.IsNotNull(actualDatiFatturazione);
+        ClassicAssert.True(actualDatiFatturazione.NotaLegale == expectedNotaLegale);
+        ClassicAssert.True(actualDatiFatturazione.CodCommessa == expectedCodCommessa);
+        ClassicAssert.IsNull(actualDatiFatturazione.DataModifica);
     }
 
     [Test]
@@ -130,7 +131,7 @@ public class DatiFatturazioneGetByIdQueryTests
         };
 
         var actualDatiFatturazione = await _handler.Send(req);
-        Assert.IsNotNull(actualDatiFatturazione); 
+        ClassicAssert.IsNotNull(actualDatiFatturazione); 
 
         var id = actualDatiFatturazione.Id;
         var select = new DatiFatturazioneQueryGetById()
@@ -141,10 +142,10 @@ public class DatiFatturazioneGetByIdQueryTests
         actualDatiFatturazione = await _handler.Send(select); 
 
         var contatti = actualDatiFatturazione.Contatti!.OrderBy(x => x.Email).ToList();
-        Assert.True(contatti.Count == 2);
-        Assert.True(contatti[0].Email == "expected1@pippo.com");
-        Assert.True(contatti[1].Email == "expected2@pippo.com");
-        Assert.IsNull(actualDatiFatturazione.DataModifica);
-        Assert.IsTrue(actualDatiFatturazione.NotaLegale);
+        ClassicAssert.True(contatti.Count == 2);
+        ClassicAssert.True(contatti[0].Email == "expected1@pippo.com");
+        ClassicAssert.True(contatti[1].Email == "expected2@pippo.com");
+        ClassicAssert.IsNull(actualDatiFatturazione.DataModifica);
+        ClassicAssert.IsTrue(actualDatiFatturazione.NotaLegale);
     }
 }

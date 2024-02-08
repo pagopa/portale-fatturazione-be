@@ -1,6 +1,7 @@
 using System.Security;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using NUnit.Framework.Legacy;
 using PortaleFatture.BE.Infrastructure.Gateway;
 
 namespace PortaleFatture.BE.IntegrationTest;
@@ -24,7 +25,7 @@ public class SelfCareTokenServiceTests
     {
         var selfCareToken = _conf.GetSection("PortaleFattureOptions:JWT:TestToken").Value;
         var (_, result) = await _service.Validate(selfCareToken!);
-        Assert.True(result);
+        ClassicAssert.True(result);
     }
 
     [Test]
@@ -32,7 +33,7 @@ public class SelfCareTokenServiceTests
     {
         var selfCareToken = _conf.GetSection("PortaleFattureOptions:JWT:TestToken").Value;
         var result = await _service.ValidateContent(selfCareToken!);
-        Assert.IsNotNull(result);
+        ClassicAssert.IsNotNull(result);
     }
 
 

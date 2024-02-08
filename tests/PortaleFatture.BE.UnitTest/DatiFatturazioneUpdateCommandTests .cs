@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
+using NUnit.Framework.Legacy;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Core.Resources;
 using PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni.Commands;
@@ -67,7 +68,7 @@ public class DatiFatturazioneUpdateCommandTests
         };
 
         var actualDatiFatturazione = await _handler.Send(request);
-        Assert.IsNotNull(actualDatiFatturazione);
+        ClassicAssert.IsNotNull(actualDatiFatturazione);
 
         DateTime expectedDataModifica = DateTime.UtcNow.AddMinutes(1);
         var expectedUpdatedPec = "modified@pec.it";
@@ -102,10 +103,10 @@ public class DatiFatturazioneUpdateCommandTests
 
         actualDatiFatturazione = await _handler.Send(updateRequest);
 
-        Assert.True(actualDatiFatturazione.NotaLegale == expectedNotaLegale);
-        Assert.True(actualDatiFatturazione.CodCommessa == expectedCodCommessa);
-        Assert.True(actualDatiFatturazione.Pec == expectedUpdatedPec);
-        Assert.IsNotNull(actualDatiFatturazione.Contatti);
+        ClassicAssert.True(actualDatiFatturazione.NotaLegale == expectedNotaLegale);
+        ClassicAssert.True(actualDatiFatturazione.CodCommessa == expectedCodCommessa);
+        ClassicAssert.True(actualDatiFatturazione.Pec == expectedUpdatedPec);
+        ClassicAssert.IsNotNull(actualDatiFatturazione.Contatti);
     }
 
 
@@ -150,7 +151,7 @@ public class DatiFatturazioneUpdateCommandTests
         };
 
         var actualDatiFatturazione = await _handler.Send(request);
-        Assert.IsNotNull(actualDatiFatturazione);
+        ClassicAssert.IsNotNull(actualDatiFatturazione);
 
         var expectedContatti = new List<DatiFatturazioneContattoCreateCommand>()
         { new()
@@ -184,10 +185,10 @@ public class DatiFatturazioneUpdateCommandTests
 
         actualDatiFatturazione = await _handler.Send(updateRequest);
 
-        Assert.True(actualDatiFatturazione.NotaLegale == expectedNotaLegale);
-        Assert.True(actualDatiFatturazione.CodCommessa == expectedCodCommessa);
-        Assert.True(actualDatiFatturazione.Pec == expectedUpdatedPec);
-        Assert.IsNotNull(actualDatiFatturazione.Contatti);
+        ClassicAssert.True(actualDatiFatturazione.NotaLegale == expectedNotaLegale);
+        ClassicAssert.True(actualDatiFatturazione.CodCommessa == expectedCodCommessa);
+        ClassicAssert.True(actualDatiFatturazione.Pec == expectedUpdatedPec);
+        ClassicAssert.IsNotNull(actualDatiFatturazione.Contatti);
     }
 
     [Test]
@@ -234,7 +235,7 @@ public class DatiFatturazioneUpdateCommandTests
         };
 
         var actualDatiFatturazione = await _handler.Send(request);
-        Assert.IsNotNull(actualDatiFatturazione);
+        ClassicAssert.IsNotNull(actualDatiFatturazione);
 
         DateTime expectedDataModifica = DateTime.UtcNow.AddMinutes(1);
         var expectedUpdatedPec = "modified@pec.it";
@@ -267,10 +268,10 @@ public class DatiFatturazioneUpdateCommandTests
 
         actualDatiFatturazione = await _handler.Send(updateRequest);
 
-        Assert.True(actualDatiFatturazione.NotaLegale == expectedNotaLegale);
-        Assert.True(actualDatiFatturazione.CodCommessa == expectedCodCommessa);
-        Assert.True(actualDatiFatturazione.Contatti!.Count() == 1);
-        Assert.True(actualDatiFatturazione.Contatti!.ToList()[0].Email == expectedContatto);
+        ClassicAssert.True(actualDatiFatturazione.NotaLegale == expectedNotaLegale);
+        ClassicAssert.True(actualDatiFatturazione.CodCommessa == expectedCodCommessa);
+        ClassicAssert.True(actualDatiFatturazione.Contatti!.Count() == 1);
+        ClassicAssert.True(actualDatiFatturazione.Contatti!.ToList()[0].Email == expectedContatto);
     }
 
     [Test]
@@ -314,7 +315,7 @@ public class DatiFatturazioneUpdateCommandTests
         };
 
         var actualDatiFatturazione = await _handler.Send(request);
-        Assert.IsNotNull(actualDatiFatturazione);
+        ClassicAssert.IsNotNull(actualDatiFatturazione);
 
         DateTime expectedDataModifica = DateTime.UtcNow.AddMinutes(1);
         var expectedUpdatedPec = "modified@pec.it";
@@ -338,9 +339,9 @@ public class DatiFatturazioneUpdateCommandTests
 
         actualDatiFatturazione = await _handler.Send(updateRequest);
 
-        Assert.True(actualDatiFatturazione.NotaLegale == expectedNotaLegale);
-        Assert.True(actualDatiFatturazione.CodCommessa == expectedCodCommessa);
-        Assert.True(actualDatiFatturazione.Contatti!.Count() == 1);
-        Assert.True(actualDatiFatturazione.Contatti!.ToList()[0].Email == expectedContatto);
+        ClassicAssert.True(actualDatiFatturazione.NotaLegale == expectedNotaLegale);
+        ClassicAssert.True(actualDatiFatturazione.CodCommessa == expectedCodCommessa);
+        ClassicAssert.True(actualDatiFatturazione.Contatti!.Count() == 1);
+        ClassicAssert.True(actualDatiFatturazione.Contatti!.ToList()[0].Email == expectedContatto);
     }
 }

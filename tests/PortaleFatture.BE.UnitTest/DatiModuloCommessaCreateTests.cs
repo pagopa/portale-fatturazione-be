@@ -1,7 +1,7 @@
-using System.Security;
 using MediatR;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
+using NUnit.Framework.Legacy;
 using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Core.Extensions;
@@ -95,14 +95,14 @@ public class DatiModuloCommessaCreateTests
 
         var moduloCommessa = await _handler.Send(command);
         var commesse = moduloCommessa!.DatiModuloCommessa;
-        Assert.IsNotNull(commesse); 
-        Assert.IsTrue(commesse.Count() == 3);
+        ClassicAssert.NotNull(commesse);
+        ClassicAssert.IsTrue(commesse.Count() == 3);
 
         var commess1 = commesse.Where(x => x.IdTipoSpedizione == 1).FirstOrDefault();
-        Assert.IsNotNull(commess1);
-        Assert.IsTrue(commess1.IdEnte == expectedIdEnte);
-        Assert.IsTrue(commess1.MeseValidita == mese);
-        Assert.IsTrue(commess1.AnnoValidita == anno);
-        Assert.IsTrue(commess1.IdTipoContratto == expectedTipoContratto);
+        ClassicAssert.IsNotNull(commess1);
+        ClassicAssert.IsTrue(commess1.IdEnte == expectedIdEnte);
+        ClassicAssert.IsTrue(commess1.MeseValidita == mese);
+        ClassicAssert.IsTrue(commess1.AnnoValidita == anno);
+        ClassicAssert.IsTrue(commess1.IdTipoContratto == expectedTipoContratto);
     } 
 }

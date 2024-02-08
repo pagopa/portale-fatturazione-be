@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
+using NUnit.Framework.Legacy;
 using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Core.Resources;
 using PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni.Commands;
@@ -70,8 +71,8 @@ public class DatiFatturazioneCreateCommandTests
         };
         var datiFatturazione = await _handler.Send(req);
 
-        Assert.IsNotNull(datiFatturazione);
-        Assert.IsNull(datiFatturazione.DataDocumento);
+        ClassicAssert.IsNotNull(datiFatturazione);
+        ClassicAssert.IsNull(datiFatturazione.DataDocumento);
     }
 
     [Test]
@@ -106,7 +107,7 @@ public class DatiFatturazioneCreateCommandTests
             SplitPayment = expectedSplitPayment             
         };
  
-        Assert.ThrowsAsync<ValidationException>(async () => await _handler.Send(req)); 
+        ClassicAssert.ThrowsAsync<ValidationException>(async () => await _handler.Send(req)); 
     }
 
     [Test]
@@ -151,11 +152,11 @@ public class DatiFatturazioneCreateCommandTests
         };
 
         var actualDatiFatturazione = await _handler.Send(req);
-        Assert.IsNotNull(actualDatiFatturazione);
+        ClassicAssert.IsNotNull(actualDatiFatturazione);
         var contatti = actualDatiFatturazione.Contatti!.OrderBy(x => x.Email).ToList();
-        Assert.True(contatti.Count == 2);
-        Assert.True(contatti[0].Email == "expected1@pippo.com");
-        Assert.True(contatti[1].Email == "expected2@pippo.com");
-        Assert.IsNull(actualDatiFatturazione.DataModifica);
+        ClassicAssert.True(contatti.Count == 2);
+        ClassicAssert.True(contatti[0].Email == "expected1@pippo.com");
+        ClassicAssert.True(contatti[1].Email == "expected2@pippo.com");
+        ClassicAssert.IsNull(actualDatiFatturazione.DataModifica);
     }
 }
