@@ -12,4 +12,7 @@ public class ContestazioneResponse
 
     [JsonPropertyOrder(-3)]
     public bool Modifica { get; set; }
+
+    [JsonPropertyOrder(-3)]
+    public bool  Risposta { get; set; }  
 }

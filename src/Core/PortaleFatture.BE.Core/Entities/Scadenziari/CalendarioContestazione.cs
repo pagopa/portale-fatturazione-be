@@ -7,12 +7,19 @@ public class CalendarioContestazione
 {
     [Column("DataFine")]
     public DateTime DataFine { get; set; }
+
     [Column("DataInizio")]
     public DateTime DataInizio { get; set; }
+
+    [Column("DataVerifica")]
+    public DateTime DataVerifica{ get; set; }
+
     [Column("MeseContestazione")]
     public int MeseContestazione { get; set; }
+
     [Column("AnnoContestazione")]
     public int AnnoContestazione { get; set; }
     public DateTime Adesso { get; set; } 
-    public bool Valid { get; set; }
+    public bool Valid { get; set; } 
+    public bool ValidVerifica { get; set; }
 } 

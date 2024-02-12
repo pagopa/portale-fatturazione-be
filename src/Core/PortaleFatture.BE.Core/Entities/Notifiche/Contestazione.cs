@@ -39,28 +39,28 @@ public class Contestazione
     public DateTime DataInserimentoEnte { get; set; }
 
     [Column("DataModificaEnte")]
-    public DateTime DataModificaEnte { get; set; }
+    public DateTime? DataModificaEnte { get; set; }
 
     [Column("DataInserimentoSend")]
-    public DateTime DataInserimentoSend { get; set; }
+    public DateTime? DataInserimentoSend { get; set; }
 
     [Column("DataModificaSend")]
-    public DateTime DataModificaSend { get; set; }
+    public DateTime? DataModificaSend { get; set; }
 
     [Column("DataInserimentoRecapitista")]
-    public DateTime DataInserimentoRecapitista { get; set; }
+    public DateTime? DataInserimentoRecapitista { get; set; }
 
     [Column("DataModificaRecapitista")]
-    public DateTime DataModificaRecapitista { get; set; }
+    public DateTime? DataModificaRecapitista { get; set; }
 
     [Column("DataInserimentoConsolidatore")]
-    public DateTime DataInserimentoConsolidatore { get; set; }
+    public DateTime? DataInserimentoConsolidatore { get; set; }
 
     [Column("DataModificaConsolidatore")]
-    public DateTime DataModificaConsolidatore { get; set; }
+    public DateTime? DataModificaConsolidatore { get; set; }
 
     [Column("DataChiusura")]
-    public DateTime DataChiusura { get; set; }
+    public DateTime? DataChiusura { get; set; }
 
     [Column("Anno")]
     public int Anno { get; set; }

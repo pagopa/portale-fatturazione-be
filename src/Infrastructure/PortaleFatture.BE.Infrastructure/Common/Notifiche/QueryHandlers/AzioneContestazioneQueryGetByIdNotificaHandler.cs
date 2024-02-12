@@ -51,36 +51,101 @@ public class AzioneContestazioneQueryGetByIdNotificaHandler(
 
         var calendario = await _handler.Send(new CalendarioContestazioneQueryGet(request.AuthenticationInfo, annoNotifica, meseNotifica));
 
+        var authInfo = request.AuthenticationInfo;
         bool? chiusuraPermessa = null;
-        if (notifica.StatoContestazione == (short)StatoContestazione.NonContestata)
-            chiusuraPermessa = false;
-        else if (notifica.StatoContestazione == (short)StatoContestazione.Annullata)
-            chiusuraPermessa = false;
-        else if (notifica.StatoContestazione == (short)StatoContestazione.ContestataEnte)
-            chiusuraPermessa = false;
-        else if (notifica.StatoContestazione == (short)StatoContestazione.RispostaRecapitista
-             || notifica.StatoContestazione == (short)StatoContestazione.RispostaConsolidatore
-             || notifica.StatoContestazione == (short)StatoContestazione.RispostaSend)
-            chiusuraPermessa = true;
-        else if (notifica.StatoContestazione == (short)StatoContestazione.RispostaEnte)
-            chiusuraPermessa = true;
-        else if (notifica.StatoContestazione == (short)StatoContestazione.Accettata)
-            chiusuraPermessa = false;
-        else if (notifica.StatoContestazione == (short)StatoContestazione.Chiusa)
-            chiusuraPermessa = false;
+        bool? creazionePermessa = null;
+        bool? rispostaPermessa = null;
+        if (authInfo.Profilo == Profilo.PubblicaAmministrazione)
+        {
+            if (notifica.StatoContestazione == (short)StatoContestazione.NonContestata)
+            {
+                chiusuraPermessa = false;
+                creazionePermessa = true; // valuta dopo il calendario
+                rispostaPermessa = false;
+            }
+            else if (notifica.StatoContestazione == (short)StatoContestazione.Annullata
+                || notifica.StatoContestazione == (short)StatoContestazione.Accettata
+                || notifica.StatoContestazione == (short)StatoContestazione.Chiusa)
+            {
+                chiusuraPermessa = false;
+                creazionePermessa = false;
+                rispostaPermessa = false;
+            }
+            else if (notifica.StatoContestazione == (short)StatoContestazione.ContestataEnte)
+            {
+                chiusuraPermessa = true;
+                creazionePermessa = true; // modifica di nota contestataEnte
+                rispostaPermessa = false;
+            }
+            else if (notifica.StatoContestazione == (short)StatoContestazione.RispostaRecapitista
+                 || notifica.StatoContestazione == (short)StatoContestazione.RispostaConsolidatore
+                 || notifica.StatoContestazione == (short)StatoContestazione.RispostaSend
+                 || notifica.StatoContestazione == (short)StatoContestazione.RispostaEnte)
+            {
+                chiusuraPermessa = true;
+                creazionePermessa = false;
+                rispostaPermessa = true;
+            }
+            else
+            {
+                var msg = string.Format("Non esiste stato valido associato a notifica con codice: {0}", request.IdNotifica);
+                _logger.LogError(msg);
+                throw new DomainException(msg);
+            }
+            return new AzioneNotificaDto()
+            {
+                ChiusuraPermessa = chiusuraPermessa!.Value && calendario.ValidVerifica && authInfo.Ruolo == Ruolo.ADMIN,
+                CreazionePermessa = creazionePermessa!.Value && calendario.Valid && authInfo.Ruolo == Ruolo.ADMIN,
+                RispostaPermessa = rispostaPermessa!.Value && calendario.ValidVerifica && authInfo.Ruolo == Ruolo.ADMIN,
+                Contestazione = contestazione,
+                Calendario = calendario,
+                Notifica = notifica
+            };
+        }
+        else if (authInfo.Profilo == Profilo.Approvigionamento
+            || authInfo.Profilo == Profilo.Finanza
+            || authInfo.Profilo == Profilo.Assistenza)
+        {
+            if (notifica.StatoContestazione == (short)StatoContestazione.NonContestata
+              || notifica.StatoContestazione == (short)StatoContestazione.Annullata
+              || notifica.StatoContestazione == (short)StatoContestazione.Accettata
+              || notifica.StatoContestazione == (short)StatoContestazione.Chiusa)
+            {
+                chiusuraPermessa = false;
+                creazionePermessa = false;
+                rispostaPermessa = false;
+            }
+            else if (notifica.StatoContestazione == (short)StatoContestazione.ContestataEnte
+                 || notifica.StatoContestazione == (short)StatoContestazione.RispostaRecapitista
+                 || notifica.StatoContestazione == (short)StatoContestazione.RispostaConsolidatore
+                 || notifica.StatoContestazione == (short)StatoContestazione.RispostaSend
+                 || notifica.StatoContestazione == (short)StatoContestazione.RispostaEnte)
+            {
+                chiusuraPermessa = true;
+                creazionePermessa = false;
+                rispostaPermessa = true;
+            }
+            else
+            {
+                var msg = string.Format("Non esiste stato valido associato a notifica con codice: {0}", request.IdNotifica);
+                _logger.LogError(msg);
+                throw new DomainException(msg);
+            }
+            return new AzioneNotificaDto()
+            {
+                ChiusuraPermessa = chiusuraPermessa!.Value && calendario.ValidVerifica && request.AuthenticationInfo.Ruolo == Ruolo.ADMIN,
+                CreazionePermessa = creazionePermessa!.Value && calendario.ValidVerifica && request.AuthenticationInfo.Ruolo == Ruolo.ADMIN,
+                RispostaPermessa = rispostaPermessa!.Value && calendario.ValidVerifica && request.AuthenticationInfo.Ruolo == Ruolo.ADMIN,
+                Contestazione = contestazione,
+                Calendario = calendario,
+                Notifica = notifica
+            };
+        }
         else
         {
-            var msg = string.Format("Non esiste stato valido associato a notifica con codice: {0}", request.IdNotifica);
+            var msg = string.Format("Non esiste il profilo associato alle notifiche: {0}", authInfo.Profilo);
             _logger.LogError(msg);
             throw new DomainException(msg);
         }
-
-        return new AzioneNotificaDto()
-        {
-            ChiusuraPermessa = chiusuraPermessa!.Value && request.AuthenticationInfo.Ruolo == Ruolo.ADMIN,
-            ModificaPermessa = calendario.Valid && request.AuthenticationInfo.Ruolo == Ruolo.ADMIN,
-            Contestazione = contestazione,
-            Notifica = notifica
-        };
     }
 }

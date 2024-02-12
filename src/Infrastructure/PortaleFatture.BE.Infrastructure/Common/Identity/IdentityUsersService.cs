@@ -33,7 +33,7 @@ public class IdentityUsersService : IIdentityUsersService
                     new(ClaimTypes.Name, authInfo.Id ?? throw new SecurityException()),
                     new(ClaimTypes.Role, authInfo.Ruolo ?? throw new SecurityException()),
                     new(CustomClaim.DescrizioneRuolo, authInfo.DescrizioneRuolo! ?? throw new SecurityException()),
-                    new(CustomClaim.Profilo, string.Empty),
+                    new(CustomClaim.Profilo, authInfo.Profilo!),
                     new(CustomClaim.Prodotto, string.Empty),
                     new(CustomClaim.IdEnte,  string.Empty),
                     new(CustomClaim.NomeEnte, string.Empty),

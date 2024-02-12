@@ -18,73 +18,72 @@ using PortaleFatture.BE.Infrastructure.Common.Storici.Commands.Persistence;
 
 namespace PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.CommandHandlers;
 
-public class ContestazioneUpdateCommandHandler(
+public class ContestazioneUpdatePagoPaCommandHandler(
  IFattureDbContextFactory factory,
- IMediator handler, 
+ IMediator handler,
  IStringLocalizer<Localization> localizer,
- ILogger<ContestazioneUpdateCommandHandler> logger) : IRequestHandler<ContestazioneUpdateCommand, Contestazione?>
+ ILogger<ContestazioneUpdatePagoPaCommandHandler> logger) : IRequestHandler<ContestazioneUpdatePagoPACommand, Contestazione?>
 {
     private readonly IFattureDbContextFactory _factory = factory;
     private readonly IMediator _handler = handler;
-    private readonly ILogger<ContestazioneUpdateCommandHandler> _logger = logger;
-    private readonly IStringLocalizer<Localization> _localizer = localizer; 
+    private readonly ILogger<ContestazioneUpdatePagoPaCommandHandler> _logger = logger;
+    private readonly IStringLocalizer<Localization> _localizer = localizer;
 
-    public async Task<Contestazione?> Handle(ContestazioneUpdateCommand command, CancellationToken ct)
+    public async Task<Contestazione?> Handle(ContestazioneUpdatePagoPACommand command, CancellationToken ct)
     {
-        if (command.AuthenticationInfo!.Profilo != Profilo.PubblicaAmministrazione)
+        var authInfo = command.AuthenticationInfo!;
+
+        if (!(authInfo.Profilo == Profilo.Approvigionamento
+            || authInfo.Profilo == Profilo.Finanza
+            || authInfo.Profilo == Profilo.Assistenza))
             throw new SecurityException(); //401 
 
-        var azioneCommand = new AzioneContestazioneQueryGetByIdNotifica(command.AuthenticationInfo, command.IdNotifica);
+        var azioneCommand = new AzioneContestazioneQueryGetByIdNotifica(authInfo, command.IdNotifica);
         var azione = await _handler.Send(azioneCommand, ct);
         var notifica = azione!.Notifica;
-        var contestazione = azione!.Contestazione; 
+        var contestazione = azione!.Contestazione;
 
         if (contestazione == null
             || notifica!.Fatturata == true)
-            throw new DomainException(_localizer["CreazioneContestazioneError", command.IdNotifica!]); 
- 
-        if (azione == null 
-            || (azione.CreazionePermessa == false 
+            throw new DomainException(_localizer["CreazioneContestazioneError", command.IdNotifica!]);
+
+        if (azione == null
+            || (azione.CreazionePermessa == false
             && azione.RispostaPermessa == false
             && azione.ChiusuraPermessa == false
             ))
             throw new ValidationException(_localizer["NotificaContestazioneValidationError", $"{notifica.Anno}-{notifica.Mese}"]);
 
-        var adesso = DateTime.UtcNow.ItalianTime();
-        command.DataModificaEnte = adesso;
+        var adesso = DateTime.UtcNow.ItalianTime(); 
 
-        if (command.StatoContestazione == (short)StatoContestazione.ContestataEnte) // posso solo modificare la nota 
+        if(contestazione.DataInserimentoSend == null)
+            command.DataInserimentoSend = adesso;
+        else
         {
-            if(!azione.CreazionePermessa)
-                throw new ValidationException(_localizer["NotificaContestazioneValidationError", $"{notifica.Anno}-{notifica.Mese}"]);
-
-            if (notifica.StatoContestazione == (short)StatoContestazione.ContestataEnte)
-                command.ExpectedStatoContestazione = (short)StatoContestazione.ContestataEnte;
-            command.RispostaEnte = null;
+            command.DataInserimentoSend = contestazione.DataInserimentoSend;
+            command.DataModificaSend = adesso;
         }
-        else if (command.StatoContestazione == (short)StatoContestazione.Annullata)
-        {
-            if (!azione.CreazionePermessa)
-                throw new ValidationException(_localizer["NotificaContestazioneValidationError", $"{notifica.Anno}-{notifica.Mese}"]);
+     
 
-            if (notifica.StatoContestazione == (short)StatoContestazione.ContestataEnte)
-                command.ExpectedStatoContestazione = (short)StatoContestazione.ContestataEnte;
-            else
-                throw new DomainException(_localizer["CreazioneContestazioneError", command.IdNotifica!]);
-            command.RispostaEnte = null;
-            command.NoteEnte = contestazione.NoteEnte; 
+        if (command.StatoContestazione == (short)StatoContestazione.Accettata)
+        {
+            if (!azione.ChiusuraPermessa)
+                throw new ValidationException(_localizer["NotificaContestazioneValidationError", $"{notifica.Anno}-{notifica.Mese}"]);
+         
+            command.ExpectedStatoContestazione = notifica.StatoContestazione; 
+            command.DataChiusura = adesso; // vale stesso campo per tutti
+            command.Onere = SoggettiContestazione.OnereContestazioneAccettazionePA(command.Onere!);
         }
         else if (command.StatoContestazione == (short)StatoContestazione.Chiusa)
         {
             if (!azione.ChiusuraPermessa)
                 throw new ValidationException(_localizer["NotificaContestazioneValidationError", $"{notifica.Anno}-{notifica.Mese}"]);
 
-            command.ExpectedStatoContestazione = notifica.StatoContestazione;
-            command.NoteEnte = contestazione.NoteEnte;
+            command.ExpectedStatoContestazione = notifica.StatoContestazione; 
             command.DataChiusura = adesso; // vale stesso campo per tutti
-            command.Onere = SoggettiContestazione.OnereContestazioneChiusuraEnte(command.Onere!);
+            command.Onere = SoggettiContestazione.OnereContestazione(command.Onere!);
         }
-        else if (command.StatoContestazione == (short)StatoContestazione.RispostaEnte)
+        else if (command.StatoContestazione == (short)StatoContestazione.RispostaSend)
         {
             if (!azione.RispostaPermessa)
                 throw new ValidationException(_localizer["NotificaContestazioneValidationError", $"{notifica.Anno}-{notifica.Mese}"]);
@@ -92,10 +91,10 @@ public class ContestazioneUpdateCommandHandler(
             if (notifica.StatoContestazione == (short)StatoContestazione.RispostaSend
                 || notifica.StatoContestazione == (short)StatoContestazione.RispostaRecapitista
                 || notifica.StatoContestazione == (short)StatoContestazione.RispostaConsolidatore
-                || notifica.StatoContestazione == (short)StatoContestazione.RispostaEnte)
+                || notifica.StatoContestazione == (short)StatoContestazione.RispostaEnte
+                || notifica.StatoContestazione == (short)StatoContestazione.ContestataEnte)
             {
-                command.ExpectedStatoContestazione = notifica.StatoContestazione;
-                command.NoteEnte = contestazione.NoteEnte;
+                command.ExpectedStatoContestazione = notifica.StatoContestazione; 
             }
             else
                 throw new DomainException(_localizer["CreazioneContestazioneError", command.IdNotifica!]);
@@ -106,23 +105,24 @@ public class ContestazioneUpdateCommandHandler(
 
         using var uow = await _factory.Create(true, cancellationToken: ct);
         {
-            var id = await uow.Execute(new ContestazioneUpdateCommandPersistence(command, _localizer), ct);
+            var id = await uow.Execute(new ContestazioneUpdatePagoPACommandPersistence(command, _localizer), ct);
             if (id > 0)
             {
-                var cont = await uow.Query(new ContestazioneQueryGetByIdNotificaPersistence(new ContestazioneQueryGetByIdNotifica(command.AuthenticationInfo, command.IdNotifica)), ct);
+                var contest = await uow.Query(new ContestazioneQueryGetByIdNotificaPersistence(new ContestazioneQueryGetByIdNotifica(command.AuthenticationInfo!, command.IdNotifica)), ct);
+                command.AuthenticationInfo!.IdEnte = notifica.IdEnte;
                 var rowAffected = await uow.Execute(new StoricoCreateCommandPersistence(new StoricoCreateCommand(
-                     command.AuthenticationInfo,
+                     command.AuthenticationInfo!,
                      adesso,
                      TipoStorico.Contestazione,
-                     cont.Serialize())), ct);
+                     contest.Serialize())), ct);
 
                 if (rowAffected == 1)
                 {
                     uow.Commit();
-                    return cont;
+                    return contest;
                 }
-                else 
-                    uow.Rollback();  
+                else
+                    uow.Rollback();
             }
             else
                 uow.Rollback();

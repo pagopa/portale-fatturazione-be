@@ -3,7 +3,7 @@ using PortaleFatture.BE.Core.Entities.Notifiche;
 using PortaleFatture.BE.Core.Entities.Scadenziari;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 
-namespace PortaleFatture.BE.Infrastructure.Common.Notifiche.Queries.Persistence.Builder;
+namespace PortaleFatture.BE.Infrastructure.Common.Scadenziari.Queries.Persistence.Builder;
 
 internal static class CalendarioContestazioneSQLBuilder
 {
@@ -14,7 +14,8 @@ internal static class CalendarioContestazioneSQLBuilder
         builder.Select(nameof(@obj.AnnoContestazione).GetAsColumn<CalendarioContestazione>());
         builder.Select(nameof(@obj.MeseContestazione).GetAsColumn<CalendarioContestazione>());
         builder.Select(nameof(@obj.DataInizio).GetAsColumn<CalendarioContestazione>());
-        builder.Select(nameof(@obj.DataFine).GetAsColumn<CalendarioContestazione>()); 
+        builder.Select(nameof(@obj.DataFine).GetAsColumn<CalendarioContestazione>());
+        builder.Select(nameof(@obj.DataVerifica).GetAsColumn<CalendarioContestazione>());
         return builder;
     }
 
@@ -36,5 +37,5 @@ internal static class CalendarioContestazioneSQLBuilder
         builder.Where(where);
         var builderTemplate = builder.AddTemplate($"Select /**select**/ from [schema]{tableName} /**where**/ ");
         return builderTemplate.RawSql;
-    } 
-} 
+    }
+}

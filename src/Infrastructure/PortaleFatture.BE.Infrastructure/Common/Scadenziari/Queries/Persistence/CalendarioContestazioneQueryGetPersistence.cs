@@ -1,8 +1,8 @@
 ﻿using System.Data;
 using DocumentFormat.OpenXml.InkML;
 using PortaleFatture.BE.Core.Entities.Scadenziari;
-using PortaleFatture.BE.Infrastructure.Common.Notifiche.Queries.Persistence.Builder;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
+using PortaleFatture.BE.Infrastructure.Common.Scadenziari.Queries.Persistence.Builder;
 
 namespace PortaleFatture.BE.Infrastructure.Common.Scadenziari.Queries.Persistence;
 

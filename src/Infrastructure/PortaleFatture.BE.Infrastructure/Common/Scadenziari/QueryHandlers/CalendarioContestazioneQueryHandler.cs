@@ -20,7 +20,7 @@ public class CalendarioContestazioneQueryHandler(
     private readonly IStringLocalizer<Localization> _localizer = localizer;
     public async Task<CalendarioContestazione?> Handle(CalendarioContestazioneQueryGet request, CancellationToken ct)
     {
-        CalendarioContestazione calendarioContestazione = new();
+     
         using var rs = await _factory.Create(cancellationToken: ct);
         var calendario = await rs.Query(new CalendarioContestazioneQueryGetPersistence(request), ct);
         var (annoAttuale, meseAttuale, giornoAttuale, adesso) = Time.YearMonthDay();
@@ -29,17 +29,24 @@ public class CalendarioContestazioneQueryHandler(
             {
                 Adesso = adesso,
                 AnnoContestazione = request.Anno,
-                MeseContestazione = request.Mese,
-                Valid = false
+                MeseContestazione = request.Mese, 
+                Valid = false,
+                ValidVerifica = false
             };
    
-        var find = adesso >= calendario!.DataInizio && adesso <= calendario!.DataFine;
-        calendarioContestazione.Valid = find;
-        calendarioContestazione.DataInizio = calendario.DataInizio;
-        calendarioContestazione.DataFine = calendario.DataFine;
-        calendarioContestazione.AnnoContestazione = calendario.AnnoContestazione;
-        calendarioContestazione.MeseContestazione = calendario.MeseContestazione;
-        calendarioContestazione.Adesso = adesso;
+        var tValid = adesso >= calendario!.DataInizio && adesso <= calendario!.DataFine;
+        var tVerifica= adesso >= calendario!.DataInizio && adesso <= calendario!.DataVerifica;
+        CalendarioContestazione calendarioContestazione = new()
+        {
+            Valid = tValid,
+            ValidVerifica = tVerifica,
+            DataInizio = calendario.DataInizio,
+            DataFine = calendario.DataFine,
+            DataVerifica = calendario.DataVerifica,
+            AnnoContestazione = calendario.AnnoContestazione,
+            MeseContestazione = calendario.MeseContestazione,
+            Adesso = adesso
+        };
         return calendarioContestazione;
     }
 }

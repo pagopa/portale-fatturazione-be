@@ -15,6 +15,15 @@ public static class EnteSQLBuilder
         return builder;
     }
 
+    private static SqlBuilder CreateSelectWithId()
+    {
+        Ente? @obj = null;
+        var builder = new SqlBuilder();
+        builder.Select($"e.{nameof(@obj.IdEnte).GetAsColumn<Ente>()}");
+        builder.Select(nameof(@obj.Descrizione).GetAsColumn<Ente>());
+        return builder;
+    }
+
     private static string WhereBySearch()
     {
         Ente? obj;
@@ -52,6 +61,21 @@ public static class EnteSQLBuilder
         var innerContrattoTable = $"[schema]{nameof(Contratto).GetTable<Contratto>()}";
         var internalIdEnte = nameof(Ente.IdEnte).GetColumn<Ente>();
         builder.InnerJoin($"{innerContrattoTable} c on e.{internalIdEnte} = c.{internalIdEnte}"); 
+
+        builder.Where(WhereBySearch());
+
+        var builderTemplate = builder.AddTemplate($"Select TOP {_top} /**select**/ from {tableName} /**innerjoin**/ /**where**/ ");
+        return builderTemplate.RawSql;
+    }
+    public static string SelectAllByDescrizione()
+    {
+        var tableName = $"[schema]{nameof(Ente).GetTable<Ente>()} e";
+        var builder = CreateSelectWithId();
+
+        var rightEnteTable = $"[schema]{nameof(Ente).GetTable<Ente>()}";
+        var innerContrattoTable = $"[schema]{nameof(Contratto).GetTable<Contratto>()}";
+        var internalIdEnte = nameof(Ente.IdEnte).GetColumn<Ente>();
+        builder.InnerJoin($"{innerContrattoTable} c on e.{internalIdEnte} = c.{internalIdEnte}");
 
         builder.Where(WhereBySearch());
 

@@ -22,6 +22,92 @@ namespace PortaleFatture.BE.Api.Modules.Notifiche;
 
 public partial class NotificaModule
 {
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [Authorize()]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<NotificaDto>, NotFound>> GetPagoPANotificheByRicercaAsync(
+    HttpContext context,
+    [FromBody] NotificheRicercaRequestPagoPA request,
+    [FromQuery] int page,
+    [FromQuery] int pageSize,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var notifiche = await handler.Send(request.Map(authInfo, page, pageSize));
+        if (notifiche == null)
+            return NotFound();
+        return Ok(notifiche);
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<ContestazioneResponse>, NotFound>> GetPagoPAContestazioneAsync(
+    HttpContext context,
+    [FromRoute] string idNotifica,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var command = new AzioneContestazioneQueryGetByIdNotifica(authInfo, idNotifica);
+        var azione = await handler.Send(command);
+
+        Contestazione contestazione;
+        if (azione!.Contestazione == null)
+            contestazione = new Contestazione()
+            {
+                IdNotifica = idNotifica,
+                StatoContestazione = azione!.Notifica!.StatoContestazione,
+                Anno = Convert.ToInt16(azione!.Notifica.Anno),
+                Mese = Convert.ToInt16(azione!.Notifica.Mese),
+            };
+        else
+            contestazione = azione!.Contestazione;
+
+        var response = new ContestazioneResponse()
+        {
+            Contestazione = contestazione,
+            Modifica = azione!.CreazionePermessa,
+            Chiusura = azione!.ChiusuraPermessa,
+            Risposta = azione!.RispostaPermessa
+        };
+        return Ok(response);
+    }
+
+    [Authorize(Roles = $"{Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<Contestazione>, NotFound>> UpdatePagoPAContestazioneAsync(
+    HttpContext context,
+    [FromBody] ContestazionePagoPAUpdateRequest req,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+
+        var command = new ContestazioneUpdatePagoPACommand(authInfo, req.IdNotifica)
+        {
+            NoteSend = req.NoteSend,
+            Onere = req.Onere, 
+            StatoContestazione = req.StatoContestazione
+        };
+
+        var contestazione = await handler.Send(command);
+        return Ok(contestazione);
+    }
+
+
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
     [Authorize()]
     [EnableCors(CORSLabel)]
@@ -54,7 +140,7 @@ public partial class NotificaModule
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     private async Task<IResult> GetNotificheRicercaDocumentAsync(
     HttpContext context,
-    [FromBody] NotificheRicercaRequest request, 
+    [FromBody] NotificheRicercaRequest request,
     [FromQuery] bool? binary,
     [FromServices] IStringLocalizer<Localization> localizer,
     [FromServices] IMediator handler)
@@ -72,7 +158,7 @@ public partial class NotificaModule
         if (binary == null)
             return Ok(new DocumentDto() { Documento = Convert.ToBase64String(content.ToArray()) });
         else
-            return Results.File(content!, mime, filename); 
+            return Results.File(content!, mime, filename);
     }
 
     [Authorize(Roles = $"{Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
@@ -118,7 +204,8 @@ public partial class NotificaModule
         {
             NoteEnte = req.NoteEnte,
             RispostaEnte = req.RispostaEnte,
-            StatoContestazione = req.StatoContestazione
+            StatoContestazione = req.StatoContestazione,
+            Onere = req.Onere
         };
 
         var contestazione = await handler.Send(command);
@@ -134,30 +221,31 @@ public partial class NotificaModule
     private async Task<Results<Ok<ContestazioneResponse>, NotFound>> GetContestazioneAsync(
     HttpContext context,
     [FromRoute] string idNotifica,
-    [FromServices] IStringLocalizer<Localization> localizer, 
+    [FromServices] IStringLocalizer<Localization> localizer,
     [FromServices] IMediator handler)
     {
         var authInfo = context.GetAuthInfo();
         var command = new AzioneContestazioneQueryGetByIdNotifica(authInfo, idNotifica);
         var azione = await handler.Send(command);
 
-        Contestazione contestazione; 
-        if(azione!.Contestazione == null) 
+        Contestazione contestazione;
+        if (azione!.Contestazione == null)
             contestazione = new Contestazione()
             {
                 IdNotifica = idNotifica,
                 StatoContestazione = azione!.Notifica!.StatoContestazione,
                 Anno = Convert.ToInt16(azione!.Notifica.Anno),
                 Mese = Convert.ToInt16(azione!.Notifica.Mese),
-            }; 
-        else 
-            contestazione = azione!.Contestazione; 
+            };
+        else
+            contestazione = azione!.Contestazione;
 
         var response = new ContestazioneResponse()
         {
             Contestazione = contestazione,
-            Modifica = azione!.ModificaPermessa,
-            Chiusura = azione!.ChiusuraPermessa
+            Modifica = azione!.CreazionePermessa,
+            Chiusura = azione!.ChiusuraPermessa,
+            Risposta = azione!.RispostaPermessa
         };
         return Ok(response);
     }

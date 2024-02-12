@@ -21,5 +21,22 @@ public static class NotificaExtensions
             StatoContestazione = req.StatoContestazione,
             Iun = req.Iun
         };
+    } 
+    public static NotificaQueryGetByListaEnti Map(this NotificheRicercaRequestPagoPA req, AuthenticationInfo authInfo, int? page, int? pageSize)
+    {
+        return new NotificaQueryGetByListaEnti(authInfo)
+        {
+            AnnoValidita = req.Anno,
+            Cap = req.Cap,
+            MeseValidita = req.Mese,
+            Page = page,
+            Prodotto = req.Prodotto,
+            Profilo = req.Profilo,
+            Size = pageSize,
+            TipoNotifica = req.TipoNotifica,
+            StatoContestazione = req.StatoContestazione,
+            Iun = req.Iun,
+            EntiIds = req.IdEnti
+        };
     }
 }

@@ -8,7 +8,7 @@ using PortaleFatture.BE.Api.Infrastructure;
 using PortaleFatture.BE.Api.Modules.DatiFatturazioni.Extensions;
 using PortaleFatture.BE.Api.Modules.DatiFatturazioni.Payload.Request;
 using PortaleFatture.BE.Api.Modules.DatiFatturazioni.Payload.Response;
-using PortaleFatture.BE.Api.Modules.DatiModuloCommesse.Payload;
+using PortaleFatture.BE.Api.Modules.Tipologie.Payload.Payload.Request;
 using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Core.Resources;
@@ -34,7 +34,7 @@ public partial class DatiFatturazioneModule
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     private async Task<IResult> PagoPADatiFatturazioneByDescrizioneDocumentAsync(
     HttpContext context,
-    [FromBody] EnteRicercaByDescrizioneRequest request,
+    [FromBody] EnteRicercaByDescrizioneProfiloRequest request,
     [FromQuery] bool? binary,
     [FromServices] IStringLocalizer<Localization> localizer,
     [FromServices] IMediator handler)
@@ -68,7 +68,7 @@ public partial class DatiFatturazioneModule
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     private async Task<Results<Ok<IEnumerable<DatiFatturazioneEnteDto>>, NotFound>> PagoPADatiFatturazioneByDescrizioneAsync(
     HttpContext context,
-    [FromBody] EnteRicercaByDescrizioneRequest request,
+    [FromBody] EnteRicercaByDescrizioneProfiloRequest request,
     [FromServices] IStringLocalizer<Localization> localizer,
     [FromServices] IMediator handler)
     {

@@ -7,9 +7,12 @@ using Microsoft.Extensions.Localization;
 using PortaleFatture.BE.Api.Infrastructure;
 using PortaleFatture.BE.Api.Modules.DatiFatturazioni.Extensions;
 using PortaleFatture.BE.Api.Modules.DatiFatturazioni.Payload.Response;
-using PortaleFatture.BE.Api.Modules.DatiModuloCommesse.Payload;
+using PortaleFatture.BE.Api.Modules.Tipologie;
+using PortaleFatture.BE.Api.Modules.Tipologie.Payload.Payload.Request;
+using PortaleFatture.BE.Api.Modules.Tipologie.Payload.Payload.Response;
 using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Entities.Notifiche;
+using PortaleFatture.BE.Core.Entities.SelfCare;
 using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Core.Resources;
@@ -30,7 +33,7 @@ public partial class TipologieModule
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     private async Task<Results<Ok<IEnumerable<string>>, NotFound>> AllEntiByDescrizioneAsync(
     HttpContext context,
-    [FromBody] EnteRicercaByDescrizioneRequest request,
+    [FromBody] EnteRicercaByDescrizioneProfiloRequest request,
     [FromServices] IStringLocalizer<Localization> localizer,
     [FromServices] IMediator handler)
     {
@@ -39,6 +42,26 @@ public partial class TipologieModule
         if (enti.IsNullNotAny())
             return NotFound();
         return Ok(enti);
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [Authorize()]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<EnteResponse>>, NotFound>> AllEntiCompletiByDescrizioneAsync(
+    HttpContext context,
+    [FromBody] EnteRicercaByDescrizioneRequest request,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var enti = await handler.Send(new EnteQueryGetByDescrizione(authInfo, request.Descrizione));
+        if (enti.IsNullNotAny())
+            return NotFound();
+        return Ok(enti.Select(x=>x.Map()));
     }
 
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}")]

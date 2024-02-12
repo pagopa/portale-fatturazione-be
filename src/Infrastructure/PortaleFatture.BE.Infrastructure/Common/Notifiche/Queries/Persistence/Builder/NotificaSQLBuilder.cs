@@ -60,7 +60,7 @@ LEFT JOIN pfw.TipoContestazione a ON a.IdTipoContestazione = t.FkIdTipoContestaz
 
     public static string OrderBy()
     {
-        return " ORDER BY n.year DESC, n.month, notification_sent_at DESC";
+        return " ORDER BY n.year DESC, n.month";
     }
 
     public static string SelectAll()

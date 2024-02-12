@@ -9,6 +9,12 @@ public partial class TipologieModule : Module, IRegistrableModule
     {
         endpointRouteBuilder
            .MapPost("api/tipologia/enti", AllEntiByDescrizioneAsync)
+           .WithName("Permette di ottenere gli enti per ricerca descrizione e prodotto e profilo")
+           .SetOpenApi(Module.DatiTipologiaLabel)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+           .MapPost("api/tipologia/enti/completi", AllEntiCompletiByDescrizioneAsync)
            .WithName("Permette di ottenere gli enti per ricerca descrizione")
            .SetOpenApi(Module.DatiTipologiaLabel)
            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));

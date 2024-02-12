@@ -6,16 +6,15 @@ using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Entities.Notifiche;
 using PortaleFatture.BE.Core.Entities.Storici;
 using PortaleFatture.BE.Core.Exceptions;
+using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Core.Resources;
 using PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni.Queries.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.Commands;
 using PortaleFatture.BE.Infrastructure.Common.Notifiche.Commands.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.Notifiche.Queries;
 using PortaleFatture.BE.Infrastructure.Common.Persistence.Schemas;
-using PortaleFatture.BE.Infrastructure.Common.Scadenziari.Queries;
-using PortaleFatture.BE.Infrastructure.Common.Storici.Commands.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.Storici.Commands;
-using PortaleFatture.BE.Core.Extensions;
+using PortaleFatture.BE.Infrastructure.Common.Storici.Commands.Persistence;
 
 namespace PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.CommandHandlers;
 
@@ -41,19 +40,20 @@ public class ContestazioneCreateCommandHandler(
             notifica = await read.Query(new NotificaQueryGetByIdPersistence(new NotificaQueryGetById(command.AuthenticationInfo!, command.IdNotifica)), ct);
         }
 
+
         if (notifica == null || notifica.StatoContestazione != (short)StatoContestazione.NonContestata)
             throw new DomainException(_localizer["CreazioneContestazioneError", command.IdNotifica!]);
 
         command.Anno = Convert.ToInt32(notifica.Anno);
         command.Mese = Convert.ToInt32(notifica.Mese);
 
-        var calendario = await _handler.Send(new CalendarioContestazioneQueryGet(command.AuthenticationInfo, command.Anno, command.Mese));
+        var azione = await _handler.Send(new AzioneContestazioneQueryGetByIdNotifica(command.AuthenticationInfo, notifica.IdNotifica));
 
-        if (!calendario.Valid)
-            throw new ValidationException(_localizer["NotificaContestazioneValidationError", $"{calendario.AnnoContestazione}-{calendario.MeseContestazione}"]);
- 
+        if (azione == null || azione.CreazionePermessa == false)
+            throw new ValidationException(_localizer["NotificaContestazioneValidationError", $"{notifica.Anno}-{notifica.Mese}"]);
 
-        command.DataInserimentoEnte = calendario.Adesso;
+        var adesso = azione.Calendario!.Adesso;
+        command.DataInserimentoEnte = adesso;
         command.StatoContestazione = (short)StatoContestazione.ContestataEnte;
         command.Anno = Convert.ToInt32(notifica.Anno);
         command.Mese = Convert.ToInt32(notifica.Mese);
@@ -75,20 +75,21 @@ public class ContestazioneCreateCommandHandler(
             };
             var rowAffected = await uow.Execute(new StoricoCreateCommandPersistence(new StoricoCreateCommand(
                     command.AuthenticationInfo,
-                    calendario.Adesso,
+                    adesso,
                     TipoStorico.Contestazione,
-                    cont.Serialize())), ct); 
+                    cont.Serialize())), ct);
             if (rowAffected == 1)
             {
                 uow.Commit();
                 return cont;
-            } 
+            }
             else
             {
                 uow.Rollback();
                 throw new DomainException(_localizer["CreazioneContestazioneError", command.IdNotifica!]);
-            } 
-        }else
+            }
+        }
+        else
             uow.Rollback();
 
         throw new DomainException(_localizer["CreazioneContestazioneError", command.IdNotifica!]);
