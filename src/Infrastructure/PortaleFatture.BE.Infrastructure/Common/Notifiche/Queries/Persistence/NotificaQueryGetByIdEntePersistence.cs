@@ -26,12 +26,12 @@ public class NotificaQueryGetByIdEntePersistence(NotificaQueryGetByIdEnte comman
 
         var anno = _command.AnnoValidita;
         var mese = _command.MeseValidita;
-        var prodotto = _command.Prodotto;
-        var cap = _command.Cap;
-        var profilo = _command.Profilo;
-        var tipoNotifica = _command.TipoNotifica;
-        var contestazione = _command.StatoContestazione;
-        var iun = _command.Iun;
+        var prodotto = string.IsNullOrEmpty(_command.Prodotto) ? null : _command.Prodotto;
+        var cap = string.IsNullOrEmpty(_command.Cap) ? null : _command.Cap;
+        var profilo = string.IsNullOrEmpty(_command.Profilo) ? null : _command.Profilo;
+        var tipoNotifica = _command.TipoNotifica != null ? _command.TipoNotifica : null;
+        int? contestazione = _command.StatoContestazione != null ? (int)_command.StatoContestazione : null;
+        var iun = string.IsNullOrEmpty(_command.Iun) ? null : _command.Iun;
 
         if (!string.IsNullOrEmpty(iun))
             where += " AND iun=@iun";
@@ -55,8 +55,8 @@ public class NotificaQueryGetByIdEntePersistence(NotificaQueryGetByIdEnte comman
                 where += " AND paper_product_type=@TipoNotifica";
         }
 
-        if (_command.StatoContestazione.HasValue)
-            where += " and f.IdFlagContestazione=@contestazione";
+        if (contestazione.HasValue)
+            where += " and t.FKIdFlagContestazione=@contestazione";
 
         var orderBy = _orderBy;
 
@@ -73,20 +73,20 @@ public class NotificaQueryGetByIdEntePersistence(NotificaQueryGetByIdEnte comman
         var values = await ((IDatabase)this).QueryMultipleAsync<NotificaDto>(
             connection!,
             sql,
-            new
-            {
-                idEnte = idEnte,
-                size = size,
-                page = page,
-                anno = anno.ToString(),
-                mese = mese.ToString(),
-                prodotto = prodotto,
-                cap = cap,
-                profilo = profilo,
-                tipoNotifica = tnot,
-                contestazione = contestazione,
-                iun = iun
-            }, transaction);
+                        new QueryDto
+                        {
+                            IdEnte = idEnte,
+                            Size = size,
+                            Page = page,
+                            Anno = anno,
+                            Mese = mese,
+                            Prodotto = prodotto,
+                            Cap = cap,
+                            Profilo = profilo,
+                            TipoNotifica = tnot,
+                            Contestazione = contestazione,
+                            Iun = iun, 
+                        }, transaction);
 
         notifiche.Notifiche = await values.ReadAsync<SimpleNotificaDto>();
         notifiche.Count = await values.ReadFirstAsync<int>();
