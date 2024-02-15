@@ -81,7 +81,7 @@ public class ContestazioneUpdatePagoPaCommandHandler(
 
             command.ExpectedStatoContestazione = notifica.StatoContestazione; 
             command.DataChiusura = adesso; // vale stesso campo per tutti
-            command.Onere = SoggettiContestazione.OnereContestazione(command.Onere!);
+            command.Onere = SoggettiContestazione.OnereContestazioneChiusuraPA(command.Onere!);
         }
         else if (command.StatoContestazione == (short)StatoContestazione.RispostaSend)
         {

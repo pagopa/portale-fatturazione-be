@@ -12,12 +12,14 @@ public static class SoggettiContestazione
         else
             throw new DomainException("");
     }
-    public static string OnereContestazione(string soggetto)
+    public static string OnereContestazioneChiusuraPA(string soggetto)
     {
         if (soggetto == Profilo.Consolidatore)
             return $"SEND_{Profilo.Consolidatore}";
         else if (soggetto == Profilo.Recapitista)
             return $"SEND_{Profilo.Recapitista}"; 
+        else if (soggetto == "SEND")
+            return $"SEND_SEND";
         else
             throw new DomainException("");
     }

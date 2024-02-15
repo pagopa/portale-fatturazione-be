@@ -55,7 +55,9 @@ public class NotificaQueryGetByIdEntePersistence(NotificaQueryGetByIdEnte comman
                 where += " AND paper_product_type=@TipoNotifica";
         }
 
-        if (contestazione.HasValue)
+        if (contestazione.HasValue && contestazione == 1)
+            where += " and t.FKIdFlagContestazione is NULL";
+        else if (contestazione.HasValue && contestazione != 1)
             where += " and t.FKIdFlagContestazione=@contestazione";
 
         var orderBy = _orderBy;
