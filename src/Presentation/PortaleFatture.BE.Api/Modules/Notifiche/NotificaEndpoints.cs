@@ -26,10 +26,16 @@ public partial class NotificaModule : Module, IRegistrableModule
          .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
         endpointRouteBuilder
-           .MapPost("api/notifiche/ente", GetNotificheByRicercaAsync)
-           .WithName("Permette di ottenere le notiifche dell'ente per ricerca")
-           .SetOpenApi(Module.DatiNotificaLabel)
-           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+        .MapPost("api/notifiche/pagopa/documento/ricerca", GetPagoPANotificheRicercaDocumentAsync)
+        .WithName("Permette di ottenere il file excel per le notifiche per ricerca via PagoPA.")
+        .SetOpenApi(Module.DatiNotificaLabelPagoPA)
+        .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+        .MapPost("api/notifiche/ente", GetNotificheByRicercaAsync)
+        .WithName("Permette di ottenere le notiifche dell'ente per ricerca")
+        .SetOpenApi(Module.DatiNotificaLabel)
+        .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
         endpointRouteBuilder
         .MapPost("api/notifiche/ente/documento/ricerca", GetNotificheRicercaDocumentAsync)

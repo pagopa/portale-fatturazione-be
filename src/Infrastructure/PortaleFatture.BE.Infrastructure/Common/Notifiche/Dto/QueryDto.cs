@@ -12,7 +12,7 @@ public class QueryDto
     public string? Cap { get; set; }
     public string? Profilo { get; set; }
     public string? TipoNotifica { get; set; } 
-    public int? Contestazione { get; set; } 
+    public int[]? Contestazione { get; set; } 
     public string? Iun { get; set; } 
     public string[]? EntiIds { get; set; } = null;
 } 

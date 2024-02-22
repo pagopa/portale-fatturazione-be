@@ -9,4 +9,7 @@ public class FlagContestazione
 
     [Column("FlagContestazione")]
     public string? Flag { get; set; }
+
+    [Column("Descrizione")]
+    public string? Descrizione { get; set; }
 } 

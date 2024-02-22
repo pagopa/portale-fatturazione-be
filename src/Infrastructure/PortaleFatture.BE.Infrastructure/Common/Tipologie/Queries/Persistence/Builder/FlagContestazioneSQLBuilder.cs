@@ -12,6 +12,7 @@ public static class FlagContestazioneSQLBuilder
         var builder = new SqlBuilder();
         builder.Select(nameof(@obj.Id).GetAsColumn<FlagContestazione>());
         builder.Select(nameof(@obj.Flag).GetAsColumn<FlagContestazione>());
+        builder.Select(nameof(@obj.Descrizione).GetAsColumn<FlagContestazione>());
         return builder;
     }
 

@@ -1,4 +1,5 @@
 ﻿using System.Data;
+using Microsoft.IdentityModel.Tokens;
 using PortaleFatture.BE.Core.Entities.Notifiche;
 using PortaleFatture.BE.Infrastructure.Common.Notifiche.Dto;
 using PortaleFatture.BE.Infrastructure.Common.Notifiche.Queries;
@@ -30,7 +31,7 @@ public class NotificaQueryGetByIdEntePersistence(NotificaQueryGetByIdEnte comman
         var cap = string.IsNullOrEmpty(_command.Cap) ? null : _command.Cap;
         var profilo = string.IsNullOrEmpty(_command.Profilo) ? null : _command.Profilo;
         var tipoNotifica = _command.TipoNotifica != null ? _command.TipoNotifica : null;
-        int? contestazione = _command.StatoContestazione != null ? (int)_command.StatoContestazione : null;
+        var contestazione = _command.StatoContestazione??null;
         var iun = string.IsNullOrEmpty(_command.Iun) ? null : _command.Iun;
 
         if (!string.IsNullOrEmpty(iun))
@@ -55,10 +56,12 @@ public class NotificaQueryGetByIdEntePersistence(NotificaQueryGetByIdEnte comman
                 where += " AND paper_product_type=@TipoNotifica";
         }
 
-        if (contestazione.HasValue && contestazione == 1)
+        if (!contestazione.IsNullOrEmpty() && Enumerable.SequenceEqual(contestazione!, [1]))
             where += " and t.FKIdFlagContestazione is NULL";
-        else if (contestazione.HasValue && contestazione != 1)
-            where += " and t.FKIdFlagContestazione=@contestazione";
+        else if (!contestazione.IsNullOrEmpty() && contestazione!.Contains(1))
+            where += " and (t.FKIdFlagContestazione is NULL OR t.FKIdFlagContestazione IN @contestazione)";
+        else if (!contestazione.IsNullOrEmpty())
+            where += " and t.FKIdFlagContestazione IN @contestazione";
 
         var orderBy = _orderBy;
 
@@ -72,23 +75,39 @@ public class NotificaQueryGetByIdEntePersistence(NotificaQueryGetByIdEnte comman
         sqlCount += where;
         var sql = String.Join(";", sqlEnte, sqlCount);
 
-        var values = await ((IDatabase)this).QueryMultipleAsync<NotificaDto>(
+        var query = new QueryDto
+        {
+            Size = size,
+            Page = page,
+            Anno = anno,
+            Mese = mese
+        };
+
+        query.IdEnte = idEnte;
+
+        if (!string.IsNullOrEmpty(prodotto))
+            query.Prodotto = prodotto;
+
+        if (!string.IsNullOrEmpty(cap))
+            query.Cap = cap;
+
+        if (!string.IsNullOrEmpty(profilo))
+            query.Profilo = profilo;
+
+        if (!string.IsNullOrEmpty(tnot))
+            query.TipoNotifica = tnot;
+
+        if (contestazione != null)
+            query.Contestazione = contestazione;
+
+        if (!string.IsNullOrEmpty(iun))
+            query.Iun = iun; 
+
+        var values = await ((IDatabase)this).QueryMultipleAsync<SimpleNotificaDto>(
             connection!,
             sql,
-                        new QueryDto
-                        {
-                            IdEnte = idEnte,
-                            Size = size,
-                            Page = page,
-                            Anno = anno,
-                            Mese = mese,
-                            Prodotto = prodotto,
-                            Cap = cap,
-                            Profilo = profilo,
-                            TipoNotifica = tnot,
-                            Contestazione = contestazione,
-                            Iun = iun, 
-                        }, transaction);
+            query,
+            transaction);
 
         notifiche.Notifiche = await values.ReadAsync<SimpleNotificaDto>();
         notifiche.Count = await values.ReadFirstAsync<int>();

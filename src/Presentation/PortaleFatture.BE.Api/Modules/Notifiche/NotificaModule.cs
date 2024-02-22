@@ -1,4 +1,6 @@
-﻿using MediatR;
+﻿using CsvHelper;
+using System.Globalization;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -99,12 +101,71 @@ public partial class NotificaModule
         var command = new ContestazioneUpdatePagoPACommand(authInfo, req.IdNotifica)
         {
             NoteSend = req.NoteSend,
-            Onere = req.Onere, 
+            Onere = req.Onere,
             StatoContestazione = req.StatoContestazione
         };
 
         var contestazione = await handler.Send(command);
         return Ok(contestazione);
+    }
+
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [Authorize()]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<IResult> GetPagoPANotificheRicercaDocumentAsync(
+    HttpContext context,
+    [FromBody] NotificheRicercaRequestPagoPA request,
+    [FromQuery] bool? binary,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var notifiche = await handler.Send(request.Map(authInfo, null, null));
+        if (notifiche == null)
+            return NotFound();
+
+
+        if (binary == null)
+        {
+            byte[] data;
+            using (var stream = new MemoryStream())
+            using (TextWriter textWriter = new StreamWriter(stream))
+            using (var csv = new CsvWriter(textWriter, CultureInfo.InvariantCulture))
+            { 
+                csv.WriteRecords(notifiche.Notifiche!);
+                textWriter.Flush();
+                data = stream.ToArray();
+            } 
+            return Ok(new DocumentDto() { Documento = Convert.ToBase64String(data) });
+        }
+        else if (binary == true)
+        {
+            var mime = "application/vnd.ms-excel";
+            var filename = $"{Guid.NewGuid()}.xlsx"; 
+            var dataSet = notifiche.Notifiche!.FillOneSheetv2();
+            var content = dataSet.ToExcel();
+            return Results.File(content!, mime, filename);
+        }
+        else
+        {
+            var mime = "text/csv";
+            var filename = $"{Guid.NewGuid()}.csv";
+            byte[] data;
+            using (var stream = new MemoryStream())
+            using (TextWriter textWriter = new StreamWriter(stream))
+            using (var csv = new CsvWriter(textWriter, CultureInfo.InvariantCulture))
+            {
+                csv.WriteRecords(notifiche.Notifiche!);
+                textWriter.Flush();
+                data = stream.ToArray();
+            }
+            return Results.File(data!, mime, filename);
+        }
     }
 
 

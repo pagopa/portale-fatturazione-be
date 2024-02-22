@@ -17,6 +17,6 @@ public class NotificaQueryGetByListaEnti(IAuthenticationInfo authenticationInfo)
     public string? Iun { get; set; }
     public int? Page { get; set; }
     public int? Size { get; set; } 
-    public StatoContestazione? StatoContestazione { get; set; } 
+    public int[]? StatoContestazione { get; set; } 
     public string[]? EntiIds { get; set; }
 }
