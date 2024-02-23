@@ -14,5 +14,6 @@ public class QueryDto
     public string? TipoNotifica { get; set; } 
     public int[]? Contestazione { get; set; } 
     public string? Iun { get; set; } 
-    public string[]? EntiIds { get; set; } = null;
+    public string[]? EntiIds { get; set; } = null; 
+    public string? RecipientId { get; set; }
 } 

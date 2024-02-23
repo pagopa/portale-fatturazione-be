@@ -13,6 +13,7 @@ public class NotificaQueryGetByIdEnte(IAuthenticationInfo authenticationInfo) : 
     public string? Prodotto { get; set; }
     public string? Cap { get; set; }
     public string? Profilo { get; set; } 
+    public string? RecipientId { get; set; }
     public TipoNotifica? TipoNotifica { get; set; } 
     public string? Iun { get; set; }
     public int? Page { get; set; }

@@ -1,5 +1,5 @@
-﻿using CsvHelper;
-using System.Globalization;
+﻿using System.Globalization;
+using CsvHelper;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;

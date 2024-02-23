@@ -73,10 +73,10 @@ public class Notifica
     public string? RecipientIndex { get; set; }
 
     [Column("recipient_type")]
-    public int RecipientType { get; set; }
+    public string? RecipientType { get; set; }
 
     [Column("recipient_id")]
-    public int RecipientId { get; set; }
+    public string? RecipientId { get; set; }
 
     [Column("year")]
     public string? Anno { get; set; }

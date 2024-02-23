@@ -38,9 +38,13 @@ public class NotificaQueryGetByListEntiPersistence(NotificaQueryGetByListaEnti c
         var tipoNotifica = _command.TipoNotifica != null ? _command.TipoNotifica : null;
         var contestazione = _command.StatoContestazione ?? null;
         var iun = string.IsNullOrEmpty(_command.Iun) ? null : _command.Iun;
+        var recipientId = string.IsNullOrEmpty(_command.RecipientId) ? null : _command.RecipientId;
 
         if (!string.IsNullOrEmpty(iun))
             where += " AND iun=@iun";
+
+        if (!string.IsNullOrEmpty(recipientId))
+            where += " AND recipient_id=@recipientId";
 
         if (anno.HasValue)
             where += " AND n.year=@anno";
@@ -107,6 +111,9 @@ public class NotificaQueryGetByListEntiPersistence(NotificaQueryGetByListaEnti c
 
         if (!_command.EntiIds.IsNullOrEmpty())
             query.EntiIds = _command.EntiIds;
+
+        if (!string.IsNullOrEmpty(recipientId))
+            query.RecipientId = recipientId; 
 
         var nt = await ((IDatabase)this).SelectAsync<SimpleNotificaDto>(
         connection!,

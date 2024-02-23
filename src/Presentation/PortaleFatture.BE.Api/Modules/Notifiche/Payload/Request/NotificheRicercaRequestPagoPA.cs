@@ -12,6 +12,7 @@ public class NotificheRicercaRequestPagoPA
     public TipoNotifica? TipoNotifica { get; set; }
     public int[]? StatoContestazione { get; set; }
     public string? Iun { get; set; }
+    public string? RecipientId { get; set; }
 
     private string[]? _idEnti; 
     public string[]? IdEnti

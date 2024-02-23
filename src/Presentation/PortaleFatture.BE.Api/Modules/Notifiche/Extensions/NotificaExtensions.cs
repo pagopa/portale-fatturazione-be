@@ -19,7 +19,8 @@ public static class NotificaExtensions
             Size = pageSize,
             TipoNotifica = req.TipoNotifica,
             StatoContestazione = req.StatoContestazione,
-            Iun = req.Iun
+            Iun = req.Iun,
+            RecipientId = req.RecipientId
         };
     } 
     public static NotificaQueryGetByListaEnti Map(this NotificheRicercaRequestPagoPA req, AuthenticationInfo authInfo, int? page, int? pageSize)
@@ -36,7 +37,8 @@ public static class NotificaExtensions
             TipoNotifica = req.TipoNotifica,
             StatoContestazione = req.StatoContestazione,
             Iun = req.Iun,
-            EntiIds = req.IdEnti
+            EntiIds = req.IdEnti,
+            RecipientId = req.RecipientId
         };
     }
 }

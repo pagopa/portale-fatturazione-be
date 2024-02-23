@@ -32,10 +32,14 @@ public class NotificaQueryGetByIdEntePersistence(NotificaQueryGetByIdEnte comman
         var profilo = string.IsNullOrEmpty(_command.Profilo) ? null : _command.Profilo;
         var tipoNotifica = _command.TipoNotifica != null ? _command.TipoNotifica : null;
         var contestazione = _command.StatoContestazione??null;
-        var iun = string.IsNullOrEmpty(_command.Iun) ? null : _command.Iun;
+        var iun = string.IsNullOrEmpty(_command.Iun) ? null : _command.Iun;  
+        var recipientId = string.IsNullOrEmpty(_command.RecipientId) ? null : _command.RecipientId;
 
         if (!string.IsNullOrEmpty(iun))
             where += " AND iun=@iun";
+
+        if (!string.IsNullOrEmpty(recipientId))
+            where += " AND recipient_id=@recipientId";
 
         if (anno.HasValue)
             where += " AND n.year=@anno";
@@ -80,10 +84,9 @@ public class NotificaQueryGetByIdEntePersistence(NotificaQueryGetByIdEnte comman
             Size = size,
             Page = page,
             Anno = anno,
-            Mese = mese
+            Mese = mese,
+            IdEnte = idEnte
         };
-
-        query.IdEnte = idEnte;
 
         if (!string.IsNullOrEmpty(prodotto))
             query.Prodotto = prodotto;
@@ -101,7 +104,10 @@ public class NotificaQueryGetByIdEntePersistence(NotificaQueryGetByIdEnte comman
             query.Contestazione = contestazione;
 
         if (!string.IsNullOrEmpty(iun))
-            query.Iun = iun; 
+            query.Iun = iun;
+
+        if (!string.IsNullOrEmpty(recipientId))
+            query.RecipientId = recipientId;
 
         var values = await ((IDatabase)this).QueryMultipleAsync<SimpleNotificaDto>(
             connection!,

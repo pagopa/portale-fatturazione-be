@@ -10,5 +10,6 @@ public class NotificheRicercaRequest
     public string? Profilo { get; set; }
     public TipoNotifica? TipoNotifica { get; set; }
     public int[]? StatoContestazione { get; set; } 
-    public string? Iun { get; set; }
+    public string? Iun { get; set; } 
+    public string? RecipientId { get; set; }
 }

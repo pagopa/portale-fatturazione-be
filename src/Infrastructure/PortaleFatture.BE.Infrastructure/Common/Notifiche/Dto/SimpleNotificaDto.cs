@@ -109,11 +109,11 @@ public class SimpleNotificaDto
 
     [Column("recipient_type")]
     [HeaderAttributev2(caption: "recipient_type", Order = 19)]
-    public int RecipientType { get; set; }
+    public string? RecipientType { get; set; }
 
     [Column("recipient_id")]
     [HeaderAttributev2(caption: "recipient_id", Order = 20)]
-    public int RecipientId { get; set; }
+    public string? RecipientId { get; set; }
 
     [Column("year")]
     [HeaderAttribute(caption: "year", Order = 15)]
