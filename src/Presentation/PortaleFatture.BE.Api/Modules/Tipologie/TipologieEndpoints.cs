@@ -8,6 +8,12 @@ public partial class TipologieModule : Module, IRegistrableModule
     public void RegisterEndpoints(IEndpointRouteBuilder endpointRouteBuilder)
     {
         endpointRouteBuilder
+           .MapGet("api/tipologia/scadenziariocontestazioni", GetScadenziarioContestazioniByDescrizioneAsync)
+           .WithName("Permette di visualizzare lo scadenziario contestazioni")
+           .SetOpenApi(Module.DatiTipologiaLabel)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
            .MapPost("api/tipologia/enti", AllEntiByDescrizioneAsync)
            .WithName("Permette di ottenere gli enti per ricerca descrizione e prodotto e profilo")
            .SetOpenApi(Module.DatiTipologiaLabel)

@@ -17,6 +17,7 @@ using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Core.Resources;
 using PortaleFatture.BE.Infrastructure.Common.Identity;
+using PortaleFatture.BE.Infrastructure.Common.Scadenziari.Queries;
 using PortaleFatture.BE.Infrastructure.Common.Tipologie.Queries;
 using static Microsoft.AspNetCore.Http.TypedResults;
 
@@ -24,6 +25,25 @@ namespace PortaleFatture.BE.Api.Modules.DatiFatturazioni;
 
 public partial class TipologieModule
 {
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}")]
+    [Authorize()]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<CalendarioContestazioniResponse>>, NotFound>> GetScadenziarioContestazioniByDescrizioneAsync(
+    HttpContext context, 
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var scadenziario = await handler.Send(new CalendarioContestazioneQueryGetAll(authInfo));
+        if (scadenziario.IsNullNotAny())
+            return NotFound();
+        return Ok(scadenziario.Mapper());
+    }
+
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
     [Authorize()]
     [EnableCors(CORSLabel)]

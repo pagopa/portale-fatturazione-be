@@ -38,4 +38,13 @@ internal static class CalendarioContestazioneSQLBuilder
         var builderTemplate = builder.AddTemplate($"Select /**select**/ from [schema]{tableName} /**where**/ ");
         return builderTemplate.RawSql;
     }
+
+    public static string SelectAll()
+    {
+        var tableName = nameof(CalendarioContestazione);
+        tableName = tableName.GetTable<CalendarioContestazione>();
+        var builder = CreateSelect(); 
+        var builderTemplate = builder.AddTemplate($"Select /**select**/ from [schema]{tableName}");
+        return builderTemplate.RawSql;
+    }
 }
