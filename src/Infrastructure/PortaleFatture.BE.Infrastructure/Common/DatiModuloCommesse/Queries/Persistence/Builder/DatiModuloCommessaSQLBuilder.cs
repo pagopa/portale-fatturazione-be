@@ -82,6 +82,7 @@ SELECT
       ,[TotaleDigitaleLordo]
       ,[TotaleLordo]
       ,[IdTipoContratto]
+      ,[Stato]
 FROM pfd.vModuliCommessa
 WHERE Anno = @Anno and Mese = @Mese";
     }

@@ -112,6 +112,10 @@ public sealed class ModuloCommessaByRicercaDto
 
     [Column("IdTipoContratto")]
     public long IdTipoContratto { get; set; }
+
+    [Column("Stato")]
+    [HeaderAttribute(caption: "Stato", Order = 21)]
+    public string? Stato { get; set; }
 }
 
 
