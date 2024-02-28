@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Localization;
 using PortaleFatture.BE.Api.Infrastructure;
 using PortaleFatture.BE.Api.Modules.DatiFatturazioni.Payload.Request;
@@ -208,7 +209,7 @@ public partial class NotificaModule
     {
         var authInfo = context.GetAuthInfo();
         var notifiche = await handler.Send(request.Map(authInfo, null, null));
-        if (notifiche == null)
+        if (notifiche == null || !notifiche.Notifiche!.Any())
             return NotFound();
 
         var mime = "application/vnd.ms-excel";
