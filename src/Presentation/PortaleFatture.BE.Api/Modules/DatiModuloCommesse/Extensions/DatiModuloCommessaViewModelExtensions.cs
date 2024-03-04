@@ -23,9 +23,9 @@ public static class DatiModuloCommessaViewModelExtensions
             });
         }
         return new DatiModuloCommessaByAnnoResponse()
-        { 
-            TotaleAnalogico = totali.Where(x => x.Key == 1).FirstOrDefault().Value.TotaleCategoria,
-            TotaleDigitale = totali.Where(x => x.Key == 2).FirstOrDefault().Value.TotaleCategoria,
+        {
+            TotaleAnalogico = totali.Where(x => x.Key == 1).FirstOrDefault().Value == null ? "0,00 €" : totali.Where(x => x.Key == 1).FirstOrDefault().Value.TotaleCategoria,
+            TotaleDigitale = totali.Where(x => x.Key == 2).FirstOrDefault().Value == null ? "0,00 €" : totali.Where(x => x.Key == 2).FirstOrDefault().Value.TotaleCategoria,
             AnnoValidita = model.AnnoValidita,
             IdEnte = model.IdEnte,
             IdTipoContratto = model.IdTipoContratto,
@@ -96,7 +96,7 @@ public static class DatiModuloCommessaViewModelExtensions
     }
 
     public static DatiModuloCommessaResponse? Mapper(this ModuloCommessaDto model, AuthenticationInfo info)
-    { 
+    {
         var cmd = new DatiModuloCommessaResponse
         {
             ModuliCommessa = [],
@@ -121,7 +121,7 @@ public static class DatiModuloCommessaViewModelExtensions
                 TotaleNotifiche = md.TotaleNotifiche
             });
             cmd.IdTipoContratto = md.IdTipoContratto;
-        } 
+        }
 
         foreach (var mdt in model.DatiModuloCommessaTotale!)
         {
@@ -137,14 +137,14 @@ public static class DatiModuloCommessaViewModelExtensions
         {
             cmd.TotaleModuloCommessaNotifica.TotaleNumeroNotificheNazionali += mdc.NumeroNotificheNazionali;
             cmd.TotaleModuloCommessaNotifica.TotaleNumeroNotificheInternazionali += mdc.NumeroNotificheInternazionali;
-            cmd.TotaleModuloCommessaNotifica.TotaleNumeroNotificheDaProcessare += mdc.TotaleNotifiche; 
+            cmd.TotaleModuloCommessaNotifica.TotaleNumeroNotificheDaProcessare += mdc.TotaleNotifiche;
         }
         cmd.TotaleModuloCommessaNotifica.Totale = cmd.Totale.Select(x => x.TotaleValoreCategoriaSpedizione).Sum();
 
         var dataCreazione = model.DatiModuloCommessa!.Select(x => x.DataCreazione).FirstOrDefault();
         var dataModifica = model.DatiModuloCommessa!.Select(x => x.DataModifica).FirstOrDefault();
-        cmd.DataModifica = dataModifica == DateTime.MinValue? dataCreazione: dataModifica;
-       
+        cmd.DataModifica = dataModifica == DateTime.MinValue ? dataCreazione : dataModifica;
+
         return cmd;
     }
 }
