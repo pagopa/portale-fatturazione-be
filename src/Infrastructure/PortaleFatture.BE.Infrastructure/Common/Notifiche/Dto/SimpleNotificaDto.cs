@@ -147,4 +147,29 @@ public class SimpleNotificaDto
 
     [Column("onere")]
     public string? Onere { get; set; }
+
+    [Column("NoteEnte")]
+    [HeaderAttribute(caption: "Note Ente", Order = 30)]
+    [HeaderAttributev2(caption: "Note Ente", Order = 30)]
+    public string? NoteEnte { get; set; }
+
+    [Column("RispostaEnte")]
+    [HeaderAttribute(caption: "Risposta Ente", Order = 31)]
+    [HeaderAttributev2(caption: "Risposta Ente", Order = 31)]
+    public string? RispostaEnte { get; set; }
+
+    [Column("NoteSend")]
+    [HeaderAttribute(caption: "Risposta Send", Order = 32)]
+    [HeaderAttributev2(caption: "Risposta Send", Order = 32)]
+    public string? NoteSend { get; set; }
+
+    [Column("NoteRecapitista")]
+    [HeaderAttribute(caption: "Risposta Recapitista", Order = 33)]
+    [HeaderAttributev2(caption: "Risposta Recapitista", Order = 33)]
+    public string? NoteRecapitista { get; set; }
+
+    [Column("NoteConsolidatore")]
+    [HeaderAttribute(caption: "Risposta Consolidatore", Order = 34)]
+    [HeaderAttributev2(caption: "Risposta Consolidatore", Order = 35)]
+    public string? NoteConsolidatore { get; set; }
 } 

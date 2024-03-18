@@ -46,5 +46,10 @@ internal static class CalendarioContestazioneSQLBuilder
         var builder = CreateSelect(); 
         var builderTemplate = builder.AddTemplate($"Select /**select**/ from [schema]{tableName}");
         return builderTemplate.RawSql;
+    } 
+    public static string OrderBy()
+    {
+        CalendarioContestazione? @obj = null;
+        return $" ORDER BY {nameof(@obj.AnnoContestazione).GetColumn<CalendarioContestazione>()} DESC, {nameof(@obj.MeseContestazione).GetColumn<CalendarioContestazione>()}";
     }
 }

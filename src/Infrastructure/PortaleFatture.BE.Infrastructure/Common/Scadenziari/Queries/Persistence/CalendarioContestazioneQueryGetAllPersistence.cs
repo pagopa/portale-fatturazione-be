@@ -9,8 +9,10 @@ public class CalendarioContestazioneQueryGetAllPersistence(CalendarioContestazio
 {
     private readonly CalendarioContestazioneQueryGetAll _command = command;
     private static readonly string _sql = CalendarioContestazioneSQLBuilder.SelectAll();
+    private static readonly string _orderBy = CalendarioContestazioneSQLBuilder.OrderBy();
     public async Task<IEnumerable<CalendarioContestazione>?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
     {
-        return await ((IDatabase)this).SelectAsync<CalendarioContestazione>(connection!, _sql.Add(schema), transaction);
+        var sql = _sql + _orderBy;
+        return await ((IDatabase)this).SelectAsync<CalendarioContestazione>(connection!, sql.Add(schema), transaction);
     }
 }

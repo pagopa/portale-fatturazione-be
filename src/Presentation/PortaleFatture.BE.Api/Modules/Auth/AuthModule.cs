@@ -36,6 +36,7 @@ public partial class AuthModule : Module, IRegistrableModule
     {
         var authInfos = await profileService.GetSelfCareInfo(selfcareToken);
         return Ok(authInfos!.MapperSelfCare(usersService, tokensService, encryption));
+
     }
 
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}")]

@@ -44,7 +44,13 @@ SELECT [contract_id] AS IdContratto,
        f.IdFlagContestazione AS StatoContestazione,
        a.TipoContestazione AS TipoContestazione,
        0 as Fatturata,
-       t.onere AS Onere
+       t.onere AS Onere,
+       t.NoteEnte AS NoteEnte,
+	   t.RispostaEnte AS RispostaEnte,
+       t.NoteSend AS NoteSend,
+       t.NoteRecapitista AS NoteRecapitista,
+       t.NoteConsolidatore AS NoteConsolidatore
+
 FROM pfd.[Notifiche] n
 INNER JOIN pfd.Enti e ON e.InternalIstitutionId = n.internal_organization_id
 INNER JOIN pfd.Contratti c ON e.InternalIstitutionId = c.internalistitutionid
