@@ -29,7 +29,7 @@ public class NotificaQueryGetByIdEnteHandler(
 
         var calendario = await _handler.Send(new CalendarioContestazioneQueryGet(request.AuthenticationInfo, annoNotifica, meseNotifica));
 
-        if (!calendario.Valid)
+        if (!calendario.ValidVisualizzazione)
             return new NotificaDto()
             {
                 Count = 0,

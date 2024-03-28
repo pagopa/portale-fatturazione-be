@@ -22,4 +22,5 @@ public class CalendarioContestazione
     public DateTime Adesso { get; set; } 
     public bool Valid { get; set; } 
     public bool ValidVerifica { get; set; }
+    public bool ValidVisualizzazione { get; set; }
 } 

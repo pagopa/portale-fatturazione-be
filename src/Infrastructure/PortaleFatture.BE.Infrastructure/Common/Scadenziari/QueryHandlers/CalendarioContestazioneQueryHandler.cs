@@ -36,6 +36,8 @@ public class CalendarioContestazioneQueryHandler(
    
         var tValid = adesso >= calendario!.DataInizio && adesso <= calendario!.DataFine;
         var tVerifica= adesso >= calendario!.DataInizio && adesso <= calendario!.DataVerifica;
+        var tVisualizzazione = adesso >= calendario!.DataInizio;
+
         CalendarioContestazione calendarioContestazione = new()
         {
             Valid = tValid,
@@ -45,7 +47,8 @@ public class CalendarioContestazioneQueryHandler(
             DataVerifica = calendario.DataVerifica,
             AnnoContestazione = calendario.AnnoContestazione,
             MeseContestazione = calendario.MeseContestazione,
-            Adesso = adesso
+            Adesso = adesso,
+            ValidVisualizzazione = tVisualizzazione
         };
         return calendarioContestazione;
     }
