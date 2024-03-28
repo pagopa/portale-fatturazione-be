@@ -27,6 +27,13 @@
       <None Update="Infrastructure\Documenti\daticommessa.html">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
+      <None Update="Infrastructure\Documenti\rel.html">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Modules\DatiRel\Payload\Response\" />
     </ItemGroup>
 
 </Project>

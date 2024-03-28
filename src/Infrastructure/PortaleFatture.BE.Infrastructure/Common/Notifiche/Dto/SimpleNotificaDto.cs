@@ -142,8 +142,8 @@ public class SimpleNotificaDto
     [HeaderAttributev2(caption: "recipient_tax_id", Order = 26)]
     public string? RecipientTaxId { get; set; }
 
-    [Column("fatturata")]
-    public bool Fatturata { get; set; }
+    [Column("Fatturabile")]
+    public bool? Fatturata { get; set; }
 
     [Column("onere")]
     public string? Onere { get; set; }
@@ -172,4 +172,8 @@ public class SimpleNotificaDto
     [HeaderAttribute(caption: "Risposta Consolidatore", Order = 34)]
     [HeaderAttributev2(caption: "Risposta Consolidatore", Order = 35)]
     public string? NoteConsolidatore { get; set; }
+
+    [Column("TipologiaFattura")]
+    [HeaderAttribute(caption: "Tipologia Fattura", Order = 40)]
+    public string? TipologiaFattura { get; set; }
 } 

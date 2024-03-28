@@ -9,13 +9,17 @@ public abstract class Module : IModule
     public static string DatiConfigurazioneModuloCommessaLabel = "Dati Configurazione Modulo Commessa";
     public static string DatiTipologiaLabel = "Dati Tipologie";
     public static string DatiNotificaLabel = "Dati Notifiche";
+    public static string DatiRelLabel = "Dati Rel";
+    public static string DatiRelLabelPagoPA = "Dati Rel PagoPA";
     public static string DatiNotificaLabelPagoPA = "Dati Notifiche PagoPA";
     public static string DatiAuthLabel = "Autenticazione";
     public const string CORSLabel = "portalefatture";
     public const string GatewayLabel = "gateway";
     public const string HealthcheckLabel = "health";
-    public const string LoggingLabel = "Logging"; 
+    public const string LoggingLabel = "Logging";
+    public const string SelfCareEsterniPolicy = "SelfCareEsterniPolicy";
     public const string SelfCarePolicy = "SelfCarePolicy";
     public const string PagoPAPolicy = "PagoPAPolicy";
     public const string SelfCarePolicyClaim = "auth";
+    public const string SelfCarePolicyProfiloClaim = "profilo";
 }

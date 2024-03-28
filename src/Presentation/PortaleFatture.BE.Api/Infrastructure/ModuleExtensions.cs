@@ -13,6 +13,7 @@ public static class ModuleExtensions
     {
         model.JWT ??= new();
         model.AzureAd ??= new();
+        model.Storage ??= new();
 
         var selfCareUri = Environment.GetEnvironmentVariable("SELF_CARE_URI") ??
              throw new ConfigurationException("Please specify a SELF_CARE_URI!");
@@ -44,6 +45,12 @@ public static class ModuleExtensions
         var adminKey = Environment.GetEnvironmentVariable("ADMIN_KEY") ??
              throw new ConfigurationException("Please specify a ADMIN_KEY!");
 
+        var relFolder = Environment.GetEnvironmentVariable("STORAGE_REL_FOLDER") ??
+             throw new ConfigurationException("Please specify a STORAGE_REL_FOLDER!");
+
+        var storageConnectionString = Environment.GetEnvironmentVariable("STORAGE_CONNECTIONSTRING") ??
+             throw new ConfigurationException("Please specify a STORAGE_CONNECTIONSTRING!");
+
         var applicationInsights = Environment.GetEnvironmentVariable("APPLICATION_INSIGHTS") ??
              throw new ConfigurationException("Please specify an APPLICATION_INSIGHTS!"); 
         var azureADInstance = Environment.GetEnvironmentVariable("AZUREAD_INSTANCE") ??
@@ -72,6 +79,8 @@ public static class ModuleExtensions
         model.AzureAd.TenantId = azureADTenantId;
         model.AzureAd.Instance = azureADInstance;
         model.AzureAd.AdGroup = azureADGroup;
+        model.Storage.RelFolder = relFolder;
+        model.Storage.ConnectionString = storageConnectionString;
 
         model.ApplicationInsights = applicationInsights;
         return model;

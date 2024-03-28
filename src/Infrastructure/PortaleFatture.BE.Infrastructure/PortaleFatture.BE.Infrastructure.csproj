@@ -8,11 +8,14 @@
 
     <ItemGroup>
         <PackageReference Include="Azure.Identity" Version="1.10.4" />
+        <PackageReference Include="Azure.Storage.Blobs" Version="12.19.1" />
+        <PackageReference Include="Azure.Storage.Common" Version="12.18.1" />
         <PackageReference Include="CsvHelper" Version="31.0.0" />
         <PackageReference Include="Dapper" Version="2.1.28" />
         <PackageReference Include="Dapper.SqlBuilder" Version="2.0.78" />
         <PackageReference Include="DocumentFormat.OpenXml" Version="3.0.1" />
         <PackageReference Include="Haukcode.WkHtmlToPdfDotNet" Version="1.5.86" />
+        <PackageReference Include="MailKit" Version="4.4.0" />
         <PackageReference Include="MediatR" Version="12.2.0" /> 
         <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.1" />
         <PackageReference Include="Microsoft.Data.SqlClient" Version="5.1.4" />

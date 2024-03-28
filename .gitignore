@@ -528,3 +528,7 @@ FodyWeavers.xsd
 # End of https://www.toptal.com/developers/gitignore/api/windows,macos,visualstudio,visualstudiocode,rider
 /secrets/
 src/Presentation/PortaleFatture.BE.Api/Properties
+.vscode
+src/Presentation/PortaleFatture.BE.SendEmailFunction/Properties
+src/Presentation/PortaleFatture.BE.SendEmailFunction/PortaleFatture.BE.SendEmailFunction.sln
+src/Presentation/PortaleFatture.BE.EmailSender/Infrastructure/Documenti/enti.csv

@@ -40,7 +40,8 @@ public class ContestazioneUpdateCommandHandler(
         var contestazione = azione!.Contestazione; 
 
         if (contestazione == null
-            || notifica!.Fatturata == true)
+            || notifica!.Fatturata != null && notifica!.Fatturata == true
+            || notifica.TipologiaFattura != null)
             throw new DomainException(_localizer["CreazioneContestazioneError", command.IdNotifica!]); 
  
         if (azione == null 

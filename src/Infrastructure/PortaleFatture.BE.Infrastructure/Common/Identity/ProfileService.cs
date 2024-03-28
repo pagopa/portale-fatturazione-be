@@ -9,6 +9,7 @@ using PortaleFatture.BE.Core.Auth.SelfCare;
 using PortaleFatture.BE.Core.Common;
 using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Core.Extensions;
+using PortaleFatture.BE.Infrastructure.Common.Identity.Extensions;
 using PortaleFatture.BE.Infrastructure.Common.SelfCare.Queries;
 using PortaleFatture.BE.Infrastructure.Gateway;
 
@@ -68,8 +69,8 @@ public class ProfileService(
         else if (gruppo.Contains(GroupRoles.ASSISTENZA))
             return Profilo.Assistenza;
         else
-            throw new DomainException("Gruppo AD sconosciuto!"); 
-    } 
+            throw new DomainException("Gruppo AD sconosciuto!");
+    }
 
     private string MapperGruppoRuolo(string descrizioneRuolo)
     {
@@ -94,7 +95,7 @@ public class ProfileService(
             var allowedToPortale = groups.Where(x => portaleGroup.Key == x).FirstOrDefault();
             if (String.IsNullOrEmpty(allowedToPortale))
                 throw new SecurityException("You are not allowed in Portale Fatture. There is no group valid Portale Fatture.");
-            groups.Remove(allowedToPortale);  
+            groups.Remove(allowedToPortale);
 
             var group = groups.Where(x => allowedGroups.Select(x => x.Key).Contains(x)).FirstOrDefault();
             if (groups.IsNullNotAny() || string.IsNullOrEmpty(group))
@@ -125,14 +126,14 @@ public class ProfileService(
         try
         {
             List<AuthenticationInfo> infos = [];
-            var roles = model.Organization!.Roles!.OrderByDescending(x=>x.Product);
+            var roles = model.Organization!.Roles!.OrderByDescending(x => x.Product);
             foreach (var org in roles)
             {
                 var auhtInfo = new AuthenticationInfo()
                 {
                     Email = model.Email,
                     Id = model.Uid,
-                    Prodotto = org.Product,
+                    Prodotto = org.Product!.Map(),
                     Ruolo = Mapper(org.PartyRole!),
                     IdEnte = model.Organization!.Id,
                     DescrizioneRuolo = MapperRuolo(org.PartyRole!),
@@ -145,7 +146,14 @@ public class ProfileService(
                 // recupero dati db selfcare
                 var contratto = await _handler.Send(new ContrattoQueryGetById(auhtInfo));
                 var ente = await _handler.Send(new EnteQueryGetById(auhtInfo));
-                if (contratto == null || ente == null || contratto.Prodotto == null || ente.Profilo == null)
+                if (contratto != null && ente != null && ente!.Profilo != null && ente.Profilo == Profilo.Recapitista)
+                {
+                    auhtInfo.Profilo = Profilo.Recapitista;
+                    auhtInfo.NomeEnte = ente!.Descrizione;
+                    auhtInfo.IdTipoContratto = contratto.IdTipoContratto;
+                    infos.Add(auhtInfo);
+                }
+                else if (contratto == null || ente == null || contratto.Prodotto == null || ente.Profilo == null)
                 {
                     var msg = "There is no reference in contratti o ente related to id:{idEnte} name:{Name}";
                     _logger.LogError(msg, model.Organization!.Id, model.Organization.Name);

@@ -43,8 +43,10 @@ public class ContestazioneUpdatePagoPaCommandHandler(
         var notifica = azione!.Notifica;
         var contestazione = azione!.Contestazione;
 
-        if (contestazione == null
-            || notifica!.Fatturata == true)
+        if (contestazione == null 
+            || notifica == null
+            || notifica!.Fatturata != null && notifica.Fatturata == true
+            || notifica.TipologiaFattura != null)
             throw new DomainException(_localizer["CreazioneContestazioneError", command.IdNotifica!]);
 
         if (azione == null

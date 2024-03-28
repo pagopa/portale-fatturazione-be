@@ -41,7 +41,10 @@ public class ContestazioneCreateCommandHandler(
         }
 
 
-        if (notifica == null || notifica.StatoContestazione != (short)StatoContestazione.NonContestata)
+        if (notifica == null 
+            || notifica.StatoContestazione != (short)StatoContestazione.NonContestata
+            || notifica.Fatturata != null && notifica.Fatturata == true 
+            || notifica.TipologiaFattura != null)
             throw new DomainException(_localizer["CreazioneContestazioneError", command.IdNotifica!]);
 
         command.Anno = Convert.ToInt32(notifica.Anno);

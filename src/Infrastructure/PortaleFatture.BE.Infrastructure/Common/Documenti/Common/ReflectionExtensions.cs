@@ -1,4 +1,5 @@
 ﻿using System.Data;
+using DocumentFormat.OpenXml.Drawing.Diagrams;
 
 namespace PortaleFatture.BE.Infrastructure.Common.Documenti.Common;
 
@@ -44,18 +45,20 @@ public static class ReflectionExtensions
     {
         var headers = GetHeaders<T>();
         var table = new DataTable(nameof(T));
+
         foreach (var hh in headers)
         {
             var column = new DataColumn
             {
-                DataType = hh.Type,
+                DataType = Nullable.GetUnderlyingType(hh.Type!) ?? hh.Type,
                 ColumnName = hh.Name,
                 Caption = hh.Caption,
-                ReadOnly = hh.ReadOnly  
+                ReadOnly = hh.ReadOnly
             };
             column.ExtendedProperties.Add("Style", hh.Style);
             table.Columns.Add(column);
         }
+
         return (table, headers);
     }
 
@@ -67,7 +70,7 @@ public static class ReflectionExtensions
         {
             var column = new DataColumn
             {
-                DataType = hh.Type,
+                DataType = Nullable.GetUnderlyingType(hh.Type!) ?? hh.Type,
                 ColumnName = hh.Name,
                 Caption = hh.Caption,
                 ReadOnly = hh.ReadOnly
@@ -91,6 +94,41 @@ public static class ReflectionExtensions
 
             table.Rows.Add(row);
         }
+        ds.Tables.Add(table);
+        return ds;
+    }
+
+    public static DataSet FillOneSheetWithTotalsRel<T>(this IEnumerable<T> data)
+    {
+        var ds = new DataSet();
+        var (table, headers) = ToTable<T>();
+        DataRow row;
+        foreach (var d in data)
+        {
+            row = table.NewRow();
+            foreach (var hh in headers)
+                row[hh.Name!] = d!.GetType().GetProperty(hh.Name!)!.GetValue(d, null);
+
+            table.Rows.Add(row);
+        }
+
+        table.Rows.Add(table.NewRow());
+        var rowTot = table.NewRow();
+        for (var i = 0; i < table.Columns.Count; i++)
+        {
+            if ((i >= 6 && i <= 11) || (i >= 13 && i <= 15))
+            {
+                if (table.Columns[i].DataType == typeof(decimal))
+                    rowTot[i] = table.AsEnumerable().Sum(x => x.Field<decimal?>(table.Columns[i].ColumnName));
+                else if (table.Columns[i].DataType == typeof(int))
+                    rowTot[i] = table.AsEnumerable().Sum(x => x.Field<int?>(table.Columns[i].ColumnName));
+                else
+                    rowTot[i] = DBNull.Value;
+            }
+            else
+                rowTot[i] = DBNull.Value;
+        }
+        table.Rows.Add(rowTot);
         ds.Tables.Add(table);
         return ds;
     }

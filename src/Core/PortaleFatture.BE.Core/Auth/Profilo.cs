@@ -5,6 +5,7 @@ public static class Profilo
     //selfcare
     public static string Recapitista = "RCP";
     public static string Consolidatore = "CON";
+
     public static string PubblicaAmministrazione = "PA";
     public static string GestorePubblicoServizio = "GPS";
     public static string SocietaControlloPubblico = "SCP";

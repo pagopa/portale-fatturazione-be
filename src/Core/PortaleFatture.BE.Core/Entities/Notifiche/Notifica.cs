@@ -96,6 +96,9 @@ public class Notifica
     [Column("recipient_tax_id")]
     public string? RecipientTaxId { get; set; }
 
-    [Column("fatturata")]
-    public bool Fatturata { get; set; }
+    [Column("Fatturabile")]
+    public bool? Fatturata { get; set; }
+
+    [Column("TipologiaFattura")]
+    public string? TipologiaFattura { get; set; }
 }

@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Reflection;
 using System.Security;
+using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -23,6 +24,7 @@ using PortaleFatture.BE.Infrastructure.Common.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.Persistence.Schemas;
 using PortaleFatture.BE.Infrastructure.Common.Scadenziari;
 using PortaleFatture.BE.Infrastructure.Gateway;
+using PortaleFatture.BE.Infrastructure.Gateway.Storage;
 
 namespace PortaleFatture.BE.Api.Infrastructure;
 public static class ConfigurationExtensions
@@ -139,7 +141,7 @@ public static class ConfigurationExtensions
         })
         .SetHandlerLifetime(TimeSpan.FromMinutes(5))
         .AddPolicyHandler(ExponentialRetryPolicy());
-
+        services.AddSingleton<IRelStorageService, RelStorageService>(); 
         return services;
     }
 
@@ -263,13 +265,30 @@ public static class ConfigurationExtensions
         services
            .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
            .AddJwtBearer(options => options.JwtAuthenticationConfiguration(foptions.JWT!));
+
         services.AddAuthorizationBuilder()
         .AddPolicy(Module.SelfCarePolicy, policy =>
             policy
-                .RequireClaim(Module.SelfCarePolicyClaim, AuthType.SELFCARE))
+                .RequireClaim(Module.SelfCarePolicyClaim, AuthType.SELFCARE)
+                .RequireClaim(Module.SelfCarePolicyProfiloClaim, 
+                    Profilo.PubblicaAmministrazione, 
+                    Profilo.GestorePubblicoServizio,
+                    Profilo.SocietaControlloPubblico,
+                    Profilo.PrestatoreServiziPagamento,
+                    Profilo.AssicurazioniIVASS,
+                    Profilo.StazioneAppaltanteANAC,
+                    Profilo.PartnerTecnologico)
+                )
         .AddPolicy(Module.PagoPAPolicy, policy =>
             policy
-                .RequireClaim(Module.SelfCarePolicyClaim, AuthType.PAGOPA));
+                .RequireClaim(Module.SelfCarePolicyClaim, AuthType.PAGOPA))
+        .AddPolicy(Module.SelfCareEsterniPolicy, policy =>
+            policy
+                .RequireClaim(Module.SelfCarePolicyClaim, AuthType.SELFCARE)
+                .RequireClaim(Module.SelfCarePolicyProfiloClaim, 
+                    Profilo.Recapitista,
+                    Profilo.Consolidatore) 
+                );
 
         services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
         return services;

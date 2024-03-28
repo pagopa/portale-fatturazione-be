@@ -2,10 +2,13 @@
 using PortaleFatture.BE.Core.Entities.DatiModuloCommesse.Dto;
 using PortaleFatture.BE.Core.Exceptions;
 using WkHtmlToPdfDotNet;
+using PortaleFatture.BE.Core.Entities.DatiRel.Dto;
 
 namespace PortaleFatture.BE.Infrastructure.Common.Documenti;
 public class DocumentBuilder : IDocumentBuilder
 {
+    private static string _fileEmail = $"primo_saldo.html";
+    private static string _fileRel = $"rel.html";
     private static string _fileModuloCommessa = $"daticommessa.html";
     private static string _directory = $"Infrastructure/Documenti/";
     private readonly string _root;
@@ -17,12 +20,36 @@ public class DocumentBuilder : IDocumentBuilder
         this._directoryPath = Path.Combine([_root, _directory]);
     }
 
+    public string? CreateEmailHtml(RelEmail dati)
+    {
+        var filePath = Path.Combine([_directoryPath, _fileEmail]);
+        var text = ReadFromFile(filePath);
+        text = dati.Replace(text!);
+        return text;
+    }
+
     public string? CreateModuloCommessaHtml(ModuloCommessaDocumentoDto dati)
     {
         var filePath = Path.Combine([_directoryPath, _fileModuloCommessa]);
         var moduloCommessaText = ReadFromFile(filePath);
         moduloCommessaText = dati.Replace(moduloCommessaText!);
         return moduloCommessaText;
+    }
+
+    public string? CreateModuloRelHtml(RelDocumentoDto dati)
+    {
+        var filePath = Path.Combine([_directoryPath, _fileRel]);
+        var relText = ReadFromFile(filePath);
+        relText = dati.Replace(relText!);
+        return relText;
+    }
+
+    public byte[] CreateModuloRelPdf(RelDocumentoDto dati)
+    {
+        var filePath = Path.Combine([_directoryPath, _fileRel]);
+        var relText = ReadFromFile(filePath);
+        relText = dati.Replace(relText!);
+        return CreatePdf(relText!);
     }
 
     public byte[] CreateModuloCommessaPdf(ModuloCommessaDocumentoDto dati)

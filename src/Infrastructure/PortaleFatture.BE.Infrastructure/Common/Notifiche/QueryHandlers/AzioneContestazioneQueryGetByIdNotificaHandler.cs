@@ -57,7 +57,13 @@ public class AzioneContestazioneQueryGetByIdNotificaHandler(
         bool? rispostaPermessa = null;
         if (authInfo.Profilo == Profilo.PubblicaAmministrazione)
         {
-            if (notifica.StatoContestazione == (short)StatoContestazione.NonContestata)
+            if ((notifica.Fatturata != null && notifica.Fatturata == true) || (notifica.TipologiaFattura != null))
+            {
+                chiusuraPermessa = false;
+                creazionePermessa = false; // sempre false, già calcolata
+                rispostaPermessa = false;
+            }
+            else if (notifica.StatoContestazione == (short)StatoContestazione.NonContestata)
             {
                 chiusuraPermessa = false;
                 creazionePermessa = true; // valuta dopo il calendario
@@ -106,7 +112,13 @@ public class AzioneContestazioneQueryGetByIdNotificaHandler(
             || authInfo.Profilo == Profilo.Finanza
             || authInfo.Profilo == Profilo.Assistenza)
         {
-            if (notifica.StatoContestazione == (short)StatoContestazione.NonContestata
+            if ((notifica.Fatturata != null && notifica.Fatturata == true) || (notifica.TipologiaFattura != null))
+            {
+                chiusuraPermessa = false;
+                creazionePermessa = false; // sempre false, già calcolata
+                rispostaPermessa = false;
+            }
+            else if (notifica.StatoContestazione == (short)StatoContestazione.NonContestata
               || notifica.StatoContestazione == (short)StatoContestazione.Annullata
               || notifica.StatoContestazione == (short)StatoContestazione.Accettata
               || notifica.StatoContestazione == (short)StatoContestazione.Chiusa)
