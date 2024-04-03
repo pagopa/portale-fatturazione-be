@@ -173,7 +173,13 @@ public class SimpleNotificaDto
     [HeaderAttributev2(caption: "Risposta Consolidatore", Order = 35)]
     public string? NoteConsolidatore { get; set; }
 
+    [Column("TipoContestazione")]
+    [HeaderAttribute(caption: "Tipo Contestazione", Order = 40)]
+    [HeaderAttributev2(caption: "Tipo Contestazione", Order = 40)]
+    public string? TipoContestazione { get; set; }
+
     [Column("TipologiaFattura")]
-    [HeaderAttribute(caption: "Tipologia Fattura", Order = 40)]
+    [HeaderAttribute(caption: "Tipologia Fattura", Order = 41)]
+    [HeaderAttributev2(caption: "Tipologia Fattura", Order = 41)]
     public string? TipologiaFattura { get; set; }
 } 
