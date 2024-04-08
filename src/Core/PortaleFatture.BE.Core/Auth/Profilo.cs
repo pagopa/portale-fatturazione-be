@@ -7,7 +7,7 @@ public static class Profilo
     public static string Consolidatore = "CON";
 
     public static string PubblicaAmministrazione = "PA";
-    public static string GestorePubblicoServizio = "GPS";
+    public static string GestorePubblicoServizio = "GSP";
     public static string SocietaControlloPubblico = "SCP";
     public static string PrestatoreServiziPagamento = "PSP";
     public static string AssicurazioniIVASS = "AS";
