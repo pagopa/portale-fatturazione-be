@@ -84,7 +84,7 @@ public class RelTestataQueryGetByListaEntiPersistence(RelTestataQueryGetByListaE
             query,
             transaction);
 
-        rel.RelTestate = await values.ReadAsync<SimpleRelTestata>();
+        rel.RelTestate = (await values.ReadAsync<SimpleRelTestata>()).ToList();
         rel.Count = await values.ReadFirstAsync<int>();
         return rel;
     }

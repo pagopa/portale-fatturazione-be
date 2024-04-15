@@ -87,7 +87,7 @@ public class SendEmail(ILoggerFactory loggerFactory)
                         RagioneSociale = ente.RagioneSociale,
                         TipologiaFattura = ente.TipologiaFattura
                     });
-                } 
+                }
         }
         catch (Exception ex)
         {

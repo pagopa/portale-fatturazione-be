@@ -101,7 +101,7 @@ public static class ReflectionExtensions
     public static DataSet FillOneSheetWithTotalsRel<T>(this IEnumerable<T> data)
     {
         var ds = new DataSet();
-        var (table, headers) = ToTable<T>();
+        var (table, headers) = ToTablev2<T>();
         DataRow row;
         foreach (var d in data)
         {
@@ -116,17 +116,24 @@ public static class ReflectionExtensions
         var rowTot = table.NewRow();
         for (var i = 0; i < table.Columns.Count; i++)
         {
-            if ((i >= 6 && i <= 11) || (i >= 13 && i <= 15))
+            if(i == 0)
             {
-                if (table.Columns[i].DataType == typeof(decimal))
-                    rowTot[i] = table.AsEnumerable().Sum(x => x.Field<decimal?>(table.Columns[i].ColumnName));
-                else if (table.Columns[i].DataType == typeof(int))
-                    rowTot[i] = table.AsEnumerable().Sum(x => x.Field<int?>(table.Columns[i].ColumnName));
-                else
-                    rowTot[i] = DBNull.Value;
+                rowTot[i] = "Totali:";
             }
             else
-                rowTot[i] = DBNull.Value;
+            {
+                if (i >= 6)
+                {
+                    if (table.Columns[i].DataType == typeof(decimal))
+                        rowTot[i] = table.AsEnumerable().Sum(x => x.Field<decimal?>(table.Columns[i].ColumnName));
+                    else if (table.Columns[i].DataType == typeof(int))
+                        rowTot[i] = table.AsEnumerable().Sum(x => x.Field<int?>(table.Columns[i].ColumnName));
+                    else
+                        rowTot[i] = DBNull.Value;
+                }
+                else
+                    rowTot[i] = DBNull.Value;
+            } 
         }
         table.Rows.Add(rowTot);
         ds.Tables.Add(table);

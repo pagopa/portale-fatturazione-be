@@ -55,7 +55,69 @@ public class AzioneContestazioneQueryGetByIdNotificaHandler(
         bool? chiusuraPermessa = null;
         bool? creazionePermessa = null;
         bool? rispostaPermessa = null;
-        if (authInfo.Profilo == Profilo.PubblicaAmministrazione)
+
+        if (authInfo.Profilo == Profilo.Recapitista
+            || authInfo.Profilo == Profilo.Consolidatore)
+        {
+            if ((notifica.Fatturata != null && notifica.Fatturata == true) || (notifica.TipologiaFattura != null))
+            {
+                chiusuraPermessa = false;
+                creazionePermessa = false; // sempre false, già calcolata
+                rispostaPermessa = false;
+            }
+            else if (notifica.StatoContestazione == (short)StatoContestazione.NonContestata)
+            {
+                chiusuraPermessa = false;
+                creazionePermessa = true; // valuta dopo il calendario
+                rispostaPermessa = false;
+            }
+            else if (notifica.StatoContestazione == (short)StatoContestazione.Annullata
+                || notifica.StatoContestazione == (short)StatoContestazione.Accettata
+                || notifica.StatoContestazione == (short)StatoContestazione.Chiusa)
+            {
+                chiusuraPermessa = false;
+                creazionePermessa = false;
+                rispostaPermessa = false;
+            }
+            else if (notifica.StatoContestazione == (short)StatoContestazione.ContestataEnte)
+            {
+                chiusuraPermessa = false;
+                creazionePermessa = false;
+                rispostaPermessa = true;
+            }
+            else if (notifica.StatoContestazione == (short)StatoContestazione.RispostaRecapitista
+                 || notifica.StatoContestazione == (short)StatoContestazione.RispostaConsolidatore
+                 || notifica.StatoContestazione == (short)StatoContestazione.RispostaSend
+                 || notifica.StatoContestazione == (short)StatoContestazione.RispostaEnte)
+            {
+                chiusuraPermessa = false;
+                creazionePermessa = false;
+                rispostaPermessa = true;
+            }
+            else
+            {
+                var msg = string.Format("Non esiste stato valido associato a notifica con codice: {0}", request.IdNotifica);
+                _logger.LogError(msg);
+                throw new DomainException(msg);
+            }
+            return new AzioneNotificaDto()
+            {
+                ChiusuraPermessa = false,
+                CreazionePermessa = false,
+                RispostaPermessa = rispostaPermessa!.Value && calendario.ValidVerifica && authInfo.Ruolo == Ruolo.ADMIN,
+                Contestazione = contestazione,
+                Calendario = calendario,
+                Notifica = notifica
+            };
+        }
+        else if (
+            authInfo.Profilo == Profilo.PubblicaAmministrazione
+            || authInfo.Profilo == Profilo.GestorePubblicoServizio
+            || authInfo.Profilo == Profilo.SocietaControlloPubblico
+            || authInfo.Profilo == Profilo.PrestatoreServiziPagamento
+            || authInfo.Profilo == Profilo.AssicurazioniIVASS
+            || authInfo.Profilo == Profilo.StazioneAppaltanteANAC
+            || authInfo.Profilo == Profilo.PartnerTecnologico)
         {
             if ((notifica.Fatturata != null && notifica.Fatturata == true) || (notifica.TipologiaFattura != null))
             {

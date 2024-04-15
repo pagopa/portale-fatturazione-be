@@ -4,7 +4,7 @@ public class ContestazionePagoPAUpdateRequest
 {
     public string? IdNotifica { get; set; }
 
-    /// <example>PA,RCP,CON</example>
+    /// <example>PA,REC,CON</example>
     public string? Onere { get; set; } 
     public string? NoteSend { get; set; }
     public short StatoContestazione { get; set; } 

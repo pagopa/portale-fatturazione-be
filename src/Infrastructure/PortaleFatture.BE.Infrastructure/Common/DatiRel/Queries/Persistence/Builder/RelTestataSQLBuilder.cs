@@ -25,6 +25,14 @@ SELECT [internal_organization_id] as IdEnte
       ,[TotaleDigitaleIva]
       ,[TotaleIva] 
       ,[Caricata]
+      ,[AsseverazioneTotaleAnalogico]
+      ,[AsseverazioneTotaleDigitale]
+      ,[AsseverazioneTotaleNotificheAnalogiche]
+      ,[AsseverazioneTotaleNotificheDigitali]
+      ,[AsseverazioneTotale]
+      ,[AsseverazioneTotaleAnalogicoIva]
+      ,[AsseverazioneTotaleDigitaleIva]
+      ,[AsseverazioneTotaleIva]
   FROM [pfd].[RelTestata] t
   inner join pfd.Enti e
   on e.InternalIstitutionId =t.internal_organization_id
@@ -46,11 +54,19 @@ SELECT [internal_organization_id] as IdEnte
       ,[TotaleAnalogicoIva]
       ,[TotaleDigitaleIva]
       ,[TotaleIva] 
+      ,[AsseverazioneTotaleAnalogico]
+      ,[AsseverazioneTotaleDigitale]
+      ,[AsseverazioneTotaleNotificheAnalogiche]
+      ,[AsseverazioneTotaleNotificheDigitali]
+      ,[AsseverazioneTotale]
+      ,[AsseverazioneTotaleAnalogicoIva]
+      ,[AsseverazioneTotaleDigitaleIva]
+      ,[AsseverazioneTotaleIva]
 	  ,IdDocumento
 	  ,Cup
 	  ,DataDocumento
       ,CASE WHEN f.IdDatiFatturazione IS NULL THEN 0 ELSE 1 END as DatiFatturazione
-      ,[Caricata]
+      ,[Caricata] 
   FROM [pfd].[RelTestata] t
   inner join pfd.Enti e
   on e.InternalIstitutionId =t.internal_organization_id

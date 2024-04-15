@@ -8,4 +8,6 @@ public sealed class CalendarioContestazioniResponse
     public string? DataInizio { get; set; }   
     public string? MeseContestazione { get; set; } 
     public int AnnoContestazione { get; set; }
+    public string? DataRecapitistaFine { get; set; }
+    public string? DataRecapitistaInizio { get; set; }
 }

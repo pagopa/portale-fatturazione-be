@@ -282,14 +282,18 @@ public static class ConfigurationExtensions
         .AddPolicy(Module.PagoPAPolicy, policy =>
             policy
                 .RequireClaim(Module.SelfCarePolicyClaim, AuthType.PAGOPA))
-        .AddPolicy(Module.SelfCareEsterniPolicy, policy =>
+        .AddPolicy(Module.SelfCareRecapitistaPolicy, policy =>
             policy
                 .RequireClaim(Module.SelfCarePolicyClaim, AuthType.SELFCARE)
                 .RequireClaim(Module.SelfCarePolicyProfiloClaim, 
-                    Profilo.Recapitista,
-                    Profilo.Consolidatore) 
+                    Profilo.Recapitista) 
+                )
+        .AddPolicy(Module.SelfCareConsolidatorePolicy, policy =>
+            policy
+                .RequireClaim(Module.SelfCarePolicyClaim, AuthType.SELFCARE)
+                .RequireClaim(Module.SelfCarePolicyProfiloClaim,
+                    Profilo.Consolidatore)
                 );
-
         services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
         return services;
     }

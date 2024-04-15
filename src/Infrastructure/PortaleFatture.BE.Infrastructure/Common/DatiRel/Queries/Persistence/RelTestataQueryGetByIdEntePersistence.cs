@@ -75,7 +75,7 @@ public class RelTestataQueryGetByIdEntePersistence(RelTestataQueryGetByIdEnte co
             query,
             transaction);
 
-        rel.RelTestate = await values.ReadAsync<SimpleRelTestata>();
+        rel.RelTestate = (await values.ReadAsync<SimpleRelTestata>()).ToList();
         rel.Count = await values.ReadFirstAsync<int>();
         return rel;
     }

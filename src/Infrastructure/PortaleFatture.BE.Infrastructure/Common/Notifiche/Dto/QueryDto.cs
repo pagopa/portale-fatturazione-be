@@ -15,5 +15,7 @@ public class QueryDto
     public int[]? Contestazione { get; set; } 
     public string? Iun { get; set; } 
     public string[]? EntiIds { get; set; } = null; 
-    public string? RecipientId { get; set; }
+    public string? RecipientId { get; set; } 
+    public string? Recapitista { get; set; } 
+    public string? Consolidatore { get; set; }
 } 

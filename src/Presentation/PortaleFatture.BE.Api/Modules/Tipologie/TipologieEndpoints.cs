@@ -26,6 +26,12 @@ public partial class TipologieModule : Module, IRegistrableModule
            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
         endpointRouteBuilder
+           .MapPost("api/tipologia/enti/consolidatore/completi", AllEntiCompletiConsolidatoreByDescrizioneAsync)
+           .WithName("Permette di ottenere gli enti consolidatore per ricerca descrizione")
+           .SetOpenApi(Module.DatiTipologiaLabel)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
            .MapGet("api/tipologia/tipoprofilo", GetAllTipoProfiloAsync)
            .WithName("Permette di ottenere i tipi profilo (institutionType) per la gestione dati commessa/fatturazione.")
            .SetOpenApi(Module.DatiTipologiaLabel)

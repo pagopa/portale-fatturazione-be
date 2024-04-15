@@ -17,7 +17,9 @@ public static class TipologieExtensions
                AnnoContestazione = x.AnnoContestazione,
                DataFine = x.DataFine.ToString("dd MMMM yyyy",culture),
                DataInizio = x.DataInizio.ToString("dd MMMM yyyy", culture),
-               MeseContestazione = x.MeseContestazione.GetMonth()
+               MeseContestazione = x.MeseContestazione.GetMonth(),
+               DataRecapitistaFine = x.DataVerifica.ToString("dd MMMM yyyy", culture),
+               DataRecapitistaInizio = x.DataFine.AddDays(1).ToString("dd MMMM yyyy", culture)
            }
         );
     }

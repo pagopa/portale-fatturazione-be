@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Localization;
+using PortaleFatture.BE.Api.Infrastructure;
 using PortaleFatture.BE.Api.Modules.DatiConfigurazioneModuloCommesse.Extensions;
 using PortaleFatture.BE.Api.Modules.DatiConfigurazioneModuloCommesse.Request;
 using PortaleFatture.BE.Api.Modules.DatiConfigurazioneModuloCommesse.Response;
@@ -38,7 +39,7 @@ public partial class DatiConfigurazioneModuloCommessaModule
         return Ok(configurazione.Mapper());
     }
 
-    [Authorize(Roles = $"{Ruolo.ADMIN}")]
+    [Authorize(Roles = $"{Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

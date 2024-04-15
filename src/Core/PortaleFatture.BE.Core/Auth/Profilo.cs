@@ -3,7 +3,7 @@
 public static class Profilo
 {
     //selfcare
-    public static string Recapitista = "RCP";
+    public static string Recapitista = "REC";
     public static string Consolidatore = "CON";
 
     public static string PubblicaAmministrazione = "PA";

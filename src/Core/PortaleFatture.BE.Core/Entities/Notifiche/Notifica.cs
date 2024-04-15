@@ -101,4 +101,10 @@ public class Notifica
 
     [Column("TipologiaFattura")]
     public string? TipologiaFattura { get; set; }
+
+    [Column("Recapitista")]
+    public string? Recapitista { get; set; }
+
+    [Column("Consolidatore")]
+    public string? Consolidatore { get; set; }
 }

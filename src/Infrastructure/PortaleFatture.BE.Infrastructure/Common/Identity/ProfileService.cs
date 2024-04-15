@@ -146,9 +146,9 @@ public class ProfileService(
                 // recupero dati db selfcare
                 var contratto = await _handler.Send(new ContrattoQueryGetById(auhtInfo));
                 var ente = await _handler.Send(new EnteQueryGetById(auhtInfo));
-                if (contratto != null && ente != null && ente!.Profilo != null && ente.Profilo == Profilo.Recapitista)
+                if (contratto != null && ente != null && ente!.Profilo != null && (ente.Profilo == Profilo.Recapitista || ente.Profilo == Profilo.Consolidatore))
                 {
-                    auhtInfo.Profilo = Profilo.Recapitista;
+                    auhtInfo.Profilo = ente.Profilo;
                     auhtInfo.NomeEnte = ente!.Descrizione;
                     auhtInfo.IdTipoContratto = contratto.IdTipoContratto;
                     infos.Add(auhtInfo);

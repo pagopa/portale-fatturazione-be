@@ -1,5 +1,4 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
-using PortaleFatture.BE.Core.Entities.Notifiche;
 using PortaleFatture.BE.Infrastructure.Common.Documenti.Common;
 
 namespace PortaleFatture.BE.Infrastructure.Common.Notifiche.Dto;

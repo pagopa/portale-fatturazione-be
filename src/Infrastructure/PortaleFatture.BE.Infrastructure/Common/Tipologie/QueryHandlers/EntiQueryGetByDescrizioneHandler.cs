@@ -23,8 +23,8 @@ public class EntiQueryGetByDescrizioneHandler(
 
     public async Task<IEnumerable<Ente>> Handle(EnteQueryGetByDescrizione request, CancellationToken ct)
     {
-        if (request.AuthenticationInfo!.Auth! != AuthType.PAGOPA)
-            throw new SecurityException();
+        //if (request.AuthenticationInfo!.Auth! != AuthType.PAGOPA || request.AuthenticationInfo!.Auth! != AuthType.con)
+        //    throw new SecurityException();
 
         if (request == null || request!.Descrizione == null || request!.Descrizione.Length < 3)
             throw new ValidationException(_localizer["RicercaEnteEmpty"]);
