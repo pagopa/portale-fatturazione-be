@@ -31,10 +31,17 @@ public class ContestazioneUpdateCommandHandler(
 
     public async Task<Contestazione?> Handle(ContestazioneUpdateCommand command, CancellationToken ct)
     {
-        if (command.AuthenticationInfo!.Profilo != Profilo.PubblicaAmministrazione)
-            throw new SecurityException(); //401 
-
-        var azioneCommand = new AzioneContestazioneQueryGetByIdNotifica(command.AuthenticationInfo, command.IdNotifica);
+        if (command.AuthenticationInfo!.Profilo != Profilo.PubblicaAmministrazione &&
+           command.AuthenticationInfo!.Profilo != Profilo.GestorePubblicoServizio &&
+           command.AuthenticationInfo!.Profilo != Profilo.SocietaControlloPubblico &&
+           command.AuthenticationInfo!.Profilo != Profilo.PrestatoreServiziPagamento &&
+           command.AuthenticationInfo!.Profilo != Profilo.AssicurazioniIVASS &&
+           command.AuthenticationInfo!.Profilo != Profilo.StazioneAppaltanteANAC &&
+           command.AuthenticationInfo!.Profilo != Profilo.PartnerTecnologico 
+           )
+            throw new SecurityException();  //401  
+ 
+    var azioneCommand = new AzioneContestazioneQueryGetByIdNotifica(command.AuthenticationInfo, command.IdNotifica);
         var azione = await _handler.Send(azioneCommand, ct);
         var notifica = azione!.Notifica;
         var contestazione = azione!.Contestazione; 

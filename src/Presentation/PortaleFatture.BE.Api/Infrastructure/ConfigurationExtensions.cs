@@ -270,8 +270,8 @@ public static class ConfigurationExtensions
         .AddPolicy(Module.SelfCarePolicy, policy =>
             policy
                 .RequireClaim(Module.SelfCarePolicyClaim, AuthType.SELFCARE)
-                .RequireClaim(Module.SelfCarePolicyProfiloClaim, 
-                    Profilo.PubblicaAmministrazione, 
+                .RequireClaim(Module.SelfCarePolicyProfiloClaim,
+                    Profilo.PubblicaAmministrazione,
                     Profilo.GestorePubblicoServizio,
                     Profilo.SocietaControlloPubblico,
                     Profilo.PrestatoreServiziPagamento,

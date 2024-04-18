@@ -507,7 +507,7 @@ public partial class NotificaModule
             return Results.File(content!, mime, filename);
     }
 
-    [Authorize(Roles = $"{Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
+    [Authorize(Roles = $"{Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)] 
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -532,7 +532,7 @@ public partial class NotificaModule
         return Ok(contestazione);
     }
 
-    [Authorize(Roles = $"{Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
+    [Authorize(Roles = $"{Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)] 
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

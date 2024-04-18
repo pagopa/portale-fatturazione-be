@@ -31,8 +31,15 @@ public class ContestazioneCreateCommandHandler(
 
     public async Task<Contestazione?> Handle(ContestazioneCreateCommand command, CancellationToken ct)
     {
-        if (command.AuthenticationInfo!.Profilo != Profilo.PubblicaAmministrazione)
-            throw new SecurityException(); //401 
+        if (command.AuthenticationInfo!.Profilo != Profilo.PubblicaAmministrazione &&
+           command.AuthenticationInfo!.Profilo != Profilo.GestorePubblicoServizio &&
+           command.AuthenticationInfo!.Profilo != Profilo.SocietaControlloPubblico &&
+           command.AuthenticationInfo!.Profilo != Profilo.PrestatoreServiziPagamento &&
+           command.AuthenticationInfo!.Profilo != Profilo.AssicurazioniIVASS &&
+           command.AuthenticationInfo!.Profilo != Profilo.StazioneAppaltanteANAC &&
+           command.AuthenticationInfo!.Profilo != Profilo.PartnerTecnologico
+           )
+            throw new SecurityException(); //401  
 
         Notifica? notifica;
         using var read = await _factory.Create(cancellationToken: ct);
