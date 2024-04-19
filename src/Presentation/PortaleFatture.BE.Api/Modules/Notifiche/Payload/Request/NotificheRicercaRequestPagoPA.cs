@@ -19,5 +19,20 @@ public class NotificheRicercaRequestPagoPA
     {
         get { return _idEnti; }
         set { _idEnti = value!.IsNullNotAny() ? null : value; }
-    } 
+    }
+
+    private string[]? _recapitisti;
+    public string[]? Recapitisti
+    {
+        get { return _recapitisti; }
+        set { _recapitisti = value!.IsNullNotAny() ? null : value; }
+    }
+
+
+    private string[]? _consolidatori;
+    public string[]? Consolidatori
+    {
+        get { return _consolidatori; }
+        set { _consolidatori = value!.IsNullNotAny() ? null : value; }
+    }
 }

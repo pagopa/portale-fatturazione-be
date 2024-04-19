@@ -31,6 +31,13 @@ public static class EnteSQLBuilder
         return $"{fieldDescription} LIKE '%' + @{nameof(@obj.Descrizione)} + '%'";
     }
 
+    private static string WhereByTipo()
+    {
+        Ente? obj;
+        var fieldDescription = nameof(@obj.Profilo).GetColumn<Ente>();
+        return $"{fieldDescription} = @{nameof(@obj.Profilo)}";
+    }
+
     public static string AddSearch(string? prodotto, string? profilo)
     {
         var stringBuilder = new StringBuilder();
@@ -78,6 +85,22 @@ public static class EnteSQLBuilder
         builder.InnerJoin($"{innerContrattoTable} c on e.{internalIdEnte} = c.{internalIdEnte}");
 
         builder.Where(WhereBySearch());
+
+        var builderTemplate = builder.AddTemplate($"Select TOP {_top} /**select**/ from {tableName} /**innerjoin**/ /**where**/ ");
+        return builderTemplate.RawSql;
+    }
+
+    public static string SelectAllByTipo()
+    {
+        var tableName = $"[schema]{nameof(Ente).GetTable<Ente>()} e";
+        var builder = CreateSelectWithId();
+
+        var rightEnteTable = $"[schema]{nameof(Ente).GetTable<Ente>()}";
+        var innerContrattoTable = $"[schema]{nameof(Contratto).GetTable<Contratto>()}";
+        var internalIdEnte = nameof(Ente.IdEnte).GetColumn<Ente>();
+        builder.InnerJoin($"{innerContrattoTable} c on e.{internalIdEnte} = c.{internalIdEnte}");
+
+        builder.Where(WhereByTipo());
 
         var builderTemplate = builder.AddTemplate($"Select TOP {_top} /**select**/ from {tableName} /**innerjoin**/ /**where**/ ");
         return builderTemplate.RawSql;

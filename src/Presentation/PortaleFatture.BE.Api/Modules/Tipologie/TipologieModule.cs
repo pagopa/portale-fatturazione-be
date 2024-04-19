@@ -80,7 +80,26 @@ public partial class TipologieModule
         return Ok(enti.Select(x => x.Map()));
     }
 
- 
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<EnteResponse>>, NotFound>> AllEntiCompletiFornitoriByTipoAsync(
+    HttpContext context,
+    [FromBody] EnteRicercaByRecapitistiConsolidatoriRequest request,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var enti = await handler.Send(new EnteQueryGetByRecapitistiConsolidatori(authInfo, request.Tipo));
+        if (enti.IsNullNotAny())
+            return NotFound();
+        return Ok(enti.Select(x => x.Map()));
+    }
+
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCareConsolidatorePolicy)]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]

@@ -59,7 +59,7 @@ public static class NotificaExtensions
             Iun = req.Iun,
             RecipientId = req.RecipientId
         };
-    } 
+    }
     public static NotificaQueryGetByListaEnti Map(this NotificheRicercaRequestPagoPA req, AuthenticationInfo authInfo, int? page, int? pageSize)
     {
         return new NotificaQueryGetByListaEnti(authInfo)
@@ -75,7 +75,9 @@ public static class NotificaExtensions
             StatoContestazione = req.StatoContestazione,
             Iun = req.Iun,
             EntiIds = req.IdEnti,
-            RecipientId = req.RecipientId
+            RecipientId = req.RecipientId,
+            Consolidatori = req.Consolidatori,
+            Recapitisti = req.Recapitisti
         };
     }
 }

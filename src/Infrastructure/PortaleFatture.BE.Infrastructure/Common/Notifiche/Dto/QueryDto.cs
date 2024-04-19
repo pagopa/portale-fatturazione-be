@@ -17,5 +17,7 @@ public class QueryDto
     public string[]? EntiIds { get; set; } = null; 
     public string? RecipientId { get; set; } 
     public string? Recapitista { get; set; } 
-    public string? Consolidatore { get; set; }
+    public string? Consolidatore { get; set; } 
+    public string[]? Recapitisti { get; set; }
+    public string[]? Consolidatori { get; set; }
 } 

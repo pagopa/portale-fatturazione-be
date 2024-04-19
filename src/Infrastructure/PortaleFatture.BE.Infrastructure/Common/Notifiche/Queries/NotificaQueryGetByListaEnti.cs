@@ -19,5 +19,7 @@ public class NotificaQueryGetByListaEnti(IAuthenticationInfo authenticationInfo)
     public int? Size { get; set; } 
     public int[]? StatoContestazione { get; set; } 
     public string[]? EntiIds { get; set; }  
-    public string? RecipientId { get; set; }
+    public string? RecipientId { get; set; } 
+    public string[]? Consolidatori { get; set; } 
+    public string[]? Recapitisti { get; set; }
 }

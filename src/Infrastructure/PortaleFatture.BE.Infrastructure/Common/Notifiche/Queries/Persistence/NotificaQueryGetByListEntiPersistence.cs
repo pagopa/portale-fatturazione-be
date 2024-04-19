@@ -29,6 +29,11 @@ public class NotificaQueryGetByListEntiPersistence(NotificaQueryGetByListaEnti c
             where += $" WHERE 1=1 ";
         }
 
+        if (!_command.Recapitisti.IsNullOrEmpty())
+            where += $" AND Recapitista IN @Recapitisti";
+
+        if (!_command.Consolidatori.IsNullOrEmpty())
+            where += $" AND Consolidatore IN @Consolidatori";
 
         var anno = _command.AnnoValidita;
         var mese = _command.MeseValidita;
@@ -111,6 +116,12 @@ public class NotificaQueryGetByListEntiPersistence(NotificaQueryGetByListaEnti c
 
         if (!_command.EntiIds.IsNullOrEmpty())
             query.EntiIds = _command.EntiIds;
+
+        if (!_command.Recapitisti.IsNullOrEmpty())
+            query.Recapitisti = _command.Recapitisti;
+
+        if (!_command.Consolidatori.IsNullOrEmpty())
+            query.Consolidatori = _command.Consolidatori;
 
         if (!string.IsNullOrEmpty(recipientId))
             query.RecipientId = recipientId; 
