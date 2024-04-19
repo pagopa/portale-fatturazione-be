@@ -5,7 +5,7 @@ using PortaleFatture.BE.Infrastructure.Common.Notifiche.Dto;
 
 namespace PortaleFatture.BE.Infrastructure.Common.Notifiche.Queries;
 
-public class NotificaQueryGetByRecapitista(IAuthenticationInfo authenticationInfo) : IRequest<NotificaDto?>
+public class NotificaQueryGetByRecapitista(IAuthenticationInfo authenticationInfo) : IRequest<NotificaRECCONDto?>
 {
     public IAuthenticationInfo AuthenticationInfo { get; internal set; } = authenticationInfo;
     public int? AnnoValidita { get; set; }

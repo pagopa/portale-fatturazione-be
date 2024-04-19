@@ -14,13 +14,13 @@ public class NotificaQueryGetByRecapitistaHandler(
      ISelfCareDbContextFactory factory,
      IStringLocalizer<Localization> localizer,
      IMediator handler,
-     ILogger<NotificaQueryGetByRecapitistaHandler> logger) : IRequestHandler<NotificaQueryGetByRecapitista, NotificaDto?>
+     ILogger<NotificaQueryGetByRecapitistaHandler> logger) : IRequestHandler<NotificaQueryGetByRecapitista, NotificaRECCONDto?>
 {
     private readonly ISelfCareDbContextFactory _factory = factory;
     private readonly ILogger<NotificaQueryGetByRecapitistaHandler> _logger = logger;
     private readonly IStringLocalizer<Localization> _localizer = localizer;
     private readonly IMediator _handler = handler;
-    public async Task<NotificaDto?> Handle(NotificaQueryGetByRecapitista request, CancellationToken ct)
+    public async Task<NotificaRECCONDto?> Handle(NotificaQueryGetByRecapitista request, CancellationToken ct)
     {
         var annoNotifica = request.AnnoValidita!.Value;
         var meseNotifica = request.MeseValidita!.Value;
@@ -28,7 +28,7 @@ public class NotificaQueryGetByRecapitistaHandler(
         var calendario = await _handler.Send(new CalendarioContestazioneQueryGet(request.AuthenticationInfo, annoNotifica, meseNotifica));
 
         if (!calendario.ValidVisualizzazione)
-            return new NotificaDto()
+            return new NotificaRECCONDto()
             {
                 Count = 0,
                 Notifiche = []

@@ -22,6 +22,7 @@ using static Microsoft.AspNetCore.Http.TypedResults;
 
 namespace PortaleFatture.BE.Api.Modules.Notifiche;
 
+
 public partial class NotificaModule
 {
     #region pagoPA
@@ -349,7 +350,7 @@ public partial class NotificaModule
         {
             var mime = "application/vnd.ms-excel";
             var filename = $"{Guid.NewGuid()}.xlsx";
-            var dataSet = notifiche.Notifiche!.FillOneSheetv2();
+            var dataSet = notifiche.Notifiche!.FillOneSheetRECCON();
             var content = dataSet.ToExcel();
             return Results.File(content!, mime, filename);
         }
@@ -414,7 +415,7 @@ public partial class NotificaModule
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    private async Task<Results<Ok<NotificaDto>, NotFound>> GetRecapitistiNotificheByRicercaAsync(
+    private async Task<Results<Ok<NotificaRECCONDto>, NotFound>> GetRecapitistiNotificheByRicercaAsync(
     HttpContext context,
     [FromBody] NotificheRicercaRequest request,
     [FromQuery] int page,

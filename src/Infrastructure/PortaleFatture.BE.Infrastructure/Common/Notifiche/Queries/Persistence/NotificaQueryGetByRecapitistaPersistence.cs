@@ -8,16 +8,16 @@ using PortaleFatture.BE.Infrastructure.Common.Persistence;
 
 namespace PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni.Queries.Persistence;
 
-public class NotificaQueryGetByRecapitistaPersistence(NotificaQueryGetByRecapitista command) : DapperBase, IQuery<NotificaDto?>
+public class NotificaQueryGetByRecapitistaPersistence(NotificaQueryGetByRecapitista command) : DapperBase, IQuery<NotificaRECCONDto?>
 {
     private readonly NotificaQueryGetByRecapitista _command = command;
     private static readonly string _sqlSelectAll = NotificaSQLBuilder.SelectAll();
     private static readonly string _sqlSelectAllCount = NotificaSQLBuilder.SelectAllCount();
     private static readonly string _offSet = NotificaSQLBuilder.OffSet();
     private static readonly string _orderBy = NotificaSQLBuilder.OrderBy();
-    public async Task<NotificaDto?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
+    public async Task<NotificaRECCONDto?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
     {
-        var notifiche = new NotificaDto();
+        var notifiche = new NotificaRECCONDto();
         var where = string.Empty;
         var idRecapitista = _command.AuthenticationInfo.IdEnte;
         var page = _command.Page;
@@ -109,13 +109,13 @@ public class NotificaQueryGetByRecapitistaPersistence(NotificaQueryGetByRecapiti
         if (!string.IsNullOrEmpty(recipientId))
             query.RecipientId = recipientId;
 
-        var values = await ((IDatabase)this).QueryMultipleAsync<SimpleNotificaDto>(
+        var values = await ((IDatabase)this).QueryMultipleAsync<RECCONNotificaDto>(
             connection!,
             sql,
             query,
             transaction);
 
-        notifiche.Notifiche = await values.ReadAsync<SimpleNotificaDto>();
+        notifiche.Notifiche = await values.ReadAsync<RECCONNotificaDto>();
         notifiche.Count = await values.ReadFirstAsync<int>();
         return notifiche;
     }

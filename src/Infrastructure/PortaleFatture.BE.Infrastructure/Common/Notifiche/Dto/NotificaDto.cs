@@ -10,3 +10,11 @@ public sealed class NotificaDto
     [JsonPropertyOrder(-2)]
     public int Count { get; set; }
 }
+
+public sealed class NotificaRECCONDto
+{
+    [JsonPropertyOrder(-1)]
+    public IEnumerable<RECCONNotificaDto>? Notifiche { get; set; }
+    [JsonPropertyOrder(-2)]
+    public int Count { get; set; }
+}
