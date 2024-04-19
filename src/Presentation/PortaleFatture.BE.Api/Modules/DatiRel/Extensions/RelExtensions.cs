@@ -3,12 +3,24 @@ using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Entities.DatiModuloCommesse.Dto;
 using PortaleFatture.BE.Core.Entities.DatiRel;
 using PortaleFatture.BE.Core.Extensions;
+using PortaleFatture.BE.Infrastructure.Common.DatiRel.Commands;
 using PortaleFatture.BE.Infrastructure.Common.DatiRel.Queries;
 
 namespace PortaleFatture.BE.Api.Modules.DatiRel.Extensions;
 
 public static class RelExtensions
 {
+    public static RelFatturabileByIdEnti Map(this RelFatturabileByIdEntiRequest req, AuthenticationInfo authInfo)
+    {
+        return new RelFatturabileByIdEnti(authInfo)
+        {
+            Anno = req.Anno,
+            Mese = req.Mese,
+            EntiIds = req.EntiIds,
+            Fatturabile = req.Fatturabile == false ? 0 : null
+        };
+    }
+
     public static RelUploadGetById Map(this RelUploadByIdRequest req, AuthenticationInfo authInfo)
     {
         return new RelUploadGetById(authInfo)
@@ -16,7 +28,7 @@ public static class RelExtensions
             Anno = req.Anno,
             Mese = req.Mese,
             IdContratto = req.IdContratto,
-            TipologiaFattura = req.TipologiaFattura 
+            TipologiaFattura = req.TipologiaFattura
         };
     }
 
@@ -42,7 +54,7 @@ public static class RelExtensions
             Anno = req.Anno,
             Mese = req.Mese,
             IdContratto = req.IdContratto,
-            TipologiaFattura = req.TipologiaFattura, 
+            TipologiaFattura = req.TipologiaFattura,
             Caricata = req.Caricata,
             Page = page,
             Size = pageSize

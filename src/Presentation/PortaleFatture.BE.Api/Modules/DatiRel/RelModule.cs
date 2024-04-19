@@ -39,6 +39,27 @@ public partial class RelModule
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<int?>, NotFound>> PostPagoPAFatturabileAsync(
+    HttpContext context,
+    [FromBody] RelFatturabileByIdEntiRequest? request,
+    [FromServices] IMediator handler,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IRelStorageService storageService)
+    {
+        var authInfo = context.GetAuthInfo(); 
+        var fatturabile = await handler.Send(request!.Map(authInfo));
+        if (fatturabile == null)
+            return NotFound();
+        return Ok(fatturabile);
+    }
+
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     private async Task<Results<Ok<IEnumerable<RelUpload>>, NotFound>> PostPagoPADownloadLogAsync(
     HttpContext context,
     [FromBody] RelUploadByIdRequest? request,

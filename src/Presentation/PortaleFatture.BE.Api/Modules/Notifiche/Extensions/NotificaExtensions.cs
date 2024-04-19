@@ -20,8 +20,7 @@ public static class NotificaExtensions
             TipoNotifica = req.TipoNotifica,
             StatoContestazione = req.StatoContestazione,
             Iun = req.Iun,
-            RecipientId = req.RecipientId,
-            EntiIds = req.IdEnti
+            RecipientId = req.RecipientId 
         };
     }
 

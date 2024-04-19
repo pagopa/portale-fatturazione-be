@@ -1,8 +1,6 @@
-﻿using System.Security;
-using MediatR;
+﻿using MediatR;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
-using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Core.Resources;
 using PortaleFatture.BE.Infrastructure.Common.DatiRel.Commands;

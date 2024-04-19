@@ -39,7 +39,7 @@ public class ContestazioneUpdateCommandHandler(
            command.AuthenticationInfo!.Profilo != Profilo.StazioneAppaltanteANAC &&
            command.AuthenticationInfo!.Profilo != Profilo.PartnerTecnologico 
            )
-            throw new SecurityException();  //401  
+            throw new SecurityException(); //401  
  
     var azioneCommand = new AzioneContestazioneQueryGetByIdNotifica(command.AuthenticationInfo, command.IdNotifica);
         var azione = await _handler.Send(azioneCommand, ct);
@@ -90,7 +90,7 @@ public class ContestazioneUpdateCommandHandler(
             command.ExpectedStatoContestazione = notifica.StatoContestazione;
             command.NoteEnte = contestazione.NoteEnte;
             command.DataChiusura = adesso; // vale stesso campo per tutti
-            command.Onere = SoggettiContestazione.OnereContestazioneChiusuraEnte(command.Onere!);
+            command.Onere = SoggettiContestazione.OnereContestazioneChiusuraEnte(command.Onere!, command.AuthenticationInfo.Profilo);
         }
         else if (command.StatoContestazione == (short)StatoContestazione.RispostaEnte)
         {

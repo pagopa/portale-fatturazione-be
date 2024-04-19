@@ -22,11 +22,17 @@ public class NotificaQueryGetByRecapitistaPersistence(NotificaQueryGetByRecapiti
         var idRecapitista = _command.AuthenticationInfo.IdEnte;
         var page = _command.Page;
         var size = _command.Size;
-        where += " WHERE Recapitista=@Recapitista";
-
-
         var anno = _command.AnnoValidita;
         var mese = _command.MeseValidita;
+
+        if (anno.HasValue)
+            where += " WHERE n.year=@anno";
+        if (mese.HasValue)
+            where += " AND n.month=@mese";
+
+        where += " AND Recapitista=@Recapitista";
+
+ 
         var prodotto = string.IsNullOrEmpty(_command.Prodotto) ? null : _command.Prodotto;
         var cap = string.IsNullOrEmpty(_command.Cap) ? null : _command.Cap;
         var profilo = string.IsNullOrEmpty(_command.Profilo) ? null : _command.Profilo;
@@ -40,11 +46,7 @@ public class NotificaQueryGetByRecapitistaPersistence(NotificaQueryGetByRecapiti
 
         if (!string.IsNullOrEmpty(recipientId))
             where += " AND recipient_id=@recipientId";
-
-        if (anno.HasValue)
-            where += " AND n.year=@anno";
-        if (mese.HasValue)
-            where += " AND n.month=@mese";
+ 
         if (!string.IsNullOrEmpty(prodotto))
             where += " AND c.product=@prodotto";
         if (!string.IsNullOrEmpty(cap))

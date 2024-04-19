@@ -59,6 +59,12 @@ public partial class RelModule : Module, IRegistrableModule
 
         #region pagoPA
         endpointRouteBuilder
+        .MapPost("api/rel/fatturabile", PostPagoPAFatturabileAsync)
+        .WithName("Permette di cambiare lo stato fatturabile via PagoPA")
+        .SetOpenApi(Module.DatiRelLabel)
+        .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
         .MapPost("api/rel/pagopa/firma/log", PostPagoPADownloadLogAsync)
         .WithName("Permette di scaricare il log pdf firmato via PagoPA")
         .SetOpenApi(Module.DatiRelLabel)

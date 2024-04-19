@@ -5,7 +5,7 @@ using PortaleFatture.BE.Infrastructure.Common.Notifiche.Dto;
 
 namespace PortaleFatture.BE.Infrastructure.Common.Notifiche.Queries;
 
-public class NotificaQueryGetByConsolidatore(IAuthenticationInfo authenticationInfo) : IRequest<NotificaDto?>
+public class NotificaQueryGetByConsolidatore(IAuthenticationInfo authenticationInfo) : IRequest<NotificaRECCONDto?>
 {
     public IAuthenticationInfo AuthenticationInfo { get; internal set; } = authenticationInfo;
     public int? AnnoValidita { get; set; }
@@ -17,7 +17,6 @@ public class NotificaQueryGetByConsolidatore(IAuthenticationInfo authenticationI
     public string? Iun { get; set; }
     public int? Page { get; set; }
     public int? Size { get; set; } 
-    public int[]? StatoContestazione { get; set; } 
-    public string[]? EntiIds { get; set; }  
+    public int[]? StatoContestazione { get; set; }  
     public string? RecipientId { get; set; }
 }

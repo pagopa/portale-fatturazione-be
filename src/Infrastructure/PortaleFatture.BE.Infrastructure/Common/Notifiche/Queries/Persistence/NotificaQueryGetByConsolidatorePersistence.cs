@@ -7,7 +7,7 @@ using PortaleFatture.BE.Infrastructure.Common.Notifiche.Queries.Persistence.Buil
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 
 namespace PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni.Queries.Persistence;
-public class NotificaQueryGetByConsolidatorePersistence(NotificaQueryGetByConsolidatore command) : DapperBase, IQuery<NotificaDto?>
+public class NotificaQueryGetByConsolidatorePersistence(NotificaQueryGetByConsolidatore command) : DapperBase, IQuery<NotificaRECCONDto?>
 {
     private readonly NotificaQueryGetByConsolidatore _command = command;
     private static readonly string _sqlSelectAll = NotificaSQLBuilder.SelectAll();
@@ -15,21 +15,24 @@ public class NotificaQueryGetByConsolidatorePersistence(NotificaQueryGetByConsol
     private static readonly string _offSet = NotificaSQLBuilder.OffSet();
     private static readonly string _orderBy = NotificaSQLBuilder.OrderBy();
 
-    public async Task<NotificaDto?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
+    public async Task<NotificaRECCONDto?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
     {
-        var notifiche = new NotificaDto();
+        var notifiche = new NotificaRECCONDto();
         var where = string.Empty;
         var page = _command.Page;
         var size = _command.Size;
-
-        where += $" WHERE Consolidatore = @consolidatore ";
-
-        if (!_command.EntiIds.IsNullOrEmpty())
-            where += $" AND internal_organization_id IN @entiIds";
-
-        var consolidatore = _command.AuthenticationInfo.IdEnte; 
         var anno = _command.AnnoValidita;
         var mese = _command.MeseValidita;
+
+        if (anno.HasValue)
+            where += " WHERE n.year=@anno";
+        if (mese.HasValue)
+            where += " AND n.month=@mese";
+
+        where += $" AND Consolidatore = @consolidatore ";
+
+        var consolidatore = _command.AuthenticationInfo.IdEnte; 
+   
         var prodotto = string.IsNullOrEmpty(_command.Prodotto) ? null : _command.Prodotto;
         var cap = string.IsNullOrEmpty(_command.Cap) ? null : _command.Cap;
         var profilo = string.IsNullOrEmpty(_command.Profilo) ? null : _command.Profilo;
@@ -44,10 +47,7 @@ public class NotificaQueryGetByConsolidatorePersistence(NotificaQueryGetByConsol
         if (!string.IsNullOrEmpty(recipientId))
             where += " AND recipient_id=@recipientId";
 
-        if (anno.HasValue)
-            where += " AND n.year=@anno";
-        if (mese.HasValue)
-            where += " AND n.month=@mese";
+
         if (!string.IsNullOrEmpty(prodotto))
             where += " AND c.product=@prodotto";
         if (!string.IsNullOrEmpty(cap))
@@ -106,15 +106,12 @@ public class NotificaQueryGetByConsolidatorePersistence(NotificaQueryGetByConsol
             query.Contestazione = contestazione;
 
         if (!string.IsNullOrEmpty(iun))
-            query.Iun = iun;
-
-        if (!_command.EntiIds.IsNullOrEmpty())
-            query.EntiIds = _command.EntiIds;
+            query.Iun = iun; 
 
         if (!string.IsNullOrEmpty(recipientId))
             query.RecipientId = recipientId; 
 
-        var nt = await ((IDatabase)this).SelectAsync<SimpleNotificaDto>(
+        var nt = await ((IDatabase)this).SelectAsync<RECCONNotificaDto>(
         connection!,
         sqlEnte,
         query
