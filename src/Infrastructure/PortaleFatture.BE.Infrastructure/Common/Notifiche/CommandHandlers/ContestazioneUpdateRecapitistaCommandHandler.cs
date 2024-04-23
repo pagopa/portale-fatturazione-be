@@ -36,7 +36,7 @@ public class ContestazioneUpdateRecapitistaCommandHandler(
         var contestazione = azione!.Contestazione;
 
         if (contestazione == null
-            || notifica!.Fatturata != null && notifica!.Fatturata == true
+            || notifica!.Fatturata != null 
             || notifica.TipologiaFattura != null)
             throw new DomainException(_localizer["CreazioneContestazioneError", command.IdNotifica!]);
 

@@ -80,7 +80,8 @@ public class NotificaQueryGetByConsolidatorePersistence(NotificaQueryGetByConsol
             sqlEnte += where + orderBy + _offSet;
 
         sqlCount += where;
- 
+        var sql = String.Join(";", sqlEnte, sqlCount);
+
         var query = new QueryDto
         {
             Size = size,
@@ -109,22 +110,16 @@ public class NotificaQueryGetByConsolidatorePersistence(NotificaQueryGetByConsol
             query.Iun = iun; 
 
         if (!string.IsNullOrEmpty(recipientId))
-            query.RecipientId = recipientId; 
+            query.RecipientId = recipientId;
 
-        var nt = await ((IDatabase)this).SelectAsync<RECCONNotificaDto>(
-        connection!,
-        sqlEnte,
-        query
-        , transaction);
+        var values = await ((IDatabase)this).QueryMultipleAsync<RECCONNotificaDto>(
+            connection!,
+            sql,
+            query,
+            transaction); 
 
-        var ntc = await ((IDatabase)this).SingleAsync<int>(
-        connection!,
-        sqlCount,
-        query
-        , transaction);
-
-        notifiche.Notifiche = nt;
-        notifiche.Count = ntc;
+        notifiche.Notifiche = await values.ReadAsync<RECCONNotificaDto>();
+        notifiche.Count = await values.ReadFirstAsync<int>();
         return notifiche;
     }
 }

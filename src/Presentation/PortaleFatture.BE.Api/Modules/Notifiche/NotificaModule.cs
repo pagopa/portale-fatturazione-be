@@ -177,6 +177,7 @@ public partial class NotificaModule
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+
     private async Task<Results<Ok<Contestazione>, NotFound>> UpdateConsolidatoreContestazioneAsync(
     HttpContext context,
     [FromBody] ContestazioneConsolidatori req,

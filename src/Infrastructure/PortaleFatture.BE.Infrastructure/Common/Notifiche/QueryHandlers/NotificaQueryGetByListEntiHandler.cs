@@ -19,7 +19,7 @@ public class NotificaQueryGetByListEntiHandler(
     private readonly IStringLocalizer<Localization> _localizer = localizer; 
     public async Task<NotificaDto?> Handle(NotificaQueryGetByListaEnti request, CancellationToken ct)
     { 
-        using var rs = await _factory.Create(true, cancellationToken: ct);
+        using var rs = await _factory.Create(cancellationToken: ct);
         return await rs.Query(new NotificaQueryGetByListEntiPersistence(request), ct); 
     }
 }

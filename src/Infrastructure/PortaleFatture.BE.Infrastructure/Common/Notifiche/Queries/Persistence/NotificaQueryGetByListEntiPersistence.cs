@@ -21,22 +21,23 @@ public class NotificaQueryGetByListEntiPersistence(NotificaQueryGetByListaEnti c
         var where = string.Empty;
         var page = _command.Page;
         var size = _command.Size;
+        var anno = _command.AnnoValidita;
+        var mese = _command.MeseValidita;
+
+        if (anno.HasValue)
+            where += " WHERE n.year=@anno";
+        if (mese.HasValue)
+            where += " AND n.month=@mese";
+
         if (!_command.EntiIds.IsNullOrEmpty())
-            where += $" WHERE internal_organization_id IN @entiIds";
-        else
-        {
-            _command.EntiIds = null;
-            where += $" WHERE 1=1 ";
-        }
+            where += $" AND internal_organization_id IN @entiIds"; 
 
         if (!_command.Recapitisti.IsNullOrEmpty())
             where += $" AND Recapitista IN @Recapitisti";
 
         if (!_command.Consolidatori.IsNullOrEmpty())
             where += $" AND Consolidatore IN @Consolidatori";
-
-        var anno = _command.AnnoValidita;
-        var mese = _command.MeseValidita;
+ 
         var prodotto = string.IsNullOrEmpty(_command.Prodotto) ? null : _command.Prodotto;
         var cap = string.IsNullOrEmpty(_command.Cap) ? null : _command.Cap;
         var profilo = string.IsNullOrEmpty(_command.Profilo) ? null : _command.Profilo;
@@ -49,12 +50,8 @@ public class NotificaQueryGetByListEntiPersistence(NotificaQueryGetByListaEnti c
             where += " AND iun=@iun";
 
         if (!string.IsNullOrEmpty(recipientId))
-            where += " AND recipient_id=@recipientId";
-
-        if (anno.HasValue)
-            where += " AND n.year=@anno";
-        if (mese.HasValue)
-            where += " AND n.month=@mese";
+            where += " AND recipient_id=@recipientId"; 
+ 
         if (!string.IsNullOrEmpty(prodotto))
             where += " AND c.product=@prodotto";
         if (!string.IsNullOrEmpty(cap))
@@ -87,7 +84,8 @@ public class NotificaQueryGetByListEntiPersistence(NotificaQueryGetByListaEnti c
             sqlEnte += where + orderBy + _offSet;
 
         sqlCount += where;
-        //var sql = String.Join(";", sqlEnte, sqlCount);
+
+        var sql = String.Join(";", sqlEnte, sqlCount);
         var query = new QueryDto
         {
             Size = size,
@@ -126,20 +124,15 @@ public class NotificaQueryGetByListEntiPersistence(NotificaQueryGetByListaEnti c
         if (!string.IsNullOrEmpty(recipientId))
             query.RecipientId = recipientId; 
 
-        var nt = await ((IDatabase)this).SelectAsync<SimpleNotificaDto>(
-        connection!,
-        sqlEnte,
-        query
-        , transaction);
+        var values = await ((IDatabase)this).QueryMultipleAsync<SimpleNotificaDto>(
+            connection!,
+            sql,
+            query,
+            transaction);
 
-        var ntc = await ((IDatabase)this).SingleAsync<int>(
-        connection!,
-        sqlCount,
-        query
-        , transaction);
-
-        notifiche.Notifiche = nt;
-        notifiche.Count = ntc;
+        notifiche.Notifiche = await values.ReadAsync<SimpleNotificaDto>();
+        notifiche.Count = await values.ReadFirstAsync<int>();
+ 
         return notifiche;
     }
 }
