@@ -50,7 +50,7 @@ public partial class TipologieModule
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     private async Task<Results<Ok<IEnumerable<string>>, NotFound>> AllEntiByDescrizioneAsync(
     HttpContext context,
-    [FromBody] EnteRicercaByDescrizioneProfiloRequest request,
+    [FromBody] EnteRicercaByRequest request,
     [FromServices] IStringLocalizer<Localization> localizer,
     [FromServices] IMediator handler)
     {

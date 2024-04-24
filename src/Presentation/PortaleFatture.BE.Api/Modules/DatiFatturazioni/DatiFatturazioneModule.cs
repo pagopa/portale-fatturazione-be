@@ -39,7 +39,7 @@ public partial class DatiFatturazioneModule
     [FromServices] IMediator handler)
     {
         var authInfo = context.GetAuthInfo();
-        var fatturazione = await handler.Send(new DatiFatturazioneQueryGetByDescrizione(authInfo, request.Descrizione!,
+        var fatturazione = await handler.Send(new DatiFatturazioneQueryGetByDescrizione(authInfo, request.IdEnti!,
             request.Prodotto,
             request.Profilo,
             null));
@@ -71,7 +71,7 @@ public partial class DatiFatturazioneModule
     [FromServices] IMediator handler)
     {
         var authInfo = context.GetAuthInfo();
-        var fatturazione = await handler.Send(new DatiFatturazioneQueryGetByDescrizione(authInfo, request.Descrizione!,
+        var fatturazione = await handler.Send(new DatiFatturazioneQueryGetByDescrizione(authInfo, request.IdEnti!,
             request.Prodotto,
             request.Profilo,
             null));

@@ -37,7 +37,7 @@ public class DatiFatturazioneQueryGetByDescrizioneHandler : IRequestHandler<Dati
 
         using var uow = await _factory.Create(cancellationToken: ct);
         return await uow.Query(new DatiFatturazioneQueryGetByDescrizionePersistence(_options, 
-            command.Descrizione,
+            command.IdEnti,
             command.Prodotto,
             command.Profilo,
             command.Top), ct); 

@@ -217,6 +217,7 @@ public static class ConfigurationExtensions
         services
             .AddPersistence();
 
+
         services
             .AddPortaleFattureHealthChecks();
 

@@ -9,5 +9,5 @@ public class DatiModuloCommessaQueryGetByDescrizione(IAuthenticationInfo authent
     public int? AnnoValidita { get; set; } 
     public int? MeseValidita { get; set; }
     public string? Prodotto { get; set; }
-    public string? Descrizione { get; set; }
+    public string[]? IdEnti { get; set; }
 } 

@@ -75,7 +75,7 @@ public partial class DatiModuloCommessaModule
             AnnoValidita = req.Anno,
             MeseValidita = req.Mese,
             Prodotto = req.Prodotto,
-            Descrizione = req.Descrizione
+            IdEnti = req.IdEnti
         });
 
         if (moduli == null)
@@ -110,7 +110,7 @@ public partial class DatiModuloCommessaModule
             AnnoValidita = req.Anno,
             MeseValidita = req.Mese,
             Prodotto = req.Prodotto,
-            Descrizione = req.Descrizione
+            IdEnti = req.IdEnti
         });
 
         if (moduli == null)

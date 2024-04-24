@@ -23,7 +23,7 @@ public class DatiModuloCommessaQueryByDescrizioneHandler(
         if (command.MeseValidita == null || command.AnnoValidita == null)
             throw new ArgumentException("Passare un anno e un mese");
         using var uow = await _factory.Create(cancellationToken: ct); 
-        return await uow.Query(new DatiModuloCommessaQueryGetByDescrizionePersistence(command.Descrizione, 
+        return await uow.Query(new DatiModuloCommessaQueryGetByDescrizionePersistence(command.IdEnti, 
             command.AnnoValidita.Value,
             command.MeseValidita.Value,
             command.Prodotto), ct);
