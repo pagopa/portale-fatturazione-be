@@ -42,7 +42,7 @@ public partial class NotificaModule
     {
         var authInfo = context.GetAuthInfo();
         var notifiche = await handler.Send(request.Map(authInfo, page, pageSize));
-        if (notifiche == null)
+        if (notifiche == null || notifiche.Count == 0)
             return NotFound();
         return Ok(notifiche);
     }
@@ -126,7 +126,7 @@ public partial class NotificaModule
     {
         var authInfo = context.GetAuthInfo();
         var notifiche = await handler.Send(request.Map(authInfo, null, null));
-        if (notifiche == null)
+        if (notifiche == null || notifiche.Count == 0)
             return NotFound();
 
 
@@ -136,17 +136,17 @@ public partial class NotificaModule
             using (var stream = new MemoryStream())
             using (TextWriter textWriter = new StreamWriter(stream))
             using (var csv = new CsvWriter(textWriter, CultureInfo.InvariantCulture))
-            { 
+            {
                 csv.WriteRecords(notifiche.Notifiche!);
                 textWriter.Flush();
                 data = stream.ToArray();
-            } 
+            }
             return Ok(new DocumentDto() { Documento = Convert.ToBase64String(data) });
         }
         else if (binary == true)
         {
             var mime = "application/vnd.ms-excel";
-            var filename = $"{Guid.NewGuid()}.xlsx"; 
+            var filename = $"{Guid.NewGuid()}.xlsx";
             var dataSet = notifiche.Notifiche!.FillOneSheetv2();
             var content = dataSet.ToExcel();
             return Results.File(content!, mime, filename);
@@ -189,7 +189,7 @@ public partial class NotificaModule
         var command = new ContestazioneUpdateConsolidatoreCommand(authInfo, req.IdNotifica)
         {
             NoteConsolidatore = req.Risposta,
-            StatoContestazione = req.StatoContestazione            
+            StatoContestazione = req.StatoContestazione
         };
 
         var contestazione = await handler.Send(command);
@@ -249,7 +249,7 @@ public partial class NotificaModule
     {
         var authInfo = context.GetAuthInfo();
         var notifiche = await handler.Send(request.Map2(authInfo, null, null));
-        if (notifiche == null)
+        if (notifiche == null || notifiche.Count == 0)
             return NotFound();
 
 
@@ -304,13 +304,13 @@ public partial class NotificaModule
     [FromQuery] int pageSize,
     [FromServices] IStringLocalizer<Localization> localizer,
     [FromServices] IMediator handler)
-        {
-            var authInfo = context.GetAuthInfo();
-            var notifiche = await handler.Send(request.Map2(authInfo, page, pageSize));
-            if (notifiche == null)
-                return NotFound();
-            return Ok(notifiche);
-        }
+    {
+        var authInfo = context.GetAuthInfo();
+        var notifiche = await handler.Send(request.Map2(authInfo, page, pageSize));
+        if (notifiche == null || notifiche.Count == 0)
+            return NotFound();
+        return Ok(notifiche);
+    }
 
     #endregion
     #region recapitisti
@@ -330,7 +330,7 @@ public partial class NotificaModule
     {
         var authInfo = context.GetAuthInfo();
         var notifiche = await handler.Send(request.Map2(authInfo, null, null));
-        if (notifiche == null)
+        if (notifiche == null || notifiche.Count == 0)
             return NotFound();
 
 
@@ -423,13 +423,13 @@ public partial class NotificaModule
     [FromQuery] int pageSize,
     [FromServices] IStringLocalizer<Localization> localizer,
     [FromServices] IMediator handler)
-        {
-            var authInfo = context.GetAuthInfo();
-            var notifiche = await handler.Send(request.Map2(authInfo, page, pageSize));
-            if (notifiche == null)
-                return NotFound();
-            return Ok(notifiche);
-        }
+    {
+        var authInfo = context.GetAuthInfo();
+        var notifiche = await handler.Send(request.Map2(authInfo, page, pageSize));
+        if (notifiche == null || notifiche.Count == 0)
+            return NotFound();
+        return Ok(notifiche);
+    }
 
 
     [Authorize(Roles = $"{Ruolo.ADMIN}", Policy = Module.SelfCareRecapitistaPolicy)]
@@ -474,7 +474,7 @@ public partial class NotificaModule
     {
         var authInfo = context.GetAuthInfo();
         var notifiche = await handler.Send(request.Map(authInfo, page, pageSize));
-        if (notifiche == null)
+        if (notifiche == null || notifiche.Count == 0)
             return NotFound();
         return Ok(notifiche);
     }
@@ -495,7 +495,7 @@ public partial class NotificaModule
     {
         var authInfo = context.GetAuthInfo();
         var notifiche = await handler.Send(request.Map(authInfo, null, null));
-        if (notifiche == null || !notifiche.Notifiche!.Any())
+        if (notifiche == null || notifiche.Count == 0)
             return NotFound();
 
         var mime = "application/vnd.ms-excel";
@@ -509,7 +509,7 @@ public partial class NotificaModule
             return Results.File(content!, mime, filename);
     }
 
-    [Authorize(Roles = $"{Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)] 
+    [Authorize(Roles = $"{Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -534,7 +534,7 @@ public partial class NotificaModule
         return Ok(contestazione);
     }
 
-    [Authorize(Roles = $"{Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)] 
+    [Authorize(Roles = $"{Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

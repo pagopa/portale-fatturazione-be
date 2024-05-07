@@ -8,6 +8,7 @@ public partial class RelModule : Module, IRegistrableModule
     public void RegisterEndpoints(IEndpointRouteBuilder endpointRouteBuilder)
     {
         #region selfcare
+
         endpointRouteBuilder
         .MapPost("api/rel/firma/upload/{id}", PostUploadFirmaAsync)  
         .WithName("Permette caricare il file rel pdf firmato")

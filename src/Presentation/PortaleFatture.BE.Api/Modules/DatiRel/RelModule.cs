@@ -95,7 +95,7 @@ public partial class RelModule
             return NotFound();
 
         var rels = await handler.Send(request.Map(authInfo, null, null));
-        if (rels == null)
+        if (rels == null || rels.Count == 0)
             return NotFound();
         var (bytes, list) = await storageService.ReadZip(rels);
         await handler.Send(rels.RelTestate.Map(list, authInfo));
@@ -168,7 +168,7 @@ public partial class RelModule
     {
         var authInfo = context.GetAuthInfo();
         var rel = await handler.Send(request.Map(authInfo, page, pageSize));
-        if (rel == null)
+        if (rel == null || rel.Count == 0)
             return NotFound();
         return Ok(rel);
     }
@@ -189,7 +189,7 @@ public partial class RelModule
     {
         var authInfo = context.GetAuthInfo();
         var rels = await handler.Send(request.Map(authInfo, null, null));
-        if (rels == null)
+        if (rels == null || rels.Count == 0)
             return NotFound();
 
         var mime = "application/vnd.ms-excel";
@@ -226,7 +226,7 @@ public partial class RelModule
         };
 
         var rels = await handler.Send(request.Map(authInfo));
-        if (rels == null)
+        if (rels == null || rels.Count() == 0)
             return NotFound();
 
         var mime = "application/vnd.ms-excel";
@@ -284,7 +284,7 @@ public partial class RelModule
         var authInfo = context.GetAuthInfo();  
        
         var upload = await handler.Send(request!.Map(authInfo));
-        if (upload == null)
+        if (upload == null || upload.Count() == 0)
             return NotFound(); 
         return Ok(upload);
     }
@@ -406,7 +406,7 @@ public partial class RelModule
         return NotFound(); // da eliminare   IMPEDIMENT #328
         //var authInfo = context.GetAuthInfo();
         //var rel = await handler.Send(request.Map(authInfo, page, pageSize));
-        //if (rel == null)
+        //if (rel == null || rel.Count == 0)
         //    return NotFound();
         //return Ok(rel);
 
@@ -497,7 +497,7 @@ public partial class RelModule
         };
 
         var rels = await handler.Send(request.Map(authInfo));
-        if (rels == null)
+        if (rels == null || rels.Count() == 0)
             return NotFound();
 
         var mime = "application/vnd.ms-excel";
@@ -528,7 +528,7 @@ public partial class RelModule
         return NotFound(); // da eliminare   IMPEDIMENT #328
         //var authInfo = context.GetAuthInfo();
         //var rels = await handler.Send(request.Map(authInfo, null, null));
-        //if (rels == null)
+        //if (rels == null || rels.Count == 0)
         //    return NotFound();
 
         //var mime = "application/vnd.ms-excel";

@@ -78,7 +78,7 @@ public partial class DatiModuloCommessaModule
             IdEnti = req.IdEnti
         });
 
-        if (moduli == null)
+        if (moduli == null || moduli.Count() == 0)
             return NotFound();
 
         var mime = "application/vnd.ms-excel";
@@ -113,7 +113,7 @@ public partial class DatiModuloCommessaModule
             IdEnti = req.IdEnti
         });
 
-        if (moduli == null)
+        if (moduli == null || moduli.Count() == 0)
             return NotFound();
         return Ok(moduli);
     }
@@ -369,7 +369,7 @@ public partial class DatiModuloCommessaModule
         {
             AnnoValidita = anno,
         });
-        if (modulo == null)
+        if (modulo == null || modulo.Count() == 0)
             return NotFound();
         return Ok(modulo.Select(x => x.Mapper()));
     }
@@ -391,7 +391,7 @@ public partial class DatiModuloCommessaModule
         {
             AnnoValidita = anno,
         });
-        if (modulo == null)
+        if (modulo == null || modulo.Count() == 0)
             return NotFound();
         return Ok(modulo.Select(x => x.Mapper()));
     }
@@ -409,7 +409,7 @@ public partial class DatiModuloCommessaModule
     {
         var authInfo = context.GetAuthInfo();
         var anni = await handler.Send(new DatiModuloCommessaGetAnni(authInfo));
-        if (anni == null)
+        if (anni == null || anni.Count() == 0)
             return NotFound();
         return Ok(anni);
     }
