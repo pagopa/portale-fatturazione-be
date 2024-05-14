@@ -1,4 +1,5 @@
 ﻿using System.Data;
+using ClosedXML.Excel;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -29,7 +30,7 @@ public static class ExcelExtensions
                 Value = String.Format("{0:X2}{1:X2}{2:X2}{3:X3}", fillColor.R, fillColor.G, fillColor.B, fillColor.A)
             }
         };
-    } 
+    }
     internal static WorkbookStylesPart AddStyleSheet(this SpreadsheetDocument spreadsheet)
     {
         var stylesheet = spreadsheet.WorkbookPart!.AddNewPart<WorkbookStylesPart>();
@@ -303,7 +304,7 @@ public static class ExcelExtensions
                     {
                         Min = Convert.ToUInt32(index + 1),
                         Max = Convert.ToUInt32(index + 1),
-                        Width = width + 5, 
+                        Width = width + 5,
                         CustomWidth = true,
                         Style = Convert.ToUInt32(0),
                     };
@@ -333,10 +334,23 @@ public static class ExcelExtensions
                     foreach (var col in columns)
                     {
                         var (cellType, value, type) = TypeFinder.Get(dsrow[col.Key]!);
+                        CellValue? cellvalue = null;
+                        CellValues cellvalues = cellType;
+                        if (value == null)
+                            cellvalue = new CellValue(string.Empty);
+                        else if (type == typeof(long))
+                            cellvalue = new CellValue(Convert.ToDecimal(value));
+                        else if (type == typeof(DateTime))
+                        {
+                            cellvalues = CellValues.String;
+                            cellvalue = new CellValue(((DateTime)value).ToString("yyyy/MM/dd HH:mm:ss"));
+                        }
+                        else
+                            cellvalue = new CellValue((dynamic)value);
                         var cell = new Cell
                         {
-                            DataType = cellType,
-                            CellValue = new CellValue((dynamic)value),
+                            DataType = cellvalues,
+                            CellValue = cellvalue,
                             StyleIndex = Convert.ToUInt32(col.Value),
                         };
                         newRow.AppendChild(cell);
@@ -348,4 +362,147 @@ public static class ExcelExtensions
         memoryStream.Seek(0, SeekOrigin.Begin);
         return memoryStream;
     }
-} 
+
+    public static MemoryStream ToExcelData(this DataSet ds)
+    {
+        var memoryStream = new MemoryStream();
+        using (var workbook = SpreadsheetDocument.Create(memoryStream, SpreadsheetDocumentType.Workbook))
+        {
+            var workbookPart = workbook.AddWorkbookPart();
+            workbook.WorkbookPart!.Workbook = new Workbook();
+            workbook.WorkbookPart.Workbook.Sheets = new Sheets();
+
+            int maxDigitFont = 11; // weight font
+
+            // add styles
+            workbook.AddStyleSheet();
+
+            uint sheetId = 1;
+
+            foreach (DataTable table in ds.Tables)
+            {
+                var numbersOfChars = new Dictionary<int, int?>();
+                for (var j = 0; j < table.Columns.Count; j++)
+                {
+                    var len = table.Columns[j].Caption.Length;
+                    numbersOfChars.TryGetValue(j, out var value);
+                    if (value == null)
+                        numbersOfChars.TryAdd(j, len);
+                    else if (value < len)
+                        numbersOfChars[j] = len;
+                }
+
+                int lp = 1;
+
+                var sheetPart = workbook.WorkbookPart.AddNewPart<WorksheetPart>();
+                var sheetData = new SheetData();
+                sheetPart.Worksheet = new Worksheet(sheetData);
+
+                var sheets = workbook.WorkbookPart.Workbook.GetFirstChild<Sheets>();
+                var relationshipId = workbook.WorkbookPart.GetIdOfPart(sheetPart);
+
+                if (sheets!.Elements<Sheet>().Any())
+                    sheetId = sheets.Elements<Sheet>().Select(s => s.SheetId!.Value).Max() + 1;
+
+                var sheet = new Sheet() { Id = relationshipId, SheetId = sheetId, Name = table.TableName };
+
+                sheets.Append(sheet);
+
+                var headerRow = new Row();
+                var columns = new Dictionary<string, XCellStyle>();
+                var clmns = new Columns();
+                int index = 0;
+                foreach (DataColumn column in table.Columns)
+                {
+                    columns.Add(column.ColumnName, (XCellStyle)column.ExtendedProperties["Style"]!);
+                    var widthPixels = Math.Truncate(((256 * numbersOfChars[index]!.Value + Math.Truncate(128f / maxDigitFont)) / 256f) * maxDigitFont);
+                    var width = Math.Truncate(((widthPixels - 5f) / maxDigitFont * 100f + 0.5f) / 100f);
+                    var cln = new Column
+                    {
+                        Min = Convert.ToUInt32(index + 1),
+                        Max = Convert.ToUInt32(index + 1),
+                        Width = width + 5,
+                        CustomWidth = true,
+                        Style = Convert.ToUInt32(0),
+                    };
+                    clmns.Append(cln);
+                    index++;
+                }
+
+                var sheetdata = sheetPart.Worksheet.GetFirstChild<SheetData>();
+                sheetPart.Worksheet.InsertBefore(clmns, sheetdata);
+
+                var freezeRow = lp;
+                foreach (DataColumn column in table.Columns)
+                {
+                    var cell = new Cell
+                    {
+                        DataType = CellValues.String,
+                        CellValue = new CellValue(column.Caption),
+                        StyleIndex = Convert.ToUInt32(XCellStyle.Header),
+                    };
+                    headerRow.AppendChild(cell);
+                }
+                sheetData.AppendChild(headerRow);
+
+                foreach (DataRow dsrow in table.Rows)
+                {
+                    var newRow = new Row();
+                    foreach (var col in columns)
+                    {
+                        var (cellType, value, type) = TypeFinder.Get(dsrow[col.Key]!);
+                        CellValue? cellvalue = null;
+                        var cellvalues = cellType;
+                        UInt32 styleIndex = Convert.ToUInt32(col.Value);
+                        if (value == null)
+                            cellvalue = new CellValue(string.Empty);
+                        else if (type == typeof(long))
+                            cellvalue = new CellValue(Convert.ToDecimal(value));
+                        else if (type == typeof(DateTime))
+                        {
+                            cellvalues = CellValues.Date;
+                            cellvalue = new CellValue(((DateTime)value).ToString("yyyy-MM-dd"));
+                            styleIndex = 2;
+                        }
+                        else
+                            cellvalue = new CellValue((dynamic)value);
+                        var cell = new Cell
+                        {
+                            DataType = cellvalues,
+                            CellValue = cellvalue,
+                            StyleIndex = styleIndex,
+                        };
+                        newRow.AppendChild(cell);
+                    }
+                    sheetData.AppendChild(newRow);
+                }
+            }
+        }
+        memoryStream.Seek(0, SeekOrigin.Begin);
+        return memoryStream;
+    }
+
+    public static DataTable ReadAsseverazioneExcel(this MemoryStream stream)
+    {
+        var table = new DataTable();
+        var workbook = new XLWorkbook(stream);
+        var ws = workbook.Worksheet(1);
+        table.Columns.Add(0.ToString());
+        table.Columns.Add(1.ToString());
+        table.Columns.Add(2.ToString());
+        table.Columns.Add(3.ToString());
+        table.Columns.Add(4.ToString());
+        for (var i = 0; i < ws.Rows().Count(); i++)
+        {
+            var tempRow = table.NewRow(); 
+            tempRow[0] = ws.Cell($"A{i + 1}").Value;
+            tempRow[1] = ws.Cell($"B{i + 1}").Value;
+            tempRow[2] = ws.Cell($"C{i + 1}").Value;
+            tempRow[3] = ws.Cell($"D{i + 1}").Value;
+            tempRow[4] = ws.Cell($"E{i + 1}").Value;
+            table.Rows.Add(tempRow);
+        } 
+        table.Rows.RemoveAt(0);
+        return table;
+    }
+}

@@ -6,6 +6,15 @@ public class TypeFinder
 {
     private static readonly Dictionary<Type, CellValues> _matches = new()
     {
+        { typeof(long?) ,  CellValues.Number},
+        { typeof(double?) ,  CellValues.Number},
+        { typeof(int?) ,  CellValues.Number},
+        { typeof(short?) ,  CellValues.Number},
+        { typeof(decimal?) ,  CellValues.Number},
+        { typeof(byte?) ,  CellValues.Number},
+        { typeof(bool?) ,  CellValues.Boolean},
+        { typeof(DateTime?) ,  CellValues.Date},
+        { typeof(DateTimeOffset?) ,  CellValues.Date},
         { typeof(string) ,  CellValues.String},
         { typeof(long) ,  CellValues.Number},
         { typeof(double) ,  CellValues.Number},
@@ -20,7 +29,7 @@ public class TypeFinder
 
     public static (CellValues, T, Type) Get<T>(T value)
     {
-        var type = value!.GetType();
+        var type = Nullable.GetUnderlyingType(value!.GetType()!) ?? value!.GetType();
         var check = _matches.TryGetValue(type, out var cellValues);
         if (check)
             return (cellValues, value, type);

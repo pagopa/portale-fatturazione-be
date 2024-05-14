@@ -24,10 +24,13 @@ public class RelRigheQueryGetByIdPersistence(RelRigheQueryGetById command) : Dap
         var idContratto = dati.IdContratto;
 
         if (idEnte != dati.IdEnte)
-            throw new DomainException(""); 
+            throw new DomainException("");
 
         if (!string.IsNullOrEmpty(tipoFattura))
-            where += " AND TipologiaFattura=@TipologiaFattura";
+            if (tipoFattura == TipologiaFattura.PRIMOSALDO)
+                where += $" AND (TipologiaFattura=@TipologiaFattura OR TipologiaFattura='{TipologiaFattura.ASSEVERAZIONE}')";
+            else
+                where += " AND TipologiaFattura=@TipologiaFattura";
         else
             throw new DomainException("");
 
@@ -55,6 +58,6 @@ public class RelRigheQueryGetByIdPersistence(RelRigheQueryGetById command) : Dap
             connection!,
             sqlEnte,
             query,
-            transaction); 
+            transaction);
     }
 }

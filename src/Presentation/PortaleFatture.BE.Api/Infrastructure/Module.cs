@@ -15,6 +15,8 @@ public abstract class Module : IModule
     public static string DatiNotificaLabelRecapitisti = "Dati Notifiche Recapitisti";
     public static string DatiNotificaLabelConsolidatori = "Dati Notifiche Consolidatori";
     public static string DatiAuthLabel = "Autenticazione";
+    public static string DatiAsseverazioneLabelPagoPA = "Dati Asseverazione PagoPA";
+
     public const string CORSLabel = "portalefatture";
     public const string GatewayLabel = "gateway";
     public const string HealthcheckLabel = "health";

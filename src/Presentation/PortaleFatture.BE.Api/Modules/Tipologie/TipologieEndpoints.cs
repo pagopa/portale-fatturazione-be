@@ -1,12 +1,18 @@
 ﻿using Microsoft.AspNetCore.Cors;
 using PortaleFatture.BE.Api.Infrastructure;
 
-namespace PortaleFatture.BE.Api.Modules.DatiFatturazioni;
+namespace PortaleFatture.BE.Api.Modules.Tipologie;
 
 public partial class TipologieModule : Module, IRegistrableModule
 { 
     public void RegisterEndpoints(IEndpointRouteBuilder endpointRouteBuilder)
     {
+        endpointRouteBuilder
+           .MapGet("api/tipologia/time", GetTimeAsync)
+           .WithName("Permette di visualizzare il timing")
+           .SetOpenApi(Module.DatiTipologiaLabel)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
         endpointRouteBuilder
            .MapGet("api/tipologia/scadenziariocontestazioni", GetScadenziarioContestazioniByDescrizioneAsync)
            .WithName("Permette di visualizzare lo scadenziario contestazioni")

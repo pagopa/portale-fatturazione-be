@@ -29,7 +29,12 @@ public static class RelRigheSQLBuilder
            [recipient_tax_id] AS RecipientTaxId,
            [Recapitista] AS Recapitista,
            e.description AS RagioneSociale,  
-           [TipologiaFattura] as TipologiaFattura
+		   CAST(
+             CASE
+                  WHEN  [TipologiaFattura] = 'ASSEVERAZIONE'
+                     THEN 'Notifica di ente aderente al bando PNRR in cui è prevista la fase di asseverazione'
+                  ELSE [TipologiaFattura] 
+             END AS nvarchar(300)) as TipologiaFattura 
     FROM pfd.RelRighe r
     INNER JOIN pfd.Enti e ON e.InternalIstitutionId = r.internal_organization_id
     INNER JOIN pfd.Contratti c ON e.InternalIstitutionId = c.internalistitutionid   

@@ -78,9 +78,9 @@ public class EmailRelService(string cn) : IEmailRelService
             }
             reader.Close();
         }
-        catch (Exception ex)
+        catch  
         {
-            var dummy = ex.Message;
+           
 
         }
         return emails;
@@ -108,9 +108,9 @@ public class EmailRelService(string cn) : IEmailRelService
             var rows = cmd.ExecuteNonQuery();
             return rows == 1;
         }
-        catch (Exception ex)
+        catch 
         {
-            var dummy = ex.Message;
+        
             return false;
         }
     }

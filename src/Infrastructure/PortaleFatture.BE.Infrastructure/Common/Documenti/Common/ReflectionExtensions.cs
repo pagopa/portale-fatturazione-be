@@ -154,7 +154,7 @@ public static class ReflectionExtensions
         var rowTot = table.NewRow();
         for (var i = 0; i < table.Columns.Count; i++)
         {
-            if(i == 0)
+            if (i == 0)
             {
                 rowTot[i] = "Totali:";
             }
@@ -171,7 +171,7 @@ public static class ReflectionExtensions
                 }
                 else
                     rowTot[i] = DBNull.Value;
-            } 
+            }
         }
         table.Rows.Add(rowTot);
         ds.Tables.Add(table);
@@ -187,7 +187,7 @@ public static class ReflectionExtensions
         {
             row = table.NewRow();
             foreach (var hh in headers)
-                row[hh.Name!] = d!.GetType().GetProperty(hh.Name!)!.GetValue(d, null);
+                row[hh.Name!] = d!.GetType().GetProperty(hh.Name!)!.GetValue(d, null) ?? DBNull.Value;
 
             table.Rows.Add(row);
         }

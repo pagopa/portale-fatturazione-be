@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Localization;
 using PortaleFatture.BE.Api.Infrastructure;
+using PortaleFatture.BE.Api.Modules.Asseverazione.Extensions;
 using PortaleFatture.BE.Api.Modules.DatiFatturazioni.Extensions;
 using PortaleFatture.BE.Api.Modules.DatiFatturazioni.Payload.Request;
 using PortaleFatture.BE.Api.Modules.DatiFatturazioni.Payload.Response;

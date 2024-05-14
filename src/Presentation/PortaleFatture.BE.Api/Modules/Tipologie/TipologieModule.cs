@@ -5,9 +5,9 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Localization;
 using PortaleFatture.BE.Api.Infrastructure;
+using PortaleFatture.BE.Api.Modules.Asseverazione.Extensions;
 using PortaleFatture.BE.Api.Modules.DatiFatturazioni.Extensions;
 using PortaleFatture.BE.Api.Modules.DatiFatturazioni.Payload.Response;
-using PortaleFatture.BE.Api.Modules.Tipologie;
 using PortaleFatture.BE.Api.Modules.Tipologie.Payload.Payload.Request;
 using PortaleFatture.BE.Api.Modules.Tipologie.Payload.Payload.Response;
 using PortaleFatture.BE.Core.Auth;
@@ -20,10 +20,23 @@ using PortaleFatture.BE.Infrastructure.Common.Scadenziari.Queries;
 using PortaleFatture.BE.Infrastructure.Common.Tipologie.Queries;
 using static Microsoft.AspNetCore.Http.TypedResults;
 
-namespace PortaleFatture.BE.Api.Modules.DatiFatturazioni;
-
+namespace PortaleFatture.BE.Api.Modules.Tipologie;
 public partial class TipologieModule
 {
+    [AllowAnonymous]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<DateTime>, NotFound>> GetTimeAsync(
+    HttpContext context,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    { 
+        return Ok(await Task.Run(() =>DateTime.UtcNow.ItalianTime()));
+    }
+
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}")] 
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]

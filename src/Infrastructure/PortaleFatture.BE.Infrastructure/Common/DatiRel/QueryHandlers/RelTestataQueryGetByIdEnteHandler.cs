@@ -25,29 +25,29 @@ public class RelTestataQueryGetByIdEnteHandler(
         var testate = new List<SimpleRelTestata>();
         foreach (var t in testata!.RelTestate!)
         {
-            if (t.AsseverazioneTotaleIva > 0)
-            {
-                var newTestata = new SimpleRelTestata()
-                {
-                    Totale = t.AsseverazioneTotale,
-                    TotaleIva = t.AsseverazioneTotaleIva,
-                    TotaleAnalogico = t.AsseverazioneTotaleAnalogico,
-                    TotaleAnalogicoIva = t.AsseverazioneTotaleAnalogicoIva,
-                    TotaleDigitale = t.AsseverazioneTotaleDigitale,
-                    TotaleDigitaleIva = t.AsseverazioneTotaleDigitaleIva,
-                    TotaleNotificheAnalogiche = t.AsseverazioneTotaleNotificheAnalogiche,
-                    TotaleNotificheDigitali = t.AsseverazioneTotaleNotificheDigitali,
-                    TipologiaFattura = TipologiaFattura.ASSEVERAZIONE,
-                    IdContratto = t.IdContratto,
-                    Iva = t.Iva,
-                    IdEnte = t.IdEnte,
-                    Mese = t.Mese,
-                    Anno = t.Anno,
-                    RagioneSociale = t.RagioneSociale 
-                };
-                testate.Add(newTestata); 
-                testata.Count += 1;
-            }
+            //if (t.AsseverazioneTotaleIva > 0)
+            //{
+            //    var newTestata = new SimpleRelTestata()
+            //    {
+            //        Totale = t.AsseverazioneTotale,
+            //        TotaleIva = t.AsseverazioneTotaleIva,
+            //        TotaleAnalogico = t.AsseverazioneTotaleAnalogico,
+            //        TotaleAnalogicoIva = t.AsseverazioneTotaleAnalogicoIva,
+            //        TotaleDigitale = t.AsseverazioneTotaleDigitale,
+            //        TotaleDigitaleIva = t.AsseverazioneTotaleDigitaleIva,
+            //        TotaleNotificheAnalogiche = t.AsseverazioneTotaleNotificheAnalogiche,
+            //        TotaleNotificheDigitali = t.AsseverazioneTotaleNotificheDigitali,
+            //        TipologiaFattura = TipologiaFattura.ASSEVERAZIONE,
+            //        IdContratto = t.IdContratto,
+            //        Iva = t.Iva,
+            //        IdEnte = t.IdEnte,
+            //        Mese = t.Mese,
+            //        Anno = t.Anno,
+            //        RagioneSociale = t.RagioneSociale 
+            //    };
+            //    testate.Add(newTestata); 
+            //    testata.Count += 1;
+            //}
             testate.Add(t);
         }
         testata.RelTestate = testate;

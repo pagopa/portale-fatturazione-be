@@ -45,7 +45,12 @@ SELECT [contract_id] AS IdContratto,
        f.IdFlagContestazione AS StatoContestazione,
        a.TipoContestazione AS TipoContestazione,
        n.Fatturabile as Fatturata,
-       n.TipologiaFattura as TipologiaFattura,
+ 		   CAST(
+             CASE
+                  WHEN  n.[TipologiaFattura] = 'ASSEVERAZIONE'
+                     THEN 'Notifica di ente aderente al bando PNRR in cui è prevista la fase di asseverazione'
+                  ELSE n.[TipologiaFattura] 
+             END AS nvarchar(300)) as TipologiaFattura,
        t.onere AS Onere,
        t.NoteEnte AS NoteEnte,
 	   t.RispostaEnte AS RispostaEnte,
