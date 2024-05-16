@@ -20,7 +20,8 @@ public class EmailRelService(string cn) : IEmailRelService
         FROM [pfd].[EmailRel]
         WHERE [year] = @year
         AND [month] = @month
-        AND [TipologiaFattura] = @tipologiaFattura;";
+        AND [TipologiaFattura] = @tipologiaFattura
+        AND Totale >0;";
 
     private readonly string _sqlInsert = @"
     INSERT INTO [pfd].[RelEmail]
