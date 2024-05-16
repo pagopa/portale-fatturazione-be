@@ -47,6 +47,21 @@ public static class RelExtensions
         };
     }
 
+    public static RelTestataQueryGetByListaEntiQuadratura Map2(this RelTestataRicercaRequestPagoPA req, AuthenticationInfo authInfo, int? page, int? pageSize)
+    {
+        return new RelTestataQueryGetByListaEntiQuadratura(authInfo)
+        {
+            Anno = req.Anno,
+            Mese = req.Mese,
+            IdContratto = req.IdContratto,
+            TipologiaFattura = req.TipologiaFattura == null? "PRIMO SALDO": req.TipologiaFattura,
+            Page = page,
+            Size = pageSize,
+            EntiIds = req.IdEnti,
+            Caricata = req.Caricata
+        };
+    }
+
     public static RelTestataQueryGetByIdEnte Map(this RelTestataRicercaRequest req, AuthenticationInfo authInfo, int? page, int? pageSize)
     {
         return new RelTestataQueryGetByIdEnte(authInfo)

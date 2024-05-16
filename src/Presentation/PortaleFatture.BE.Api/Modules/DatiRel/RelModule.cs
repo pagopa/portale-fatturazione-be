@@ -39,6 +39,44 @@ public partial class RelModule
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<IResult> GetDownloadPagoPAAsync(
+    HttpContext context,
+    [FromRoute] string? id,
+    [FromQuery] string? tipo,
+    [FromServices] IDocumentBuilder documentBuilder,
+    [FromServices] IMediator handler,
+    [FromServices] IStringLocalizer<Localization> localizer)
+    {
+        var authInfo = context.GetAuthInfo();
+        var request = new RelTestataByIdRequest()
+        {
+            IdTestata = id
+        };
+        var rel = await handler.Send(request.Map(authInfo));
+        if (rel == null)
+            return NotFound();
+
+        if (tipo != null && tipo == "pdf")
+        {
+            var bytes = documentBuilder.CreateModuloRelPdf(rel.Map()!);
+            var filename = $"{Guid.NewGuid()}.pdf";
+            var mime = "application/pdf";
+            return Results.File(bytes!, mime, filename);
+        }
+        else
+        {
+            var content = documentBuilder.CreateModuloRelHtml(rel.Map()!);
+            var mime = "text/html";
+            return Results.Text(content!, mime);
+        }
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     private async Task<Results<Ok<int?>, NotFound>> PostPagoPAFatturabileAsync(
     HttpContext context,
     [FromBody] RelFatturabileByIdEntiRequest? request,
@@ -196,6 +234,37 @@ public partial class RelModule
         var filename = $"{Guid.NewGuid()}.xlsx";
 
         var dataSet = rels.RelTestate!.FillOneSheetWithTotalsRel();
+        var content = dataSet.ToExcel();
+        if (binary == null)
+            return Ok(new DocumentDto() { Documento = Convert.ToBase64String(content.ToArray()) });
+        else
+            return Results.File(content!, mime, filename);
+    }
+
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [Authorize()]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<IResult> GetPagoPAQuadraturaRicercaDocumentAsync(
+    HttpContext context,
+    [FromBody] RelTestataRicercaRequestPagoPA request,
+    [FromQuery] bool? binary,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var rels = await handler.Send(request.Map2(authInfo, null, null));
+        if (rels == null || rels.Count == 0)
+            return NotFound();
+
+        var mime = "application/vnd.ms-excel";
+        var filename = $"{Guid.NewGuid()}.xlsx";
+
+        var dataSet = rels.Quadratura!.FillOneSheetWithTotalsRel();
         var content = dataSet.ToExcel();
         if (binary == null)
             return Ok(new DocumentDto() { Documento = Convert.ToBase64String(content.ToArray()) });

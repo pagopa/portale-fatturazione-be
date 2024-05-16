@@ -60,15 +60,21 @@ public partial class RelModule : Module, IRegistrableModule
 
         #region pagoPA
         endpointRouteBuilder
+        .MapGet("api/rel/pagopa/documento/download/{id}", GetDownloadPagoPAAsync)
+        .WithName("Permette di scaricare il file rel lato pagoPA pdf firmato")
+        .SetOpenApi(Module.DatiRelLabelPagoPA)
+        .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
         .MapPost("api/rel/fatturabile", PostPagoPAFatturabileAsync)
         .WithName("Permette di cambiare lo stato fatturabile via PagoPA")
-        .SetOpenApi(Module.DatiRelLabel)
+        .SetOpenApi(Module.DatiRelLabelPagoPA)
         .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
         endpointRouteBuilder
         .MapPost("api/rel/pagopa/firma/log", PostPagoPADownloadLogAsync)
         .WithName("Permette di scaricare il log pdf firmato via PagoPA")
-        .SetOpenApi(Module.DatiRelLabel)
+        .SetOpenApi(Module.DatiRelLabelPagoPA)
         .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
         endpointRouteBuilder
@@ -104,6 +110,12 @@ public partial class RelModule : Module, IRegistrableModule
         endpointRouteBuilder
         .MapGet("api/rel/pagopa/firma/download/{id}", GetPagoPADownloadFirmaAsync)
         .WithName("Permette di scaricare il file rel pdf firmato via PagoPA")
+        .SetOpenApi(Module.DatiRelLabelPagoPA)
+        .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+        .MapPost("api/rel/pagopa/quadratura/ricerca", GetPagoPAQuadraturaRicercaDocumentAsync)
+        .WithName("Permette di ottenere il documento quadratura Rels dell'ente per ricerca pagoPA")
         .SetOpenApi(Module.DatiRelLabelPagoPA)
         .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
         #endregion

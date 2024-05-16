@@ -3,11 +3,11 @@ using PortaleFatture.BE.Core.Entities.DatiRel;
 
 namespace PortaleFatture.BE.Infrastructure.Common.DatiRel.Dto;
 
-public sealed class RelTestataDto
+public sealed class RelTestataQuadraturaDto
 {
     [JsonPropertyOrder(-1)]
-    public List<SimpleRelTestata>? RelTestate { get; set; }
+    public List<RelQuadraturaDto>? Quadratura { get; set; }
 
     [JsonPropertyOrder(-2)]
     public int Count { get; set; }
-} 
+}
