@@ -472,12 +472,12 @@ public partial class RelModule
     [FromServices] IStringLocalizer<Localization> localizer,
     [FromServices] IMediator handler)
     {
-        return NotFound(); // da eliminare   IMPEDIMENT #328
-        //var authInfo = context.GetAuthInfo();
-        //var rel = await handler.Send(request.Map(authInfo, page, pageSize));
-        //if (rel == null || rel.Count == 0)
-        //    return NotFound();
-        //return Ok(rel);
+        //return NotFound(); // da eliminare   IMPEDIMENT #328
+        var authInfo = context.GetAuthInfo();
+        var rel = await handler.Send(request.Map(authInfo, page, pageSize));
+        if (rel == null || rel.Count == 0)
+            return NotFound();
+        return Ok(rel);
 
     }
 
@@ -594,21 +594,21 @@ public partial class RelModule
     [FromServices] IStringLocalizer<Localization> localizer,
     [FromServices] IMediator handler)
     {
-       return NotFound(); // da eliminare   IMPEDIMENT #328
-        //var authInfo = context.GetAuthInfo();
-        //var rels = await handler.Send(request.Map(authInfo, null, null));
-        //if (rels == null || rels.Count == 0)
-        //    return NotFound();
+       //return NotFound(); // da eliminare   IMPEDIMENT #328
+        var authInfo = context.GetAuthInfo();
+        var rels = await handler.Send(request.Map(authInfo, null, null));
+        if (rels == null || rels.Count == 0)
+            return NotFound();
 
-        //var mime = "application/vnd.ms-excel";
-        //var filename = $"{Guid.NewGuid()}.xlsx";
+        var mime = "application/vnd.ms-excel";
+        var filename = $"{Guid.NewGuid()}.xlsx";
 
-        //var dataSet = rels.RelTestate!.FillOneSheet();
-        //var content = dataSet.ToExcel();
-        //if (binary == null)
-        //    return Ok(new DocumentDto() { Documento = Convert.ToBase64String(content.ToArray()) });
-        //else
-        //    return Results.File(content!, mime, filename);
+        var dataSet = rels.RelTestate!.FillOneSheet();
+        var content = dataSet.ToExcel();
+        if (binary == null)
+            return Ok(new DocumentDto() { Documento = Convert.ToBase64String(content.ToArray()) });
+        else
+            return Results.File(content!, mime, filename);
     }
     #endregion
 }
