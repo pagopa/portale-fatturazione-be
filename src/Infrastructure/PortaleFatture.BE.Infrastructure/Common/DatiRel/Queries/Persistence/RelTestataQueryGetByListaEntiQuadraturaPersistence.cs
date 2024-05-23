@@ -11,6 +11,7 @@ public class RelTestataQueryGetByListaEntiQuadraturaPersistence(RelTestataQueryG
 {
     private readonly RelTestataQueryGetByListaEntiQuadratura _command = command;
     private static readonly string _sqlSelectAll = RelTestataQuadraturaSQLBuilder.SelectAll();
+    private static readonly string _sqlSelectAllNoTipologia = RelTestataQuadraturaSQLBuilder.SelectAllNoTipologia();
     private static readonly string _sqlSelectAllCount = RelTestataQuadraturaSQLBuilder.SelectAllCount();
     private static readonly string _offSet = RelTestataQuadraturaSQLBuilder.OffSet();
     private static readonly string _orderBy = RelTestataQuadraturaSQLBuilder.OrderBy();
@@ -30,14 +31,12 @@ public class RelTestataQueryGetByListaEntiQuadraturaPersistence(RelTestataQueryG
 
         if (!_command.EntiIds.IsNullOrEmpty())
             where += $" AND nc.internal_organization_id IN @entiIds";
- 
+
         var caricata = _command.Caricata;
 
         var tipoFattura = _command.TipologiaFattura != null ? _command.TipologiaFattura : null;
         var idContratto = _command.IdContratto ?? null;
 
-        //if (!string.IsNullOrEmpty(tipoFattura))
-        //    where += " AND TipologiaFattura=@TipologiaFattura";  
 
         if (!string.IsNullOrEmpty(idContratto))
             where += " AND nc.contract_id=@IdContratto";
@@ -47,7 +46,12 @@ public class RelTestataQueryGetByListaEntiQuadraturaPersistence(RelTestataQueryG
 
         var orderBy = _orderBy;
 
-        var sqlEnte = _sqlSelectAll;
+        string? sqlEnte;
+        if (!string.IsNullOrEmpty(tipoFattura))
+            sqlEnte = _sqlSelectAll;
+        else
+            sqlEnte = _sqlSelectAllNoTipologia;
+
         var sqlCount = _sqlSelectAllCount;
         if (page == null && size == null)
             sqlEnte += where + orderBy;

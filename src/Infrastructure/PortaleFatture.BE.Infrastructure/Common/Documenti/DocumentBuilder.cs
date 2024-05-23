@@ -3,12 +3,14 @@ using PortaleFatture.BE.Core.Entities.DatiModuloCommesse.Dto;
 using PortaleFatture.BE.Core.Exceptions;
 using WkHtmlToPdfDotNet;
 using PortaleFatture.BE.Core.Entities.DatiRel.Dto;
+using PortaleFatture.BE.Core.Entities.DatiRel; 
 
 namespace PortaleFatture.BE.Infrastructure.Common.Documenti;
 public class DocumentBuilder : IDocumentBuilder
 {
     private static string _fileEmail = $"primo_saldo.html";
-    private static string _fileRel = $"rel.html";
+    private static string _filePrimoSaldoRel = $"PRIMO_SALDO_rel.html";
+    private static string _fileSecondoSaldoRel = $"SECONDO_SALDO_rel.html";
     private static string _fileModuloCommessa = $"daticommessa.html";
     private static string _directory = $"Infrastructure/Documenti/";
     private readonly string _root;
@@ -38,7 +40,20 @@ public class DocumentBuilder : IDocumentBuilder
 
     public string? CreateModuloRelHtml(RelDocumentoDto dati)
     {
-        var filePath = Path.Combine([_directoryPath, _fileRel]);
+        string? fileRel;
+        if (dati.TipologiaFattura == TipologiaFattura.PRIMOSALDO)
+        {
+            fileRel = _filePrimoSaldoRel;
+        }
+        else if (dati.TipologiaFattura == TipologiaFattura.SECONDOSALDO)
+        {
+            fileRel = _fileSecondoSaldoRel;
+        }
+        else
+        {
+            throw new Exception("Tipologia fattura non valida");
+        }
+        var filePath =  Path.Combine([_directoryPath, fileRel]);
         var relText = ReadFromFile(filePath);
         relText = dati.Replace(relText!);
         return relText;
@@ -46,7 +61,20 @@ public class DocumentBuilder : IDocumentBuilder
 
     public byte[] CreateModuloRelPdf(RelDocumentoDto dati)
     {
-        var filePath = Path.Combine([_directoryPath, _fileRel]);
+        string? fileRel;
+        if (dati.TipologiaFattura == TipologiaFattura.PRIMOSALDO)
+        {
+            fileRel = _filePrimoSaldoRel;
+        }
+        else if (dati.TipologiaFattura == TipologiaFattura.SECONDOSALDO)
+        {
+            fileRel = _fileSecondoSaldoRel;
+        }
+        else
+        {
+            throw new Exception("Tipologia fattura non valida");
+        }
+        var filePath = Path.Combine([_directoryPath, fileRel]);
         var relText = ReadFromFile(filePath);
         relText = dati.Replace(relText!);
         return CreatePdf(relText!);

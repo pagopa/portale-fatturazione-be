@@ -27,7 +27,13 @@
       <None Update="Infrastructure\Documenti\daticommessa.html">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
+      <None Update="Infrastructure\Documenti\PRIMO_SALDO_rel.html">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
       <None Update="Infrastructure\Documenti\rel.html">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="Infrastructure\Documenti\SECONDO_SALDO_rel.html">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
     </ItemGroup>

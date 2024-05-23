@@ -29,6 +29,22 @@ public class SendEmail(ILoggerFactory loggerFactory)
             Configurazione.SmtpPort = Convert.ToInt32(GetEnvironmentVariable("PortaleFattureOptions:SMTP_PORT"));
             Configurazione.SmtpAuth = GetEnvironmentVariable("PortaleFattureOptions:SMTP_AUTH");
             Configurazione.SmtpPassword = GetEnvironmentVariable("PortaleFattureOptions:SMTP_PASSWORD");
+            if (String.IsNullOrEmpty(Configurazione.ConnectionString) ||
+                String.IsNullOrEmpty(Configurazione.From) ||
+                String.IsNullOrEmpty(Configurazione.Smtp) ||
+                String.IsNullOrEmpty(Configurazione.SmtpAuth) ||
+                String.IsNullOrEmpty(Configurazione.SmtpPassword))
+            {
+                Configurazione.ConnectionString = GetEnvironmentVariable("CONNECTION_STRING");
+                Configurazione.From = "send-fatturazione@pec.pagopa.it";
+                Configurazione.Smtp = GetEnvironmentVariable("SMTP");
+                Configurazione.SmtpPort = Convert.ToInt32(GetEnvironmentVariable("SMTP_PORT"));
+                Configurazione.SmtpAuth = GetEnvironmentVariable("SMTP_AUTH");
+                Configurazione.SmtpPassword = GetEnvironmentVariable("SMTP_PASSWORD"); 
+            };
+
+
+
             var fileInfo = new FileInfo(Assembly.GetExecutingAssembly().Location);
             string path = fileInfo.Directory!.FullName;
 

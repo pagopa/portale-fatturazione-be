@@ -36,130 +36,134 @@ public class RelQuadraturaDto
     [Column("Mese")]
     public int? Mese { get; set; }
 
- 
-    [HeaderAttributev2(caption: "Cont. Tot. Analogico €", Order = 7)]
+ //contestazioni -init
+    [HeaderAttributev2(caption: "Imponibile Contestazioni Analogico €", Order = 7)]
 
     [Column("ContestazioniTotaleAnalogico")]
     public decimal ContestazioniTotaleAnalogico { get; set; }
  
-    [HeaderAttributev2(caption: "Cont. Tot. Digitale €", Order = 8)]
+    [HeaderAttributev2(caption: "Imponibile Contestazioni Digitale €", Order = 8)]
 
     [Column("ContestazioniTotaleDigitale")]
     public decimal ContestazioniTotaleDigitale { get; set; }
- 
-    [HeaderAttributev2(caption: "Cont. Tot. Not. Analogiche", Order = 9)]
+
+    [HeaderAttributev2(caption: "Imponibile Contestazioni  €", Order = 9)]
+
+    [Column("ContestazioniTotale")]
+    public decimal ContestazioniTotale { get; set; }
+
+    [HeaderAttributev2(caption: "N. Contestazioni Analogiche", Order = 10)]
     [Column("ContestazioniTotaleNotificheAnalogiche")]
     public int ContestazioniTotaleNotificheAnalogiche { get; set; } 
- 
-    [HeaderAttributev2(caption: "Cont. Tot. Not. Digitali", Order = 10)]
+
+
+    [HeaderAttributev2(caption: "N. Contestazioni Digitale", Order = 11)]
 
     [Column("ContestazioniTotaleNotificheDigitali")]
     public int ContestazioniTotaleNotificheDigitali { get; set; }
 
-    [HeaderAttributev2(caption: "Cont. Tot. €", Order = 11)]
+    [HeaderAttributev2(caption: "N. Totale Contestazioni", Order = 12)]
 
-    [Column("ContestazioniTotale")]
-    public int ContestazioniTotale { get; set; }
- 
-    [HeaderAttributev2(caption: "Rel. Tot. Analogico €", Order = 13)]
+    [Column("ContestazioniNotificheTotale")]
+    public int ContestazioniNotificheTotale { get; set; }
+    //contestazioni -end
+
+    //rel -init
+    [HeaderAttributev2(caption: "REL Imponibile Analogico €", Order = 13)]
     [Column("RelTotaleAnalogico")]
     public decimal RelTotaleAnalogico { get; set; }
 
-    [HeaderAttributev2(caption: "Rel. Tot. Digitali €", Order = 13)]
+    [HeaderAttributev2(caption: "REL Imponibile Digitale €", Order = 14)]
     [Column("RelTotaleDigitale")]
     public decimal RelTotaleDigitale { get; set; }
 
-    [HeaderAttributev2(caption: "Rel. Tot. Not. Digitali", Order = 14)]
-    [Column("RelTotaleNotificheAnalogiche")]
-    public int RelTotaleNotificheAnalogiche { get; set; }
-
-    [HeaderAttributev2(caption: "Rel. Tot. Not. Digitali", Order = 15)]
-    [Column("RelTotaleNotificheDigitali")]
-    public int RelTotaleNotificheDigitali { get; set; }
-
-    [HeaderAttributev2(caption: "Rel. Tot. €", Order = 16)]
+    [HeaderAttributev2(caption: "REL Imponibile €", Order = 15)]
     [Column("RelTotale")]
     public decimal RelTotale { get; set; }
 
-    [HeaderAttributev2(caption: "Rel. Tot. Asse. Analogico €", Order = 17)]
-    [Column("RelTotaleAnalogico")]
+    [HeaderAttributev2(caption: "N. REL Analogico", Order = 16)]
+    [Column("RelTotaleNotificheAnalogiche")]
+    public int RelTotaleNotificheAnalogiche { get; set; }
+
+    [HeaderAttributev2(caption: "N. REL Digitale", Order = 17)]
+    [Column("RelTotaleNotificheDigitali")]
+    public int RelTotaleNotificheDigitali { get; set; }
+
+    [HeaderAttributev2(caption: "N. REL Totale", Order = 18)]
+    [Column("RelTotaleNotifiche")]
+    public int RelTotaleNotifiche { get; set; }
+    //rel -end
+
+    //rel asse -init
+    [HeaderAttributev2(caption: "Ass. Imponibile Analogico €", Order = 19)]
+    [Column("RelAsseTotaleAnalogico")]
     public decimal RelAsseTotaleAnalogico { get; set; }
 
-    [HeaderAttributev2(caption: "Rel. Tot. Asse. Digitali €", Order = 18)]
+    [HeaderAttributev2(caption: "Ass. Imponibile Digitalie €", Order = 20)]
     [Column("RelAsseTotaleDigitale")]
     public decimal RelAsseTotaleDigitale { get; set; }
 
-    [HeaderAttributev2(caption: "Rel. Tot. Not. Asse. Analogico", Order = 19)]
+    [HeaderAttributev2(caption: "Ass. Imponibile €", Order = 21)]
+    [Column("RelAsseTotale")]
+    public decimal RelAsseTotale { get; set; }
+
+    [HeaderAttributev2(caption: "N. Asseverazione Analogico", Order = 22)]
     [Column("RelAsseTotaleNotificheAnalogiche")]
     public int RelAsseTotaleNotificheAnalogiche { get; set; }
 
-    [HeaderAttributev2(caption: "Rel. Tot. Not. Asse. Digitali", Order = 20)]
+    [HeaderAttributev2(caption: "N. Asseverazione Digitale", Order = 23)]
     [Column("RelAsseTotaleNotificheDigitali")]
     public int RelAsseTotaleNotificheDigitali { get; set; }
 
-    [HeaderAttributev2(caption: "Rel. Tot. Asse. €", Order = 21)]
-    [Column("RelAsseTotale")]
-    public decimal RelAsseTotale { get; set; }
-     
+    [HeaderAttributev2(caption: "N. Asseverazione", Order = 24)]
+    [Column("RelAsseTotaleNotifiche")]
+    public int RelAsseTotaleNotifiche { get; set; }
+    //rel asse -end 
 
-
-    [HeaderAttributev2(caption: "Not. Tot. Analogico €", Order = 22)]
+    // notifiche --init
+    [HeaderAttributev2(caption: "Consuntivo Imponible Analogico €", Order = 25)]
     [Column("NotificheTotaleAnalogico")]
     public decimal NotificheTotaleAnalogico { get; set; }
 
-    [HeaderAttributev2(caption: "Not. Tot. Digitali €", Order = 23)]
+    [HeaderAttributev2(caption: "Consuntivo  Imponibile Digitale €", Order = 26)]
     [Column("NotificheTotaleDigitale")]
     public decimal NotificheTotaleDigitale { get; set; }
 
-    [HeaderAttributev2(caption: "Not. Tot. Not. Analogico", Order = 24)]
+
+    [HeaderAttributev2(caption: "Consuntivo Imponibile €", Order = 27)]
+    [Column("NotificheTotale")]
+    public decimal NotificheTotale { get; set; } 
+
+    [HeaderAttributev2(caption: "N. Consuntivo Analogico", Order = 28)]
     [Column("NotificheTotaleNotificheAnalogiche")]
     public int NotificheTotaleNotificheAnalogiche { get; set; }
 
-    [HeaderAttributev2(caption: "Not. Tot. Not. Digitali", Order = 25)]
+    [HeaderAttributev2(caption: "N. Consuntivo Digitali", Order = 29)]
     [Column("NotificheTotaleNotificheDigitali")]
     public int NotificheTotaleNotificheDigitali { get; set; }
 
-    [HeaderAttributev2(caption: "Not. Tot. €", Order = 26)]
-    [Column("NotificheTotale")]
-    public decimal NotificheTotale { get; set; }
+    [HeaderAttributev2(caption: "N. Totale consuntivo", Order = 30)]
+    [Column("NotificheTotaleNotifiche")]
+    public int NotificheTotaleNotifiche { get; set; } 
 
 
-    [HeaderAttributev2(caption: "Diff. Tot. Analogico €", Order = 27)]
+    [HeaderAttributev2(caption: "Check Imponibile Analogico €", Order = 31)]
     [Column("DiffTotaleAnalogico")]
     public decimal DiffTotaleAnalogico { get; set; }
 
-    [HeaderAttributev2(caption: "Diff. Tot. Digitali €", Order = 28)]
+    [HeaderAttributev2(caption: "Check Imponibile  Digitale €", Order = 32)]
     [Column("DiffTotaleDigitale")]
     public decimal DiffTotaleDigitale { get; set; }
 
-    [HeaderAttributev2(caption: "Diff. Tot. Not. Analogico", Order = 29)]
+    [HeaderAttributev2(caption: "Check Notifiche  Analogico", Order = 33)]
     [Column("DiffTotaleNotificheAnalogiche")]
     public int DiffTotaleNotificheAnalogiche { get; set; }
 
-    [HeaderAttributev2(caption: "Diff. Tot. Not. Digitali", Order = 30)]
+    [HeaderAttributev2(caption: "Check Notifiche  Digitali", Order = 34)]
     [Column("DiffTotaleNotificheDigitali")]
-    public int DiffTotaleNotificheDigitali { get; set; }
+    public int DiffTotaleNotificheDigitali { get; set; } 
 
-    [HeaderAttributev2(caption: "Diff. Tot. €", Order = 31)]
-    [Column("DiffTotale")]
-    public decimal DiffTotale { get; set; }
-
-
-
-    [HeaderAttributev2(caption: "Diff. Tot. Not. Zero", Order = 32)]
+    [HeaderAttributev2(caption: "Check Notifiche", Order = 35)]
     [Column("DiffTotaleNotificheZero")]
-    public int DiffTotaleNotificheZero { get; set; }
-
-    [HeaderAttributev2(caption: "Tot. Not.", Order = 33)]
-    [Column("TotaleNotificheCount")]
-    public int TotaleNotificheCount { get; set; }
-
-    [HeaderAttributev2(caption: "Tot. Contestate", Order = 34)]
-    [Column("TotaleNotificheContestateCount")]
-    public int TotaleNotificheContestateCount { get; set; }
-
-    [HeaderAttributev2(caption: "Tot. Rel", Order = 30)]
-    [Column("TotaleNotificheRelCount")]
-    public int TotaleNotificheRelCount { get; set; }
-
+    public int DiffTotaleNotificheZero { get; set; }  
 }

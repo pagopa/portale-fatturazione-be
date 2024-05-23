@@ -26,11 +26,11 @@ try
     var path = fileInfo.Directory!.FullName;
 
     // params
-    var anno = 2023;
-    var mese = 12;
+    var anno = 2024;
+    var mese = 1;
     var tipologiafattura = "PRIMO SALDO";
     var data = DateTime.UtcNow.ItalianTime().ToString("yyyy-MM-dd HH:mm:ss");
-    var ricalcola = 1;
+    var ricalcola = 0;
 
     Console.WriteLine("Ready to send");
 
@@ -88,26 +88,26 @@ try
     }
 
 
-    foreach (var ente in enti!)
-    {
-        var (msg, ver) = sender.SendEmail(ente.Pec!, subject, builder.CreateEmailHtml(ente)!);
-        if (!ver)
-            Console.WriteLine(msg);
+    //foreach (var ente in enti!)
+    //{
+    //    var (msg, ver) = sender.SendEmail(ente.Pec!, subject, builder.CreateEmailHtml(ente)!);
+    //    if (!ver)
+    //        Console.WriteLine(msg);
 
-        emailService.InsertTracciatoEmail(new RelEmailTracking()
-        {
-            Data = data,
-            IdContratto = ente.IdContratto,
-            Invio = Convert.ToByte(ver == true ? 1 : 0),
-            Anno = ente.Anno,
-            Mese = ente.Mese,
-            Messaggio = msg,
-            Pec = ente.Pec,
-            IdEnte = ente.IdEnte,
-            RagioneSociale = ente.RagioneSociale,
-            TipologiaFattura = ente.TipologiaFattura
-        });
-    }
+    //    emailService.InsertTracciatoEmail(new RelEmailTracking()
+    //    {
+    //        Data = data,
+    //        IdContratto = ente.IdContratto,
+    //        Invio = Convert.ToByte(ver == true ? 1 : 0),
+    //        Anno = ente.Anno,
+    //        Mese = ente.Mese,
+    //        Messaggio = msg,
+    //        Pec = ente.Pec,
+    //        IdEnte = ente.IdEnte,
+    //        RagioneSociale = ente.RagioneSociale,
+    //        TipologiaFattura = ente.TipologiaFattura
+    //    });
+    //}
 }
 catch (Exception ex)
 {

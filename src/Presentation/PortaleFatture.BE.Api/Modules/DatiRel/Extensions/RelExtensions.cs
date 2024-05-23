@@ -54,7 +54,7 @@ public static class RelExtensions
             Anno = req.Anno,
             Mese = req.Mese,
             IdContratto = req.IdContratto,
-            TipologiaFattura = req.TipologiaFattura == null? "PRIMO SALDO": req.TipologiaFattura,
+            TipologiaFattura =  req.TipologiaFattura,
             Page = page,
             Size = pageSize,
             EntiIds = req.IdEnti,
@@ -104,7 +104,8 @@ public static class RelExtensions
             TotaleNotificheAnalogiche = req.TotaleNotificheAnalogiche,
             TotaleNotificheDigitali = req.TotaleNotificheDigitali,
             RagioneSociale = req.RagioneSociale,
-            IdContratto = req.IdContratto
+            IdContratto = req.IdContratto,
+            TipologiaFattura = req.TipologiaFattura,
         };
     }
 }

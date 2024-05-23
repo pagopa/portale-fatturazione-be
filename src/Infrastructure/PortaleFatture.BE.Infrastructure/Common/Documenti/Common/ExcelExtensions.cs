@@ -294,7 +294,7 @@ public static class ExcelExtensions
                 var headerRow = new Row();
                 var columns = new Dictionary<string, XCellStyle>();
                 var clmns = new Columns();
-                int index = 0;
+                var index = 0;
                 foreach (DataColumn column in table.Columns)
                 {
                     columns.Add(column.ColumnName, (XCellStyle)column.ExtendedProperties["Style"]!);
@@ -310,7 +310,7 @@ public static class ExcelExtensions
                     };
                     clmns.Append(cln);
                     index++;
-                }
+                } 
 
                 var sheetdata = sheetPart.Worksheet.GetFirstChild<SheetData>();
                 sheetPart.Worksheet.InsertBefore(clmns, sheetdata);
@@ -361,7 +361,7 @@ public static class ExcelExtensions
         }
         memoryStream.Seek(0, SeekOrigin.Begin);
         return memoryStream;
-    }
+    } 
 
     public static MemoryStream ToExcelData(this DataSet ds)
     {
