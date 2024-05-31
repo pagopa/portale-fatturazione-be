@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Infrastructure\Documenti\enti.csv">
+    <None Update="Infrastructure\Documenti\Enti.csv">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="Infrastructure\Documenti\primo_saldo.html">

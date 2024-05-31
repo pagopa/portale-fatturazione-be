@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Security;
 using System.Security.Claims;
 using System.Text.Json;
+using Dapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics;
@@ -18,7 +19,9 @@ using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Common;
 using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Infrastructure;
+using PortaleFatture.BE.Infrastructure.Common;
 using PortaleFatture.BE.Infrastructure.Common.Documenti;
+using PortaleFatture.BE.Infrastructure.Common.Fatture.Dto;
 using PortaleFatture.BE.Infrastructure.Common.Identity;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.Persistence.Schemas;
@@ -49,6 +52,8 @@ public static class ConfigurationExtensions
                 configureApplicationInsightsLoggerOptions: (options) => { }
                 );
         }
+
+        SqlMapper.AddTypeHandler(typeof(FattureListaDto), new JsonTypeHandler());
 
         services.AddSingleton<IPortaleFattureOptions>(options);
 

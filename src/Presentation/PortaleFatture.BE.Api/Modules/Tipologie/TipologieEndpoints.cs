@@ -6,7 +6,7 @@ namespace PortaleFatture.BE.Api.Modules.Tipologie;
 public partial class TipologieModule : Module, IRegistrableModule
 { 
     public void RegisterEndpoints(IEndpointRouteBuilder endpointRouteBuilder)
-    {
+    { 
         endpointRouteBuilder
            .MapGet("api/tipologia/time", GetTimeAsync)
            .WithName("Permette di visualizzare il timing")

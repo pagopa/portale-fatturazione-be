@@ -9,6 +9,7 @@ public abstract class Module : IModule
     public static string DatiConfigurazioneModuloCommessaLabel = "Dati Configurazione Modulo Commessa";
     public static string DatiTipologiaLabel = "Dati Tipologie";
     public static string DatiNotificaLabel = "Dati Notifiche";
+    public static string DatiFattureLabel = "Dati Fatture";
     public static string DatiRelLabel = "Dati Rel";
     public static string DatiRelLabelPagoPA = "Dati Rel PagoPA";
     public static string DatiNotificaLabelPagoPA = "Dati Notifiche PagoPA";

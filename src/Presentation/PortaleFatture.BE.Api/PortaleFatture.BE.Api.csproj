@@ -40,6 +40,7 @@
 
     <ItemGroup>
       <Folder Include="Modules\DatiRel\Payload\Response\" />
+      <Folder Include="Modules\Fatture\Payload\Response\" />
     </ItemGroup>
 
 </Project>

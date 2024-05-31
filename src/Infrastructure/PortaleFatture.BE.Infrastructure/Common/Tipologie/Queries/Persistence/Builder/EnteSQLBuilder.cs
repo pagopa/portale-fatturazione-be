@@ -105,4 +105,18 @@ public static class EnteSQLBuilder
         var builderTemplate = builder.AddTemplate($"Select TOP {_top} /**select**/ from {tableName} /**innerjoin**/ /**where**/ ");
         return builderTemplate.RawSql;
     }
+
+    private static string _sqlAll = @$"Select e.internalistitutionid as IdEnte , 
+description as RagioneSociale, 
+c.onboardingtokenid as IdContratto,
+t.Descrizione as TipoContratto
+ from pfd.Enti e 
+ INNER JOIN pfd.Contratti c 
+ on e.internalistitutionid = c.internalistitutionid
+ INNER JOIN pfw.TipoContratto t
+ on t.IdTipoContratto = c.FkIdTipoContratto"; 
+    public static string SelectAll()
+    {
+        return _sqlAll;
+    }
 }

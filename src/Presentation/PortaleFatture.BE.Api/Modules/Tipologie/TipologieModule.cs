@@ -22,7 +22,7 @@ using static Microsoft.AspNetCore.Http.TypedResults;
 
 namespace PortaleFatture.BE.Api.Modules.Tipologie;
 public partial class TipologieModule
-{
+{ 
     [AllowAnonymous]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -33,11 +33,11 @@ public partial class TipologieModule
     HttpContext context,
     [FromServices] IStringLocalizer<Localization> localizer,
     [FromServices] IMediator handler)
-    { 
-        return Ok(await Task.Run(() =>DateTime.UtcNow.ItalianTime()));
+    {
+        return Ok(await Task.Run(() => DateTime.UtcNow.ItalianTime()));
     }
 
-    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}")] 
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}")]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -55,7 +55,7 @@ public partial class TipologieModule
         return Ok(scadenziario.Mapper());
     }
 
-    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)] 
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -74,7 +74,7 @@ public partial class TipologieModule
         return Ok(enti);
     }
 
-    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]  
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -132,7 +132,7 @@ public partial class TipologieModule
         return Ok(enti.Select(x => x.Map()));
     }
 
-    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}")] 
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}")]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -149,7 +149,7 @@ public partial class TipologieModule
         return Ok(tipiProfilo);
     }
 
-    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}")] 
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}")]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
