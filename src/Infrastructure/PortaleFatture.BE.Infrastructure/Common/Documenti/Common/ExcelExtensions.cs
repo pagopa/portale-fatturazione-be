@@ -245,6 +245,10 @@ public static class ExcelExtensions
         Sheet sheet = wbPart.Workbook.Descendants<Sheet>().FirstOrDefault(s => s.Name == sheetName)!;
         return sheet != null;
     }
+    public static bool IsValidDecimal(object input)
+    {
+        return decimal.TryParse(input.ToString(), out _);
+    }
 
     public static MemoryStream ToExcel(this DataSet ds)
     {
@@ -332,14 +336,22 @@ public static class ExcelExtensions
                 {
                     var newRow = new Row();
                     foreach (var col in columns)
-                    {
+                    { 
                         var (cellType, value, type) = TypeFinder.Get(dsrow[col.Key]!);
                         CellValue? cellvalue = null;
                         CellValues cellvalues = cellType;
+                        var styleIndex = Convert.ToUInt32(col.Value);
+
                         if (value == null)
                             cellvalue = new CellValue(string.Empty);
                         else if (type == typeof(long))
                             cellvalue = new CellValue(Convert.ToDecimal(value));
+                        else if (type == typeof(string) && IsValidDecimal(value))
+                        {
+                            cellvalues = CellValues.Number;
+                            styleIndex = 3;  
+                            cellvalue = new CellValue(Convert.ToDecimal(value));
+                        } 
                         else if (type == typeof(DateTime))
                         {
                             cellvalues = CellValues.String;
@@ -351,7 +363,7 @@ public static class ExcelExtensions
                         {
                             DataType = cellvalues,
                             CellValue = cellvalue,
-                            StyleIndex = Convert.ToUInt32(col.Value),
+                            StyleIndex = styleIndex,
                         };
                         newRow.AppendChild(cell);
                     }

@@ -46,13 +46,13 @@ public class FattureQueryRicercaPersistence(FattureQueryRicerca command) : Dappe
    
         foreach (var f in fatture)
         {
-            var ente = enti.Where(x => x.IdEnte == f.fattura!.istitutioID).FirstOrDefault();
+            var ente = enti.Where(x => x.IdEnte == f.fattura!.IstitutioID).FirstOrDefault();
             if (ente != null)
             {
                 computedFatture.Add(f);
-                f.fattura!.ragionesociale = ente.RagioneSociale;
-                f.fattura!.tipocontratto = ente.TipoContratto;
-                f.fattura!.idcontratto = ente.IdContratto;
+                f.fattura!.RagioneSociale = ente.RagioneSociale;
+                f.fattura!.TipoContratto = ente.TipoContratto;
+                f.fattura!.IdContratto = ente.IdContratto;
             } 
         }
         var fattData = new FattureListaDto();

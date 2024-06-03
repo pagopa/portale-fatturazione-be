@@ -1,4 +1,5 @@
 ﻿using System.Data;
+using DocumentFormat.OpenXml.Drawing;
 using Microsoft.IdentityModel.Tokens;
 using PortaleFatture.BE.Core.Entities.Notifiche;
 using PortaleFatture.BE.Infrastructure.Common.Notifiche.Dto;
@@ -73,6 +74,8 @@ public class NotificaQueryGetByListEntiPersistence(NotificaQueryGetByListaEnti c
             where += " and (t.FKIdFlagContestazione is NULL OR t.FKIdFlagContestazione IN @contestazione)";
         else if (!contestazione.IsNullOrEmpty())
             where += " and t.FKIdFlagContestazione IN @contestazione";
+        else if (contestazione.IsNullOrEmpty())
+            contestazione = null;
 
         var orderBy = _orderBy;
 

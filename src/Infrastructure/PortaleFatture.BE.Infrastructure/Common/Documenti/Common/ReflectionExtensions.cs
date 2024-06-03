@@ -1,5 +1,4 @@
 ﻿using System.Data;
-using DocumentFormat.OpenXml.Drawing.Diagrams;
 
 namespace PortaleFatture.BE.Infrastructure.Common.Documenti.Common;
 

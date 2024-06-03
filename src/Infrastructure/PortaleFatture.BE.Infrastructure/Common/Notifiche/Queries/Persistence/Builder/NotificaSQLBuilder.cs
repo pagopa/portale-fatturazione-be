@@ -3,7 +3,7 @@
 internal static class NotificaSQLBuilder
 {
     private static string _sqlCount = @"
-SELECT Count(internal_organization_id) 
+SELECT Count(n.internal_organization_id) 
 FROM pfd.[Notifiche] n
 INNER JOIN pfd.Enti e ON e.InternalIstitutionId = n.internal_organization_id
 INNER JOIN pfd.Contratti c ON e.InternalIstitutionId = c.internalistitutionid

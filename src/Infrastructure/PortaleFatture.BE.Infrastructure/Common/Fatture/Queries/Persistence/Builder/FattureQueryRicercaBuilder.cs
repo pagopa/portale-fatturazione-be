@@ -8,8 +8,8 @@ public static class FattureQueryRicercaBuilder
     private static string _sqlView = @"SELECT
      listaFatture =    (
 
-    SELECT
-	    CONVERT(DECIMAL(16,2), FT.TotaleFattura) AS 'fattura.totale',
+    SELECT 
+        CAST(FT.TotaleFattura AS DECIMAL(10, 2)) AS 'fattura.totale', 
         FT.Progressivo AS 'fattura.numero',
         CONVERT(VARCHAR, FT.DataFattura, 23) AS 'fattura.dataFattura',
         FT.FkProdotto AS 'fattura.prodotto',
@@ -45,8 +45,8 @@ public static class FattureQueryRicercaBuilder
                 ISNULL(FR.Testo,'') AS 'testo',
                 FR.CodiceMateriale AS 'codiceMateriale',
                 FR.Quantita AS 'quantita',
-                FR.PrezzoUnitario AS 'prezzoUnitario',
-                FR.Imponibile AS 'imponibile'
+                CAST(FR.PrezzoUnitario AS DECIMAL(10, 2))  AS 'prezzoUnitario',
+                CAST(FR.Imponibile AS DECIMAL(10, 2))  AS 'imponibile'
             FROM [pfd].[FattureRighe] FR
 			LEFT JOIN [pfw].[CodiciMateriali] CM
 			ON FR.CodiceMateriale = CM.CodiceMateriale

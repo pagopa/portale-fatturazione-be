@@ -27,7 +27,7 @@ try
 
     // params
     var anno = 2024;
-    var mese = 2;
+    var mese = 3;
     var tipologiafattura = "PRIMO SALDO";
     var data = DateTime.UtcNow.ItalianTime().ToString("yyyy-MM-dd HH:mm:ss");
     var ricalcola = 0;
