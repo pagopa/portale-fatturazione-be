@@ -16,8 +16,12 @@ public class RelRigheQueryGetByIdPersistence(RelRigheQueryGetById command) : Dap
     {
         var dati = RelTestataKey.Deserialize(_command.IdTestata!);
         var where = string.Empty;
-        var idEnte = _command.AuthenticationInfo.IdEnte;
-        where += " WHERE r.internal_organization_id=@IdEnte ";
+        var idEnte = _command.AuthenticationInfo.IdEnte; 
+
+        where += " WHERE r.year=@anno";
+        where += " AND r.month=@mese"; 
+
+        where += " AND r.internal_organization_id=@IdEnte ";
         var anno = dati.Anno;
         var mese = dati.Mese;
         var tipoFattura = dati.TipologiaFattura;
@@ -34,8 +38,6 @@ public class RelRigheQueryGetByIdPersistence(RelRigheQueryGetById command) : Dap
         else
             throw new DomainException("");
 
-        where += " AND r.year=@anno";
-        where += " AND r.month=@mese";
 
         if (!string.IsNullOrEmpty(idContratto))
             where += " AND contract_id=@IdContratto";

@@ -247,7 +247,15 @@ public static class ExcelExtensions
     }
     public static bool IsValidDecimal(object input)
     {
-        return decimal.TryParse(input.ToString(), out _);
+        // Try to parse as integer
+        if (int.TryParse(input.ToString(), out _))  
+            return false; 
+
+        // Try to parse as decimal
+        if (decimal.TryParse(input.ToString(), out _)) 
+            return true; 
+ 
+        return false;
     }
 
     public static MemoryStream ToExcel(this DataSet ds)
