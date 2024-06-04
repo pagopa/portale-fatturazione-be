@@ -135,7 +135,7 @@ public partial class NotificaModule
             byte[] data;
             using (var stream = new MemoryStream())
             using (TextWriter textWriter = new StreamWriter(stream))
-            using (var csv = new CsvWriter(textWriter, CultureInfo.InvariantCulture))
+            using (var csv = new CsvWriter(textWriter, new CultureInfo("it-IT")))
             {
                 csv.WriteRecords(notifiche.Notifiche!);
                 textWriter.Flush();
@@ -158,7 +158,7 @@ public partial class NotificaModule
             byte[] data;
             using (var stream = new MemoryStream())
             using (TextWriter textWriter = new StreamWriter(stream))
-            using (var csv = new CsvWriter(textWriter, CultureInfo.InvariantCulture))
+            using (var csv = new CsvWriter(textWriter, new CultureInfo("it-IT")))
             {
                 csv.WriteRecords(notifiche.Notifiche!);
                 textWriter.Flush();
@@ -258,7 +258,7 @@ public partial class NotificaModule
             byte[] data;
             using (var stream = new MemoryStream())
             using (TextWriter textWriter = new StreamWriter(stream))
-            using (var csv = new CsvWriter(textWriter, CultureInfo.InvariantCulture))
+            using (var csv = new CsvWriter(textWriter, new CultureInfo("it-IT")))
             {
                 csv.WriteRecords(notifiche.Notifiche!);
                 textWriter.Flush();
@@ -281,7 +281,7 @@ public partial class NotificaModule
             byte[] data;
             using (var stream = new MemoryStream())
             using (TextWriter textWriter = new StreamWriter(stream))
-            using (var csv = new CsvWriter(textWriter, CultureInfo.InvariantCulture))
+            using (var csv = new CsvWriter(textWriter, new CultureInfo("it-IT")))
             {
                 csv.WriteRecords(notifiche.Notifiche!);
                 textWriter.Flush();
@@ -339,7 +339,7 @@ public partial class NotificaModule
             byte[] data;
             using (var stream = new MemoryStream())
             using (TextWriter textWriter = new StreamWriter(stream))
-            using (var csv = new CsvWriter(textWriter, CultureInfo.InvariantCulture))
+            using (var csv = new CsvWriter(textWriter, new CultureInfo("it-IT")))
             {
                 csv.WriteRecords(notifiche.Notifiche!);
                 textWriter.Flush();
@@ -362,7 +362,7 @@ public partial class NotificaModule
             byte[] data;
             using (var stream = new MemoryStream())
             using (TextWriter textWriter = new StreamWriter(stream))
-            using (var csv = new CsvWriter(textWriter, CultureInfo.InvariantCulture))
+            using (var csv = new CsvWriter(textWriter, new CultureInfo("it-IT")))
             {
                 csv.WriteRecords(notifiche.Notifiche!);
                 textWriter.Flush();

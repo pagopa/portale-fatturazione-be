@@ -24,8 +24,9 @@ using PortaleFatture.BE.Infrastructure.Common.Documenti.Common;
 using PortaleFatture.BE.Infrastructure.Common.Identity;
 using PortaleFatture.BE.Infrastructure.Gateway.Storage;
 using PortaleFatture.BE.Infrastructure.Common.DatiRel.Extensions;
-using static Microsoft.AspNetCore.Http.TypedResults;
-using DocumentFormat.OpenXml.Office2010.Excel;
+using static Microsoft.AspNetCore.Http.TypedResults; 
+using CsvHelper;
+using System.Globalization;
 
 namespace PortaleFatture.BE.Api.Modules.Notifiche;
 
@@ -84,7 +85,7 @@ public partial class RelModule
     [FromServices] IStringLocalizer<Localization> localizer,
     [FromServices] IRelStorageService storageService)
     {
-        var authInfo = context.GetAuthInfo(); 
+        var authInfo = context.GetAuthInfo();
         var fatturabile = await handler.Send(request!.Map(authInfo));
         if (fatturabile == null)
             return NotFound();
@@ -104,14 +105,14 @@ public partial class RelModule
     [FromServices] IMediator handler,
     [FromServices] IStringLocalizer<Localization> localizer,
     [FromServices] IRelStorageService storageService)
-        {
-            var authInfo = context.GetAuthInfo();
-            authInfo.IdEnte = request!.IdEnte;
-            var upload = await handler.Send(request!.Map(authInfo));
-            if (upload == null)
-                return NotFound();
-            return Ok(upload);
-        }
+    {
+        var authInfo = context.GetAuthInfo();
+        authInfo.IdEnte = request!.IdEnte;
+        var upload = await handler.Send(request!.Map(authInfo));
+        if (upload == null)
+            return NotFound();
+        return Ok(upload);
+    }
 
 
 
@@ -304,7 +305,20 @@ public partial class RelModule
         var dataSet = rels.FillOneSheet();
         var content = dataSet.ToExcel();
         if (binary == null)
-            return Ok(new DocumentDto() { Documento = Convert.ToBase64String(content.ToArray()) });
+        {
+            mime = "text/csv";
+            filename = $"{Guid.NewGuid()}.csv";
+            byte[] data;
+            using (var stream = new MemoryStream())
+            using (TextWriter textWriter = new StreamWriter(stream))
+            using (var csv = new CsvWriter(textWriter, new CultureInfo("it-IT")))
+            {
+                csv.WriteRecords(rels!);
+                textWriter.Flush();
+                data = stream.ToArray();
+            }
+            return Results.File(data!, mime, filename);
+        }
         else
             return Results.File(content!, mime, filename);
     }
@@ -345,16 +359,16 @@ public partial class RelModule
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     private async Task<Results<Ok<IEnumerable<RelUpload>>, NotFound>> PostDownloadLogAsync(
     HttpContext context,
-    [FromBody] RelUploadByIdRequest? request, 
+    [FromBody] RelUploadByIdRequest? request,
     [FromServices] IMediator handler,
     [FromServices] IStringLocalizer<Localization> localizer,
     [FromServices] IRelStorageService storageService)
     {
-        var authInfo = context.GetAuthInfo();  
-       
+        var authInfo = context.GetAuthInfo();
+
         var upload = await handler.Send(request!.Map(authInfo));
         if (upload == null || upload.Count() == 0)
-            return NotFound(); 
+            return NotFound();
         return Ok(upload);
     }
 
@@ -423,7 +437,7 @@ public partial class RelModule
         var form = await context.Request.ReadFormAsync();
         var file = form.Files.Where(s => s.Name != "file" || s.Name != "pdf").FirstOrDefault();
         if (file == null)
-            throw new ValidationException("Estensione sbagliata. Passare un pdf valido.");
+            throw new PortaleFatture.BE.Core.Exceptions.ValidationException("Estensione sbagliata. Passare un pdf valido.");
         var authInfo = context.GetAuthInfo();
         var size = file!.Length;
         if (size > 0)
@@ -434,7 +448,7 @@ public partial class RelModule
             var fileName = file.FileName;
             var extension = Path.GetExtension(fileName);
             if (extension != ".pdf")
-                throw new ValidationException("Estensione sbagliata. Passare un pdf valido.");
+                throw new PortaleFatture.BE.Core.Exceptions.ValidationException("Estensione sbagliata. Passare un pdf valido.");
             bool? result = false;
             using var memoryStream = new MemoryStream();
             {
@@ -575,7 +589,20 @@ public partial class RelModule
         var dataSet = rels.FillOneSheet();
         var content = dataSet.ToExcel();
         if (binary == null)
-            return Ok(new DocumentDto() { Documento = Convert.ToBase64String(content.ToArray()) });
+        {
+            mime = "text/csv";
+            filename = $"{Guid.NewGuid()}.csv";
+            byte[] data;
+            using (var stream = new MemoryStream())
+            using (TextWriter textWriter = new StreamWriter(stream))
+            using (var csv = new CsvWriter(textWriter, new CultureInfo("it-IT")))
+            {
+                csv.WriteRecords(rels!);
+                textWriter.Flush();
+                data = stream.ToArray();
+            }
+            return Results.File(data!, mime, filename);
+        } 
         else
             return Results.File(content!, mime, filename);
     }
@@ -594,7 +621,7 @@ public partial class RelModule
     [FromServices] IStringLocalizer<Localization> localizer,
     [FromServices] IMediator handler)
     {
-       //return NotFound(); // da eliminare   IMPEDIMENT #328
+        //return NotFound(); // da eliminare   IMPEDIMENT #328
         var authInfo = context.GetAuthInfo();
         var rels = await handler.Send(request.Map(authInfo, null, null));
         if (rels == null || rels.Count == 0)
