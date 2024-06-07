@@ -148,37 +148,37 @@ public class SimpleNotificaDto
     public string? Onere { get; set; }
 
     [Column("NoteEnte")]
-    [HeaderAttribute(caption: "Note Ente", Order = 30)]
-    [HeaderAttributev2(caption: "Note Ente", Order = 30)]
+    [HeaderAttribute(caption: "Note Ente", Order = 18)]
+    [HeaderAttributev2(caption: "Note Ente", Order = 27)]
     public string? NoteEnte { get; set; }
 
     [Column("RispostaEnte")]
-    [HeaderAttribute(caption: "Risposta Ente", Order = 31)]
-    [HeaderAttributev2(caption: "Risposta Ente", Order = 31)]
+    [HeaderAttribute(caption: "Risposta Ente", Order = 19)]
+    [HeaderAttributev2(caption: "Risposta Ente", Order = 28)]
     public string? RispostaEnte { get; set; }
 
     [Column("NoteSend")]
-    [HeaderAttribute(caption: "Risposta Send", Order = 32)]
-    [HeaderAttributev2(caption: "Risposta Send", Order = 32)]
+    [HeaderAttribute(caption: "Risposta Send", Order = 20)]
+    [HeaderAttributev2(caption: "Risposta Send", Order = 29)]
     public string? NoteSend { get; set; }
 
     [Column("NoteRecapitista")]
-    [HeaderAttribute(caption: "Risposta Recapitista", Order = 33)]
-    [HeaderAttributev2(caption: "Risposta Recapitista", Order = 33)]
+    [HeaderAttribute(caption: "Risposta Recapitista", Order = 21)]
+    [HeaderAttributev2(caption: "Risposta Recapitista", Order = 30)]
     public string? NoteRecapitista { get; set; }
 
     [Column("NoteConsolidatore")]
-    [HeaderAttribute(caption: "Risposta Consolidatore", Order = 34)]
-    [HeaderAttributev2(caption: "Risposta Consolidatore", Order = 35)]
+    [HeaderAttribute(caption: "Risposta Consolidatore", Order = 22)]
+    [HeaderAttributev2(caption: "Risposta Consolidatore", Order = 31)]
     public string? NoteConsolidatore { get; set; }
 
     [Column("TipoContestazione")]
-    [HeaderAttribute(caption: "Tipo Contestazione", Order = 40)]
-    [HeaderAttributev2(caption: "Tipo Contestazione", Order = 40)]
+    [HeaderAttribute(caption: "Tipo Contestazione", Order = 23)]
+    [HeaderAttributev2(caption: "Tipo Contestazione", Order = 32)]
     public string? TipoContestazione { get; set; }
 
     [Column("TipologiaFattura")]
-    [HeaderAttribute(caption: "Tipologia Fattura", Order = 41)]
-    [HeaderAttributev2(caption: "Tipologia Fattura", Order = 41)]
+    [HeaderAttribute(caption: "Tipologia Fattura", Order = 24)]
+    [HeaderAttributev2(caption: "Tipologia Fattura", Order = 33)]
     public string? TipologiaFattura { get; set; }
 } 

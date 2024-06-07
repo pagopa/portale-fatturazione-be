@@ -1,4 +1,6 @@
 ﻿using System.Data;
+using System.Reflection;
+using System.Reflection.Metadata;
 
 namespace PortaleFatture.BE.Infrastructure.Common.Documenti.Common;
 
@@ -78,6 +80,52 @@ public static class ReflectionExtensions
         }
 
         return (table, headers);
+    }
+
+
+    public static dynamic CalculateHeaderAttribute<T>(this T model)
+    {
+        var selectedProperties = GetPropertiesWithAttribute<T, HeaderAttribute>();
+
+        dynamic dynamicObject = new System.Dynamic.ExpandoObject();
+        foreach (var property in selectedProperties)
+        {
+            ((IDictionary<string, object>)dynamicObject)[property.Name] = property.Name;
+        }
+        return dynamicObject;
+    }
+
+    public static IEnumerable<dynamic> ToHeaderAttributeCsv<T>(this IEnumerable<T> lista)
+    {
+        var selectedProperties = GetPropertiesWithAttribute<T, HeaderAttribute>();
+        return lista.Select(item =>
+        {
+            dynamic dynamicObject = new System.Dynamic.ExpandoObject();
+            foreach (var property in selectedProperties)
+            {
+                ((IDictionary<string, object>)dynamicObject)[property.Name] = property.GetValue(item)!;
+            }
+            return dynamicObject;
+        });
+    }
+
+    public static IEnumerable<dynamic> ToHeaderAttributev2Csv<T>(this IEnumerable<T> lista)
+    {
+        var selectedProperties = GetPropertiesWithAttribute<T, HeaderAttributev2>();
+        return lista.Select(item =>
+        {
+            dynamic dynamicObject = new System.Dynamic.ExpandoObject();
+            foreach (var property in selectedProperties)
+            {
+                ((IDictionary<string, object>)dynamicObject)[property.Name] = property.GetValue(item)!;
+            }
+            return dynamicObject;
+        });
+    }
+    static IEnumerable<PropertyInfo> GetPropertiesWithAttribute<T, TAttribute>() where TAttribute : Attribute
+    {
+        return typeof(T).GetProperties()
+                        .Where(prop => prop.GetCustomAttribute<TAttribute>() != null);
     }
 
     internal static (DataTable, List<HeaderAttributev2>) ToTablev2<T>()

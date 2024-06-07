@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using System.Net;
 using CsvHelper;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -7,6 +8,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Localization;
 using PortaleFatture.BE.Api.Infrastructure;
+using PortaleFatture.BE.Api.Infrastructure.Documenti;
 using PortaleFatture.BE.Api.Modules.DatiFatturazioni.Payload.Request;
 using PortaleFatture.BE.Api.Modules.Notifiche.Extensions;
 using PortaleFatture.BE.Api.Modules.Notifiche.Payload.Request;
@@ -18,7 +20,9 @@ using PortaleFatture.BE.Infrastructure.Common.Documenti.Common;
 using PortaleFatture.BE.Infrastructure.Common.Identity;
 using PortaleFatture.BE.Infrastructure.Common.Notifiche.Dto;
 using PortaleFatture.BE.Infrastructure.Common.Notifiche.Queries;
+using System.Net.Http.Headers;
 using static Microsoft.AspNetCore.Http.TypedResults;
+using System.IO;
 
 namespace PortaleFatture.BE.Api.Modules.Notifiche;
 
@@ -120,52 +124,16 @@ public partial class NotificaModule
     private async Task<IResult> GetPagoPANotificheRicercaDocumentAsync(
     HttpContext context,
     [FromBody] NotificheRicercaRequestPagoPA request,
-    [FromQuery] bool? binary,
     [FromServices] IStringLocalizer<Localization> localizer,
-    [FromServices] IMediator handler)
+    [FromServices] IMediator handler,
+    [FromQuery] bool? binary = null)
     {
         var authInfo = context.GetAuthInfo();
         var notifiche = await handler.Send(request.Map(authInfo, null, null));
         if (notifiche == null || notifiche.Count == 0)
             return NotFound();
 
-
-        if (binary == null)
-        {
-            byte[] data;
-            using (var stream = new MemoryStream())
-            using (TextWriter textWriter = new StreamWriter(stream))
-            using (var csv = new CsvWriter(textWriter, new CultureInfo("it-IT")))
-            {
-                csv.WriteRecords(notifiche.Notifiche!);
-                textWriter.Flush();
-                data = stream.ToArray();
-            }
-            return Ok(new DocumentDto() { Documento = Convert.ToBase64String(data) });
-        }
-        else if (binary == true)
-        {
-            var mime = "application/vnd.ms-excel";
-            var filename = $"{Guid.NewGuid()}.xlsx";
-            var dataSet = notifiche.Notifiche!.FillOneSheetv2();
-            var content = dataSet.ToExcel();
-            return Results.File(content!, mime, filename);
-        }
-        else
-        {
-            var mime = "text/csv";
-            var filename = $"{Guid.NewGuid()}.csv";
-            byte[] data;
-            using (var stream = new MemoryStream())
-            using (TextWriter textWriter = new StreamWriter(stream))
-            using (var csv = new CsvWriter(textWriter, new CultureInfo("it-IT")))
-            {
-                csv.WriteRecords(notifiche.Notifiche!);
-                textWriter.Flush();
-                data = stream.ToArray();
-            }
-            return Results.File(data!, mime, filename);
-        }
+        return await notifiche!.Notifiche!.ToCsv<SimpleNotificaDto, SimpleNotificaEnteDtoMap>();
     }
     #endregion
 
@@ -489,24 +457,16 @@ public partial class NotificaModule
     private async Task<IResult> GetNotificheRicercaDocumentAsync(
     HttpContext context,
     [FromBody] NotificheRicercaRequest request,
-    [FromQuery] bool? binary,
     [FromServices] IStringLocalizer<Localization> localizer,
-    [FromServices] IMediator handler)
+    [FromServices] IMediator handler,
+    [FromQuery] bool? binary = null)
     {
         var authInfo = context.GetAuthInfo();
         var notifiche = await handler.Send(request.Map(authInfo, null, null));
         if (notifiche == null || notifiche.Count == 0)
             return NotFound();
 
-        var mime = "application/vnd.ms-excel";
-        var filename = $"{Guid.NewGuid()}.xlsx";
-
-        var dataSet = notifiche.Notifiche!.FillOneSheet();
-        var content = dataSet.ToExcel();
-        if (binary == null)
-            return Ok(new DocumentDto() { Documento = Convert.ToBase64String(content.ToArray()) });
-        else
-            return Results.File(content!, mime, filename);
+        return await notifiche.Notifiche!.ToCsv<SimpleNotificaDto, SimpleNotificaEnteDtoMap>();
     }
 
     [Authorize(Roles = $"{Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]

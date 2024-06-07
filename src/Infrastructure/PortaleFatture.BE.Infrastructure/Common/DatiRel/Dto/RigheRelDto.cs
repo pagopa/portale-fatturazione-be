@@ -83,17 +83,17 @@ public class RigheRelDto
     public string? IUN { get; set; } 
 
     [Column("recapitista")]
-    [HeaderAttribute(caption: "recapitista", Order = 12)]
+    [HeaderAttribute(caption: "recapitista", Order = 11)]
     [HeaderAttributev2(caption: "recapitista", Order = 14)]
     public string? Recapitista { get; set; }
 
     [Column("notification_sent_at")]
-    [HeaderAttribute(caption: "notification_sent_at", Order = 13)]
+    [HeaderAttribute(caption: "notification_sent_at", Order = 12)]
     [HeaderAttributev2(caption: "notification_sent_at", Order = 15)]
     public string? DataInvio { get; set; }
 
     [Column("event_timestamp")]
-    [HeaderAttribute(caption: "event_timestamp", Order = 14)]
+    [HeaderAttribute(caption: "event_timestamp", Order = 13)]
     [HeaderAttributev2(caption: "event_timestamp", Order = 17)]
     public string? Data { get; set; }
 
@@ -110,17 +110,17 @@ public class RigheRelDto
     public string? RecipientId { get; set; }
 
     [Column("year")]
-    [HeaderAttribute(caption: "year", Order = 15)]
+    [HeaderAttribute(caption: "year", Order = 14)]
     [HeaderAttributev2(caption: "year", Order = 21)]
     public string? Anno { get; set; }
 
     [Column("month")]
-    [HeaderAttribute(caption: "month", Order = 16)]
+    [HeaderAttribute(caption: "month", Order = 15)]
     [HeaderAttributev2(caption: "month", Order = 22)]
     public string? Mese { get; set; }
 
     [Column("daily")]
-    [HeaderAttribute(caption: "daily", Order = 17)]
+    [HeaderAttribute(caption: "daily", Order = 16)]
     [HeaderAttributev2(caption: "daily", Order = 23)]
     public string? AnnoMeseGiorno { get; set; }
 

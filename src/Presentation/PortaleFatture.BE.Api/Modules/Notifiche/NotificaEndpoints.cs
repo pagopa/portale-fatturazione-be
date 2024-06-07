@@ -10,7 +10,7 @@ public partial class NotificaModule : Module, IRegistrableModule
         #region pagoPA
         endpointRouteBuilder
            .MapPost("api/notifiche/pagopa", GetPagoPANotificheByRicercaAsync)
-           .WithName("Permette di ottenere le notiifche dell'ente per ricerca PagoPA")
+           .WithName("Permette di ottenere le notifiche dell'ente per ricerca PagoPA")
            .SetOpenApi(Module.DatiNotificaLabelPagoPA)
            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
@@ -28,7 +28,7 @@ public partial class NotificaModule : Module, IRegistrableModule
 
         endpointRouteBuilder
         .MapPost("api/notifiche/pagopa/documento/ricerca", GetPagoPANotificheRicercaDocumentAsync)
-        .WithName("Permette di ottenere il file excel per le notifiche per ricerca via PagoPA.")
+        .WithName("Permette di ottenere il file excel/csv per le notifiche per ricerca via PagoPA.")
         .SetOpenApi(Module.DatiNotificaLabelPagoPA)
         .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
         #endregion

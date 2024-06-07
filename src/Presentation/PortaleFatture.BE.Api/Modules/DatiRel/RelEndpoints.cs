@@ -97,7 +97,7 @@ public partial class RelModule : Module, IRegistrableModule
 
         endpointRouteBuilder
         .MapGet("api/rel/pagopa/righe/{id}", GetPagoPARelRigheDocumentAsync)
-        .WithName("Permette di ottenere le righe delle  Rels dell'ente per ricerca pagoPA")
+        .WithName("Permette di ottenere le righe delle Rels dell'ente per ricerca pagoPA")
         .SetOpenApi(Module.DatiRelLabelPagoPA)
         .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 

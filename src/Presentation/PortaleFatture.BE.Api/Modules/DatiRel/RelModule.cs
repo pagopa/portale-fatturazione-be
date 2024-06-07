@@ -1,10 +1,12 @@
-﻿using MediatR;
+﻿using Azure;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Localization;
 using PortaleFatture.BE.Api.Infrastructure;
+using PortaleFatture.BE.Api.Infrastructure.Documenti;
 using PortaleFatture.BE.Api.Modules.DatiFatturazioni.Payload.Request;
 using PortaleFatture.BE.Api.Modules.DatiRel.Extensions;
 using PortaleFatture.BE.Api.Modules.Notifiche.Extensions;
@@ -19,14 +21,13 @@ using PortaleFatture.BE.Core.Resources;
 using PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.Commands;
 using PortaleFatture.BE.Infrastructure.Common.DatiRel.Commands;
 using PortaleFatture.BE.Infrastructure.Common.DatiRel.Dto;
+using PortaleFatture.BE.Infrastructure.Common.DatiRel.Extensions;
 using PortaleFatture.BE.Infrastructure.Common.Documenti;
 using PortaleFatture.BE.Infrastructure.Common.Documenti.Common;
 using PortaleFatture.BE.Infrastructure.Common.Identity;
+using PortaleFatture.BE.Infrastructure.Common.Notifiche.Dto;
 using PortaleFatture.BE.Infrastructure.Gateway.Storage;
-using PortaleFatture.BE.Infrastructure.Common.DatiRel.Extensions;
-using static Microsoft.AspNetCore.Http.TypedResults; 
-using CsvHelper;
-using System.Globalization;
+using static Microsoft.AspNetCore.Http.TypedResults;
 
 namespace PortaleFatture.BE.Api.Modules.Notifiche;
 
@@ -283,9 +284,9 @@ public partial class RelModule
     private async Task<IResult> GetPagoPARelRigheDocumentAsync(
     HttpContext context,
     [FromRoute] string? id,
-    [FromQuery] bool? binary,
     [FromServices] IStringLocalizer<Localization> localizer,
-    [FromServices] IMediator handler)
+    [FromServices] IMediator handler,
+    [FromQuery] bool? binary = null)
     {
         var authInfo = context.GetAuthInfo();
         var idEnte = id!.Split("_")[0];
@@ -299,28 +300,7 @@ public partial class RelModule
         if (rels == null || rels.Count() == 0)
             return NotFound();
 
-        var mime = "application/vnd.ms-excel";
-        var filename = $"{Guid.NewGuid()}.xlsx";
-
-        var dataSet = rels.FillOneSheet();
-        var content = dataSet.ToExcel();
-        if (binary == null)
-        {
-            mime = "text/csv";
-            filename = $"{Guid.NewGuid()}.csv";
-            byte[] data;
-            using (var stream = new MemoryStream())
-            using (TextWriter textWriter = new StreamWriter(stream))
-            using (var csv = new CsvWriter(textWriter, new CultureInfo("it-IT")))
-            {
-                csv.WriteRecords(rels!);
-                textWriter.Flush();
-                data = stream.ToArray();
-            }
-            return Results.File(data!, mime, filename);
-        }
-        else
-            return Results.File(content!, mime, filename);
+        return await rels.ToCsv<RigheRelDto, RigheRelDtoPagoPAMap>();
     }
 
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
@@ -569,9 +549,9 @@ public partial class RelModule
     private async Task<IResult> GetRelRigheDocumentAsync(
     HttpContext context,
     [FromRoute] string? id,
-    [FromQuery] bool? binary,
     [FromServices] IStringLocalizer<Localization> localizer,
-    [FromServices] IMediator handler)
+    [FromServices] IMediator handler,
+    [FromQuery] bool? binary = null)
     {
         var authInfo = context.GetAuthInfo();
         var request = new RelRigheByIdRequest()
@@ -580,31 +560,10 @@ public partial class RelModule
         };
 
         var rels = await handler.Send(request.Map(authInfo));
-        if (rels == null || rels.Count() == 0)
+        if (rels == null || !rels.Any())
             return NotFound();
 
-        var mime = "application/vnd.ms-excel";
-        var filename = $"{Guid.NewGuid()}.xlsx";
-
-        var dataSet = rels.FillOneSheet();
-        var content = dataSet.ToExcel();
-        if (binary == null)
-        {
-            mime = "text/csv";
-            filename = $"{Guid.NewGuid()}.csv";
-            byte[] data;
-            using (var stream = new MemoryStream())
-            using (TextWriter textWriter = new StreamWriter(stream))
-            using (var csv = new CsvWriter(textWriter, new CultureInfo("it-IT")))
-            {
-                csv.WriteRecords(rels!);
-                textWriter.Flush();
-                data = stream.ToArray();
-            }
-            return Results.File(data!, mime, filename);
-        } 
-        else
-            return Results.File(content!, mime, filename);
+        return await rels.ToCsv<RigheRelDto, RigheRelDtoEnteMap>();
     }
 
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
