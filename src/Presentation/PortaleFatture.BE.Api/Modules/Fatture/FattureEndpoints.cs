@@ -20,6 +20,12 @@ public partial class FattureModule : Module, IRegistrableModule
            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
         endpointRouteBuilder
+           .MapPost("api/fatture/report", PostFattureReportByRicercaAsync)
+           .WithName("Permette di ottenere le fatture excel-report per ricerca")
+           .SetOpenApi(Module.DatiFattureLabel)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
            .MapPost("api/fatture/tipologia", PostTipologiaFatture)
            .WithName("Permette di visualizzare la tipologia fatture")
            .SetOpenApi(Module.DatiFattureLabel)

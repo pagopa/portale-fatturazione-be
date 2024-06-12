@@ -93,7 +93,7 @@ public partial class NotificaModule : Module, IRegistrableModule
 
         endpointRouteBuilder
         .MapPost("api/notifiche/ente/documento/ricerca", GetNotificheRicercaDocumentAsync)
-        .WithName("Permette di ottenere il file excel per le notifiche per ricerca")
+        .WithName("Permette di ottenere il file excel/csv per le notifiche per ricerca")
         .SetOpenApi(Module.DatiNotificaLabel)
         .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 

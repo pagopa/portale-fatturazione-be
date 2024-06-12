@@ -98,6 +98,11 @@ public static class DocumentExtensions
         return new DateTime(1999, month, 1).ToString("MMMM", CultureInfo.CreateSpecificCulture("it-IT")).ToUpperInvariant();
     }
 
+    public static string GetMonth(this int? month)
+    {
+        return GetMonth(month!.Value);
+    }
+
     public static string GetEmail(this string? email)
     {
         return $"<a href = \"mailto:{email}\" >{email}</a>";

@@ -17,7 +17,16 @@ public static class FattureExtensions
             TipologiaFattura = req.TipologiaFattura
         };
     }
-
+    public static FattureRelExcelQuery Mapv2(this FatturaRicercaRequest req, AuthenticationInfo authInfo)
+    {
+        return new FattureRelExcelQuery(authInfo)
+        {
+            Anno = req.Anno,
+            Mese = req.Mese,
+            IdEnti = req.IdEnti,
+            TipologiaFattura = req.TipologiaFattura
+        };
+    }
     public static IEnumerable<FattureExcel> Map(this FattureListaDto model)
     {
         var result = new List<FattureExcel>();

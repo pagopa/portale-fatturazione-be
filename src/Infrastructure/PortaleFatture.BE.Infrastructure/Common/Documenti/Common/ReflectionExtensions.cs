@@ -1,6 +1,5 @@
 ﻿using System.Data;
 using System.Reflection;
-using System.Reflection.Metadata;
 
 namespace PortaleFatture.BE.Infrastructure.Common.Documenti.Common;
 
@@ -128,10 +127,10 @@ public static class ReflectionExtensions
                         .Where(prop => prop.GetCustomAttribute<TAttribute>() != null);
     }
 
-    internal static (DataTable, List<HeaderAttributev2>) ToTablev2<T>()
+    internal static (DataTable, List<HeaderAttributev2>) ToTablev2<T>(string? dataTableName = null)
     {
         var headers = GetHeadersv2<T>();
-        var table = new DataTable(nameof(T));
+        var table = new DataTable(dataTableName ?? nameof(T));
         foreach (var hh in headers)
         {
             var column = new DataColumn
@@ -183,7 +182,47 @@ public static class ReflectionExtensions
         return ds;
     }
 
-    public static DataSet FillOneSheetWithTotalsRel<T>(this IEnumerable<T> data)
+    public static DataTable FillTableWithTotalsRel<T>(this IEnumerable<T> data, int startToSum = 6, string? dataTableName = null)
+    { 
+        var (table, headers) = ToTablev2<T>(dataTableName);
+        DataRow row;
+        foreach (var d in data)
+        {
+            row = table.NewRow();
+            foreach (var hh in headers)
+                row[hh.Name!] = d!.GetType().GetProperty(hh.Name!)!.GetValue(d, null);
+
+            table.Rows.Add(row);
+        }
+
+        table.Rows.Add(table.NewRow());
+        var rowTot = table.NewRow();
+        for (var i = 0; i < table.Columns.Count; i++)
+        {
+            if (i == 0)
+            {
+                rowTot[i] = "Totali:";
+            }
+            else
+            {
+                if (i >= startToSum)
+                {
+                    if (table.Columns[i].DataType == typeof(decimal))
+                        rowTot[i] = table.AsEnumerable().Sum(x => x.Field<decimal?>(table.Columns[i].ColumnName));
+                    else if (table.Columns[i].DataType == typeof(int))
+                        rowTot[i] = table.AsEnumerable().Sum(x => x.Field<int?>(table.Columns[i].ColumnName));
+                    else
+                        rowTot[i] = DBNull.Value;
+                }
+                else
+                    rowTot[i] = DBNull.Value;
+            }
+        }
+        table.Rows.Add(rowTot); 
+        return table;
+    }
+
+    public static DataSet FillOneSheetWithTotalsRel<T>(this IEnumerable<T> data, int startToSum = 6)
     {
         var ds = new DataSet();
         var (table, headers) = ToTablev2<T>();
@@ -207,7 +246,7 @@ public static class ReflectionExtensions
             }
             else
             {
-                if (i >= 6)
+                if (i >= startToSum)
                 {
                     if (table.Columns[i].DataType == typeof(decimal))
                         rowTot[i] = table.AsEnumerable().Sum(x => x.Field<decimal?>(table.Columns[i].ColumnName));

@@ -281,7 +281,7 @@ public partial class RelModule
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    private async Task<IResult> GetPagoPARelRigheDocumentAsync(
+    private async Task GetPagoPARelRigheDocumentAsync(
     HttpContext context,
     [FromRoute] string? id,
     [FromServices] IStringLocalizer<Localization> localizer,
@@ -298,9 +298,18 @@ public partial class RelModule
 
         var rels = await handler.Send(request.Map(authInfo));
         if (rels == null || rels.Count() == 0)
-            return NotFound();
+        {
+            await Results.NotFound("Data not found").ExecuteAsync(context);
+            return;
+        }
 
-        return await rels.ToCsv<RigheRelDto, RigheRelDtoPagoPAMap>();
+        var data = await rels.ToArray<RigheRelDto, RigheRelDtoPagoPAMap>();
+        var filename = $"{Guid.NewGuid()}.csv";
+        var mimeCsv = "text/csv"; 
+        await Results.File(data!, mimeCsv, filename, enableRangeProcessing: true).ExecuteAsync(context);
+
+        data = null;
+        DocsExtensions.ForceGarbageCollection();
     }
 
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
@@ -546,7 +555,7 @@ public partial class RelModule
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    private async Task<IResult> GetRelRigheDocumentAsync(
+    private async Task GetRelRigheDocumentAsync(
     HttpContext context,
     [FromRoute] string? id,
     [FromServices] IStringLocalizer<Localization> localizer,
@@ -561,9 +570,18 @@ public partial class RelModule
 
         var rels = await handler.Send(request.Map(authInfo));
         if (rels == null || !rels.Any())
-            return NotFound();
+        {
+            await Results.NotFound("Data not found").ExecuteAsync(context);
+            return;
+        }
 
-        return await rels.ToCsv<RigheRelDto, RigheRelDtoEnteMap>();
+        var data = await rels.ToArray<RigheRelDto, RigheRelDtoEnteMap>();
+        var filename = $"{Guid.NewGuid()}.csv";
+        var mimeCsv = "text/csv";
+
+        await Results.File(data!, mimeCsv, filename, enableRangeProcessing: true).ExecuteAsync(context);
+        data = null;
+        DocsExtensions.ForceGarbageCollection();
     }
 
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]

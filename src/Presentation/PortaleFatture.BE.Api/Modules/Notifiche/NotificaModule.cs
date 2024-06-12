@@ -1,5 +1,4 @@
 ﻿using System.Globalization;
-using System.Net;
 using CsvHelper;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -20,9 +19,7 @@ using PortaleFatture.BE.Infrastructure.Common.Documenti.Common;
 using PortaleFatture.BE.Infrastructure.Common.Identity;
 using PortaleFatture.BE.Infrastructure.Common.Notifiche.Dto;
 using PortaleFatture.BE.Infrastructure.Common.Notifiche.Queries;
-using System.Net.Http.Headers;
 using static Microsoft.AspNetCore.Http.TypedResults;
-using System.IO;
 
 namespace PortaleFatture.BE.Api.Modules.Notifiche;
 
@@ -121,7 +118,7 @@ public partial class NotificaModule
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    private async Task<IResult> GetPagoPANotificheRicercaDocumentAsync(
+    private async Task GetPagoPANotificheRicercaDocumentAsync(
     HttpContext context,
     [FromBody] NotificheRicercaRequestPagoPA request,
     [FromServices] IStringLocalizer<Localization> localizer,
@@ -129,11 +126,21 @@ public partial class NotificaModule
     [FromQuery] bool? binary = null)
     {
         var authInfo = context.GetAuthInfo();
-        var notifiche = await handler.Send(request.Map(authInfo, null, null));
+        var notifiche = await handler.Send(request.Map(authInfo, null, null)); 
         if (notifiche == null || notifiche.Count == 0)
-            return NotFound();
+        {
+            await Results.NotFound("Data not found").ExecuteAsync(context);
+            return;
+        }
 
-        return await notifiche!.Notifiche!.ToCsv<SimpleNotificaDto, SimpleNotificaEnteDtoMap>();
+        var data = await notifiche.Notifiche!.ToArray<SimpleNotificaDto, SimpleNotificaPagoPADtoMap>();
+
+        var filename = $"{Guid.NewGuid()}.csv";
+        var mimeCsv = "text/csv";
+
+        await Results.File(data!, mimeCsv, filename, enableRangeProcessing: true).ExecuteAsync(context);
+        data = null;
+        DocsExtensions.ForceGarbageCollection();
     }
     #endregion
 
@@ -454,7 +461,7 @@ public partial class NotificaModule
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    private async Task<IResult> GetNotificheRicercaDocumentAsync(
+    private async Task GetNotificheRicercaDocumentAsync(
     HttpContext context,
     [FromBody] NotificheRicercaRequest request,
     [FromServices] IStringLocalizer<Localization> localizer,
@@ -464,9 +471,19 @@ public partial class NotificaModule
         var authInfo = context.GetAuthInfo();
         var notifiche = await handler.Send(request.Map(authInfo, null, null));
         if (notifiche == null || notifiche.Count == 0)
-            return NotFound();
+        { 
+            await Results.NotFound("File not found").ExecuteAsync(context);
+            return;
+        } 
 
-        return await notifiche.Notifiche!.ToCsv<SimpleNotificaDto, SimpleNotificaEnteDtoMap>();
+        var data = await notifiche.Notifiche!.ToArray<SimpleNotificaDto, SimpleNotificaEnteDtoMap>();
+ 
+        var filename = $"{Guid.NewGuid()}.csv";
+        var mimeCsv = "text/csv";
+
+        await Results.File(data!, mimeCsv, filename, enableRangeProcessing: true).ExecuteAsync(context);
+        data = null;
+        DocsExtensions.ForceGarbageCollection();
     }
 
     [Authorize(Roles = $"{Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
