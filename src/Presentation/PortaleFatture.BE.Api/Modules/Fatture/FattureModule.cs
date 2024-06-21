@@ -1,4 +1,5 @@
-﻿using System.Data;
+﻿using DocumentFormat.OpenXml.Bibliography;
+using System.Text.RegularExpressions;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
@@ -10,6 +11,7 @@ using PortaleFatture.BE.Api.Infrastructure.Documenti;
 using PortaleFatture.BE.Api.Modules.Fatture.Extensions;
 using PortaleFatture.BE.Api.Modules.Notifiche.Payload.Request;
 using PortaleFatture.BE.Core.Auth;
+using PortaleFatture.BE.Core.Entities.DatiRel;
 using PortaleFatture.BE.Core.Entities.Notifiche;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Core.Resources;
@@ -102,33 +104,55 @@ public partial class FattureModule
     HttpContext context,
     [FromBody] FatturaRicercaRequest request,
     [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] ILogger<FattureModule> logger,
     [FromServices] IMediator handler)
     {
         var authInfo = context.GetAuthInfo();
-        var fatture = await handler.Send(request.Mapv2(authInfo));
-        if (fatture == null || !fatture!.Any())
+        if (request.TipologiaFattura!.IsNullNotAny())
             return NotFound();
 
-        var mime = "application/vnd.ms-excel";
-        var filename = $"{Guid.NewGuid()}.xlsx";
+        Dictionary<string, byte[]>? reports = [];
 
-        DataSet? dataSet = new();
-        for (var i = 0; i < fatture.Count; i++)
+        foreach (var tipologia in request.TipologiaFattura!)
         {
-            if (i == 0)
-                dataSet.Tables.Add(fatture[i]!.FillTableWithTotalsRel(9, $"Regolari Esecuzioni {request.Mese.GetMonth()}"));
-            else if (i == 1)
-                dataSet.Tables.Add(fatture[i]!.FillTableWithTotalsRel(9, "Enti Fatturabili"));
-            else
-                dataSet.Tables.Add(fatture[i]!.FillTableWithTotalsRel(9, "Note di Credito senza REL"));
+            var month = request.Mese.GetMonth();
+            var year = request.Anno;
+            switch (tipologia)
+            {
+                case TipologiaFattura.PRIMOSALDO:
+                    var fatture = await handler.Send(request.Mapv2(authInfo, tipologia));
+                    if (fatture.IsNotEmpty())
+                        reports.Add($"Lista {tipologia} {year} {month}", fatture!.ReportFattureRel(month, tipologia));
+                    break;
+                case TipologiaFattura.SECONDOSALDO:
+                    fatture = await handler.Send(request.Mapv2(authInfo, tipologia));
+                    if (fatture.IsNotEmpty())
+                        reports.Add($"Lista {tipologia} {year} {month}", fatture!.ReportFattureRel(request.Mese.GetMonth(), tipologia));
+                    break;
+                case TipologiaFattura.ANTICIPO:
+                    var commesse = await handler.Send(request.Mapv3(authInfo));
+                    if (commesse.IsNotEmpty())
+                        reports.Add($"Lista ANTICIPO {year} {month}", commesse!.ReportFattureModuloCommessa(request.Mese.GetMonth()));
+                    break;
+                case TipologiaFattura.ACCONTO:
+                    var acconto = await handler.Send(request.Mapv4(authInfo));
+                    if (acconto.IsNotEmpty())
+                        reports.Add($"Lista ACCONTO {year} {month}", acconto!.ReportFattureAnticipo(request.Mese.GetMonth()));
+                    break;
+                default:
+                    break;
+            }
         }
 
-        var content = dataSet!.ToExcel();
-        var result = new DisposableStreamResult(content, mime)
+        if (reports.Count > 0)
         {
-            FileDownloadName = filename
-        };
-        return Results.Stream(result.FileStream, result.ContentType, result.FileDownloadName);
+            var fileBytes = reports.CreateZip(logger);
+            var mime = "application/zip";
+            var filename = $"{Guid.NewGuid()}.zip";
+            return Results.File(fileBytes!, mime, filename);
+        }
+
+        return NotFound();
     }
     #endregion
 }

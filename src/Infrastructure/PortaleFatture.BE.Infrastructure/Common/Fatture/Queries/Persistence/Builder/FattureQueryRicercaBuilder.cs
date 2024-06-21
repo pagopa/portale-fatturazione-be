@@ -1,6 +1,4 @@
-﻿using DocumentFormat.OpenXml.Wordprocessing;
-
-namespace PortaleFatture.BE.Infrastructure.Common.Fatture.Queries.Persistence.Builder;
+﻿namespace PortaleFatture.BE.Infrastructure.Common.Fatture.Queries.Persistence.Builder;
 
 public static class FattureQueryRicercaBuilder
 {

@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Text;
+﻿using System.Text;
 using PortaleFatture.BE.Api.Modules.DatiFatturazioni.Payload.Request;
 using PortaleFatture.BE.Api.Modules.DatiFatturazioni.Payload.Response;
 using PortaleFatture.BE.Core.Auth;

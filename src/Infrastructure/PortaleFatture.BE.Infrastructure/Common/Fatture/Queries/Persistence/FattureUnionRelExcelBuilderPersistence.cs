@@ -1,5 +1,6 @@
 ﻿using System.Data;
 using PortaleFatture.BE.Core.Entities.DatiRel;
+using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Infrastructure.Common.Fatture.Queries.Persistence.Builder;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 
@@ -8,7 +9,9 @@ namespace PortaleFatture.BE.Infrastructure.Common.Fatture.Queries.Persistence;
 public class FattureUnionRelExcelBuilderPersistence(FattureRelExcelQuery command) : DapperBase, IQuery<IEnumerable<FattureRelExcelDto>?>
 {
     private readonly FattureRelExcelQuery _command = command;
-    private static readonly string _sql = FattureRelExcelBuilder.SelectUnion();
+    private static readonly string _sqlNo = FattureRelExcelBuilder.SelectNoteSenzaRel();
+    private static readonly string _sqlRel = FattureRelExcelBuilder.SelectRel();
+    private static readonly string _order = FattureRelExcelBuilder.OrderByRel();
     public async Task<IEnumerable<FattureRelExcelDto>?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
     {
         var computedFatture = new Dictionary<string, FattureRelExcelDto>();
@@ -16,18 +19,25 @@ public class FattureUnionRelExcelBuilderPersistence(FattureRelExcelQuery command
         var anno = _command.Anno;
         var mese = _command.Mese;
         var tipoFattura = _command.TipologiaFattura;
+        var where = string.Empty;
 
-        var sqlRel = _sql; 
+        if (!_command.IdEnti!.IsNullNotAny())
+            where = " AND t.FKIdEnte in @IdEnti ";
+
+        var sql = _sqlRel + where + " UNION " + _sqlNo + where + _order;
+
+
         var query = new
         {
             Anno = anno,
             Mese = mese,
             TipologiaFattura = tipoFattura,
+            IdEnti = _command.IdEnti
         };
- 
+
         var values = await ((IDatabase)this).SelectAsync<FattureRelExcelDto>(
         connection!,
-        _sql,
+        sql,
         query,
         transaction);
 
@@ -54,9 +64,9 @@ public class FattureUnionRelExcelBuilderPersistence(FattureRelExcelQuery command
                     else
                         item.StornoAccontoDigitale += r.RigaImponibile;
                 }
-                item.TotaleFatturaImponibile = item.TotaleFatturaImponibile - r.RigaImponibile;
-            } 
+                //item.TotaleFatturaImponibile = item.TotaleFatturaImponibile - r.RigaImponibile;
+            }
         }
-        return computedFatture.Select(x => x.Value).OrderByDescending(x => x.RelTotale);
+        return computedFatture.Select(x => x.Value).OrderByDescending(x => x.TotaleFatturaImponibile);
     }
 }

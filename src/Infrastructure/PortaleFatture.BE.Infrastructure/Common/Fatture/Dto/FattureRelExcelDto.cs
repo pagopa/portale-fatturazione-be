@@ -60,39 +60,39 @@ public class FattureRelExcelDto
     //rel -init 
     [HeaderAttributev2(caption: "N. Notifiche Analogiche", Order = 7)]
     [Column("RelTotaleNotificheAnalogiche")]
-    public int? RelTotaleNotificheAnalogiche { get; set; }
+    public int RelTotaleNotificheAnalogiche { get; set; }
 
     [HeaderAttributev2(caption: "N. Notifiche Digitali", Order = 8)]
     [Column("RelTotaleNotificheDigitali")]
-    public int? RelTotaleNotificheDigitali { get; set; }
+    public int RelTotaleNotificheDigitali { get; set; }
 
     [HeaderAttributev2(caption: "N. Totale Notifiche", Order = 9)]
     [Column("RelTotaleNotifiche")]
-    public int? RelTotaleNotifiche { get; set; }
+    public int RelTotaleNotifiche { get; set; }
 
     [HeaderAttributev2(caption: "Totale Imponibile Analogico €", Order = 10)]
     [Column("RelTotaleAnalogico")]
-    public decimal? RelTotaleAnalogico { get; set; }
+    public decimal RelTotaleAnalogico { get; set; }
 
     [HeaderAttributev2(caption: "Totale Imponibile Digitale €", Order = 11)]
     [Column("RelTotaleDigitale")]
-    public decimal? RelTotaleDigitale { get; set; }
+    public decimal RelTotaleDigitale { get; set; }
 
     [HeaderAttributev2(caption: "Totale Imponibile €", Order = 12)]
     [Column("RelTotale")]
-    public decimal? RelTotale { get; set; }
+    public decimal RelTotale { get; set; }
 
     [HeaderAttributev2(caption: "Totale Ivato Analogico €", Order = 13)]
     [Column("RelTotaleIvatoAnalogico")]
-    public decimal? RelTotaleIvatoAnalogico { get; set; }
+    public decimal RelTotaleIvatoAnalogico { get; set; }
 
     [HeaderAttributev2(caption: "Totale Imponibile Digitale €", Order = 14)]
     [Column("RelTotaleIvatoDigitale")]
-    public decimal? RelTotaleIvatoDigitale { get; set; }
+    public decimal RelTotaleIvatoDigitale { get; set; }
 
     [HeaderAttributev2(caption: "Totale Ivato Digitale €", Order = 15)]
     [Column("RelTotaleIvato")]
-    public decimal? RelTotaleIvato { get; set; }
+    public decimal RelTotaleIvato { get; set; }
 
     [HeaderAttributev2(caption: "Firmata", Order = 16)]
     public string Firmata

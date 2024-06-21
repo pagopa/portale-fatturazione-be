@@ -1,5 +1,6 @@
 ﻿using System.Data;
 using PortaleFatture.BE.Core.Entities.DatiRel;
+using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Infrastructure.Common.Fatture.Queries.Persistence.Builder;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 
@@ -16,18 +17,23 @@ public class FattureNotaNoRelExcelBuilderPersistence(FattureRelExcelQuery comman
         var anno = _command.Anno;
         var mese = _command.Mese;
         var tipoFattura = _command.TipologiaFattura;
+        var where = string.Empty;
 
-        var sqlRel = _sql; 
+        if (!_command.IdEnti!.IsNullNotAny())
+            where = " AND t.FKIdEnte in @IdEnti ";
+
+        var sql = _sql + where;
         var query = new
         {
             Anno = anno,
             Mese = mese,
             TipologiaFattura = tipoFattura,
+            IdEnti = _command.IdEnti
         };
- 
+
         var values = await ((IDatabase)this).SelectAsync<FattureRelExcelDto>(
         connection!,
-        _sql,
+        sql,
         query,
         transaction);
 
@@ -55,8 +61,7 @@ public class FattureNotaNoRelExcelBuilderPersistence(FattureRelExcelQuery comman
                         item.StornoAccontoDigitale += r.RigaImponibile;
                 }
             }
-            item.TotaleFatturaImponibile = -item.TotaleFatturaImponibile;
         }
-        return computedFatture.Select(x => x.Value).OrderByDescending(x => x.RelTotale);
+        return computedFatture.Select(x => x.Value).OrderBy(x => x.TotaleFatturaImponibile);
     }
 }

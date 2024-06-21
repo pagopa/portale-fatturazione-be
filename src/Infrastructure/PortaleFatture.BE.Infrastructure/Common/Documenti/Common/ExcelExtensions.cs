@@ -247,14 +247,21 @@ public static class ExcelExtensions
     }
     public static bool IsValidDecimal(object input)
     {
-        // Try to parse as integer
-        if (int.TryParse(input.ToString(), out _))  
-            return false; 
+        // Ensure the input is a string
+        string inputStr = input.ToString();
+
+        // Check if the input can be parsed as an integer
+        if (long.TryParse(inputStr, out _))
+            return false;
+
+        // Check if the input starts with a leading zero (but not just "0")
+        if (inputStr.Length > 1 && inputStr.StartsWith("0"))
+            return false;
 
         // Try to parse as decimal
-        if (decimal.TryParse(input.ToString(), out _)) 
-            return true; 
- 
+        if (decimal.TryParse(inputStr, out _))
+            return true;
+
         return false;
     }
 
@@ -346,6 +353,7 @@ public static class ExcelExtensions
                     foreach (var col in columns)
                     { 
                         var (cellType, value, type) = TypeFinder.Get(dsrow[col.Key]!);
+ 
                         CellValue? cellvalue = null;
                         CellValues cellvalues = cellType;
                         var styleIndex = Convert.ToUInt32(col.Value);
@@ -378,6 +386,7 @@ public static class ExcelExtensions
                     sheetData.AppendChild(newRow);
                 }
             }
+            workbook.Close();
         }
         memoryStream.Seek(0, SeekOrigin.Begin);
         return memoryStream;

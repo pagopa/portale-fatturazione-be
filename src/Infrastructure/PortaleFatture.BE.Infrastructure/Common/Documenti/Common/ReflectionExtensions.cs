@@ -1,5 +1,6 @@
 ﻿using System.Data;
 using System.Reflection;
+using DocumentFormat.OpenXml.Presentation;
 
 namespace PortaleFatture.BE.Infrastructure.Common.Documenti.Common;
 
@@ -183,15 +184,14 @@ public static class ReflectionExtensions
     }
 
     public static DataTable FillTableWithTotalsRel<T>(this IEnumerable<T> data, int startToSum = 6, string? dataTableName = null)
-    { 
+    {
         var (table, headers) = ToTablev2<T>(dataTableName);
         DataRow row;
         foreach (var d in data)
         {
             row = table.NewRow();
             foreach (var hh in headers)
-                row[hh.Name!] = d!.GetType().GetProperty(hh.Name!)!.GetValue(d, null);
-
+                row[hh.Name!] = d!.GetType().GetProperty(hh.Name!)!?.GetValue(d, null) ?? DBNull.Value;
             table.Rows.Add(row);
         }
 
@@ -218,7 +218,7 @@ public static class ReflectionExtensions
                     rowTot[i] = DBNull.Value;
             }
         }
-        table.Rows.Add(rowTot); 
+        table.Rows.Add(rowTot);
         return table;
     }
 
