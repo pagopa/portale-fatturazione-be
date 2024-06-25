@@ -1,4 +1,5 @@
-﻿using PortaleFatture.BE.Core.Extensions;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Infrastructure.Common.Documenti.Common;
 
 namespace PortaleFatture.BE.Infrastructure.Common.Fatture.Dto;
@@ -54,14 +55,19 @@ public sealed class FattureAccontoExcelDto
     public decimal Totale { get; set; }
 
     //-fattura 
+    [HeaderAttributev2(caption: "IdFattura", Order = 14)]
+
+    [Column("IdFattura")]
+    public string? IdFattura { get; set; }
+
     public int IdTipoContratto { get; set; }
 
-    [HeaderAttributev2(caption: "Tipo Contratto", Order = 14)]
+    [HeaderAttributev2(caption: "Tipo Contratto", Order = 15)]
     public string? TipoContratto { get; set; }
 
     public decimal Percentuale { get; set; }
 
-    [HeaderAttributev2(caption: "Percentuale Acconto", Order = 15)]
+    [HeaderAttributev2(caption: "Percentuale Acconto", Order = 16)]
     public string? ValorePercentuale
     {
         get
@@ -70,22 +76,20 @@ public sealed class FattureAccontoExcelDto
         }
     }
 
-    [HeaderAttributev2(caption: "Totale Imponibile Acconto Analogico", Order = 16)]
+    [HeaderAttributev2(caption: "Totale Imponibile Acconto Analogico", Order = 17)]
     public decimal ImponibileAccontoAnalogico { get; set; }
 
-    [HeaderAttributev2(caption: "Totale Imponibile Acconto Digitale", Order = 17)]
+    [HeaderAttributev2(caption: "Totale Imponibile Acconto Digitale", Order = 18)]
     public decimal ImponibileAccontoDigitale { get; set; }
 
-    [HeaderAttributev2(caption: "Storno Anticipo digitale (50%)", Order = 18)]
+    [HeaderAttributev2(caption: "Storno Anticipo digitale (50%)", Order = 19)]
     public decimal ImponibileStornoAnalogico { get; set; }
 
 
-    [HeaderAttributev2(caption: "Storno Anticipo digitale (50%)", Order = 19)]
+    [HeaderAttributev2(caption: "Storno Anticipo digitale (50%)", Order = 20)]
     public decimal ImponibileStornoDigitale { get; set; }
 
 
-    [HeaderAttributev2(caption: "Totale imponibile Fattura di Acconto", Order = 20)]
-    public decimal TotaleFattura { get; set; }
-
-    public long? IdFattura { get; set; }
+    [HeaderAttributev2(caption: "Totale imponibile Fattura di Acconto", Order = 21)]
+    public decimal TotaleFattura { get; set; } 
 }
