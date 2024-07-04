@@ -10,6 +10,24 @@ namespace PortaleFatture.BE.Api.Modules.DatiRel.Extensions;
 
 public static class RelExtensions
 {
+    public static RelTipologieFattureByPagoPA Map(this RelTipologiaFatturaPagoPARequest req, AuthenticationInfo authInfo)
+    {
+        return new RelTipologieFattureByPagoPA(authInfo)
+        {
+            Anno = req.Anno,
+            Mese = req.Mese,
+        };
+    }
+
+    public static RelTipologieFattureByIdEnte Map(this RelTipologiaFatturaRequest req, AuthenticationInfo authInfo)
+    {
+        return new RelTipologieFattureByIdEnte(authInfo)
+        {
+            Anno = req.Anno,
+            Mese = req.Mese, 
+        };
+    }
+
     public static RelFatturabileByIdEnti Map(this RelFatturabileByIdEntiRequest req, AuthenticationInfo authInfo)
     {
         return new RelFatturabileByIdEnti(authInfo)

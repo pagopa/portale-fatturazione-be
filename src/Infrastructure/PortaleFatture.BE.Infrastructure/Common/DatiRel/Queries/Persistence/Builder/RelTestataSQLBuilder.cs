@@ -2,6 +2,41 @@
 
 internal static class RelTestataSQLBuilder
 {
+
+    private static string _sqlDistinctTipologiaFatturaPagoPA = @"
+SELECT TipologiaFattura
+FROM (
+    SELECT DISTINCT
+           TipologiaFattura,
+           year,
+           month, 
+           CASE 
+            WHEN TipologiaFattura LIKE '%PRIMO%' THEN 1
+            WHEN TipologiaFattura LIKE '%SECONDO%' THEN 2
+            WHEN TipologiaFattura LIKE '%SEMESTRALE%' THEN 3
+               ELSE 4  -- Default case
+           END as ordine
+      FROM pfd.RelTestata
+) AS t
+";
+    private static string _sqlDistinctTipologiaFattura = @"
+SELECT TipologiaFattura
+FROM (
+    SELECT DISTINCT
+           TipologiaFattura,
+           year,
+           month,
+           internal_organization_id,
+           CASE 
+            WHEN TipologiaFattura LIKE '%PRIMO%' THEN 1
+            WHEN TipologiaFattura LIKE '%SECONDO%' THEN 2
+            WHEN TipologiaFattura LIKE '%SEMESTRALE%' THEN 3
+               ELSE 4  -- Default case
+           END as ordine
+      FROM pfd.RelTestata
+) AS t
+";
+
     private static string _sqlCount = @"
 SELECT Count(internal_organization_id) 
   FROM [pfd].[RelTestata] t
@@ -98,5 +133,20 @@ SELECT [internal_organization_id] as IdEnte
     public static string SelectAllCount()
     {
         return _sqlCount;
+    }
+
+    public static string SelectDistinctTipologiaFattura()
+    {
+        return _sqlDistinctTipologiaFattura;
+    }
+
+    public static string SelectDistinctTipologiaFatturaPagoPA()
+    {
+        return _sqlDistinctTipologiaFatturaPagoPA;
+    }
+
+    public static string OrderByDistinctTipologiaFattura()
+    {
+        return " ORDER BY ordine ";
     }
 }

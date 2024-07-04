@@ -1,10 +1,10 @@
-﻿using Azure;
-using MediatR;
+﻿using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Logging;
 using PortaleFatture.BE.Api.Infrastructure;
 using PortaleFatture.BE.Api.Infrastructure.Documenti;
 using PortaleFatture.BE.Api.Modules.DatiFatturazioni.Payload.Request;
@@ -41,6 +41,27 @@ public partial class RelModule
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<string>>, NotFound>> PostTipologiaFatturaPagoPAAsync(
+    HttpContext context,
+    [FromBody] RelTipologiaFatturaPagoPARequest? request,
+    [FromServices] IMediator handler,
+    [FromServices] IStringLocalizer<Localization> localizer)
+        {
+            var authInfo = context.GetAuthInfo();
+
+            var tipologie = await handler.Send(request!.Map(authInfo));
+            if (tipologie == null || tipologie.Count() == 0)
+                return NotFound();
+            return Ok(tipologie);
+        }
+
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     private async Task<IResult> GetDownloadPagoPAAsync(
     HttpContext context,
     [FromRoute] string? id,
@@ -55,7 +76,10 @@ public partial class RelModule
             IdTestata = id
         };
         var rel = await handler.Send(request.Map(authInfo));
-        if (rel == null)
+        if (rel == null 
+            || rel.TipologiaFattura!.ToLower().Contains("var")
+            || rel.TipologiaFattura!.ToLower().Contains("semestrale")
+            || rel.TipologiaFattura!.ToLower().Contains("annuale"))
             return NotFound();
 
         if (tipo != null && tipo == "pdf")
@@ -305,7 +329,7 @@ public partial class RelModule
 
         var data = await rels.ToArray<RigheRelDto, RigheRelDtoPagoPAMap>();
         var filename = $"{Guid.NewGuid()}.csv";
-        var mimeCsv = "text/csv"; 
+        var mimeCsv = "text/csv";
         await Results.File(data!, mimeCsv, filename, enableRangeProcessing: true).ExecuteAsync(context);
 
         data = null;
@@ -340,6 +364,27 @@ public partial class RelModule
     #endregion
 
     #region selfcare
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<string>>, NotFound>> PostTipologiaFatturaAsync(
+    HttpContext context,
+    [FromBody] RelTipologiaFatturaRequest? request,
+    [FromServices] IMediator handler,
+    [FromServices] IStringLocalizer<Localization> localizer)
+    {
+        var authInfo = context.GetAuthInfo();
+
+        var tipologie = await handler.Send(request!.Map(authInfo));
+        if (tipologie == null || tipologie.Count() == 0)
+            return NotFound();
+        return Ok(tipologie);
+    }
+
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -354,6 +399,12 @@ public partial class RelModule
     [FromServices] IRelStorageService storageService)
     {
         var authInfo = context.GetAuthInfo();
+
+        if (request == null
+            || request.TipologiaFattura!.ToLower().Contains("var")
+            || request.TipologiaFattura!.ToLower().Contains("semestrale")
+            || request.TipologiaFattura!.ToLower().Contains("annuale"))
+            return NotFound();
 
         var upload = await handler.Send(request!.Map(authInfo));
         if (upload == null || upload.Count() == 0)
@@ -385,8 +436,12 @@ public partial class RelModule
             IdTestata = id
         };
         var rel = await handler.Send(request.Map(authInfo));
-        if (rel == null || rel.Caricata != 1)
-            return NotFound();
+        if (rel == null
+            || rel.Caricata != 1
+            || rel.TipologiaFattura!.ToLower().Contains("var")
+            || rel.TipologiaFattura!.ToLower().Contains("semestrale")
+            || rel.TipologiaFattura!.ToLower().Contains("annuale"))
+            return NotFound(); 
 
         var bytes = await storageService.ReadBytes(key);
         await handler.Send(new RelDownloadCommand(authInfo)
@@ -421,12 +476,13 @@ public partial class RelModule
     [FromRoute] string? id,
     [FromServices] IMediator handler,
     [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] ILogger<RelModule> logger,
     [FromServices] IRelStorageService storageService)
     {
         var form = await context.Request.ReadFormAsync();
         var file = form.Files.Where(s => s.Name != "file" || s.Name != "pdf").FirstOrDefault();
         if (file == null)
-            throw new PortaleFatture.BE.Core.Exceptions.ValidationException("Estensione sbagliata. Passare un pdf valido.");
+            throw new ValidationException("Estensione sbagliata. Passare un pdf valido.");
         var authInfo = context.GetAuthInfo();
         var size = file!.Length;
         if (size > 0)
@@ -434,10 +490,20 @@ public partial class RelModule
             var key = RelTestataKey.Deserialize(id!);
             if (authInfo.IdEnte != key.IdEnte)
                 throw new DomainException("Wrong Id Ente");
+
+            if (key.TipologiaFattura!.ToLower().Contains("semestrale")
+                || key.TipologiaFattura!.ToLower().Contains("annuale"))
+                return NotFound();
+
             var fileName = file.FileName;
             var extension = Path.GetExtension(fileName);
             if (extension != ".pdf")
-                throw new PortaleFatture.BE.Core.Exceptions.ValidationException("Estensione sbagliata. Passare un pdf valido.");
+            {
+                var msg = $"Estensione sbagliata. Passare un pdf valido per la firma. {fileName} per Ente: {authInfo.IdEnte}";
+                logger.LogError(msg);
+                throw new ValidationException("Estensione sbagliata. Passare un pdf valido.");
+            }
+
             bool? result = false;
             using var memoryStream = new MemoryStream();
             {
@@ -475,7 +541,7 @@ public partial class RelModule
     [FromServices] IStringLocalizer<Localization> localizer,
     [FromServices] IMediator handler)
     {
-        //return NotFound(); // da eliminare   IMPEDIMENT #328
+
         var authInfo = context.GetAuthInfo();
         var rel = await handler.Send(request.Map(authInfo, page, pageSize));
         if (rel == null || rel.Count == 0)
@@ -529,7 +595,10 @@ public partial class RelModule
             IdTestata = id
         };
         var rel = await handler.Send(request.Map(authInfo));
-        if (rel == null)
+        if (rel == null
+            || rel.TipologiaFattura!.ToLower().Contains("var")
+            || rel.TipologiaFattura!.ToLower().Contains("semestrale")
+            || rel.TipologiaFattura!.ToLower().Contains("annuale"))
             return NotFound();
 
         if (tipo != null && tipo == "pdf")
@@ -598,7 +667,6 @@ public partial class RelModule
     [FromServices] IStringLocalizer<Localization> localizer,
     [FromServices] IMediator handler)
     {
-        //return NotFound(); // da eliminare   IMPEDIMENT #328
         var authInfo = context.GetAuthInfo();
         var rels = await handler.Send(request.Map(authInfo, null, null));
         if (rels == null || rels.Count == 0)

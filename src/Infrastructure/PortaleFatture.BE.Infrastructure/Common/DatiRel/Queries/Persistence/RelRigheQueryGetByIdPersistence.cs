@@ -19,7 +19,12 @@ public class RelRigheQueryGetByIdPersistence(RelRigheQueryGetById command) : Dap
         var idEnte = _command.AuthenticationInfo.IdEnte; 
 
         where += " WHERE r.year=@anno";
+
+        if (!(dati.TipologiaFattura!.ToLower().Contains("var")
+            || dati.TipologiaFattura!.ToLower().Contains("semestrale")
+            || dati.TipologiaFattura!.ToLower().Contains("annuale")))        
         where += " AND r.month=@mese"; 
+
 
         where += " AND r.internal_organization_id=@IdEnte ";
         var anno = dati.Anno;

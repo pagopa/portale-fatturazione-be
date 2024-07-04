@@ -10,6 +10,12 @@ public partial class RelModule : Module, IRegistrableModule
         #region selfcare
 
         endpointRouteBuilder
+        .MapPost("api/rel/tipologiafattura", PostTipologiaFatturaAsync)
+        .WithName("Permette di verificare le tipologie fatture")
+        .SetOpenApi(Module.DatiRelLabel)
+        .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
         .MapPost("api/rel/firma/upload/{id}", PostUploadFirmaAsync)  
         .WithName("Permette caricare il file rel pdf firmato")
         .SetOpenApi(Module.DatiRelLabel)
@@ -59,6 +65,13 @@ public partial class RelModule : Module, IRegistrableModule
         #endregion
 
         #region pagoPA
+
+        endpointRouteBuilder
+        .MapPost("api/rel/pagopa/tipologiafattura", PostTipologiaFatturaPagoPAAsync)
+        .WithName("Permette di verificare le tipologie fatture pagoPA")
+        .SetOpenApi(Module.DatiRelLabel)
+        .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
         endpointRouteBuilder
         .MapGet("api/rel/pagopa/documento/download/{id}", GetDownloadPagoPAAsync)
         .WithName("Permette di scaricare il file rel lato pagoPA pdf firmato")
