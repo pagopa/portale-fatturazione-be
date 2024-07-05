@@ -31,7 +31,8 @@ public sealed class SimpleNotificaEnteDtoMap : ClassMap<SimpleNotificaDto>
         Map(m => m.NoteRecapitista).Name("Risposta Recapitista").Index(20);
         Map(m => m.NoteConsolidatore).Name("Risposta Consolidatore").Index(21);
         Map(m => m.TipoContestazione).Name("Tipo Contestazione").Index(22);
-        Map(m => m.TipologiaFattura).Name("Tipologia Fattura").Index(23);
+        Map(m => m.Contestazione).Name("Contestazione").Index(23);
+        Map(m => m.TipologiaFattura).Name("Tipologia Fattura").Index(24);
     } 
 }
 
@@ -39,7 +40,7 @@ public class SimpleNotificaPagoPADtoMap : ClassMap<SimpleNotificaDto>
 {
     public SimpleNotificaPagoPADtoMap()
     {
-        Map(m => m.IdContratto).Name("contract_id").Index(0);
+        Map(m => m.IdContratto).Name("contract_id").Index(0); 
         Map(m => m.CodiceFiscale).Name("tax_code").Index(1);
         Map(m => m.PIva).Name("vat_number").Index(2);
         Map(m => m.CAP).Name("zip_code").Index(3);
@@ -55,23 +56,26 @@ public class SimpleNotificaPagoPADtoMap : ClassMap<SimpleNotificaDto>
         Map(m => m.Recapitista).Name("recapitista").Index(13);
         Map(m => m.DataInvio).Name("notification_sent_at").Index(14);
         Map(m => m.IdEnte).Name("internal_organization_id").Index(15);
-        Map(m => m.Data).Name("event_timestamp").Index(16);
-        Map(m => m.RecipientIndex).Name("recipient_index").Index(17);
-        Map(m => m.RecipientType).Name("recipient_type").Index(18);
-        Map(m => m.RecipientId).Name("recipient_id").Index(19); 
-        Map(m => m.Anno).Name("year").Index(20);
-        Map(m => m.Mese).Name("month").Index(21);
-        Map(m => m.AnnoMeseGiorno).Name("daily").Index(22);
-        Map(m => m.ItemCode).Name("item_code").Index(23);
-        Map(m => m.NotificationRequestId).Name("notification_request_id").Index(24);
-        Map(m => m.RecipientTaxId).Name("recipient_tax_id").Index(25);
-        Map(m => m.NoteEnte).Name("Note Ente").Index(26);
-        Map(m => m.RispostaEnte).Name("Risposta Ente").Index(27);
-        Map(m => m.NoteSend).Name("Risposta Send").Index(28);
-        Map(m => m.NoteRecapitista).Name("Risposta Recapitista").Index(29);
-        Map(m => m.NoteConsolidatore).Name("Risposta Consolidatore").Index(30);
+        Map(m => m.RagioneSociale).Name("description").Index(16);
+        Map(m => m.Data).Name("event_timestamp").Index(17);
+        Map(m => m.RecipientIndex).Name("recipient_index").Index(18);
+        Map(m => m.RecipientType).Name("recipient_type").Index(19);
+        Map(m => m.RecipientId).Name("recipient_id").Index(20); 
+        Map(m => m.Anno).Name("year").Index(21);
+        Map(m => m.Mese).Name("month").Index(22);
+        Map(m => m.AnnoMeseGiorno).Name("daily").Index(23);
+        Map(m => m.ItemCode).Name("item_code").Index(24);
+        Map(m => m.NotificationRequestId).Name("notification_request_id").Index(25);
+        Map(m => m.RecipientTaxId).Name("recipient_tax_id").Index(26);
+        Map(m => m.NoteEnte).Name("Note Ente").Index(27);
+        Map(m => m.RispostaEnte).Name("Risposta Ente").Index(28);
+        Map(m => m.NoteSend).Name("Risposta Send").Index(29);
+        Map(m => m.NoteRecapitista).Name("Risposta Recapitista").Index(30);
+        Map(m => m.NoteConsolidatore).Name("Risposta Consolidatore").Index(31);
         Map(m => m.TipoContestazione).Name("Tipo Contestazione").Index(31);
-        Map(m => m.TipologiaFattura).Name("Tipologia Fattura").Index(33);
+        Map(m => m.Contestazione).Name("Contestazione").Index(33);
+        Map(m => m.StatoContestazione).Name("Stato contestazione").Index(34); 
+        Map(m => m.TipologiaFattura).Name("Tipologia Fattura").Index(35);
     }
 }
 
