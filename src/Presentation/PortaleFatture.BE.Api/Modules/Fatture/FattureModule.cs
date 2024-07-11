@@ -137,7 +137,7 @@ public partial class FattureModule
                 case TipologiaFattura.ACCONTO:
                     var acconto = await handler.Send(request.Mapv4(authInfo));
                     if (acconto.IsNotEmpty())
-                        reports.Add($"Lista ACCONTO {year} {month}", acconto!.ReportFattureAnticipo(request.Mese.GetMonth()));
+                        reports.Add($"Lista ACCONTO {year} {month}", acconto!.ReportFattureAcconto(request.Mese.GetMonth()));
                     break;
                 default:
                     break;

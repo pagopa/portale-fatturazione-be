@@ -82,11 +82,11 @@ public sealed class FattureAccontoExcelDto
     [HeaderAttributev2(caption: "Totale Imponibile Acconto Digitale", Order = 18)]
     public decimal ImponibileAccontoDigitale { get; set; }
 
-    [HeaderAttributev2(caption: "Storno Anticipo digitale (50%)", Order = 19)]
+    [HeaderAttributev2(caption: "Storno Anticipo Analogico (50%)", Order = 19)]
     public decimal ImponibileStornoAnalogico { get; set; }
 
 
-    [HeaderAttributev2(caption: "Storno Anticipo digitale (50%)", Order = 20)]
+    [HeaderAttributev2(caption: "Storno Anticipo Digitale (50%)", Order = 20)]
     public decimal ImponibileStornoDigitale { get; set; }
 
 

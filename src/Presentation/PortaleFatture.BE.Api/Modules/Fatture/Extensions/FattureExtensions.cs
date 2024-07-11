@@ -50,7 +50,7 @@ public static class FattureExtensions
         return memory.ToArray();
     }
 
-    public static byte[] ReportFattureAnticipo(this List<IEnumerable<FattureAccontoExcelDto>> commesse, string month)
+    public static byte[] ReportFattureAcconto(this List<IEnumerable<FattureAccontoExcelDto>> commesse, string month)
     {
         DataSet? dataSet = new();
         for (var i = 0; i < commesse.Count; i++) 
