@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="CreazioneContestazioneDuplicate" xml:space="preserve">
+    <value>Esiste già una contestazione relativa alla notifica: "{0}".</value>
+  </data>
+  <data name="CreazioneContestazioneError" xml:space="preserve">
+    <value>Si è verificato un errore nel salvare la contestazione relativa alla notifica: "{0}".</value>
+  </data>
+  <data name="DataScadenziarioValidationError" xml:space="preserve">
+    <value>L'operazione è consentita solo nei seguenti giorni corrente mese: "{0}".</value>
+  </data>
+  <data name="DatiConfigurazioneModuloCommessaError" xml:space="preserve">
+    <value>Si è verificato un errore nell'inserire i dati di configurazione commessa.</value>
+  </data>
+  <data name="DatiConfigurazioneModuloCommessaInvalid" xml:space="preserve">
+    <value>Si è verificato un errore nella validazione dati configuazione commessa.</value>
+  </data>
+  <data name="DatiConfigurazioneModuloCommessaMissing" xml:space="preserve">
+    <value>Non sono stati configurati i dati configurazione modulo commessa.</value>
+  </data>
+  <data name="DatiFatturazioneCigInvalid" xml:space="preserve">
+    <value>Il cig  è obbligatorio e deve avere al massimo 10 caratteri.</value>
+  </data>
+  <data name="DatiFatturazioneCodiceInvalid" xml:space="preserve">
+    <value>Il codice commessa è obbligatorio e deve avere al massimo 100 caratteri.</value>
+  </data>
+  <data name="DatiFatturazioneContattoEmailInvalid" xml:space="preserve">
+    <value>La email del contatto non è valida.</value>
+  </data>
+  <data name="DatiFatturazioneContattoInvalid" xml:space="preserve">
+    <value>Il numero di contatti deve essere almeno pari a uno e non superiore a tre.</value>
+  </data>
+  <data name="DatiFatturazioneCupInvalid" xml:space="preserve">
+    <value>Il cup è obbligatorio e deve avere al massimo 15 caratteri.</value>
+  </data>
+  <data name="DatiFatturazioneEmptyIdEnte" xml:space="preserve">
+    <value>L'id ente non può essere nullo.</value>
+  </data>
+  <data name="DatiFatturazioneEnteDuplicate" xml:space="preserve">
+    <value>Sono stati trovati dati fatturazione duplicati per lo stesso ente id: "{0}".</value>
+  </data>
+  <data name="DatiFatturazioneFlagOrdineContrattoInvalid" xml:space="preserve">
+    <value>Il flag ordine contratto è obbligatorio e deve avere al massimo 1 carattere.</value>
+  </data>
+  <data name="DatiFatturazioneGetError" xml:space="preserve">
+    <value>Non ho trovato i dati fatturazione con id: "{0}".</value>
+  </data>
+  <data name="DatiFatturazioneGetErrorIdEnte" xml:space="preserve">
+    <value>Non ho trovato i dati fatturazione con id ente: "{0}".</value>
+  </data>
+  <data name="DatiFatturazioneIdDocumentoInvalid" xml:space="preserve">
+    <value>L'id documento è obbligatorio e deve avere al massimo 20 caratteri.</value>
+  </data>
+  <data name="DatiFatturazioneIdEnteExistent" xml:space="preserve">
+    <value>Esiste già un dato fatturazione per l'ente specificato id: "{0}".</value>
+  </data>
+  <data name="DatiFatturazioneIdExistent" xml:space="preserve">
+    <value>Non esiste un dato fatturazione per il valore specificato id: "{0}".</value>
+  </data>
+  <data name="DatiFatturazioneIdTipoContrattoInvalid" xml:space="preserve">
+    <value>L'id tipo contratto deve essere un valore maggiore di zero.</value>
+  </data>
+  <data name="DatiFatturazioneInputEmpty" xml:space="preserve">
+    <value>Passare un valore per i dati fatturazione.</value>
+  </data>
+  <data name="DatiFatturazioneInputError" xml:space="preserve">
+    <value>Si è verificato un errore nell'inserire i dati commessa.</value>
+  </data>
+  <data name="DatiFatturazioneMapInvalid" xml:space="preserve">
+    <value>Il map deve avere al massimo 100 caratteri.</value>
+  </data>
+  <data name="DatiFatturazioneMismatchError" xml:space="preserve">
+    <value>I dati passati per l'inserimento dati fatturazione non corrispondono ai dati di autenticazione.</value>
+  </data>
+  <data name="DatiFatturazionePecInvalid" xml:space="preserve">
+    <value>La pec fornita non è una email valida.</value>
+  </data>
+  <data name="DatiFatturazioneProdottoInvalid" xml:space="preserve">
+    <value>Il prodotto è obbligatorio.</value>
+  </data>
+  <data name="DatiFatturazioneTipoCommessaInvalid" xml:space="preserve">
+    <value>Il tipo commessa è obbligatorio.</value>
+  </data>
+  <data name="DatiFatturazioneUpdateError" xml:space="preserve">
+    <value>Si è verificato un errore nel modificare i dati fatturazione.</value>
+  </data>
+  <data name="DatiModuloCommessaDataInvalid" xml:space="preserve">
+    <value>Il valore deve essere relativo all'anno e mese attuale.</value>
+  </data>
+  <data name="DatiModuloCommessaDoNotCreate" xml:space="preserve">
+    <value>L'utente PagoPA può solo modificare i dati modulo commessa, non crearli!</value>
+  </data>
+  <data name="DatiModuloCommessaEmptyContratto" xml:space="preserve">
+    <value>Non è stato trovato un contratto associato all'ente e al prodotto specificati.</value>
+  </data>
+  <data name="DatiModuloCommessaError" xml:space="preserve">
+    <value>Si è verificato un errore nell'inserire i dati commessa  con idEnte: "{0}".</value>
+  </data>
+  <data name="DatiModuloCommessaInvalid" xml:space="preserve">
+    <value>Il valore deve essere numerico non negativo.</value>
+  </data>
+  <data name="DatiModuloCommessaInvalidMapping" xml:space="preserve">
+    <value>Errore nell'inserimento valori modulo commessa.</value>
+  </data>
+  <data name="DatiModuloCommessaStatoInvalid" xml:space="preserve">
+    <value>Il valore dello stato non è valido.</value>
+  </data>
+  <data name="DatiProdottoMissing" xml:space="preserve">
+    <value>Non sono stati configurati i prodotti.</value>
+  </data>
+  <data name="DatiTipoCommessaMissing" xml:space="preserve">
+    <value>Non sono stati configurati e inseriti i dati tipo commessa.</value>
+  </data>
+  <data name="DatiTipoContrattoMissing" xml:space="preserve">
+    <value>Non sono stati configurati e inseriti i dati tipo contratto.</value>
+  </data>
+  <data name="DatiTipoProfiloMissing" xml:space="preserve">
+    <value>Non sono stati configurati e inseriti i dati tipo profilo (institutionType)</value>
+  </data>
+  <data name="DescrizioneConfiguazioneModuloCommessaInvalid" xml:space="preserve">
+    <value>Inserire un valore descrizione configurazione modulo commessa.</value>
+  </data>
+  <data name="EnteSelfCareError" xml:space="preserve">
+    <value>Non è stato trovato un profilo ente associato.</value>
+  </data>
+  <data name="FlagContestazioneMissing" xml:space="preserve">
+    <value>Non sono stati configurati i flag di contestazione</value>
+  </data>
+  <data name="MediaNotificaInternazionaleInvalid" xml:space="preserve">
+    <value>Inserire un valore per la media notifica internazionale.</value>
+  </data>
+  <data name="MediaNotificaNazionaleInvalid" xml:space="preserve">
+    <value>Inserire un valore per la media notifica nazionale.</value>
+  </data>
+  <data name="NotificaContestazioneValidationError" xml:space="preserve">
+    <value>Non è possibile contestare la notifica, controllare lo scadenziario, validità: {0}</value>
+  </data>
+  <data name="PercentoConfiguazioneModuloCommessaInvalid" xml:space="preserve">
+    <value>Il valore della percentuale deve essere un numero positivo.</value>
+  </data>
+  <data name="RicercaEnteEmpty" xml:space="preserve">
+    <value>Specificare un parametro di ricerca per l'ente.</value>
+  </data>
+  <data name="RoleError" xml:space="preserve">
+    <value>Ruolo non abilitato per l'esecuzione dell'operazione.</value>
+  </data>
+  <data name="TipoContestazioneMissing" xml:space="preserve">
+    <value>Non sono state configurate le tipologie di contestazione</value>
+  </data>
+  <data name="UtenteProfiloError" xml:space="preserve">
+    <value>Si è verificato un errore nel recuperare il profilo utente.</value>
+  </data>
+</root>
