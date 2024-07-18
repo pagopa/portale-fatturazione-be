@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dati Commessa</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif;
+            text-align: center;
+            color: #000000;
+        }
+
+            body a {
+                color: #0066CC;
+            }
+
+        .hidden {
+            border: hidden; 
+        }
+
+        .invoice-box { 
+            margin: auto;
+            padding: 30px; 
+            font-size: 12px;
+            line-height: 20px;
+            font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif;
+            color: #000000;
+        }
+
+            .invoice-box table {
+                width: 100%;
+                line-height: inherit;
+                text-align: left;
+                border-collapse: collapse;
+            }
+
+                .invoice-box table td {
+                    padding: 5px;
+                    vertical-align: top;
+                }
+
+                .invoice-box table tr.details td:nth-child(2) {
+                    text-align: right;
+                    width: 15%;
+                }
+
+                .invoice-box table tr.details td:nth-child(3) {
+                    text-align: right;
+                    width: 15%;
+                }
+
+                .invoice-box table tr.details td:nth-child(4) {
+                    text-align: right;
+                    width: 15%;
+                }
+
+                .invoice-box table tr.ending td:nth-child(2) {
+                    text-align: right;
+                    width: 15%;
+                }
+
+                .invoice-box table tr.ending td:nth-child(3) {
+                    text-align: right;
+                    width: 15%;
+                }
+
+                .invoice-box table tr.ending td:nth-child(4) {
+                    text-align: right;
+                    width: 15%;
+                }
+
+                .invoice-box table tr.top table td {
+                    padding-bottom: 20px;
+                }
+
+                    .invoice-box table tr.top table td.title {
+                        align-self: center;
+                        width: 100%;
+                        display: block;
+                        text-align: center;
+                    }
+
+                .invoice-box table tr.information table td {
+                    padding-bottom: 5px;
+                    text-align: left;
+                }
+
+                .invoice-box table tr.information table {
+                    margin-bottom: 30px;
+                }
+
+                    .invoice-box table tr.information table td.first {
+                        font-weight: bold;
+                    }
+
+                    .invoice-box table tr.information table td.info {
+                        padding: 5px;
+                        font-style: italic;
+                    }
+
+                .invoice-box table tr.information td:nth-child(2) {
+                    width: 50%;
+                }
+
+                .invoice-box table tr.heading td {
+                    background-color: #ECECEC;
+                    border: 1px solid #7C7C7B;
+                    font-weight: bold;
+                    text-align: center;
+                }
+
+                .invoice-box table tr.details td {
+                    border: 1px solid #7C7C7B;
+                    padding-bottom: 20px;
+                }
+
+                .invoice-box table tr.ending td {
+                    font-weight: bold;
+                    border: 1px solid #7C7C7B;
+                }
+
+                .invoice-box table tr.item td {
+                    border-bottom: 1px solid #ECECEC;
+                }
+
+                .invoice-box table tr.item.last td {
+                    border-bottom: none;
+                }
+
+                .invoice-box table tr.total td:nth-child(2) {
+                    border-top: 2px solid #ECECEC;
+                    font-weight: bold;
+                }
+
+        @media only screen and (max-width: 600px) {
+            .invoice-box table tr.top table td {
+                width: 100%;
+                display: block;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="invoice-box">
+        <table>
+            <tr class="top">
+                <td colspan="4">
+                    <table>
+                        <tr>
+                            <td class="title" colspan="2">
+                                <img src="data:image/png;base64,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" alt="PagoPA" style="max-height: 82px" />
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <tr class="information">
+                <td colspan="4">
+                    <table>
+                        <tr>
+                            <td class="first">
+                                Soggetto Aderente (Ragione Sociale)
+                            </td>
+                            <td>
+                                [Descrizione]
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="first">
+                                Sede Legale Completa
+                            </td>
+                            <td>
+                                [IndirizzoCompleto]
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="first">
+                                Partita Iva/ Codice Fiscale
+                            </td>
+                            <td>
+                                [PartitaIva]
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="first">
+                                Cup
+                            </td>
+                            <td>
+                                [Cup]
+                            </td>
+                        </tr> 
+                        <tr>
+                            <td class="first">
+                                Soggetto Split Payment
+                            </td>
+                            <td>
+                                [SplitPayment]
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="first">
+                                Prodotto
+                            </td>
+                            <td>
+                                [Prodotto]
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="first">
+                                PEC
+                            </td>
+                            <td>
+                                [Pec]
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="first">
+                                Email Riferimento Contatti
+                            </td>
+                            <td>
+                                [Contatti]
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="first">
+                                Data Di Compilazione
+                            </td>
+                            <td>
+                                [DataModifica]
+                            </td>
+                        </tr>
+                    </table>
+                    <table>
+                        <tr>
+                            <td class="info" colspan="2">
+                                Ai sensi dell'articolo 2 comma 5, l'Aderente predispone un ordinativo (Commessa) nei confronti della Società avente un arco temporale pari a un singolo mese solare:
+                            </td>
+                        </tr>
+                    </table>
+                    <table>
+                        <tr>
+                            <td class="first">
+                                Mese di riferimento dell'ordinativo
+                            </td>
+                            <td>
+                                [MeseAttivita]
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+            <tr class="heading">
+                <td></td>
+                <td>Territorio nazionale</td>
+                <td>Territorio diverso da nazionale</td>
+                <td>Totale notifiche da processare</td>
+            </tr>
+            [DatiModuloCommessa]
+            <tr class="hidden"></tr>
+            <tr class="heading" colspan="4">
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            [DatiModuloCommessaCosti]
+        </table>
+    </div>
+</body>
+</html>

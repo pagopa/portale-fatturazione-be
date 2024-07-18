@@ -1,0 +1,19 @@
+# Automatically sync main branch to GitHub on tag
+
+trigger:
+  tags:
+    include:
+      - '*'
+
+pool:
+  vmImage: 'ubuntu-22.04'
+
+steps:
+  - checkout: self
+    fetchTags: true
+
+  - script: |
+      git remote add github 'https://$(GITHUB_PAT)@$(GITHUB_URL)'
+      git push github main
+      git push github $(Build.SourceBranchName)
+    displayName: 'Sync repository with GitHub'
