@@ -55,7 +55,7 @@ public sealed class FattureCommessaExcelDto
     [HeaderAttributev2(caption: "Totale imponibile anticipo analogico", Order = 15)]
     public decimal ImponibileAnalogico { get; set; }
 
-    [HeaderAttributev2(caption: "Totale imponibile anticipo analogico", Order = 16)]
+    [HeaderAttributev2(caption: "Totale imponibile anticipo digitale", Order = 16)]
     public decimal ImponibileDigitale { get; set; }
 
     [HeaderAttributev2(caption: "Totale Fattura anticipo", Order = 17)]
