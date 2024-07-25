@@ -105,7 +105,7 @@ jobs:
         with:
           resource-group-name: ${{ env.RESOURCE_GROUP_NAME }}
           app-name: ${{ env.FUNCTION_APP_NAME }}
-          images: ${{ jobs.build-and-push-image.outputs.image-tags }}
+          images: ${{ needs.build-and-push-image.outputs.image-tags }}
 
       - name: Deploy to Staging Slot
         uses: azure/webapps-deploy@de617f46172a906d0617bb0e50d81e9e3aec24c8 # v3.0.1
@@ -113,7 +113,7 @@ jobs:
         with:
           resource-group-name: ${{ env.RESOURCE_GROUP_NAME }}
           app-name: ${{ env.FUNCTION_APP_NAME }}
-          images: ${{ jobs.build-and-push-image.outputs.image-tags }}
+          images: ${{ needs.build-and-push-image.outputs.image-tags }}
           slot-name: staging
 
       - name: Ping Staging Health
