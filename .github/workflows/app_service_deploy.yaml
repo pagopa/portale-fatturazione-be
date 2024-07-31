@@ -76,7 +76,8 @@ jobs:
     if: ${{ github.event.inputs.deploy == 'true' }}
     needs: [build-and-push-image]
     # self-hosted is needed to ping the health endpoint in subnet
-    runs-on: self-hosted
+    # TODO temporary disabled
+    # runs-on: self-hosted
     environment: prod
     permissions:
       id-token: write
