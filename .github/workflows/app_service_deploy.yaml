@@ -33,7 +33,6 @@ jobs:
       id-token: write
     outputs:
       image-tags: ${{ steps.meta.outputs.tags }}
-      image-version: ${{ steps.meta.ouputs.version }}
 
     steps:
 
@@ -108,8 +107,7 @@ jobs:
         with:
           resource-group-name: ${{ env.RESOURCE_GROUP_NAME }}
           app-name: ${{ env.APP_NAME }}
-          # images: ${{ needs.build-and-push-image.outputs.image-tags }}
-          images: ${{ env.IMAGE_NAME }}:${{ needs.build-and-push-image.outputs.image-version }}
+          images: ${{ needs.build-and-push-image.outputs.image-tags }}
 
       - name: Deploy to Staging Slot
         uses: azure/webapps-deploy@de617f46172a906d0617bb0e50d81e9e3aec24c8 # v3.0.1
@@ -117,8 +115,7 @@ jobs:
         with:
           resource-group-name: ${{ env.RESOURCE_GROUP_NAME }}
           app-name: ${{ env.APP_NAME }}
-          # images: ${{ needs.build-and-push-image.outputs.image-tags }}
-          images: ${{ env.IMAGE_NAME }}:${{ needs.build-and-push-image.outputs.image-version }}
+          images: ${{ needs.build-and-push-image.outputs.image-tags }}
           slot-name: staging
 
       - name: Ping Staging Health
