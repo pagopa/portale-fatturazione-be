@@ -106,7 +106,7 @@ jobs:
         if: ${{ github.event.inputs.use-staging-slot == 'false' }}
         with:
           resource-group-name: ${{ env.RESOURCE_GROUP_NAME }}
-          app-name: ${{ env.FUNCTION_APP_NAME }}
+          app-name: ${{ env.APP_NAME }}
           images: ${{ needs.build-and-push-image.outputs.image-tags }}
 
       - name: Deploy to Staging Slot
@@ -114,7 +114,7 @@ jobs:
         if: ${{ github.event.inputs.use-staging-slot == 'true' }}
         with:
           resource-group-name: ${{ env.RESOURCE_GROUP_NAME }}
-          app-name: ${{ env.FUNCTION_APP_NAME }}
+          app-name: ${{ env.APP_NAME }}
           images: ${{ needs.build-and-push-image.outputs.image-tags }}
           slot-name: staging
 
