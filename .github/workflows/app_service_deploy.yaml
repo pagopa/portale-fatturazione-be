@@ -78,6 +78,7 @@ jobs:
     # self-hosted is needed to ping the health endpoint in subnet
     # TODO temporary disabled
     # runs-on: self-hosted
+    runs-on: ubuntu-22.04
     environment: prod
     permissions:
       id-token: write
