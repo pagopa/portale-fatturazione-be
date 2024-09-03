@@ -3,8 +3,7 @@
 public static class TipoFatturaSQLBuilder
 {
     private static string _sqlByIdEnte = @"
-SELECT distinct
-      FROM [pfd].[FattureTestata]
+SELECT distinct 
       [FkTipologiaFattura],
 	    CASE
 			WHEN [FkTipologiaFattura] = 'ANTICIPO' THEN 1
@@ -14,6 +13,7 @@ SELECT distinct
 			WHEN [FkTipologiaFattura] = 'VAR. SEMESTRALE' THEN 5
 			ELSE 6
 		END AS ordine
+      FROM [pfd].[FattureTestata]
 WHERE [AnnoRiferimento]=@anno AND [MeseRiferimento]=@mese AND [FkIdEnte]=@idEnte AND [FatturaInviata] = 1
 ORDER BY [FkTipologiaFattura] 
 ";
