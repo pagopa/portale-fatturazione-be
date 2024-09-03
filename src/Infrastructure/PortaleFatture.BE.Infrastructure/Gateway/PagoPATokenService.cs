@@ -44,8 +44,8 @@ public class PagoPATokenService(
     private PagoPADto Mapper(ClaimsPrincipal? tk, Dictionary<string, string?> groups)
     {
         var claims = tk!.Claims;
-        var roles = claims.Where(x => x.Type == ClaimTypes.Role);
-        if (roles.IsNullOrEmpty())
+        var roles = claims.Where(x => x.Type == ClaimTypes.Role).ToList();
+        if (roles == null || roles.Count == 0)
             throw new RoleException("There are no roles in the claims.");
 
         var idGroups = roles.Select(x => x.Value);

@@ -114,9 +114,26 @@ t.Descrizione as TipoContratto
  INNER JOIN pfd.Contratti c 
  on e.internalistitutionid = c.internalistitutionid
  INNER JOIN pfw.TipoContratto t
- on t.IdTipoContratto = c.FkIdTipoContratto"; 
+ on t.IdTipoContratto = c.FkIdTipoContratto";
+
+    private static string _sqlByIdEnte = @$"Select e.internalistitutionid as IdEnte , 
+description as RagioneSociale, 
+c.onboardingtokenid as IdContratto,
+t.Descrizione as TipoContratto
+ from pfd.Enti e 
+ INNER JOIN pfd.Contratti c 
+ on e.internalistitutionid = c.internalistitutionid
+ INNER JOIN pfw.TipoContratto t
+ on t.IdTipoContratto = c.FkIdTipoContratto
+WHERE e.InternalIstitutionId = @IdEnte
+";
     public static string SelectAll()
     {
         return _sqlAll;
+    }
+
+    public static string SelectByIdEnte()
+    {
+        return _sqlByIdEnte;
     }
 }

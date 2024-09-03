@@ -10,5 +10,6 @@ public class FattureQueryRicerca(IAuthenticationInfo authenticationInfo) : IRequ
     public string[]? IdEnti { get; set; }
     public string[]? TipologiaFattura { get; set; }
     public int? Anno { get; set; }
-    public int? Mese { get; set; }
+    public int? Mese { get; set; } 
+    public bool Cancellata { get; set; }
 }

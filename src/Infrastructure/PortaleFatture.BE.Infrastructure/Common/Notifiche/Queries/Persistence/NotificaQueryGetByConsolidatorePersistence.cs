@@ -1,11 +1,10 @@
 ﻿using System.Data;
-using Microsoft.IdentityModel.Tokens;
 using PortaleFatture.BE.Core.Entities.Notifiche;
+using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Infrastructure.Common.Notifiche.Dto;
 using PortaleFatture.BE.Infrastructure.Common.Notifiche.Queries;
 using PortaleFatture.BE.Infrastructure.Common.Notifiche.Queries.Persistence.Builder;
-using PortaleFatture.BE.Infrastructure.Common.Persistence;
-
+using PortaleFatture.BE.Infrastructure.Common.Persistence; 
 namespace PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni.Queries.Persistence;
 public class NotificaQueryGetByConsolidatorePersistence(NotificaQueryGetByConsolidatore command) : DapperBase, IQuery<NotificaRECCONDto?>
 {
@@ -63,11 +62,11 @@ public class NotificaQueryGetByConsolidatorePersistence(NotificaQueryGetByConsol
                 where += " AND paper_product_type=@TipoNotifica";
         }
 
-        if (!contestazione.IsNullOrEmpty() && Enumerable.SequenceEqual(contestazione!, [1]))
+        if (!contestazione.IsNullNotAny() && Enumerable.SequenceEqual(contestazione!, [1]))
             where += " and t.FKIdFlagContestazione is NULL";
-        else if (!contestazione.IsNullOrEmpty() && contestazione!.Contains(1))
+        else if (!contestazione.IsNullNotAny() && contestazione!.Contains(1))
             where += " and (t.FKIdFlagContestazione is NULL OR t.FKIdFlagContestazione IN @contestazione)";
-        else if (!contestazione.IsNullOrEmpty())
+        else if (!contestazione.IsNullNotAny())
             where += " and t.FKIdFlagContestazione IN @contestazione";
 
         var orderBy = _orderBy;

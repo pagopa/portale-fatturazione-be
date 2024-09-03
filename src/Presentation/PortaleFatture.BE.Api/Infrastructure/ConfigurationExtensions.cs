@@ -22,6 +22,7 @@ using PortaleFatture.BE.Infrastructure;
 using PortaleFatture.BE.Infrastructure.Common;
 using PortaleFatture.BE.Infrastructure.Common.Documenti;
 using PortaleFatture.BE.Infrastructure.Common.Fatture.Dto;
+using PortaleFatture.BE.Infrastructure.Common.Fatture.Service;
 using PortaleFatture.BE.Infrastructure.Common.Identity;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.Persistence.Schemas;
@@ -146,7 +147,18 @@ public static class ConfigurationExtensions
         })
         .SetHandlerLifetime(TimeSpan.FromMinutes(5))
         .AddPolicyHandler(ExponentialRetryPolicy());
-        services.AddSingleton<IRelStorageService, RelStorageService>(); 
+
+        // storages
+        services.AddSingleton<IRelStorageService, RelStorageService>();
+        services.AddSingleton<IDocumentStorageService, DocumentStorageService>();
+
+        var serviceProvider = services.BuildServiceProvider();
+        var options = serviceProvider.GetRequiredService<IPortaleFattureOptions>();
+        services.AddSingleton<ISynapseService>(new SynapseService(
+            options.Synapse!.SynapseWorkspaceName,
+            options.Synapse.ResourceGroupName,
+            options.Synapse.SubscriptionId));
+        services.AddSingleton<IServiceWorkFlowFatture>(new ServiceWorkFlowFatture());
         return services;
     }
 

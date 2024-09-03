@@ -15,5 +15,7 @@ public interface IPortaleFattureOptions
     public string? AdminKey { get; set; } 
     public string? SelfCareAudience { get; set; } 
     public AzureAd? AzureAd { get; set; } 
-    public Storage? Storage { get; set; }
+    public Storage? Storage { get; set; } 
+    public StorageDocumenti? StorageDocumenti { get; set; } 
+    public Synapse? Synapse { get; set; }
 }

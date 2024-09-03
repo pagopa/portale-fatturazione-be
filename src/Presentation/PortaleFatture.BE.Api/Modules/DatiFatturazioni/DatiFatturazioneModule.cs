@@ -39,6 +39,7 @@ public partial class DatiFatturazioneModule
     [FromServices] IStringLocalizer<Localization> localizer,
     [FromServices] IMediator handler)
     {
+        //
         var authInfo = context.GetAuthInfo();
         var fatturazione = await handler.Send(new DatiFatturazioneQueryGetByDescrizione(authInfo, request.IdEnti!,
             request.Prodotto,

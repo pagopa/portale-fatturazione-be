@@ -14,6 +14,8 @@ public static class ModuleExtensions
         model.JWT ??= new();
         model.AzureAd ??= new();
         model.Storage ??= new();
+        model.StorageDocumenti??= new();
+        model.Synapse??= new();
 
         var selfCareUri = Environment.GetEnvironmentVariable("SELF_CARE_URI") ??
              throw new ConfigurationException("Please specify a SELF_CARE_URI!");
@@ -48,8 +50,14 @@ public static class ModuleExtensions
         var relFolder = Environment.GetEnvironmentVariable("STORAGE_REL_FOLDER") ??
              throw new ConfigurationException("Please specify a STORAGE_REL_FOLDER!");
 
+        var documentFolder = Environment.GetEnvironmentVariable("STORAGE_DOCUMENTI_FOLDER") ??
+             throw new ConfigurationException("Please specify a STORAGE_DOCUMENTI_FOLDER!");
+
         var storageConnectionString = Environment.GetEnvironmentVariable("STORAGE_CONNECTIONSTRING") ??
              throw new ConfigurationException("Please specify a STORAGE_CONNECTIONSTRING!");
+
+        var storageDocumentiConnectionString = Environment.GetEnvironmentVariable("STORAGE_DOCUMENTI_CONNECTIONSTRING") ??
+             throw new ConfigurationException("Please specify a STORAGE_DOCUMENTI_CONNECTIONSTRING!");
 
         var applicationInsights = Environment.GetEnvironmentVariable("APPLICATION_INSIGHTS") ??
              throw new ConfigurationException("Please specify an APPLICATION_INSIGHTS!"); 
@@ -64,6 +72,18 @@ public static class ModuleExtensions
 
         var azureADGroup = Environment.GetEnvironmentVariable("AZUREAD_ADGROUP") ??
              throw new ConfigurationException("Please specify an AZUREAD_ADGROUP!");
+
+        var synapseWorkspaceName = Environment.GetEnvironmentVariable("SYNAPSE_WORKSPACE_NAME") ??
+             throw new ConfigurationException("Please specify a SYNAPSE_WORKSPACE_NAME!");
+
+        var pipelineNameSAP = Environment.GetEnvironmentVariable("PIPELINE_NAME_SAP") ??
+             throw new ConfigurationException("Please specify PIPELINE_NAME_SAP!");
+
+        var subscriptionId = Environment.GetEnvironmentVariable("SYNAPSE_SUBSCRIPTIONID") ??
+            throw new ConfigurationException("Please specify a SYNAPSE_SUBSCRIPTIONID!");
+
+        var synapseResourceGroupName = Environment.GetEnvironmentVariable("SYNAPSE_RESOURCEGROUPNAME") ??
+             throw new ConfigurationException("Please specify SYNAPSE_RESOURCEGROUPNAME!");
 
         model.ConnectionString = connectionString; //await model.ConnectionString.Mapper();
         model.SelfCareUri = selfCareUri;
@@ -81,8 +101,13 @@ public static class ModuleExtensions
         model.AzureAd.AdGroup = azureADGroup;
         model.Storage.RelFolder = relFolder;
         model.Storage.ConnectionString = storageConnectionString;
-
+        model.StorageDocumenti!.ConnectionString = storageDocumentiConnectionString;
+        model.StorageDocumenti!.DocumentiFolder = documentFolder;
         model.ApplicationInsights = applicationInsights;
+        model.Synapse.SynapseWorkspaceName = synapseWorkspaceName;
+        model.Synapse.PipelineNameSAP = pipelineNameSAP;
+        model.Synapse.ResourceGroupName = synapseResourceGroupName;
+        model.Synapse.SubscriptionId = subscriptionId;
         return model;
     }
 

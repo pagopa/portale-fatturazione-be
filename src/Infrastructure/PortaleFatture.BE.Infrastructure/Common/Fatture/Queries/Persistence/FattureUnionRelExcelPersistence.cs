@@ -6,10 +6,12 @@ using PortaleFatture.BE.Infrastructure.Common.Persistence;
 
 namespace PortaleFatture.BE.Infrastructure.Common.Fatture.Queries.Persistence;
 
-public class FattureNotaNoRelExcelBuilderPersistence(FattureRelExcelQuery command) : DapperBase, IQuery<IEnumerable<FattureRelExcelDto>?>
+public class FattureUnionRelExcelPersistence(FattureRelExcelQuery command) : DapperBase, IQuery<IEnumerable<FattureRelExcelDto>?>
 {
     private readonly FattureRelExcelQuery _command = command;
-    private static readonly string _sql = FattureRelExcelBuilder.SelectNoteSenzaRel();
+    private static readonly string _sqlNo = FattureRelExcelBuilder.SelectNoteSenzaRel();
+    private static readonly string _sqlRel = FattureRelExcelBuilder.SelectRel();
+    private static readonly string _order = FattureRelExcelBuilder.OrderByRel();
     public async Task<IEnumerable<FattureRelExcelDto>?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
     {
         var computedFatture = new Dictionary<string, FattureRelExcelDto>();
@@ -22,7 +24,9 @@ public class FattureNotaNoRelExcelBuilderPersistence(FattureRelExcelQuery comman
         if (!_command.IdEnti!.IsNullNotAny())
             where = " AND t.FKIdEnte in @IdEnti ";
 
-        var sql = _sql + where;
+        var sql = _sqlRel + where + " UNION " + _sqlNo + where + _order;
+
+
         var query = new
         {
             Anno = anno,
@@ -60,8 +64,9 @@ public class FattureNotaNoRelExcelBuilderPersistence(FattureRelExcelQuery comman
                     else
                         item.StornoAccontoDigitale += r.RigaImponibile;
                 }
+                //item.TotaleFatturaImponibile = item.TotaleFatturaImponibile - r.RigaImponibile;
             }
         }
-        return computedFatture.Select(x => x.Value).OrderBy(x => x.TotaleFatturaImponibile);
+        return computedFatture.Select(x => x.Value).OrderByDescending(x => x.TotaleFatturaImponibile);
     }
 }

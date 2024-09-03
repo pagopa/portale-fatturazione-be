@@ -3,5 +3,6 @@
 public class TipologiaFattureRequest
 {
     public int Anno { get; set; }
-    public int Mese { get; set; } 
+    public int Mese { get; set; }
+    public bool? Cancellata { get; set; }
 }

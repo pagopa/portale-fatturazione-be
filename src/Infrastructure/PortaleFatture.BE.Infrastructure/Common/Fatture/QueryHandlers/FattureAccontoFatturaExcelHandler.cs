@@ -19,7 +19,7 @@ public class FattureAccontoFatturaExcelHandler(
     public async Task<List<IEnumerable<FattureAccontoExcelDto>>?> Handle(FattureAccontoExcelQuery request, CancellationToken ct)
     {
         using var rs = await _factory.Create(cancellationToken: ct);
-        var fTotale = await rs.Query(new FattureAccontoFatturaExcelBuilderPersistence(request), ct); 
+        var fTotale = await rs.Query(new FattureAccontoFatturaExcelPersistence(request), ct); 
         return new List<IEnumerable<FattureAccontoExcelDto>> { fTotale!};
     }
 }

@@ -22,10 +22,10 @@ public class FattureRelExcelHandler(
         var rel = await rs.Query(new FattureRelExcelBuilderPersistence(request), ct);
 
         using var rsn = await _factory.Create(cancellationToken: ct);
-        var relno = await rsn.Query(new FattureNotaNoRelExcelBuilderPersistence(request), ct);
+        var relno = await rsn.Query(new FattureNotaNoRelExcelPersistence(request), ct);
 
         using var rsu = await _factory.Create(cancellationToken: ct);
-        var relsu = await rsu.Query(new FattureUnionRelExcelBuilderPersistence(request), ct);
+        var relsu = await rsu.Query(new FattureUnionRelExcelPersistence(request), ct);
 
         return new List<IEnumerable<FattureRelExcelDto>> { rel!, relsu!, relno! };
     }

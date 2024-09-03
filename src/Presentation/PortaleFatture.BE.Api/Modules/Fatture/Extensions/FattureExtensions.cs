@@ -1,19 +1,105 @@
 ﻿using System.Data;
 using System.IO.Compression;
-using System.Text.RegularExpressions;
+using System.Reflection;
+using MediatR;
 using PortaleFatture.BE.Api.Infrastructure.Documenti;
 using PortaleFatture.BE.Api.Modules.Notifiche.Payload.Request;
 using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Entities.DatiRel;
+using PortaleFatture.BE.Core.Entities.Messaggi;
+using PortaleFatture.BE.Core.Extensions;
+using PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.Commands;
+using PortaleFatture.BE.Infrastructure.Common.Documenti;
 using PortaleFatture.BE.Infrastructure.Common.Documenti.Common;
+using PortaleFatture.BE.Infrastructure.Common.Fatture.Commands;
 using PortaleFatture.BE.Infrastructure.Common.Fatture.Dto;
 using PortaleFatture.BE.Infrastructure.Common.Fatture.Queries;
 using PortaleFatture.BE.Infrastructure.Gateway.Storage;
-
 namespace PortaleFatture.BE.Api.Modules.Fatture.Extensions;
 
 public static class FattureExtensions
 {
+    public static FattureQueryRicercaByEnte Map(this FatturaRicercaEnteRequest req, AuthenticationInfo authInfo)
+    {
+        return new FattureQueryRicercaByEnte(authInfo)
+        {
+            Anno = req.Anno,
+            Mese = req.Mese,
+            TipologiaFattura = req.TipologiaFattura
+        };
+    }
+
+    public static FatturaRiptristinoSAPCommand Map2(this FatturaPipelineSapRequest request, AuthenticationInfo authInfo, bool invio)
+    {
+        return new FatturaRiptristinoSAPCommand(authInfo, request.AnnoRiferimento!.Value, request.MeseRiferimento!.Value, request.TipologiaFattura)
+        {
+            Invio = invio
+        };
+    }
+
+    public static FatturaInvioSap Map(this FatturaPipelineSapRequest request)
+    {
+        return new FatturaInvioSap()
+        {
+            AnnoRiferimento = request.AnnoRiferimento!.Value,
+            MeseRiferimento = request.MeseRiferimento!.Value,
+            TipologiaFattura = request.TipologiaFattura
+        };
+    }
+
+    public static Dictionary<string, object> ToDictionary<T>(this T obj)
+    {
+        var dict = new Dictionary<string, object>();
+        if (obj == null)
+        {
+            throw new ArgumentNullException(nameof(obj));
+        } 
+        var type = typeof(T); 
+        foreach (var property in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        { 
+            var value = property.GetValue(obj);
+            dict[property.Name] = value!;
+        } 
+        return dict;
+    }
+
+    public static async Task<Dictionary<string, byte[]>> ReportFatture(this FatturaRicercaRequest request, IMediator handler, AuthenticationInfo authInfo)
+    {
+        Dictionary<string, byte[]> reports = [];
+
+        foreach (var tipologia in request.TipologiaFattura!)
+        {
+            var month = request.Mese.GetMonth();
+            var year = request.Anno;
+            switch (tipologia)
+            {
+                case TipologiaFattura.PRIMOSALDO:
+                    var fatture = await handler.Send(request.Mapv2(authInfo, tipologia));
+                    if (fatture.IsNotEmpty())
+                        reports.Add($"Lista {tipologia} {year} {month}", fatture!.ReportFattureRel(month, tipologia));
+                    break;
+                case TipologiaFattura.SECONDOSALDO:
+                    fatture = await handler.Send(request.Mapv2(authInfo, tipologia));
+                    if (fatture.IsNotEmpty())
+                        reports.Add($"Lista {tipologia} {year} {month}", fatture!.ReportFattureRel(request.Mese.GetMonth(), tipologia));
+                    break;
+                case TipologiaFattura.ANTICIPO:
+                    var commesse = await handler.Send(request.Mapv3(authInfo));
+                    if (commesse.IsNotEmpty())
+                        reports.Add($"Lista ANTICIPO {year} {month}", commesse!.ReportFattureModuloCommessa(request.Mese.GetMonth()));
+                    break;
+                case TipologiaFattura.ACCONTO:
+                    var acconto = await handler.Send(request.Mapv4(authInfo));
+                    if (acconto.IsNotEmpty())
+                        reports.Add($"Lista ACCONTO {year} {month}", acconto!.ReportFattureAcconto(request.Mese.GetMonth()));
+                    break;
+                default:
+                    break;
+            }
+        }
+        return reports;
+    }
+
     public static bool IsNotEmpty<T>(this List<IEnumerable<T>>? model)
     {
         if (model == null)
@@ -53,8 +139,8 @@ public static class FattureExtensions
     public static byte[] ReportFattureAcconto(this List<IEnumerable<FattureAccontoExcelDto>> commesse, string month)
     {
         DataSet? dataSet = new();
-        for (var i = 0; i < commesse.Count; i++) 
-                dataSet.Tables.Add(commesse[i]!.FillTableWithTotalsRel(0, $"Acconto {month}"));  
+        for (var i = 0; i < commesse.Count; i++)
+            dataSet.Tables.Add(commesse[i]!.FillTableWithTotalsRel(0, $"Acconto {month}"));
         using var memory = dataSet!.ToExcel();
         return memory.ToArray();
     }
@@ -76,6 +162,23 @@ public static class FattureExtensions
         return memory.ToArray();
     }
 
+    public static (MessaggioCreateCommand, DocumentiStorageKey) Mapv2(this FatturaRicercaRequest req, AuthenticationInfo authInfo, string? contentType, string? contentLanguage)
+    {
+        var command = new MessaggioCreateCommand(authInfo)
+        {
+            Anno = req.Anno,
+            Mese = req.Mese,
+            Json = req.Serialize(),
+            TipologiaDocumento = TipologiaDocumento.Fatturazione,
+            ContentType = contentType,
+            ContentLanguage = contentLanguage
+        };
+
+        var key = new DocumentiStorageKey(authInfo.IdEnte, authInfo.Id, TipologiaDocumento.Fatturazione, command.DataInserimento.Year, command.Hash);
+        command.LinkDocumento = key.ToString(); 
+        return (command, key);
+    }
+
     public static FattureQueryRicerca Map(this FatturaRicercaRequest req, AuthenticationInfo authInfo)
     {
         return new FattureQueryRicerca(authInfo)
@@ -83,7 +186,8 @@ public static class FattureExtensions
             Anno = req.Anno,
             Mese = req.Mese,
             IdEnti = req.IdEnti,
-            TipologiaFattura = req.TipologiaFattura
+            TipologiaFattura = req.TipologiaFattura,
+            Cancellata = req.Cancellata == null ? false : req.Cancellata.Value
         };
     }
     public static FattureRelExcelQuery Mapv2(this FatturaRicercaRequest req, AuthenticationInfo authInfo, string tipologiaFattura)
@@ -164,28 +268,38 @@ public static class FattureExtensions
     string extension = ".xlsx")
     {
         byte[] zipBytes;
-        using var memoryStreamZip = new MemoryStream();
+        using var memoryStreamZip = CreateMemoryStreamZip(reports, logger);
         {
-            using var zipArchive = new ZipArchive(memoryStreamZip, ZipArchiveMode.Create, false);
-            {
-                memoryStreamZip.Position = 0;
-                foreach (var report in reports!)
-                {
-                    try
-                    {
-                        zipArchive.AddFile(report.Key + extension, report.Value);
-                    }
-                    catch
-                    {
-                        var msg = $"Errore nel legger il file {report.Key}!";
-                        logger.LogError(msg);
-                    }
-                }
-                zipArchive.Dispose();
-            }
             zipBytes = memoryStreamZip.ToArray();
             memoryStreamZip.Flush();
         }
         return zipBytes;
+    }
+
+    public static MemoryStream CreateMemoryStreamZip(this
+        Dictionary<string, byte[]> reports,
+        ILogger<FattureModule> logger,
+        string extension = ".xlsx")
+    {
+
+        var memoryStreamZip = new MemoryStream();
+        using var zipArchive = new ZipArchive(memoryStreamZip, ZipArchiveMode.Create, leaveOpen: true);
+        {
+            memoryStreamZip.Position = 0;
+            foreach (var report in reports!)
+            {
+                try
+                {
+                    zipArchive.AddFile(report.Key + extension, report.Value);
+                }
+                catch
+                {
+                    var msg = $"Errore nel legger il file {report.Key}!";
+                    logger.LogError(msg);
+                }
+            }
+            zipArchive.Dispose();
+        }
+        return memoryStreamZip;
     }
 }

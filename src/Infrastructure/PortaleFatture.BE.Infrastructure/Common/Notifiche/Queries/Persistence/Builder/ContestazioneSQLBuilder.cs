@@ -1,6 +1,4 @@
 ﻿using Dapper;
-using PortaleFatture.BE.Core.Entities.DatiFatturazioni;
-using PortaleFatture.BE.Core.Entities.DatiModuloCommesse;
 using PortaleFatture.BE.Core.Entities.Notifiche;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 

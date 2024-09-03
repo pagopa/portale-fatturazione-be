@@ -12,6 +12,7 @@ public class FattureQueryRicercaPersistence(FattureQueryRicerca command) : Dappe
 {
     private readonly FattureQueryRicerca _command = command;
     private static readonly string _sqlSelectAll = FattureQueryRicercaBuilder.SelectView();
+    private static readonly string _sqlSelectAllCancellate = FattureQueryRicercaBuilder.SelectViewCancellate();
     private static readonly string _sqlSelectEnti = EnteSQLBuilder.SelectAll();
     public async Task<FattureListaDto?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
     {
@@ -21,7 +22,7 @@ public class FattureQueryRicercaPersistence(FattureQueryRicerca command) : Dappe
         var mese = _command.Mese;
         var tipoFattura = _command.TipologiaFattura;
 
-        var sqlFatture = _sqlSelectAll;
+        var sqlFatture = _command.Cancellata ? _sqlSelectAllCancellate : _sqlSelectAll;
         var sqlEnti = _sqlSelectEnti.Add(schema);
         var sql = String.Join(";", sqlEnti, sqlFatture);
 
@@ -41,9 +42,9 @@ public class FattureQueryRicercaPersistence(FattureQueryRicerca command) : Dappe
         var enti = await values.ReadAsync<EnteContrattoDto>();
         var fatture = await values.ReadFirstAsync<FattureListaDto>();
 
-        if (!_command.IdEnti!.IsNullNotAny()) 
-            enti = enti.Where(x => _command.IdEnti!.Contains(x.IdEnte)).ToList(); 
-   
+        if (!_command.IdEnti!.IsNullNotAny())
+            enti = enti.Where(x => _command.IdEnti!.Contains(x.IdEnte)).ToList();
+
         foreach (var f in fatture)
         {
             var ente = enti.Where(x => x.IdEnte == f.fattura!.IstitutioID).FirstOrDefault();
@@ -53,7 +54,7 @@ public class FattureQueryRicercaPersistence(FattureQueryRicerca command) : Dappe
                 f.fattura!.RagioneSociale = ente.RagioneSociale;
                 f.fattura!.TipoContratto = ente.TipoContratto;
                 f.fattura!.IdContratto = ente.IdContratto;
-            } 
+            }
         }
         var fattData = new FattureListaDto();
         fattData.AddRange(computedFatture);

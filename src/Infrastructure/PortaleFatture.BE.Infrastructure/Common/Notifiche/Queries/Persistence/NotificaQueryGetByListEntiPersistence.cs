@@ -1,7 +1,6 @@
-﻿using System.Data;
-using DocumentFormat.OpenXml.Drawing;
-using Microsoft.IdentityModel.Tokens;
+﻿using System.Data; 
 using PortaleFatture.BE.Core.Entities.Notifiche;
+using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Infrastructure.Common.Notifiche.Dto;
 using PortaleFatture.BE.Infrastructure.Common.Notifiche.Queries;
 using PortaleFatture.BE.Infrastructure.Common.Notifiche.Queries.Persistence.Builder;
@@ -30,13 +29,13 @@ public class NotificaQueryGetByListEntiPersistence(NotificaQueryGetByListaEnti c
         if (mese.HasValue)
             where += " AND n.month=@mese";
 
-        if (!_command.EntiIds.IsNullOrEmpty())
+        if (!_command.EntiIds.IsNullNotAny())
             where += $" AND internal_organization_id IN @entiIds"; 
 
-        if (!_command.Recapitisti.IsNullOrEmpty())
+        if (!_command.Recapitisti.IsNullNotAny())
             where += $" AND Recapitista IN @Recapitisti";
 
-        if (!_command.Consolidatori.IsNullOrEmpty())
+        if (!_command.Consolidatori.IsNullNotAny())
             where += $" AND Consolidatore IN @Consolidatori";
  
         var prodotto = string.IsNullOrEmpty(_command.Prodotto) ? null : _command.Prodotto;
@@ -68,13 +67,13 @@ public class NotificaQueryGetByListEntiPersistence(NotificaQueryGetByListaEnti c
                 where += " AND paper_product_type=@TipoNotifica";
         }
 
-        if (!contestazione.IsNullOrEmpty() && Enumerable.SequenceEqual(contestazione!, [1]))
+        if (!contestazione.IsNullNotAny() && Enumerable.SequenceEqual(contestazione!, [1]))
             where += " and t.FKIdFlagContestazione is NULL";
-        else if (!contestazione.IsNullOrEmpty() && contestazione!.Contains(1))
+        else if (!contestazione.IsNullNotAny() && contestazione!.Contains(1))
             where += " and (t.FKIdFlagContestazione is NULL OR t.FKIdFlagContestazione IN @contestazione)";
-        else if (!contestazione.IsNullOrEmpty())
+        else if (!contestazione.IsNullNotAny())
             where += " and t.FKIdFlagContestazione IN @contestazione";
-        else if (contestazione.IsNullOrEmpty())
+        else if (contestazione.IsNullNotAny())
             contestazione = null;
 
         var orderBy = _orderBy;
@@ -115,13 +114,13 @@ public class NotificaQueryGetByListEntiPersistence(NotificaQueryGetByListaEnti c
         if (!string.IsNullOrEmpty(iun))
             query.Iun = iun;
 
-        if (!_command.EntiIds.IsNullOrEmpty())
+        if (!_command.EntiIds.IsNullNotAny())
             query.EntiIds = _command.EntiIds;
 
-        if (!_command.Recapitisti.IsNullOrEmpty())
+        if (!_command.Recapitisti.IsNullNotAny())
             query.Recapitisti = _command.Recapitisti;
 
-        if (!_command.Consolidatori.IsNullOrEmpty())
+        if (!_command.Consolidatori.IsNullNotAny())
             query.Consolidatori = _command.Consolidatori;
 
         if (!string.IsNullOrEmpty(recipientId))

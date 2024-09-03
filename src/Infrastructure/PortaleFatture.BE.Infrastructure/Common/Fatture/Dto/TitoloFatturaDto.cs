@@ -8,7 +8,10 @@ public class TitoloFatturaDto
     public decimal Totale { get; set; }
 
     [JsonPropertyName("numero")]
-    public int Numero { get; set; }
+    public long Numero { get; set; } 
+
+    [JsonPropertyName("idfattura")]
+    public long IdFattura { get; set; }
 
     [JsonPropertyName("dataFattura")]   
     public string? DataFattura { get; set; }
@@ -51,6 +54,12 @@ public class TitoloFatturaDto
 
     [JsonPropertyName("split")]
     public bool? Split { get; set; }
+
+    [JsonPropertyName("inviata")] 
+    public int? Inviata { get; set; }
+
+    [JsonPropertyName("elaborazione")]
+    public int? Elaborazione { get; set; }
 
     [JsonPropertyName("sollecito")]
     public string? Sollecito { get; set; }

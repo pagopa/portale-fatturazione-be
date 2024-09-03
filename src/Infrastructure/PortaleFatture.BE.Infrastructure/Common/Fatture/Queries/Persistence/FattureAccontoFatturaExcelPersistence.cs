@@ -6,7 +6,7 @@ using PortaleFatture.BE.Infrastructure.Common.Persistence;
 
 namespace PortaleFatture.BE.Infrastructure.Common.Fatture.Queries.Persistence;
 
-public class FattureAccontoFatturaExcelBuilderPersistence(FattureAccontoExcelQuery command) : DapperBase, IQuery<IEnumerable<FattureAccontoExcelDto>?>
+public class FattureAccontoFatturaExcelPersistence(FattureAccontoExcelQuery command) : DapperBase, IQuery<IEnumerable<FattureAccontoExcelDto>?>
 {
     private readonly FattureAccontoExcelQuery _command = command;
     private static readonly string _sql = FattureAccontoFatturaExcelBuilder.SelectAcconto(); 

@@ -84,7 +84,7 @@ public class DatiModuloCommessaCreateCommandHandler(
             idTipoContratto = contratti.Where(x => x.Id! == idTipoContratto!).Select(x => x.Id).FirstOrDefault();
             if (idTipoContratto == null)
             {
-                var msg = "I could not find the specified coontract!";
+                var msg = "I could not find the specified contract!";
                 _logger.LogError(msg);
                 throw new ConfigurationException(msg);
             }

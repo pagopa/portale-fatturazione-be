@@ -1,7 +1,6 @@
 ﻿using MediatR;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
-using PortaleFatture.BE.Core.Entities.Tipologie;
 using PortaleFatture.BE.Core.Resources;
 using PortaleFatture.BE.Infrastructure.Common.Persistence.Schemas;
 using PortaleFatture.BE.Infrastructure.Common.Tipologie.Queries;
@@ -24,9 +23,9 @@ public class TipoFatturaQueryHandler : IRequestHandler<TipoFatturaQueryGetAll, I
         _logger = logger;
     }
 
-    public async Task<IEnumerable<string>> Handle(TipoFatturaQueryGetAll request, CancellationToken ct)
+    public async Task<IEnumerable<string>> Handle(TipoFatturaQueryGetAll command, CancellationToken ct)
     {
         using var uow = await _factory.Create(cancellationToken: ct);
-        return await uow.Query(new TipoFatturaQueryGetAllPersistence(request.Anno, request.Mese), ct);
+        return await uow.Query(new TipoFatturaQueryGetAllPersistence(command.Anno, command.Mese, command.Cancellata!.Value), ct);
     }
 }

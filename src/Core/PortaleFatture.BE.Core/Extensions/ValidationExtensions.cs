@@ -3,8 +3,8 @@
 namespace PortaleFatture.BE.Core.Extensions;
 
 public static class ValidationExtensions
-{
-    public static bool IsNullNotAny<T>(this IEnumerable<T> enumerable)
+{ 
+    public static bool IsNullNotAny<T>(this IEnumerable<T>? enumerable)
     {
         return enumerable == null || !enumerable.Any();
     }
