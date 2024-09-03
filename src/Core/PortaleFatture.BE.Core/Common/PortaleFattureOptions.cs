@@ -17,14 +17,31 @@ public sealed class PortaleFattureOptions : IPortaleFattureOptions
     public string? SelfCareAudience { get; set; } 
     public string? ApplicationInsights { get; set; } 
     public AzureAd? AzureAd { get; set; } 
-    public Storage? Storage { get; set; }  
+    public Storage? Storage { get; set; } 
+    public StorageDocumenti? StorageDocumenti { get; set; } 
+    public Synapse? Synapse { get; set; }
+}
+
+public class Synapse()
+{
+    public string? SynapseWorkspaceName{ get; set; }
+    public string? PipelineNameSAP { get; set; } 
+    public string? SubscriptionId { get; set; }
+    public string? ResourceGroupName { get; set; }
 }
 
 public class Storage()
-{
+{ 
     public string? RelFolder { get; set; }
     public string? ConnectionString { get; set; } 
 }
+
+public class StorageDocumenti()
+{
+    public string? DocumentiFolder { get; set; } 
+    public string? ConnectionString { get; set; }
+}
+
 
 public class AzureAd()
 {

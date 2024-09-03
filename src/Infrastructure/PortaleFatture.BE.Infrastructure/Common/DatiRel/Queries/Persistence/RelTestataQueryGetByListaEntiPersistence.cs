@@ -1,6 +1,6 @@
-﻿using System.Data;
-using Microsoft.IdentityModel.Tokens;
+﻿using System.Data; 
 using PortaleFatture.BE.Core.Entities.DatiRel;
+using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Infrastructure.Common.DatiRel.Dto;
 using PortaleFatture.BE.Infrastructure.Common.DatiRel.Queries.Persistence.Builder;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
@@ -20,7 +20,7 @@ public class RelTestataQueryGetByListaEntiPersistence(RelTestataQueryGetByListaE
         var where = string.Empty;
         var page = _command.Page;
         var size = _command.Size;
-        if (!_command.EntiIds.IsNullOrEmpty())
+        if (!_command.EntiIds.IsNullNotAny())
             where += $" WHERE internal_organization_id IN @entiIds";
         else
         {
@@ -75,7 +75,7 @@ public class RelTestataQueryGetByListaEntiPersistence(RelTestataQueryGetByListaE
         if (!string.IsNullOrEmpty(idContratto))
             query.IdContratto = idContratto;
 
-        if (!_command.EntiIds.IsNullOrEmpty())
+        if (!_command.EntiIds.IsNullNotAny())
             query.EntiIds = _command.EntiIds;
 
         var values = await ((IDatabase)this).QueryMultipleAsync<SimpleRelTestata>(

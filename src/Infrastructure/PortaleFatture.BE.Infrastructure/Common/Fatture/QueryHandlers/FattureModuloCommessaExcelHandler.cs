@@ -20,7 +20,7 @@ public class FattureModuloCommessaExcelHandler(
     public async Task<List<IEnumerable<FattureCommessaExcelDto>>?> Handle(FattureCommessaExcelQuery request, CancellationToken ct)
     {
         using var rs = await _factory.Create(cancellationToken: ct);
-        var fTotale = await rs.Query(new FattureModuloCommessaExcelBuilderPersistence(request), ct);
+        var fTotale = await rs.Query(new FattureModuloCommessaExcelPersistence(request), ct);
         var fStimate = from p in fTotale where (p.FkIdStato == FatturaExtensions.ChiusaStimato) select p;
         var fFattureStimate = from p in fTotale where (p.FkIdStato == FatturaExtensions.ChiusaStimato && p.IdFattura is not null) select p;
         var fFatture = from p in fTotale where (p.IdFattura is not null) select p;

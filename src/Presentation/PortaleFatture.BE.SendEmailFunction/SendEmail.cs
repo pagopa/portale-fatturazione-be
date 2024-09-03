@@ -75,35 +75,35 @@ public class SendEmail(ILoggerFactory loggerFactory)
             }
 
             var subject = $"Notifica Regolare Esecuzione {tipologiafattura} Mese di {mese.GetMonth()}";
-            var sender = new EmailSender(smtpSource: Configurazione.Smtp!,
-                smtpPort: Configurazione.SmtpPort!,
-                smtpUser: Configurazione.SmtpAuth!,
-                smtpPassword: Configurazione.SmtpPassword!,
-                from: Configurazione.From!);
-            var emailService = new EmailRelService(Configurazione.ConnectionString!);
-            var enti = emailService.GetSenderEmail(risposta.Anno, risposta.Mese, risposta.TipologiaFattura!);
-            foreach (var ente in enti!)
-                if (ente.Pec != null)
-                {
-                    var (msg, ver) = sender.SendEmail(ente.Pec, subject, builder.CreateEmailHtml(ente)!);
-                    if (!ver)
-                    {
-                        _logger.LogInformation(msg);
-                    }
-                    emailService.InsertTracciatoEmail(new RelEmailTracking()
-                    {
-                        Data = data,
-                        IdContratto = ente.IdContratto,
-                        Invio = Convert.ToByte(ver == true ? 1 : 0),
-                        Anno = ente.Anno,
-                        Mese = ente.Mese,
-                        Messaggio = msg,
-                        Pec = ente.Pec,
-                        IdEnte = ente.IdEnte,
-                        RagioneSociale = ente.RagioneSociale,
-                        TipologiaFattura = ente.TipologiaFattura
-                    });
-                }
+            //var sender = new EmailSender(smtpSource: Configurazione.Smtp!,
+            //    smtpPort: Configurazione.SmtpPort!,
+            //    smtpUser: Configurazione.SmtpAuth!,
+            //    smtpPassword: Configurazione.SmtpPassword!,
+            //    from: Configurazione.From!);
+            //var emailService = new EmailRelService(Configurazione.ConnectionString!);
+            //var enti = emailService.GetSenderEmail(risposta.Anno, risposta.Mese, risposta.TipologiaFattura!);
+            //foreach (var ente in enti!)
+            //    if (ente.Pec != null)
+            //    {
+            //        var (msg, ver) = sender.SendEmail(ente.Pec, subject, builder.CreateEmailHtml(ente)!);
+            //        if (!ver)
+            //        {
+            //            _logger.LogInformation(msg);
+            //        }
+            //        emailService.InsertTracciatoEmail(new RelEmailTracking()
+            //        {
+            //            Data = data,
+            //            IdContratto = ente.IdContratto,
+            //            Invio = Convert.ToByte(ver == true ? 1 : 0),
+            //            Anno = ente.Anno,
+            //            Mese = ente.Mese,
+            //            Messaggio = msg,
+            //            Pec = ente.Pec,
+            //            IdEnte = ente.IdEnte,
+            //            RagioneSociale = ente.RagioneSociale,
+            //            TipologiaFattura = ente.TipologiaFattura
+            //        });
+            //    }
         }
         catch (Exception ex)
         {

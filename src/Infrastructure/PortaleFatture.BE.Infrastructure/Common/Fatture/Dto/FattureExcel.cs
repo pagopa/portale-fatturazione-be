@@ -14,7 +14,7 @@ public class FattureExcel
     [HeaderAttributev2(caption: "Numero", Order = 7)]
 
     [JsonPropertyName("numero")]
-    public int? Numero { get; set; }
+    public long? Numero { get; set; }
 
     [HeaderAttributev2(caption: "DataFattura", Order = 8)]
 

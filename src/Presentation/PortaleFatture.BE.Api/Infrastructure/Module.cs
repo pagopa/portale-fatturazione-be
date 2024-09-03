@@ -9,7 +9,8 @@ public abstract class Module : IModule
     public static string DatiConfigurazioneModuloCommessaLabel = "Dati Configurazione Modulo Commessa";
     public static string DatiTipologiaLabel = "Dati Tipologie";
     public static string DatiNotificaLabel = "Dati Notifiche";
-    public static string DatiFattureLabel = "Dati Fatture";
+    public static string DatiFattureLabel = "Dati Fatture PagoPA";
+    public static string DatiFattureEnti = "Dati Fatture Enti";
     public static string DatiRelLabel = "Dati Rel";
     public static string DatiRelLabelPagoPA = "Dati Rel PagoPA";
     public static string DatiNotificaLabelPagoPA = "Dati Notifiche PagoPA";
@@ -17,6 +18,8 @@ public abstract class Module : IModule
     public static string DatiNotificaLabelConsolidatori = "Dati Notifiche Consolidatori";
     public static string DatiAuthLabel = "Autenticazione";
     public static string DatiAsseverazioneLabelPagoPA = "Dati Asseverazione PagoPA";
+    public static string DatiMessaggiPagoPA = "Dati Messaggi PagoPA";
+    public static string DatiAccertamentiPagoPA = "Accertamenti PagoPA";
 
     public const string CORSLabel = "portalefatture";
     public const string GatewayLabel = "gateway";

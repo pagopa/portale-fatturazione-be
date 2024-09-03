@@ -1,6 +1,4 @@
-﻿using DocumentFormat.OpenXml.Bibliography;
-using System.Text.RegularExpressions;
-using MediatR;
+﻿using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -11,15 +9,20 @@ using PortaleFatture.BE.Api.Infrastructure.Documenti;
 using PortaleFatture.BE.Api.Modules.Fatture.Extensions;
 using PortaleFatture.BE.Api.Modules.Notifiche.Payload.Request;
 using PortaleFatture.BE.Core.Auth;
-using PortaleFatture.BE.Core.Entities.DatiRel;
+using PortaleFatture.BE.Core.Common;
 using PortaleFatture.BE.Core.Entities.Notifiche;
+using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Core.Resources;
+using PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.Commands;
 using PortaleFatture.BE.Infrastructure.Common.Documenti.Common;
+using PortaleFatture.BE.Infrastructure.Common.Fatture.Commands;
 using PortaleFatture.BE.Infrastructure.Common.Fatture.Dto;
+using PortaleFatture.BE.Infrastructure.Common.Fatture.Queries;
+using PortaleFatture.BE.Infrastructure.Common.Fatture.Service;
 using PortaleFatture.BE.Infrastructure.Common.Identity;
 using PortaleFatture.BE.Infrastructure.Common.Tipologie.Queries;
-
+using PortaleFatture.BE.Infrastructure.Gateway.Storage;
 using static Microsoft.AspNetCore.Http.TypedResults;
 
 namespace PortaleFatture.BE.Api.Modules.Fatture;
@@ -28,6 +31,105 @@ public partial class FattureModule
 {
 
     #region pagoPA
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<bool>, NotFound>> PostResettaFatturePipelineSapAsync(
+    HttpContext context,
+    [FromBody] FatturaPipelineSapRequest request,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var resetta = await handler.Send(request.Map2(authInfo, invio: false));
+        return Ok(resetta);
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<bool>, NotFound>> PostFatturePipelineSapAsync(
+    HttpContext context,
+    [FromBody] FatturaPipelineSapRequest request,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] ISynapseService synapseService,
+    [FromServices] IPortaleFattureOptions options,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var result = await synapseService.InviaASapFatture(options.Synapse!.PipelineNameSAP, request.Map());
+        // da modificare dopo
+        if (result == true || result == false)
+        {
+            var command = request.Map2(authInfo, invio: true);
+            command.FatturaInviata = null;
+            command.StatoAtteso = 0;
+            result = await handler.Send(command);
+        }
+        return Ok(result); // da modificare dopo
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<FatturaInvioSap>>, NotFound>> PostFattureInvioSapAsync(
+    HttpContext context,
+    [FromBody] FatturaInvioSapRequest request,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var invioSap = await handler.Send(new FattureInvioSapQuery(authInfo)
+        {
+            Anno = request.Anno,
+            Mese = request.Mese
+        });
+
+        if (invioSap == null || !invioSap!.Any())
+            return NotFound();
+
+        var maxOrdineByAzione = invioSap
+            .GroupBy(f => f.Azione)
+            .Select(g => g.OrderByDescending(f => f.Ordine).First())
+            .Where(c => c.Azione != 2); // diverso da disabilitato
+
+        if(maxOrdineByAzione.IsNullNotAny())
+            return NotFound();
+
+        return Ok(maxOrdineByAzione);
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<bool>, BadRequest>> PostCancellazioneFatture(
+    HttpContext context,
+    [FromBody] FatturaCancellazioneRequest request,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        // verifica se c'è malleabilità
+
+        var result = await handler.Send(new FatturaCancellazioneCommand(authInfo, request.IdFatture, request.Cancellazione));
+        if (result.Value == false)
+            return BadRequest(); 
+        return Ok(result.Value);
+    }
+
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -41,7 +143,7 @@ public partial class FattureModule
     [FromServices] IMediator handler)
     {
         var authInfo = context.GetAuthInfo();
-        var tipoFattura = await handler.Send(new TipoFatturaQueryGetAll(authInfo, request.Anno, request.Mese));
+        var tipoFattura = await handler.Send(new TipoFatturaQueryGetAll(authInfo, request.Anno, request.Mese, request.Cancellata == null ? false : request.Cancellata.Value));
         if (tipoFattura.IsNullNotAny())
             return NotFound();
         return Ok(tipoFattura);
@@ -111,48 +213,140 @@ public partial class FattureModule
         if (request.TipologiaFattura!.IsNullNotAny())
             return NotFound();
 
-        Dictionary<string, byte[]>? reports = [];
-
-        foreach (var tipologia in request.TipologiaFattura!)
-        {
-            var month = request.Mese.GetMonth();
-            var year = request.Anno;
-            switch (tipologia)
-            {
-                case TipologiaFattura.PRIMOSALDO:
-                    var fatture = await handler.Send(request.Mapv2(authInfo, tipologia));
-                    if (fatture.IsNotEmpty())
-                        reports.Add($"Lista {tipologia} {year} {month}", fatture!.ReportFattureRel(month, tipologia));
-                    break;
-                case TipologiaFattura.SECONDOSALDO:
-                    fatture = await handler.Send(request.Mapv2(authInfo, tipologia));
-                    if (fatture.IsNotEmpty())
-                        reports.Add($"Lista {tipologia} {year} {month}", fatture!.ReportFattureRel(request.Mese.GetMonth(), tipologia));
-                    break;
-                case TipologiaFattura.ANTICIPO:
-                    var commesse = await handler.Send(request.Mapv3(authInfo));
-                    if (commesse.IsNotEmpty())
-                        reports.Add($"Lista ANTICIPO {year} {month}", commesse!.ReportFattureModuloCommessa(request.Mese.GetMonth()));
-                    break;
-                case TipologiaFattura.ACCONTO:
-                    var acconto = await handler.Send(request.Mapv4(authInfo));
-                    if (acconto.IsNotEmpty())
-                        reports.Add($"Lista ACCONTO {year} {month}", acconto!.ReportFattureAcconto(request.Mese.GetMonth()));
-                    break;
-                default:
-                    break;
-            }
-        }
+        var reports = await request.ReportFatture(handler, authInfo);
 
         if (reports.Count > 0)
         {
             var fileBytes = reports.CreateZip(logger);
-            var mime = "application/zip";
             var filename = $"{Guid.NewGuid()}.zip";
-            return Results.File(fileBytes!, mime, filename);
+            return Results.File(fileBytes!, MimeMapping.ZIP, filename);
         }
 
         return NotFound();
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<IResult> PostFatturePrenotazioneReportByRicercaAsync(
+        HttpContext context,
+        [FromBody] FatturaRicercaRequest request,
+        [FromServices] IStringLocalizer<Localization> localizer,
+        [FromServices] ILogger<FattureModule> logger,
+        [FromServices] IMediator handler,
+        [FromServices] IDocumentStorageService storageService)
+    {
+        var authInfo = context.GetAuthInfo();
+        if (request.TipologiaFattura!.IsNullNotAny())
+            return NotFound();
+
+        var contentType = MimeMapping.ZIP;
+        var contentLanguage = LanguageMapping.IT;
+
+        var (command, key) = request.Mapv2(authInfo, contentType, contentLanguage);
+
+        var result = await handler.Send(command);
+
+        if (result.HasValue && result == true)
+        {
+            await Task.Run(async () =>
+            {
+                var reports = await request.ReportFatture(handler, authInfo);
+                if (reports.Count > 0) // copia file e poi aggiorna messaggio stato=2 con link
+                {
+                    bool? result = false;
+                    var memoryStream = reports.CreateMemoryStreamZip(logger);
+                    result = await storageService.AddDocumentMessagePagoPA(memoryStream, key, contentType, contentLanguage);
+                    if (result == true)
+                    {
+                        var updateCommand = new MessaggioUpdateCommand(authInfo)
+                        {
+                            Hash = command.Hash,
+                            LinkDocumento = command.LinkDocumento
+                        };
+                        await handler.Send(updateCommand);
+                    }
+                }
+            });
+        }
+        else
+        {
+            var msg = $"Errore nella richiesta del documento!";
+            logger.LogError(msg);
+            throw new DomainException(msg);
+        }
+        return Ok();
+    }
+    #endregion
+
+    #region ente
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<string>>, NotFound>> PostTipologiaEnteFatture(
+    HttpContext context,
+    [FromBody] TipologiaFattureRequest request,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var tipoFattura = await handler.Send(new TipoFatturaQueryGetAllByIdEnte(authInfo, request.Anno, request.Mese));
+        if (tipoFattura.IsNullNotAny())
+            return NotFound();
+        return Ok(tipoFattura);
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<FattureListaDto>, NotFound>> PostFattureEnteByRicercaAsync(
+    HttpContext context,
+    [FromBody] FatturaRicercaEnteRequest request,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var fatture = await handler.Send(request.Map(authInfo));
+        if (fatture == null || !fatture!.Any())
+            return NotFound();
+        return Ok(fatture);
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<IResult> PostFattureEnteExcelByRicercaAsync(
+    HttpContext context,
+    [FromBody] FatturaRicercaEnteRequest request,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var fatture = await handler.Send(request.Map(authInfo));
+        if (fatture == null || !fatture!.Any())
+            return NotFound();
+        var mime = "application/vnd.ms-excel";
+        var filename = $"{Guid.NewGuid()}.xlsx";
+
+        var dataSet = fatture.Map()!.FillOneSheetv2();
+        var content = dataSet.ToExcel();
+        var result = new DisposableStreamResult(content, mime)
+        {
+            FileDownloadName = filename
+        };
+        return Results.Stream(result.FileStream, result.ContentType, result.FileDownloadName);
     }
     #endregion
 }

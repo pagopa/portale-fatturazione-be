@@ -1,5 +1,4 @@
 ﻿using System.Text.Json.Serialization;
-using PortaleFatture.BE.Core.Entities.Notifiche;
 
 namespace PortaleFatture.BE.Infrastructure.Common.Notifiche.Dto;
 

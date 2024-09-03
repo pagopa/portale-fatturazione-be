@@ -1,6 +1,6 @@
-﻿using System.Data;
-using Microsoft.IdentityModel.Tokens;
+﻿using System.Data; 
 using PortaleFatture.BE.Core.Entities.DatiRel;
+using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Infrastructure.Common.DatiRel.Dto;
 using PortaleFatture.BE.Infrastructure.Common.DatiRel.Queries.Persistence.Builder;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
@@ -29,7 +29,7 @@ public class RelTestataQueryGetByListaEntiQuadraturaPersistence(RelTestataQueryG
         if (mese.HasValue)
             where += " AND nc.month=@mese";
 
-        if (!_command.EntiIds.IsNullOrEmpty())
+        if (!_command.EntiIds.IsNullNotAny())
             where += $" AND nc.internal_organization_id IN @entiIds";
 
         var caricata = _command.Caricata;
@@ -77,7 +77,7 @@ public class RelTestataQueryGetByListaEntiQuadraturaPersistence(RelTestataQueryG
         if (!string.IsNullOrEmpty(idContratto))
             query.IdContratto = idContratto;
 
-        if (!_command.EntiIds.IsNullOrEmpty())
+        if (!_command.EntiIds.IsNullNotAny())
             query.EntiIds = _command.EntiIds;
 
         var values = await ((IDatabase)this).QueryMultipleAsync<RelQuadraturaDto>(
