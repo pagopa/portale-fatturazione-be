@@ -87,7 +87,7 @@ public class FattureExcel
     [JsonPropertyName("split")]
     public bool? Split { get; set; }
 
-    [HeaderAttributev2(caption: "Sollecito", Order = 16)]
+    //[HeaderAttributev2(caption: "Sollecito", Order = 16)]
 
     [JsonPropertyName("sollecito")]
     public string? Sollecito { get; set; }
