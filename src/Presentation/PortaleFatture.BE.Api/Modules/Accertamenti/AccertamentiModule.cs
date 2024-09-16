@@ -5,16 +5,19 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Localization;
 using PortaleFatture.BE.Api.Infrastructure;
+using PortaleFatture.BE.Api.Infrastructure.Documenti;
 using PortaleFatture.BE.Api.Modules.Accertamenti.Extensions;
 using PortaleFatture.BE.Api.Modules.Accertamenti.Payload.Request;
 using PortaleFatture.BE.Api.Modules.Fatture.Extensions;
 using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Entities.Notifiche;
+using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Core.Resources;
+using PortaleFatture.BE.Infrastructure.Common.Documenti.Common;
 using PortaleFatture.BE.Infrastructure.Common.Identity;
 using PortaleFatture.BE.Infrastructure.Common.Report.Dto;
+using PortaleFatture.BE.Infrastructure.Common.Report.Queries;
 using PortaleFatture.BE.Infrastructure.Gateway.Storage;
-using PortaleFatture.BE.Core.Extensions;
 using static Microsoft.AspNetCore.Http.TypedResults;
 
 namespace PortaleFatture.BE.Api.Modules.Fatture;
@@ -74,7 +77,7 @@ public partial class AccertamentiModule
         else
         {
             return BadRequest();
-        } 
+        }
     }
 
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
@@ -101,5 +104,51 @@ public partial class AccertamentiModule
         var filename = $"{Guid.NewGuid()}{_extension}";
         return Results.File(bytes!, mime, filename);
     }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<IEnumerable<MatriceCostoRecapitistiDataDto>?> GetDataMatriceRecapitistiAsync(
+    HttpContext context,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        return await handler.Send(new MatriceCostoRecapitistiData(authInfo));
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<IResult> PostMatriceRecapitistiAsync(
+    HttpContext context,
+    [FromBody] MatriceCostoRecapitistiRequest request,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler,
+    [FromServices] IDocumentStorageService storageService)
+    {
+        var authInfo = context.GetAuthInfo();
+        var report = await handler.Send(new MatriceCostoRecapitisti(authInfo, request.DataInizioValidita, request.DataFineValidita));
+
+        if (report == null || !report!.Any())
+            return NotFound();
+        var mime = "application/vnd.ms-excel";
+        var filename = $"{Guid.NewGuid()}.xlsx";
+
+        var dataSet = report!.FillOneSheetv2();
+        var content = dataSet.ToExcel();
+        var result = new DisposableStreamResult(content, mime)
+        {
+            FileDownloadName = filename
+        };
+        return Results.Stream(result.FileStream, result.ContentType, result.FileDownloadName);
+    }
+
     #endregion
 }

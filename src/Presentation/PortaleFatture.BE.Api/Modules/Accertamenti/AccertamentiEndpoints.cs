@@ -24,5 +24,17 @@ public partial class AccertamentiModule : Module, IRegistrableModule
            .WithName("Permette di ottenere il report specifico")
            .SetOpenApi(Module.DatiAccertamentiPagoPA)
            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+           .MapGet("api/accertamenti/matrice/data", GetDataMatriceRecapitistiAsync)
+           .WithName("Permette di ottenere le date di inizio della matrice costi recapitisti")
+           .SetOpenApi(Module.DatiAccertamentiPagoPA)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+           .MapPost("api/accertamenti/matrice", PostMatriceRecapitistiAsync)
+           .WithName("Permette di ottenere il report excel della matrice costi recapitisti")
+           .SetOpenApi(Module.DatiAccertamentiPagoPA)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
     }
 } 

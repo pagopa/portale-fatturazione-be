@@ -27,7 +27,13 @@ public class RelUploadCreateCommandHandler(
     {
         var authInfo = command.AuthenticationInfo!;
 
-        if (!(authInfo.Profilo == Profilo.PubblicaAmministrazione))
+        if (!(authInfo.Profilo == Profilo.PubblicaAmministrazione
+            || authInfo.Profilo == Profilo.GestorePubblicoServizio
+            || authInfo.Profilo == Profilo.SocietaControlloPubblico
+            || authInfo.Profilo == Profilo.PrestatoreServiziPagamento
+            || authInfo.Profilo == Profilo.AssicurazioniIVASS
+            || authInfo.Profilo == Profilo.StazioneAppaltanteANAC
+            || authInfo.Profilo == Profilo.PartnerTecnologico))
             throw new SecurityException(); //401  
 
         using var uow = await _factory.Create(true, cancellationToken: ct);
