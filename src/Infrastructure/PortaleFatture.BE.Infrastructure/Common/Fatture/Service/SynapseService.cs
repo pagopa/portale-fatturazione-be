@@ -1,5 +1,7 @@
-﻿using System.Text;
+﻿using System.Reflection;
+using System.Text;
 using Azure.Identity;
+using Microsoft.Extensions.Logging;
 using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Infrastructure.Common.Fatture.Dto;
@@ -12,12 +14,14 @@ public class SynapseService : ISynapseService
     private readonly string? _workspaceName;
     private readonly string? _resourceGroupName;
     private readonly string? _subscriptionId;
-    public SynapseService(string? workspaceName, string? resourceGroupName, string? subscriptionId)
+    private readonly ILogger<SynapseService> _logger;
+    public SynapseService(string? workspaceName, string? resourceGroupName, string? subscriptionId, ILogger<SynapseService> logger)
     {
         this._synapseWorkspaceUrl = $"https://{workspaceName}.dev.azuresynapse.net";
         this._workspaceName = workspaceName;
         this._resourceGroupName = resourceGroupName;
         this._subscriptionId = subscriptionId;
+        this._logger = logger;
     }
 
     public string? GetSynapseWorkspaceUrl()
@@ -55,7 +59,8 @@ public class SynapseService : ISynapseService
         };
 
         var response = await httpClient.SendAsync(requestMessage);
-
+        _logger.LogWarning(500, new Exception(), response.Serialize());
+    
         return response.IsSuccessStatusCode;
     }
 }

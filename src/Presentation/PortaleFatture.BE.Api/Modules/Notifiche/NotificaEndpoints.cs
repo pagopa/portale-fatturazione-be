@@ -8,6 +8,13 @@ public partial class NotificaModule : Module, IRegistrableModule
     public void RegisterEndpoints(IEndpointRouteBuilder endpointRouteBuilder)
     {
         #region pagoPA
+
+        endpointRouteBuilder
+           .MapPost("api/v2/notifiche/pagopa", GetPagoPANotificheByRicercaAsyncv2)
+           .WithName("Permette di ottenere le notifiche dell'ente per ricerca PagoPA v2")
+           .SetOpenApi(Module.DatiNotificaLabelPagoPA)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
         endpointRouteBuilder
            .MapPost("api/notifiche/pagopa", GetPagoPANotificheByRicercaAsync)
            .WithName("Permette di ottenere le notifiche dell'ente per ricerca PagoPA")

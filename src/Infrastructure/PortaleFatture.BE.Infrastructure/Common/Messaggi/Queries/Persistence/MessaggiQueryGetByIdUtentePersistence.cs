@@ -62,12 +62,11 @@ public class MessaggiQueryGetByIdUtentePersistence(MessaggiQueryGetByIdUtente co
             Letto = letto
         };
 
-        var values = await ((IDatabase)this).QueryMultipleAsync<MessaggioListaDto>(
+        using var values = await ((IDatabase)this).QueryMultipleAsync<MessaggioListaDto>(
             connection!,
             sqlMessaggi,
             query,
             transaction);
-
         messaggi.Messaggi = await values.ReadAsync<MessaggioDto>();
         messaggi.Count = await values.ReadFirstAsync<int>();
 

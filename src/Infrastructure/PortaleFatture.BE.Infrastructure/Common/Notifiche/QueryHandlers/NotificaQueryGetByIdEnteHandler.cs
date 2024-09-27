@@ -1,12 +1,10 @@
-﻿using System.Reflection.Metadata;
-using MediatR;
+﻿using MediatR;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
-using PortaleFatture.BE.Core.Entities.Notifiche;
 using PortaleFatture.BE.Core.Resources;
-using PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni.Queries.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.Notifiche.Dto;
 using PortaleFatture.BE.Infrastructure.Common.Notifiche.Queries;
+using PortaleFatture.BE.Infrastructure.Common.Notifiche.Queries.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.Persistence.Schemas;
 using PortaleFatture.BE.Infrastructure.Common.Scadenziari.Queries;
 

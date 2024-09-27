@@ -33,6 +33,28 @@ public partial class NotificaModule
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<NotificaDto>, NotFound>> GetPagoPANotificheByRicercaAsyncv2(
+    HttpContext context,
+    [FromBody] NotificheRicercaRequestPagoPA request,
+    [FromQuery] int page,
+    [FromQuery] int pageSize,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var notifiche = await handler.Send(request.Mapv2(authInfo, page, pageSize));
+        if (notifiche == null || notifiche.Count == 0)
+            return NotFound();
+        return Ok(notifiche);
+    }
+
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     private async Task<Results<Ok<NotificaDto>, NotFound>> GetPagoPANotificheByRicercaAsync(
     HttpContext context,
     [FromBody] NotificheRicercaRequestPagoPA request,
@@ -136,11 +158,8 @@ public partial class NotificaModule
         var data = await notifiche.Notifiche!.ToArray<SimpleNotificaDto, SimpleNotificaPagoPADtoMap>();
 
         var filename = $"{Guid.NewGuid()}.csv";
-        var mimeCsv = "text/csv";
-
-        await Results.File(data!, mimeCsv, filename, enableRangeProcessing: true).ExecuteAsync(context);
-        data = null;
-        DocsExtensions.ForceGarbageCollection();
+        var mimeCsv = "text/csv"; 
+        await context.Download(data, mimeCsv, filename);
     }
     #endregion
 
@@ -481,9 +500,7 @@ public partial class NotificaModule
         var filename = $"{Guid.NewGuid()}.csv";
         var mimeCsv = "text/csv";
 
-        await Results.File(data!, mimeCsv, filename, enableRangeProcessing: true).ExecuteAsync(context);
-        data = null;
-        DocsExtensions.ForceGarbageCollection();
+        await context.Download(data, mimeCsv, filename);
     }
 
     [Authorize(Roles = $"{Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]

@@ -10,7 +10,7 @@ public class SpedizioneQueryGetAllPersistence : DapperBase, IQuery<IEnumerable<C
     private static readonly string _sqlSelect = string.Join(";", CategoriaSpedizioneSQLBuilder.SelectAll(), TipoSpedizioneSQLBuilder.SelectAll());
     public async Task<IEnumerable<CategoriaSpedizione>?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken ct = default)
     {
-        var categorie = await ((IDatabase)this).QueryMultipleAsync<CategoriaSpedizione>(connection!, _sqlSelect.Add(schema), null, transaction);
+        using var categorie = await ((IDatabase)this).QueryMultipleAsync<CategoriaSpedizione>(connection!, _sqlSelect.Add(schema), null, transaction);
         if (categorie == null)
             return null;
         var masterCategorie = await categorie.ReadAsync<CategoriaSpedizione>();

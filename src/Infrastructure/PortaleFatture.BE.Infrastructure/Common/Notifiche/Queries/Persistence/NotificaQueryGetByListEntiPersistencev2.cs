@@ -1,6 +1,7 @@
 ﻿using System.Data;
 using System.Dynamic;
-using Dapper;
+using Microsoft.Data.SqlClient;
+using Microsoft.IdentityModel.Tokens;
 using PortaleFatture.BE.Core.Entities.Notifiche;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Infrastructure.Common.Notifiche.Dto;
@@ -8,9 +9,10 @@ using PortaleFatture.BE.Infrastructure.Common.Notifiche.Queries.Persistence.Buil
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 
 namespace PortaleFatture.BE.Infrastructure.Common.Notifiche.Queries.Persistence;
-public class NotificaQueryGetByListEntiPersistence(NotificaQueryGetByListaEnti command) : DapperBase, IQuery<NotificaDto?>
+
+public class NotificaQueryGetByListEntiPersistencev2(NotificaQueryGetByListaEntiv2 command) : DapperBase, IQuery<NotificaDto?>
 {
-    private readonly NotificaQueryGetByListaEnti _command = command;
+    private readonly NotificaQueryGetByListaEntiv2 _command = command;
     private static readonly string _sqlSelectAll = NotificaSQLBuilder.SelectAll();
     private static readonly string _sqlSelectAllCount = NotificaSQLBuilder.SelectAllCount();
     private static readonly string _offSet = NotificaSQLBuilder.OffSet();
@@ -19,6 +21,7 @@ public class NotificaQueryGetByListEntiPersistence(NotificaQueryGetByListaEnti c
     public async Task<NotificaDto?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
     {
         var notifiche = new NotificaDto();
+
         var where = string.Empty;
         var page = _command.Page;
         var size = _command.Size;
@@ -92,14 +95,32 @@ public class NotificaQueryGetByListEntiPersistence(NotificaQueryGetByListaEnti c
         var sql = String.Join(";", sqlEnte, sqlCount);
 
         dynamic parameters = new ExpandoObject();
+        var sqlParameters = new List<SqlParameter>();
+
         if (page.HasValue)
+        {
             parameters.Page = page;
+            sqlParameters.Add(new SqlParameter("@Page", page));
+        }
+        
         if (size.HasValue)
+        {
             parameters.Size = size;
+            sqlParameters.Add(new SqlParameter("@Size", size));
+        }
+      
         if (anno.HasValue)
+        {
             parameters.Anno = anno.Value;
+            sqlParameters.Add(new SqlParameter("@Anno", anno.Value));
+        }
+           
         if (mese.HasValue)
+        {
             parameters.Mese = mese.Value;
+            sqlParameters.Add(new SqlParameter("@Mese", mese.Value));
+        }
+           
 
         if (!string.IsNullOrEmpty(prodotto))
             parameters.Prodotto = prodotto;
@@ -131,19 +152,69 @@ public class NotificaQueryGetByListEntiPersistence(NotificaQueryGetByListaEnti c
         if (!string.IsNullOrEmpty(recipientId))
             parameters.RecipientId = recipientId;
 
-        using (var values = await ((IDatabase)this).QueryMultipleAsync<SimpleNotificaDto>(
-            connection!,
-            sql,
-            parameters,
-            transaction,
-            CommandType.Text,
-            null,
-            CommandFlags.NoCache))
+        var notificas = new List<SimpleNotificaDto>();
+        var totalCount = 0;
+        using (var cmd = ((SqlConnection)connection!).CreateCommand())
         {
-            notifiche.Notifiche = await values.ReadAsync<SimpleNotificaDto>();
-            notifiche.Count = await values.ReadFirstAsync<int>();
-        }
+            cmd.CommandText = sql;
+            cmd.Parameters.AddRange([.. sqlParameters]);
 
+            using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                var notifica = new SimpleNotificaDto
+                {
+                    IdEnte = reader["IdEnte"] as string,
+                    RagioneSociale = reader["RagioneSociale"] as string,
+                    Profilo = reader["Profilo"] as string,
+                    IdContratto = reader["IdContratto"] as string,
+                    CodiceFiscale = reader["CodiceFiscale"] as string,
+                    PIva = reader["PIva"] as string,
+                    CAP = reader["CAP"] as string,
+                    StatoEstero = reader["StatoEstero"] as string,
+                    NumberOfPages = reader["NumberOfPages"].ToString(),
+                    GEnvelopeWeight = reader["GEnvelopeWeight"] as string,
+                    CostEuroInCentesimi = reader["CostEuroInCentesimi"].ToString(),
+                    TimelineCategory = reader["TimelineCategory"] as string,
+                    Contestazione = reader["Contestazione"] as string,
+                    StatoContestazione = reader.GetByte(reader.GetOrdinal("StatoContestazione")),
+                    TipoNotifica = reader["TipoNotifica"] as string,
+                    IdNotifica = reader["IdNotifica"] as string,
+                    IUN = reader["IUN"] as string,
+                    Consolidatore = reader["Consolidatore"] as string,
+                    Recapitista = reader["Recapitista"] as string,
+                    DataInvio = reader["DataInvio"] as string,
+                    Data = reader["Data"] as string,
+                    RecipientIndex = reader["RecipientIndex"] as string,
+                    RecipientType = reader["RecipientType"] as string,
+                    RecipientId = reader["RecipientId"] as string,
+                    Anno = reader["Anno"].ToString(),
+                    Mese = reader["Mese"].ToString(),
+                    AnnoMeseGiorno = reader["AnnoMeseGiorno"] as string,
+                    ItemCode = reader["ItemCode"] as string,
+                    NotificationRequestId = reader["NotificationRequestId"] as string,
+                    RecipientTaxId = reader["RecipientTaxId"] as string,
+                    Fatturata = reader["Fatturata"] != DBNull.Value ? (bool?)reader["Fatturata"] : null,
+                    Onere = reader["Onere"] as string,
+                    NoteEnte = reader["NoteEnte"] as string,
+                    RispostaEnte = reader["RispostaEnte"] as string,
+                    NoteSend = reader["NoteSend"] as string,
+                    NoteRecapitista = reader["NoteRecapitista"] as string,
+                    NoteConsolidatore = reader["NoteConsolidatore"] as string,
+                    TipoContestazione = reader["TipoContestazione"] as string,
+                    TipologiaFattura = reader["TipologiaFattura"] as string
+                };
+
+                notificas.Add(notifica); 
+            } 
+
+            if (await reader.NextResultAsync(cancellationToken) && await reader.ReadAsync(cancellationToken))
+            {
+                totalCount = reader.GetInt32(0);
+            }
+        }
+        notifiche.Notifiche = notificas;
+        notifiche.Count = totalCount;
         return notifiche;
     }
 }

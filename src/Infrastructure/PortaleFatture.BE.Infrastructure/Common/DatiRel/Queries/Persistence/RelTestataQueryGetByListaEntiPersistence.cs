@@ -78,14 +78,15 @@ public class RelTestataQueryGetByListaEntiPersistence(RelTestataQueryGetByListaE
         if (!_command.EntiIds.IsNullNotAny())
             query.EntiIds = _command.EntiIds;
 
-        var values = await ((IDatabase)this).QueryMultipleAsync<SimpleRelTestata>(
+        using (var values = await ((IDatabase)this).QueryMultipleAsync<SimpleRelTestata>(
             connection!,
             sql,
             query,
-            transaction);
-
-        rel.RelTestate = (await values.ReadAsync<SimpleRelTestata>()).ToList();
-        rel.Count = await values.ReadFirstAsync<int>();
-        return rel;
+            transaction))
+        { 
+            rel.RelTestate = (await values.ReadAsync<SimpleRelTestata>()).ToList();
+            rel.Count = await values.ReadFirstAsync<int>();
+            return rel;
+        } 
     }
 }

@@ -1,12 +1,13 @@
 ﻿using System.Data;
+using Dapper;
+using DocumentFormat.OpenXml.Spreadsheet;
 using PortaleFatture.BE.Core.Entities.Notifiche;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Infrastructure.Common.Notifiche.Dto;
-using PortaleFatture.BE.Infrastructure.Common.Notifiche.Queries;
 using PortaleFatture.BE.Infrastructure.Common.Notifiche.Queries.Persistence.Builder;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 
-namespace PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni.Queries.Persistence;
+namespace PortaleFatture.BE.Infrastructure.Common.Notifiche.Queries.Persistence;
 
 public class NotificaQueryGetByIdEntePersistence(NotificaQueryGetByIdEnte command) : DapperBase, IQuery<NotificaDto?>
 {
@@ -109,14 +110,19 @@ public class NotificaQueryGetByIdEntePersistence(NotificaQueryGetByIdEnte comman
         if (!string.IsNullOrEmpty(recipientId))
             query.RecipientId = recipientId;
 
-        var values = await ((IDatabase)this).QueryMultipleAsync<SimpleNotificaDto>(
+        using (var values = await ((IDatabase)this).QueryMultipleAsync<SimpleNotificaDto>(
             connection!,
             sql,
             query,
-            transaction);
+            transaction,
+            CommandType.Text,
+            null,
+            CommandFlags.NoCache))
+        {
+            notifiche.Notifiche = await values.ReadAsync<SimpleNotificaDto>();
+            notifiche.Count = await values.ReadFirstAsync<int>();
+        }
 
-        notifiche.Notifiche = await values.ReadAsync<SimpleNotificaDto>();
-        notifiche.Count = await values.ReadFirstAsync<int>();
         return notifiche;
     }
 }

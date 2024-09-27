@@ -15,8 +15,8 @@ public class DatiFatturazioneWithContattiQueryGetByIdPersistence : DapperBase, I
         this._id = id;
     } 
     public async Task<DatiFatturazione?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
-    { 
-        var values = await ((IDatabase)this).QueryMultipleAsync<DatiFatturazione>(connection!, _sqlSelect.Add(schema), new { id = _id , IdDatiFatturazione = _id }, transaction);
+    {
+        using var values = await ((IDatabase)this).QueryMultipleAsync<DatiFatturazione>(connection!, _sqlSelect.Add(schema), new { id = _id, IdDatiFatturazione = _id }, transaction);
         if (values == null)
             return null;
         var datiFatturazione = await values.ReadFirstAsync<DatiFatturazione>();

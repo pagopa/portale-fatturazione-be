@@ -1,10 +1,9 @@
 ﻿using System.Data;
 using PortaleFatture.BE.Core.Entities.Notifiche;
-using PortaleFatture.BE.Infrastructure.Common.Notifiche.Queries;
 using PortaleFatture.BE.Infrastructure.Common.Notifiche.Queries.Persistence.Builder;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 
-namespace PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni.Queries.Persistence;
+namespace PortaleFatture.BE.Infrastructure.Common.Notifiche.Queries.Persistence;
 
 public class ContestazioneQueryGetByIdNotificaPersistence(ContestazioneQueryGetByIdNotifica command) : DapperBase, IQuery<Contestazione?>
 {
