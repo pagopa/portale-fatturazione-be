@@ -2,10 +2,10 @@
 using PortaleFatture.BE.Core.Entities.Notifiche;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Infrastructure.Common.Notifiche.Dto;
-using PortaleFatture.BE.Infrastructure.Common.Notifiche.Queries;
 using PortaleFatture.BE.Infrastructure.Common.Notifiche.Queries.Persistence.Builder;
-using PortaleFatture.BE.Infrastructure.Common.Persistence; 
-namespace PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni.Queries.Persistence;
+using PortaleFatture.BE.Infrastructure.Common.Persistence;
+
+namespace PortaleFatture.BE.Infrastructure.Common.Notifiche.Queries.Persistence;
 public class NotificaQueryGetByConsolidatorePersistence(NotificaQueryGetByConsolidatore command) : DapperBase, IQuery<NotificaRECCONDto?>
 {
     private readonly NotificaQueryGetByConsolidatore _command = command;
@@ -111,12 +111,11 @@ public class NotificaQueryGetByConsolidatorePersistence(NotificaQueryGetByConsol
         if (!string.IsNullOrEmpty(recipientId))
             query.RecipientId = recipientId;
 
-        var values = await ((IDatabase)this).QueryMultipleAsync<RECCONNotificaDto>(
+        using var values = await ((IDatabase)this).QueryMultipleAsync<RECCONNotificaDto>(
             connection!,
             sql,
             query,
-            transaction); 
-
+            transaction);
         notifiche.Notifiche = await values.ReadAsync<RECCONNotificaDto>();
         notifiche.Count = await values.ReadFirstAsync<int>();
         return notifiche;

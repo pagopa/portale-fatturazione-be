@@ -33,12 +33,11 @@ public class FattureQueryRicercaPersistence(FattureQueryRicerca command) : Dappe
             TipologiaFattura = tipoFattura,
         };
 
-        var values = await ((IDatabase)this).QueryMultipleAsync<FattureListaDto>(
+        using var values = await ((IDatabase)this).QueryMultipleAsync<FattureListaDto>(
         connection!,
         sql,
         query,
         transaction);
-
         var enti = await values.ReadAsync<EnteContrattoDto>();
         var fatture = await values.ReadFirstAsync<FattureListaDto>();
 

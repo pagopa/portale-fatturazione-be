@@ -57,9 +57,11 @@ public abstract class DapperBase : IDatabase
     object? parameters,
     IDbTransaction? transaction,
     CommandType type,
-    int? commandTimeout = null)
+    int? commandTimeout = null,
+    CommandFlags flag = CommandFlags.Buffered)
     {
-        return await connection.QueryMultipleAsync(sqlQuery, parameters, transaction, commandTimeout, type); 
+        var commandDefinition = new CommandDefinition(sqlQuery, parameters, transaction, commandTimeout, type, flag);
+        return await connection.QueryMultipleAsync(commandDefinition);
     } 
  
     public async Task<T> SingleAsync<T>(

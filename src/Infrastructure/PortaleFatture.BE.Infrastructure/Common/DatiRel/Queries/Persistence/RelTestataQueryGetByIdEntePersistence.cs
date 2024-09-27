@@ -69,14 +69,16 @@ public class RelTestataQueryGetByIdEntePersistence(RelTestataQueryGetByIdEnte co
         if (!string.IsNullOrEmpty(idContratto))
             query.IdContratto = idContratto;
 
-        var values = await ((IDatabase)this).QueryMultipleAsync<SimpleRelTestata>(
+        using (var values = await ((IDatabase)this).QueryMultipleAsync<SimpleRelTestata>(
             connection!,
             sql,
             query,
-            transaction);
+            transaction))
+        {
 
-        rel.RelTestate = (await values.ReadAsync<SimpleRelTestata>()).ToList();
-        rel.Count = await values.ReadFirstAsync<int>();
-        return rel;
+            rel.RelTestate = (await values.ReadAsync<SimpleRelTestata>()).ToList();
+            rel.Count = await values.ReadFirstAsync<int>();
+            return rel;
+        } 
     }
 }

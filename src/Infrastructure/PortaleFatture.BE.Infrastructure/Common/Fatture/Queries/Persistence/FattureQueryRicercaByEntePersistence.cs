@@ -31,15 +31,14 @@ public class FattureQueryRicercaByEntePersistence(FattureQueryRicercaByEnte comm
             IdEnte = idEnte
         };
 
-        var values = await ((IDatabase)this).QueryMultipleAsync<FattureListaDto>(
+        using var values = await ((IDatabase)this).QueryMultipleAsync<FattureListaDto>(
         connection!,
         sql,
         query,
         transaction);
-
         var myEnte = await values.ReadFirstAsync<EnteContrattoDto>();
         var fatture = await values.ReadFirstAsync<FattureListaDto>();
-   
+
         if (myEnte == null)
             return null;
 

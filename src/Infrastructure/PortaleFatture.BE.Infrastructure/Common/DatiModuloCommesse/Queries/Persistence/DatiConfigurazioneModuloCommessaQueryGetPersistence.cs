@@ -18,13 +18,12 @@ public class DatiConfigurazioneModuloCommessaQueryGetPersistence : DapperBase, I
 
     public async Task<DatiConfigurazioneModuloCommessa?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken ct = default)
     {
-        var values = await ((IDatabase)this).QueryMultipleAsync<DatiConfigurazioneModuloTipoCommessa>(connection!, _sqlSelect.Add(schema),
+        using var values = await ((IDatabase)this).QueryMultipleAsync<DatiConfigurazioneModuloTipoCommessa>(connection!, _sqlSelect.Add(schema),
             new
             {
-                prodotto = _prodotto, 
+                prodotto = _prodotto,
                 idTipoContratto = _idTipoContratto
             }, transaction);
-
         if (values == null)
             return null;
         var tipi = await values.ReadAsync<DatiConfigurazioneModuloTipoCommessa>();

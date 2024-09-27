@@ -7,6 +7,7 @@ using Microsoft.Extensions.Localization;
 using PortaleFatture.BE.Api.Infrastructure;
 using PortaleFatture.BE.Api.Modules.Messaggi.Extensions;
 using PortaleFatture.BE.Api.Modules.Messaggi.Payload.Request;
+using PortaleFatture.BE.Api.Modules.Notifiche.Extensions;
 using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Entities.Messaggi;
 using PortaleFatture.BE.Core.Entities.Notifiche;
@@ -69,7 +70,7 @@ public partial class MessaggiModule
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    private async Task<IResult> PostDownloadMessaggioPagoPAAsync(
+    private async Task PostDownloadMessaggioPagoPAAsync(
     HttpContext context,
     [FromBody] MessaggioRicercaByIdRequest request,
     [FromServices] IStringLocalizer<Localization> localizer,
@@ -79,25 +80,29 @@ public partial class MessaggiModule
         var authInfo = context.GetAuthInfo();
         var messaggio = await handler.Send(request.Map(authInfo));
         if (messaggio == null)
-            return NotFound();
+        {
+            await Results.NotFound("Data not found").ExecuteAsync(context);
+            return;
+        }
 
         if (messaggio.Hash != messaggio.Rhash)
         {
             await handler.Send(request.Map3(authInfo));
-            return NotFound();
-        } 
+            await Results.StatusCode(410).ExecuteAsync(context);
+            return;
+        }
 
         byte[] bytes;
-        
-        if(messaggio.TipologiaDocumento!.Contains("report"))
+
+        if (messaggio.TipologiaDocumento!.Contains("report"))
             bytes = await storageService.ReadBytes(messaggio.LinkDocumento!);
         else
-            bytes = await storageService.ReadMessageBytes(messaggio.Map()); 
+            bytes = await storageService.ReadMessageBytes(messaggio.Map());
 
         var mime = messaggio.ContentType;
         MimeMapping.Extensions.TryGetValue(mime!, out string? _extension);
         var filename = $"{Guid.NewGuid()}{_extension}";
-        return Results.File(bytes!, mime, filename);
+        await context.Download(bytes, mime!, filename);
     }
 
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]

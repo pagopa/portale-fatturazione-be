@@ -55,7 +55,7 @@ public partial class FattureModule
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    private async Task<Results<Ok<bool>, NotFound>> PostFatturePipelineSapAsync(
+    private async Task<object> PostFatturePipelineSapAsync(
     HttpContext context,
     [FromBody] FatturaPipelineSapRequest request,
     [FromServices] IStringLocalizer<Localization> localizer,
@@ -65,15 +65,21 @@ public partial class FattureModule
     {
         var authInfo = context.GetAuthInfo();
         var result = await synapseService.InviaASapFatture(options.Synapse!.PipelineNameSAP, request.Map());
-        // da modificare dopo
-        if (result == true || result == false)
+     
+        if (result == true)
         {
             var command = request.Map2(authInfo, invio: true);
             command.FatturaInviata = null;
             command.StatoAtteso = 0;
             result = await handler.Send(command);
         }
-        return Ok(result); // da modificare dopo
+        if (!result)
+        {
+            await Results.StatusCode(500).ExecuteAsync(context);
+            return null!;
+        }
+           
+        return Ok(result);  
     }
 
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]

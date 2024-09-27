@@ -80,14 +80,15 @@ public class RelTestataQueryGetByListaEntiQuadraturaPersistence(RelTestataQueryG
         if (!_command.EntiIds.IsNullNotAny())
             query.EntiIds = _command.EntiIds;
 
-        var values = await ((IDatabase)this).QueryMultipleAsync<RelQuadraturaDto>(
+        using (var values = await ((IDatabase)this).QueryMultipleAsync<RelQuadraturaDto>(
             connection!,
             sql,
             query,
-            transaction);
-
-        rel.Quadratura = (await values.ReadAsync<RelQuadraturaDto>()).ToList();
-        rel.Count = await values.ReadFirstAsync<int>();
-        return rel;
+            transaction))
+        {
+            rel.Quadratura = (await values.ReadAsync<RelQuadraturaDto>()).ToList();
+            rel.Count = await values.ReadFirstAsync<int>();
+            return rel;
+        } 
     }
 }

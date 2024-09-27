@@ -648,9 +648,7 @@ public partial class RelModule
         var filename = $"{Guid.NewGuid()}.csv";
         var mimeCsv = "text/csv";
 
-        await Results.File(data!, mimeCsv, filename, enableRangeProcessing: true).ExecuteAsync(context);
-        data = null;
-        DocsExtensions.ForceGarbageCollection();
+        await context.Download(data, mimeCsv, filename); 
     }
 
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]

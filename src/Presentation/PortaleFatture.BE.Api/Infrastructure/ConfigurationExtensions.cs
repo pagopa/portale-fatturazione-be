@@ -51,7 +51,10 @@ public static class ConfigurationExtensions
                 configureTelemetryConfiguration: (config) =>
                 config.ConnectionString = options.ApplicationInsights,
                 configureApplicationInsightsLoggerOptions: (options) => { }
-                );
+                ); 
+ 
+            builder.Logging.AddFilter<Microsoft.Extensions.Logging.ApplicationInsights.ApplicationInsightsLoggerProvider>(
+                "", LogLevel.Information);
         }
 
         SqlMapper.AddTypeHandler(typeof(FattureListaDto), new JsonTypeHandler());
@@ -154,10 +157,13 @@ public static class ConfigurationExtensions
 
         var serviceProvider = services.BuildServiceProvider();
         var options = serviceProvider.GetRequiredService<IPortaleFattureOptions>();
+        var logger = serviceProvider.GetRequiredService<ILogger<SynapseService>>();
         services.AddSingleton<ISynapseService>(new SynapseService(
             options.Synapse!.SynapseWorkspaceName,
             options.Synapse.ResourceGroupName,
-            options.Synapse.SubscriptionId));
+            options.Synapse.SubscriptionId,
+            logger)
+            );
         services.AddSingleton<IServiceWorkFlowFatture>(new ServiceWorkFlowFatture());
         return services;
     }

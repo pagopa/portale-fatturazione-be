@@ -32,7 +32,7 @@ public class DocumentStorageService(IPortaleFattureOptions options,
             ContentLanguage = contentLanguage
         };
 
-        var blobClient = new BlobClient(_options.Storage!.ConnectionString,
+        var blobClient = new BlobClient(_options.StorageDocumenti!.ConnectionString,
             DocumentiStorageKey.FolderPagoPA(documentKey, documentPath!),
             fileName);
 
@@ -58,7 +58,7 @@ public class DocumentStorageService(IPortaleFattureOptions options,
         byte[] bytes;
         var fileName = Path.GetFileName(filePath);
         var dir = Path.GetDirectoryName(filePath);
-        var blobClient = new BlobClient(_options.Storage!.ConnectionString,
+        var blobClient = new BlobClient(_options.StorageDocumenti!.ConnectionString,
             dir,
             fileName);
         try

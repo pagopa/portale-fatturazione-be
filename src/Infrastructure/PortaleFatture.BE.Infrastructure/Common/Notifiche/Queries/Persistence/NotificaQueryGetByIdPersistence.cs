@@ -4,7 +4,7 @@ using PortaleFatture.BE.Infrastructure.Common.Notifiche.Queries;
 using PortaleFatture.BE.Infrastructure.Common.Notifiche.Queries.Persistence.Builder;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 
-namespace PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni.Queries.Persistence;
+namespace PortaleFatture.BE.Infrastructure.Common.Notifiche.Queries.Persistence;
 
 public class NotificaQueryGetByIdPersistence(NotificaQueryGetById command) : DapperBase, IQuery<Notifica?>
 {

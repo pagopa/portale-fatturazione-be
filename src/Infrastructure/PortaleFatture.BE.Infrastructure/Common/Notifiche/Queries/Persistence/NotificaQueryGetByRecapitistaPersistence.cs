@@ -111,12 +111,11 @@ public class NotificaQueryGetByRecapitistaPersistence(NotificaQueryGetByRecapiti
         if (!string.IsNullOrEmpty(recipientId))
             query.RecipientId = recipientId;
 
-        var values = await ((IDatabase)this).QueryMultipleAsync<RECCONNotificaDto>(
+        using var values = await ((IDatabase)this).QueryMultipleAsync<RECCONNotificaDto>(
             connection!,
             sql,
             query,
             transaction);
-
         notifiche.Notifiche = await values.ReadAsync<RECCONNotificaDto>();
         notifiche.Count = await values.ReadFirstAsync<int>();
         return notifiche;

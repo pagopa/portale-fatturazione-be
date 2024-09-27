@@ -10,25 +10,25 @@ public class DatiModuloCommessaParzialiTotaleQueryGetByIdPersistence : DapperBas
 {
     private readonly string? _prodotto;
     private readonly long? _idTipoContratto;
-    private readonly int _annoValidita; 
+    private readonly int _annoValidita;
     private readonly string? _idEnte;
     private readonly string? _ruolo;
     private static readonly string _sqlSelect = String.Join(";", DatiModuloCommessaTotaleSQLBuilder.SelectByAnno(), DatiModuloCommessaSQLBuilder.SelectByAnno());
 
-    public DatiModuloCommessaParzialiTotaleQueryGetByIdPersistence(string? idEnte, int annoValidita,string? prodotto, string? ruolo)
+    public DatiModuloCommessaParzialiTotaleQueryGetByIdPersistence(string? idEnte, int annoValidita, string? prodotto, string? ruolo)
     {
         this._prodotto = prodotto;
-        this._annoValidita = annoValidita; 
+        this._annoValidita = annoValidita;
         this._idEnte = idEnte;
         this._ruolo = ruolo;
     }
     public async Task<IEnumerable<DatiModuloCommessaParzialiTotale>?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken ct = default)
     {
         var parziali = new Dictionary<int, DatiModuloCommessaParzialiTotale>();
-        var values = await ((IDatabase)this).QueryMultipleAsync<DatiModuloCommessaTotale>(connection!, _sqlSelect.Add(schema),
+        using var values = await ((IDatabase)this).QueryMultipleAsync<DatiModuloCommessaTotale>(connection!, _sqlSelect.Add(schema),
             new
             {
-                idEnte = _idEnte, 
+                idEnte = _idEnte,
                 annoValidita = _annoValidita,
                 prodotto = _prodotto,
             }, transaction);
@@ -38,8 +38,7 @@ public class DatiModuloCommessaParzialiTotaleQueryGetByIdPersistence : DapperBas
         foreach (var tot in totalePerCategoria)
         {
             parziali.TryGetValue(tot.MeseValidita, out DatiModuloCommessaParzialiTotale? parziale);
-            if (parziale == null)
-                parziale = new();
+            parziale ??= new();
 
             parziale.Totale += tot.Totale;
             parziale.AnnoValidita = tot.AnnoValidita;
@@ -49,13 +48,12 @@ public class DatiModuloCommessaParzialiTotaleQueryGetByIdPersistence : DapperBas
             parziale.IdTipoContratto = tot.IdTipoContratto;
             parziale.Stato = tot.Stato;
             parziali.TryAdd(tot.MeseValidita, parziale);
-            parziale.Modifica = tot.Stato == StatoModuloCommessa.ApertaCaricato &&  _ruolo == Ruolo.ADMIN;
+            parziale.Modifica = tot.Stato == StatoModuloCommessa.ApertaCaricato && _ruolo == Ruolo.ADMIN;
         }
         foreach (var commessa in moduliCommessa)
-        { 
+        {
             parziali.TryGetValue(commessa.MeseValidita, out DatiModuloCommessaParzialiTotale? parziale);
-            if (parziale == null)
-                parziale = new();
+            parziale ??= new();
 
             if (commessa.IdTipoSpedizione == 1) // Analog.A/R
             {
@@ -70,4 +68,4 @@ public class DatiModuloCommessaParzialiTotaleQueryGetByIdPersistence : DapperBas
         }
         return parziali.Values.ToList();
     }
-} 
+}
