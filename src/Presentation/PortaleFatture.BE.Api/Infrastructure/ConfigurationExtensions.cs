@@ -53,8 +53,8 @@ public static class ConfigurationExtensions
                 configureApplicationInsightsLoggerOptions: (options) => { }
                 ); 
  
-            builder.Logging.AddFilter<Microsoft.Extensions.Logging.ApplicationInsights.ApplicationInsightsLoggerProvider>(
-                "", LogLevel.Information);
+            //builder.Logging.AddFilter<Microsoft.Extensions.Logging.ApplicationInsights.ApplicationInsightsLoggerProvider>(
+            //    "", LogLevel.Information);
         }
 
         SqlMapper.AddTypeHandler(typeof(FattureListaDto), new JsonTypeHandler());

@@ -1,12 +1,14 @@
-﻿namespace PortaleFatture.BE.Infrastructure.Common.Fatture.Dto;
+﻿using System.Text.Json.Serialization;
+
+namespace PortaleFatture.BE.Infrastructure.Common.Fatture.Dto;
 public class PipelineParameters()
 {
+    [JsonPropertyName("AnnoRiferimento")]
     public int AnnoRiferimento { get; set; }
-    public int MeseRiferimento { get; set; }
-    public string? TipologiaFattura { get; set; }
-}
 
-public class RequestPipeline()
-{
-    public PipelineParameters? Parameters { get; set; }
+    [JsonPropertyName("MeseRiferimento")]
+    public int MeseRiferimento { get; set; }
+
+    [JsonPropertyName("TipologiaFattura")]
+    public string? TipologiaFattura { get; set; }
 } 

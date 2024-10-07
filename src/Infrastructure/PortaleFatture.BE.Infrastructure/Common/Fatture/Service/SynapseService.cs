@@ -1,10 +1,14 @@
-﻿using System.Reflection;
+﻿using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Text;
+using System.Text.Json;
+using Azure;
 using Azure.Identity;
 using Microsoft.Extensions.Logging;
-using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Infrastructure.Common.Fatture.Dto;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace PortaleFatture.BE.Infrastructure.Common.Fatture.Service;
 
@@ -27,17 +31,17 @@ public class SynapseService : ISynapseService
     public string? GetSynapseWorkspaceUrl()
     {
         return this._synapseWorkspaceUrl;
-    } 
+    }
 
     public async Task<bool> InviaASapFatture(string? pipelineName, FatturaInvioSap parameters)
     {
-        string apiVersion = "2021-06-01";
+
+        var apiVersion = "2021-06-01";
 
         var credential = new DefaultAzureCredential();
         var token = await credential.GetTokenAsync(new Azure.Core.TokenRequestContext(new[] { "https://dev.azuresynapse.net/.default" }));
-        var accessToken = token.Token;
-
-        var httpClient = new HttpClient();
+        var accessToken = token.Token; 
+ 
         var requestUri = $"https://{_workspaceName}.dev.azuresynapse.net/pipelines/{pipelineName}/createRun?api-version={apiVersion}";
 
         var pipelineParameters = new PipelineParameters()
@@ -45,22 +49,22 @@ public class SynapseService : ISynapseService
             AnnoRiferimento = parameters.AnnoRiferimento,
             MeseRiferimento = parameters.MeseRiferimento,
             TipologiaFattura = parameters.TipologiaFattura
-        };
+        }; 
 
-        var requestBody = new RequestPipeline()
+        using var httpClient = new HttpClient();
+        httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {accessToken}");
+        try
         {
-            Parameters = pipelineParameters
-        };
+            using var response = await httpClient.PostAsJsonAsync(requestUri, pipelineParameters);
+            if (!response.IsSuccessStatusCode)
+                _logger.LogError(503, "InviaASapFatture" + "|" + response.Serialize() + "|" + pipelineParameters.Serialize()); 
 
-        var requestMessage = new HttpRequestMessage(HttpMethod.Post, requestUri)
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
         {
-            Headers = { Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken) },
-            Content = new StringContent(requestBody.Serialize(), Encoding.UTF8, "application/json")
-        };
-
-        var response = await httpClient.SendAsync(requestMessage);
-        _logger.LogWarning(500, new Exception(), response.Serialize());
-    
-        return response.IsSuccessStatusCode;
+            _logger.LogError(503, "InviaASapFatture" + "|" + ex.Serialize() + "|" + pipelineParameters.Serialize());
+            return false;
+        } 
     }
-}
+} 
