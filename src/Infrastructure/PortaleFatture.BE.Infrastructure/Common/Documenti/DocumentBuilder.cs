@@ -8,7 +8,8 @@ using PortaleFatture.BE.Core.Entities.DatiRel;
 namespace PortaleFatture.BE.Infrastructure.Common.Documenti;
 public class DocumentBuilder : IDocumentBuilder
 {
-    private static string _fileEmail = $"primo_saldo.html";
+    private static string _fileEmailPrimoSaldo = $"primo_saldo.html";
+    private static string _fileEmailSecondoSaldo = $"secondo_saldo.html";
     private static string _filePrimoSaldoRel = $"PRIMO_SALDO_rel.html";
     private static string _fileSecondoSaldoRel = $"SECONDO_SALDO_rel.html";
     private static string _fileModuloCommessa = $"daticommessa.html";
@@ -24,6 +25,11 @@ public class DocumentBuilder : IDocumentBuilder
 
     public string? CreateEmailHtml(RelEmail dati)
     {
+        string? _fileEmail;
+        if (dati.TipologiaFattura!.ToLower().Contains("primo"))
+            _fileEmail = _fileEmailPrimoSaldo;
+        else
+            _fileEmail = _fileEmailSecondoSaldo;
         var filePath = Path.Combine([_directoryPath, _fileEmail]);
         var text = ReadFromFile(filePath);
         text = dati.Replace(text!);
