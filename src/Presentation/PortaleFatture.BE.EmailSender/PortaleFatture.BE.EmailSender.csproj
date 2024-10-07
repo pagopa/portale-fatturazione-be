@@ -23,6 +23,9 @@
     <None Update="Infrastructure\Documenti\primo_saldo.html">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="Infrastructure\Documenti\secondo_saldo.html">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

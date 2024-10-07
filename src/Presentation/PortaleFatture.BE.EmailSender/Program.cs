@@ -1,6 +1,7 @@
 ﻿using System.Reflection;
 using Microsoft.Extensions.Configuration;
 using PortaleFatture.BE.Core.Entities.DatiRel.Dto;
+using PortaleFatture.BE.Core.Entities.SelfCare;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.EmailSender.Models;
 using PortaleFatture.BE.Infrastructure.Common.DatiRel.Services;
@@ -87,27 +88,29 @@ try
         }
     }
 
-     //var dummy = 0;
-    //foreach (var ente in enti!)
-    //{
-    //    var (msg, ver) = sender.SendEmail(ente.Pec!, subject, builder.CreateEmailHtml(ente)!);
-    //    if (!ver)
-    //        Console.WriteLine(msg);
 
-    //    emailService.InsertTracciatoEmail(new RelEmailTracking()
-    //    {
-    //        Data = data,
-    //        IdContratto = ente.IdContratto,
-    //        Invio = Convert.ToByte(ver == true ? 1 : 0),
-    //        Anno = ente.Anno,
-    //        Mese = ente.Mese,
-    //        Messaggio = msg,
-    //        Pec = ente.Pec,
-    //        IdEnte = ente.IdEnte,
-    //        RagioneSociale = ente.RagioneSociale,
-    //        TipologiaFattura = ente.TipologiaFattura
-    //    });
-    //}
+    foreach (var ente in enti!)
+    {
+        var dummy = builder.CreateEmailHtml(ente)!;
+
+        //var (msg, ver) = sender.SendEmail(ente.Pec!, subject, builder.CreateEmailHtml(ente)!);
+        //if (!ver)
+        //    Console.WriteLine(msg);
+
+        //emailService.InsertTracciatoEmail(new RelEmailTracking()
+        //{
+        //    Data = data,
+        //    IdContratto = ente.IdContratto,
+        //    Invio = Convert.ToByte(ver == true ? 1 : 0),
+        //    Anno = ente.Anno,
+        //    Mese = ente.Mese,
+        //    Messaggio = msg,
+        //    Pec = ente.Pec,
+        //    IdEnte = ente.IdEnte,
+        //    RagioneSociale = ente.RagioneSociale,
+        //    TipologiaFattura = ente.TipologiaFattura
+        //});
+    }
 }
 catch (Exception ex)
 {
