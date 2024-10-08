@@ -56,10 +56,11 @@ public class SynapseService : ISynapseService
         try
         {
             using var response = await httpClient.PostAsJsonAsync(requestUri, pipelineParameters);
-            if (!response.IsSuccessStatusCode)
-                _logger.LogError(503, "InviaASapFatture" + "|" + response.Serialize() + "|" + pipelineParameters.Serialize()); 
+            var status = response.IsSuccessStatusCode;
+            if (!status)
+                _logger.LogError(503, "InviaASapFatture" + "|" + response.Serialize() + "|" + pipelineParameters.Serialize() + "|" + status); 
 
-            return response.IsSuccessStatusCode;
+            return status;
         }
         catch (Exception ex)
         {
