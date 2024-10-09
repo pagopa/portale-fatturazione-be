@@ -14,7 +14,7 @@ public class FattureAccontoFatturaExcelPersistence(FattureAccontoExcelQuery comm
     {
         var anno = _command.Anno;
         var mese = _command.Mese;
-        var where = " where n.year= @anno and n.month=@mese ";
+        var where = " where f.Anno= @anno and f.mese=@mese ";
 
         if (!_command.IdEnti!.IsNullNotAny())
             where = " AND t.FKIdEnte in @IdEnti ";

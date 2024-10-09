@@ -40,6 +40,11 @@ public static class ConfigurationExtensions
         var configuration = builder.Configuration;
         var isProd = builder.Environment.IsProduction();
 
+        builder.WebHost.ConfigureKestrel(options =>
+        {
+            options.Configure(configuration.GetSection("Kestrel"));
+        });
+
         PortaleFattureOptions options = new();
         configuration.GetSection(nameof(PortaleFattureOptions)).Bind(options);
 
