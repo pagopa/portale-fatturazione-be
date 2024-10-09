@@ -31,23 +31,30 @@ public static class NotificaExtensions
 
     public static async Task Download(this HttpContext context, byte[]? data, string mime, string filename)
     {
-
-        context.Response.ContentType = mime;
+        var totalBytes = data!.Length;
+        context.Response.ContentType = mime; 
         context.Response.Headers.TryAdd("Content-Disposition", $"attachment; filename={filename}");
- 
-        const int bufferSize = 16 * 1024;
+        context.Response.Headers["Content-Length"] = totalBytes.ToString();
+
+        const int bufferSize = 32 * 1024;
         var buffer = new byte[bufferSize];
 
-        var totalBytes = data!.Length;
         var bytesRemaining = totalBytes;
-        var offset = 0; 
- 
+        var offset = 0;
+
+        int flushCounter = 0;
         while (bytesRemaining > 0)
         { 
             var chunkSize = Math.Min(bufferSize, bytesRemaining); 
             Buffer.BlockCopy(data, offset, buffer, 0, chunkSize); 
-            await context.Response.Body.WriteAsync(buffer, 0, chunkSize); 
-            await context.Response.Body.FlushAsync();  
+            await context.Response.Body.WriteAsync(buffer, 0, chunkSize);
+
+            flushCounter++;
+            if (flushCounter % 10 == 0)  
+            {
+                await context.Response.Body.FlushAsync();
+            }
+             
             offset += chunkSize;
             bytesRemaining -= chunkSize;
         }

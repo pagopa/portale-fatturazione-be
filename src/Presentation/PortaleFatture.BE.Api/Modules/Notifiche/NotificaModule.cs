@@ -1,4 +1,6 @@
-﻿using System.Globalization;
+﻿using System.Collections;
+using System.Globalization;
+using System.IO;
 using CsvHelper;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -140,7 +142,7 @@ public partial class NotificaModule
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    private async Task GetPagoPANotificheRicercaDocumentAsync(
+    private async Task<IResult> GetPagoPANotificheRicercaDocumentAsync(
     HttpContext context,
     [FromBody] NotificheRicercaRequestPagoPA request,
     [FromServices] IStringLocalizer<Localization> localizer,
@@ -151,15 +153,29 @@ public partial class NotificaModule
         var notifiche = await handler.Send(request.Map(authInfo, null, null)); 
         if (notifiche == null || notifiche.Count == 0)
         {
-            await Results.NotFound("Data not found").ExecuteAsync(context);
-            return;
+            //await Results.NotFound("Data not found").ExecuteAsync(context);
+            //return;
+            return NotFound();
         }
 
         var data = await notifiche.Notifiche!.ToArray<SimpleNotificaDto, SimpleNotificaPagoPADtoMap>();
 
+        if (data == null || data.Length == 0)
+        {
+            //await Results.NotFound("Data not found").ExecuteAsync(context);
+            //return;
+            return NotFound();
+        }
+
         var filename = $"{Guid.NewGuid()}.csv";
-        var mimeCsv = "text/csv"; 
-        await context.Download(data, mimeCsv, filename);
+        var mimeCsv = "text/csv";
+        //await context.Download(data, mimeCsv, filename);
+        var stream = new MemoryStream(data!);
+        stream.Position = 0;
+        // Now you can use the stream
+        // For example, returning it in an ASP.NET Core action
+        return Results.Stream(stream, mimeCsv, filename);
+        //return Results.File(data!, mimeCsv, filename);
     }
     #endregion
 
