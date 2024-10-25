@@ -6,7 +6,7 @@ using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Infrastructure;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.Persistence.Schemas;
-using PortaleFatture.BE.Infrastructure.Common.Scadenziari;
+using PortaleFatture.BE.Infrastructure.Common.SEND.Scadenziari;
 
 namespace PortaleFatture.BE.UnitTest;
 

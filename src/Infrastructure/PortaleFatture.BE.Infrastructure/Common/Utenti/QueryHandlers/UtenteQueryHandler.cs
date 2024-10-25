@@ -4,8 +4,6 @@ using Microsoft.Extensions.Logging;
 using PortaleFatture.BE.Core.Entities.Utenti;
 using PortaleFatture.BE.Core.Resources;
 using PortaleFatture.BE.Infrastructure.Common.Persistence.Schemas;
-using PortaleFatture.BE.Infrastructure.Common.SelfCare.Queries;
-using PortaleFatture.BE.Infrastructure.Common.SelfCare.Queries.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.Utenti.Queries;
 using PortaleFatture.BE.Infrastructure.Common.Utenti.Queries.Persistence;
 

@@ -16,6 +16,7 @@ public static class ModuleExtensions
         model.Storage ??= new();
         model.StorageDocumenti??= new();
         model.Synapse??= new();
+        model.StoragePagoPAFinancial??= new();
 
         var selfCareUri = Environment.GetEnvironmentVariable("SELF_CARE_URI") ??
              throw new ConfigurationException("Please specify a SELF_CARE_URI!");
@@ -85,6 +86,17 @@ public static class ModuleExtensions
         var synapseResourceGroupName = Environment.GetEnvironmentVariable("SYNAPSE_RESOURCEGROUPNAME") ??
              throw new ConfigurationException("Please specify SYNAPSE_RESOURCEGROUPNAME!");
 
+        //  
+        var storageAccountName = Environment.GetEnvironmentVariable("STORAGE_FINANCIAL_ACCOUNTNAME") ??
+            throw new ConfigurationException("Please specify STORAGE_FINANCIAL_ACCOUNTNAME!");
+
+        var storageAccountKey = Environment.GetEnvironmentVariable("STORAGE_FINANCIAL_ACCOUNTKEY") ??
+            throw new ConfigurationException("Please specify a SYNAPSE_SUBSCRIPTIONID!");
+
+        var blobContainerName = Environment.GetEnvironmentVariable("STORAGE_FINANCIAL_CONTAINERNAME") ??
+             throw new ConfigurationException("Please specify SYNAPSE_RESOURCEGROUPNAME!"); 
+
+
         model.ConnectionString = connectionString; //await model.ConnectionString.Mapper();
         model.SelfCareUri = selfCareUri;
         model.SelfCareCertEndpoint = selfCareCertEndpoint;
@@ -108,6 +120,9 @@ public static class ModuleExtensions
         model.Synapse.PipelineNameSAP = pipelineNameSAP;
         model.Synapse.ResourceGroupName = synapseResourceGroupName;
         model.Synapse.SubscriptionId = subscriptionId;
+        model.StoragePagoPAFinancial.BlobContainerName = blobContainerName;
+        model.StoragePagoPAFinancial.AccountName = storageAccountName;
+        model.StoragePagoPAFinancial.AccountKey = storageAccountKey;
         return model;
     }
 

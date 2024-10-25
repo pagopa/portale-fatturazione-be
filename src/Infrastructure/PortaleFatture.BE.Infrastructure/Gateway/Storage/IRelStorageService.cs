@@ -1,5 +1,5 @@
-﻿using PortaleFatture.BE.Core.Entities.DatiRel;
-using PortaleFatture.BE.Infrastructure.Common.DatiRel.Dto;
+﻿using PortaleFatture.BE.Core.Entities.SEND.DatiRel;
+using PortaleFatture.BE.Infrastructure.Common.SEND.DatiRel.Dto;
 
 namespace PortaleFatture.BE.Infrastructure.Gateway.Storage;
 

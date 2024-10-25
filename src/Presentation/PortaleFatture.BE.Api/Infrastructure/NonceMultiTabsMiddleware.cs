@@ -1,4 +1,4 @@
-﻿using PortaleFatture.BE.Api.Modules.Auth.Extensions;
+﻿using PortaleFatture.BE.Api.Modules.SEND.Auth.Extensions;
 using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Infrastructure.Common.Identity;
 using PortaleFatture.BE.Infrastructure.Gateway;
@@ -16,7 +16,8 @@ public class NonceMultiTabsMiddleware(RequestDelegate next, IAesEncryption encry
             { "/health", "/health" },
             { "/api/auth/pagopa/login", "/api/auth/pagopa/login" },
             { "/api/auth/profilo", "/api/auth/profilo" },
-            { "/api/auth/selfcare/login", "/api/auth/selfcare/login" }
+            { "/api/auth/selfcare/login", "/api/auth/selfcare/login" },
+            { "/api/v2/auth/pagopa/login", "/api/v2/auth/pagopa/login" }
         };
     public async Task InvokeAsync(HttpContext context)
     {

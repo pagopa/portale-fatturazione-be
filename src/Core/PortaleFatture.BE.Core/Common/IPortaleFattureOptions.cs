@@ -17,5 +17,6 @@ public interface IPortaleFattureOptions
     public AzureAd? AzureAd { get; set; } 
     public Storage? Storage { get; set; } 
     public StorageDocumenti? StorageDocumenti { get; set; } 
-    public Synapse? Synapse { get; set; }
+    public Synapse? Synapse { get; set; } 
+    public StoragePagoPAFinancial? StoragePagoPAFinancial { get; set; }
 }

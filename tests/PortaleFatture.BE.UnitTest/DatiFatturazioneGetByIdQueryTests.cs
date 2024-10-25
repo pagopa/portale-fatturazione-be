@@ -4,10 +4,10 @@ using Microsoft.Extensions.Logging;
 using NUnit.Framework.Legacy;
 using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Core.Resources;
-using PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni.Commands;
-using PortaleFatture.BE.Infrastructure.Common.DatiFatturazioni.Queries;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.Persistence.Schemas;
+using PortaleFatture.BE.Infrastructure.Common.SEND.DatiFatturazioni.Commands;
+using PortaleFatture.BE.Infrastructure.Common.SEND.DatiFatturazioni.Queries;
 using PortaleFatture.BE.UnitTest.Common;
 
 namespace PortaleFatture.BE.UnitTest;

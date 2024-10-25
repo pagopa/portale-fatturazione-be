@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Reflection;
 using System.Security;
-using System.Security.Claims;
 using System.Text.Json;
 using Dapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -9,7 +8,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.AspNetCore.HttpOverrides;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Logging;
 using Microsoft.OpenApi.Models;
 using Polly;
@@ -19,16 +17,17 @@ using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Common;
 using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Infrastructure;
-using PortaleFatture.BE.Infrastructure.Common;
-using PortaleFatture.BE.Infrastructure.Common.Documenti;
-using PortaleFatture.BE.Infrastructure.Common.Fatture.Dto;
-using PortaleFatture.BE.Infrastructure.Common.Fatture.Service;
 using PortaleFatture.BE.Infrastructure.Common.Identity;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.Persistence.Schemas;
-using PortaleFatture.BE.Infrastructure.Common.Scadenziari;
+using PortaleFatture.BE.Infrastructure.Common.SEND;
+using PortaleFatture.BE.Infrastructure.Common.SEND.Documenti;
+using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Dto;
+using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Service;
+using PortaleFatture.BE.Infrastructure.Common.SEND.Scadenziari;
 using PortaleFatture.BE.Infrastructure.Gateway;
 using PortaleFatture.BE.Infrastructure.Gateway.Storage;
+using PortaleFatture.BE.Infrastructure.Gateway.Storage.pagoPA;
 
 namespace PortaleFatture.BE.Api.Infrastructure;
 public static class ConfigurationExtensions
@@ -159,6 +158,7 @@ public static class ConfigurationExtensions
         // storages
         services.AddSingleton<IRelStorageService, RelStorageService>();
         services.AddSingleton<IDocumentStorageService, DocumentStorageService>();
+        services.AddSingleton<IDocumentStorageSASService, DocumentStorageSASService>();
 
         var serviceProvider = services.BuildServiceProvider();
         var options = serviceProvider.GetRequiredService<IPortaleFattureOptions>();

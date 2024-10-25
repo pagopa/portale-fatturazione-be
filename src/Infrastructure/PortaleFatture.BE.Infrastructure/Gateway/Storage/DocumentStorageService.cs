@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 using PortaleFatture.BE.Core.Common;
 using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Core.Resources;
-using PortaleFatture.BE.Infrastructure.Common.Documenti;
+using PortaleFatture.BE.Infrastructure.Common.SEND.Documenti;
 
 namespace PortaleFatture.BE.Infrastructure.Gateway.Storage;
 

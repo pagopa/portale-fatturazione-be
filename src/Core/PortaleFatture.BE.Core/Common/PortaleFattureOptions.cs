@@ -20,6 +20,7 @@ public sealed class PortaleFattureOptions : IPortaleFattureOptions
     public Storage? Storage { get; set; } 
     public StorageDocumenti? StorageDocumenti { get; set; } 
     public Synapse? Synapse { get; set; }
+    public StoragePagoPAFinancial? StoragePagoPAFinancial { get; set; }
 }
 
 public class Synapse()
@@ -40,6 +41,13 @@ public class StorageDocumenti()
 {
     public string? DocumentiFolder { get; set; } 
     public string? ConnectionString { get; set; }
+}
+
+public class StoragePagoPAFinancial()
+{
+    public string? AccountName { get; set; }
+    public string? AccountKey { get; set; } 
+    public string? BlobContainerName { get; set; }
 }
 
 

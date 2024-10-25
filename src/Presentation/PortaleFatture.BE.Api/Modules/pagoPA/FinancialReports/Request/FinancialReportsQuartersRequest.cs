@@ -1,0 +1,1 @@
+﻿namespace PortaleFatture.BE.Api.Modules.pagoPA.FinancialReports.Request;  public class FinancialReportsQuartersRequest {     public string? Year { get; set; } }

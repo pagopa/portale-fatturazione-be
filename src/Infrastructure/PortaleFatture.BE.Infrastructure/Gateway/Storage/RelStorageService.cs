@@ -4,11 +4,11 @@ using Azure.Storage.Blobs.Models;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using PortaleFatture.BE.Core.Common;
-using PortaleFatture.BE.Core.Entities.DatiRel;
+using PortaleFatture.BE.Core.Entities.SEND.DatiRel;
 using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Core.Resources;
-using PortaleFatture.BE.Infrastructure.Common.DatiRel.Dto;
+using PortaleFatture.BE.Infrastructure.Common.SEND.DatiRel.Dto;
 
 namespace PortaleFatture.BE.Infrastructure.Gateway.Storage;
 

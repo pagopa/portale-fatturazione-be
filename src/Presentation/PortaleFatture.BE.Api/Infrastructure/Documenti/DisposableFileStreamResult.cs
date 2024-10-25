@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.Net.Http.Headers;
 
 namespace PortaleFatture.BE.Api.Infrastructure.Documenti;
 
