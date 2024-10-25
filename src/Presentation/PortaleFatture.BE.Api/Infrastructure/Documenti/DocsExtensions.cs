@@ -3,7 +3,7 @@ using System.IO;
 using CsvHelper;
 using CsvHelper.Configuration;
 using Microsoft.AspNetCore.Mvc;
-using PortaleFatture.BE.Infrastructure.Common.Documenti.Common;
+using PortaleFatture.BE.Infrastructure.Common.SEND.Documenti.Common;
 
 namespace PortaleFatture.BE.Api.Infrastructure.Documenti;
 

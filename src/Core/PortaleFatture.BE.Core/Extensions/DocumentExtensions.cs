@@ -1,9 +1,9 @@
 ﻿using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
-using PortaleFatture.BE.Core.Entities.DatiFatturazioni;
-using PortaleFatture.BE.Core.Entities.DatiModuloCommesse.Dto;
-using PortaleFatture.BE.Core.Entities.DatiRel.Dto;
+using PortaleFatture.BE.Core.Entities.SEND.DatiFatturazioni;
+using PortaleFatture.BE.Core.Entities.SEND.DatiModuloCommesse.Dto;
+using PortaleFatture.BE.Core.Entities.SEND.DatiRel.Dto;
 
 namespace PortaleFatture.BE.Core.Extensions;
 

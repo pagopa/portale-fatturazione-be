@@ -1,5 +1,4 @@
 ﻿using System.Data;
-using PortaleFatture.BE.Core.Entities.SelfCare;
 using PortaleFatture.BE.Core.Entities.Utenti;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 

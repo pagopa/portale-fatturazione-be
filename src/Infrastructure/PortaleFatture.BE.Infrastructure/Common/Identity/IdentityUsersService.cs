@@ -22,7 +22,7 @@ public class IdentityUsersService : IIdentityUsersService
         return list;
     }
 
-    public IList<Claim> GetUserClaimsFromPagoPAUserAsync(AuthenticationInfo? authInfo)
+    public IList<Claim> GetUserClaimsFromPagoPAUserAsync(AuthenticationInfo? authInfo, string? prodotto)
     {
         if (authInfo == null)
             throw new SecurityException();
@@ -34,7 +34,7 @@ public class IdentityUsersService : IIdentityUsersService
                     new(ClaimTypes.Role, authInfo.Ruolo ?? throw new SecurityException()),
                     new(CustomClaim.DescrizioneRuolo, authInfo.DescrizioneRuolo! ?? throw new SecurityException()),
                     new(CustomClaim.Profilo, authInfo.Profilo!),
-                    new(CustomClaim.Prodotto, string.Empty),
+                    new(CustomClaim.Prodotto, prodotto!),
                     new(CustomClaim.IdEnte,  string.Empty),
                     new(CustomClaim.NomeEnte, string.Empty),
                     new(CustomClaim.GruppoRuolo, authInfo.GruppoRuolo ?? throw new SecurityException()),

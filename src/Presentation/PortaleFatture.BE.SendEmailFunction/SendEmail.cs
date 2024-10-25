@@ -3,10 +3,10 @@ using System.Reflection;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
-using PortaleFatture.BE.Core.Entities.DatiRel.Dto;
+using PortaleFatture.BE.Core.Entities.SEND.DatiRel.Dto;
 using PortaleFatture.BE.Core.Extensions;
-using PortaleFatture.BE.Infrastructure.Common.DatiRel.Services;
-using PortaleFatture.BE.Infrastructure.Common.Documenti;
+using PortaleFatture.BE.Infrastructure.Common.SEND.DatiRel.Services;
+using PortaleFatture.BE.Infrastructure.Common.SEND.Documenti;
 using PortaleFatture.BE.Infrastructure.Gateway.Email;
 using PortaleFatture_BE_SendEmailFunction.Models;
 

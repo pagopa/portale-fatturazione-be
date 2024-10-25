@@ -1,11 +1,10 @@
 ﻿using System.Reflection;
 using Microsoft.Extensions.Configuration;
-using PortaleFatture.BE.Core.Entities.DatiRel.Dto;
-using PortaleFatture.BE.Core.Entities.SelfCare;
+using PortaleFatture.BE.Core.Entities.SEND.DatiRel.Dto;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.EmailSender.Models;
-using PortaleFatture.BE.Infrastructure.Common.DatiRel.Services;
-using PortaleFatture.BE.Infrastructure.Common.Documenti;
+using PortaleFatture.BE.Infrastructure.Common.SEND.DatiRel.Services;
+using PortaleFatture.BE.Infrastructure.Common.SEND.Documenti;
 using PortaleFatture.BE.Infrastructure.Gateway.Email;
 
 var risposta = new Risposta();
@@ -28,7 +27,7 @@ try
 
     // params
     var anno = 2024;
-    var mese = 6;
+    var mese = 8;
     var tipologiafattura = "PRIMO SALDO";
     var data = DateTime.UtcNow.ItalianTime().ToString("yyyy-MM-dd HH:mm:ss");
     var ricalcola = 0;
@@ -91,7 +90,7 @@ try
 
     foreach (var ente in enti!)
     {
-        var dummy = builder.CreateEmailHtml(ente)!;
+        //var dummy = builder.CreateEmailHtml(ente)!;
 
         //var (msg, ver) = sender.SendEmail(ente.Pec!, subject, builder.CreateEmailHtml(ente)!);
         //if (!ver)

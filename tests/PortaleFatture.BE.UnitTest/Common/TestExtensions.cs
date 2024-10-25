@@ -1,9 +1,4 @@
-﻿using System.Reflection.Metadata;
-using MediatR;
-using PortaleFatture.BE.Core.Auth;
-using PortaleFatture.BE.Core.Extensions;
-using PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.Commands;
-using PortaleFatture.BE.Infrastructure.Common.Tipologie.Queries;
+﻿using PortaleFatture.BE.Core.Auth;
 
 namespace PortaleFatture.BE.UnitTest.Common;
 

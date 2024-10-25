@@ -1,4 +1,4 @@
-﻿using PortaleFatture.BE.Infrastructure.Common.Documenti;
+﻿using PortaleFatture.BE.Infrastructure.Common.SEND.Documenti;
 
 namespace PortaleFatture.BE.Infrastructure.Gateway.Storage
 {

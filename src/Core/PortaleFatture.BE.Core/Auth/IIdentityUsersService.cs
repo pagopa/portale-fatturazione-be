@@ -1,5 +1,6 @@
 ﻿using System.Security.Claims;
 using PortaleFatture.BE.Core.Auth;
+using PortaleFatture.BE.Core.Auth.PagoPA;
 
 namespace PortaleFatture.BE.Infrastructure.Common.Identity
 {
@@ -7,6 +8,6 @@ namespace PortaleFatture.BE.Infrastructure.Common.Identity
     {
         List<IList<Claim>> GetListUserClaimsFromUserAsync(List<AuthenticationInfo>? authInfos);
         IList<Claim> GetUserClaimsFromSelfCareUserAsync(AuthenticationInfo? authInfo);
-        IList<Claim> GetUserClaimsFromPagoPAUserAsync(AuthenticationInfo? authInfo);
+        IList<Claim> GetUserClaimsFromPagoPAUserAsync(AuthenticationInfo? authInfo, string? prodotto);
     }
 }

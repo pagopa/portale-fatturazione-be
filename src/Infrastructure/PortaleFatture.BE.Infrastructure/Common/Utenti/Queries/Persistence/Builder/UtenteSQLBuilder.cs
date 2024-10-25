@@ -1,5 +1,5 @@
 ﻿using Dapper;
-using PortaleFatture.BE.Core.Entities.SelfCare;
+using PortaleFatture.BE.Core.Entities.SEND.SelfCare;
 using PortaleFatture.BE.Core.Entities.Utenti;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 

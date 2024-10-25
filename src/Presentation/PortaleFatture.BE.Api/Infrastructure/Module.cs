@@ -21,6 +21,13 @@ public abstract class Module : IModule
     public static string DatiMessaggiPagoPA = "Dati Messaggi PagoPA";
     public static string DatiAccertamentiPagoPA = "Accertamenti PagoPA";
 
+    // prodotto pagoPA
+    public static string PSP = "PSP prodotto PagoPA";
+    public static string FinancialReports = "Financial Reports prodotto PagoPA";
+
+
+
+
     public const string CORSLabel = "portalefatture";
     public const string GatewayLabel = "gateway";
     public const string HealthcheckLabel = "health";

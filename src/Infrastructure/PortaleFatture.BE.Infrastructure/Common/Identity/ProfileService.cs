@@ -1,6 +1,4 @@
-﻿using System.Diagnostics.Eventing.Reader;
-using System.Linq;
-using System.Security;
+﻿using System.Security;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using PortaleFatture.BE.Core.Auth;
@@ -10,7 +8,7 @@ using PortaleFatture.BE.Core.Common;
 using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Infrastructure.Common.Identity.Extensions;
-using PortaleFatture.BE.Infrastructure.Common.SelfCare.Queries;
+using PortaleFatture.BE.Infrastructure.Common.SEND.SelfCare.Queries;
 using PortaleFatture.BE.Infrastructure.Gateway;
 
 namespace PortaleFatture.BE.Infrastructure.Common.Identity;

@@ -1,8 +1,8 @@
 ﻿using MediatR;
-using PortaleFatture.BE.Core.Entities.DatiModuloCommesse;
+using PortaleFatture.BE.Core.Entities.SEND.DatiModuloCommesse;
 using PortaleFatture.BE.Core.Extensions;
-using PortaleFatture.BE.Infrastructure.Common.DatiModuloCommesse.Commands;
-using PortaleFatture.BE.Infrastructure.Common.Tipologie.Queries;
+using PortaleFatture.BE.Infrastructure.Common.SEND.DatiModuloCommesse.Commands;
+using PortaleFatture.BE.Infrastructure.Common.SEND.Tipologie.Queries;
 
 namespace PortaleFatture.BE.UnitTest.Common;
 

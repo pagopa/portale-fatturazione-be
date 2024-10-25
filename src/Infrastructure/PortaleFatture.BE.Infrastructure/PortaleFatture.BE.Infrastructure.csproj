@@ -7,6 +7,18 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <Compile Remove="Common\Storici\CommandHandlers\**" />
+      <Compile Remove="Common\SEND\Tipologie\CommandHandles\**" />
+      <Compile Remove="Common\SEND\Tipologie\Commands\**" />
+      <EmbeddedResource Remove="Common\Storici\CommandHandlers\**" />
+      <EmbeddedResource Remove="Common\SEND\Tipologie\CommandHandles\**" />
+      <EmbeddedResource Remove="Common\SEND\Tipologie\Commands\**" />
+      <None Remove="Common\Storici\CommandHandlers\**" />
+      <None Remove="Common\SEND\Tipologie\CommandHandles\**" />
+      <None Remove="Common\SEND\Tipologie\Commands\**" />
+    </ItemGroup>
+
+    <ItemGroup>
         <PackageReference Include="Azure.Identity" Version="1.12.0" />
         <PackageReference Include="Azure.Storage.Blobs" Version="12.21.1" />
         <PackageReference Include="Azure.Storage.Common" Version="12.20.1" />
@@ -30,12 +42,6 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\Core\PortaleFatture.BE.Core\PortaleFatture.BE.Core.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="Common\Storici\CommandHandlers\" />
-      <Folder Include="Common\Tipologie\CommandHandles\" />
-      <Folder Include="Common\Tipologie\Commands\Persistence\" />
     </ItemGroup>
 
 </Project>

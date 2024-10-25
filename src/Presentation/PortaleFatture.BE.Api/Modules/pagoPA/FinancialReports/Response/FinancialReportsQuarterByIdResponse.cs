@@ -1,0 +1,1 @@
+﻿using PortaleFatture.BE.Infrastructure.Common.pagoPA.AnagraficaPSP.Dto; using PortaleFatture.BE.Infrastructure.Common.pagoPA.FinancialReports.Dto;  namespace PortaleFatture.BE.Api.Modules.pagoPA.FinancialReports.Request;  public class FinancialReportsQuarterByIdResponse {     public GridFinancialReportDto? Report { get; set; }      public PSP? PSP { get; set; } }
