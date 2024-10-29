@@ -23,11 +23,16 @@ public sealed class FinancialReportQueryGetFinancialReportExcelPersistence(Finan
 
         dynamic parameters = new ExpandoObject();
 
-        if (!_command.Quarters.IsNullNotAny())
+        if (_command.Quarters.IsNullNotAny())
         {
-            where.AddInOrder(" k.year_quarter IN @Quarters");
-            parameters.Quarters = _command.Quarters;
+            parameters.Quarters = new List<string>();
+            foreach (var quarter in new[] { "_1", "_2", "_3", "_4" })
+                parameters.Quarters.Add($"{_command.Year}{quarter}");
         }
+        else
+            parameters.Quarters = _command.Quarters;
+
+        where.AddInOrder(" r.year_quarter IN @Quarters");
 
         if (!_command.ContractIds.IsNullNotAny())
         {

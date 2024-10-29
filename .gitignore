@@ -532,3 +532,9 @@ src/Presentation/PortaleFatture.BE.Api/Properties
 src/Presentation/PortaleFatture.BE.SendEmailFunction/Properties
 src/Presentation/PortaleFatture.BE.SendEmailFunction/PortaleFatture.BE.SendEmailFunction.sln
 src/Presentation/PortaleFatture.BE.EmailSender/Infrastructure/Documenti/enti.csv
+src/Presentation/PortaleFatture.BE.ImportFinancepagoPA/data
+*.env
+*.dev
+src/Presentation/PortaleFatture.BE.ImportFinancepagoPA/.env.prod
+src/Presentation/PortaleFatture.BE.ImportFinancepagoPA/.env.uat
+src/Presentation/PortaleFatture.BE.ImportFinancepagoPA/libs

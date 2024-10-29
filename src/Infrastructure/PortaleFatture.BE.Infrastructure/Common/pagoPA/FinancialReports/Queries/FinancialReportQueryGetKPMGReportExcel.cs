@@ -11,4 +11,5 @@ public class FinancialReportQueryGetKPMGReportExcel(IAuthenticationInfo authenti
     public string? RecipientId { get; set; }
     public string? ABI { get; set; }
     public string[]? Quarters { get; set; }
+    public string? Year { get; set; }
 }

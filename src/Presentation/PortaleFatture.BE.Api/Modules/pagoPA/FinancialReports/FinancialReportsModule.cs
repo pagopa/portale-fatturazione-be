@@ -1,6 +1,4 @@
 ﻿using System.Data;
-using System.Linq;
-using DocumentFormat.OpenXml.Spreadsheet;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
@@ -115,7 +113,7 @@ public partial class FinancialReportsModule : Module, IRegistrableModule
         if (quarters.IsNullNotAny())
             return NotFound();  
 
-        var values = quarters.Select(x => x.Split("_")[0]).Distinct().OrderBy(y => y).ToList();
+        var values = quarters.Select(x => x.Split("_")[0]).Distinct().OrderByDescending(y => y).ToList();
 
         return Ok(values);
     }
@@ -141,7 +139,7 @@ public partial class FinancialReportsModule : Module, IRegistrableModule
         var mime = "application/vnd.ms-excel";
         var filename = $"{Guid.NewGuid()}.xlsx";
 
-        var dataSet = reports!.FillPagoPAOneSheet();
+        var dataSet = reports!.FillPagoPAOneSheet("Documenti Contabili");
         var content = dataSet.ToExcel();
 
         content.Seek(0, SeekOrigin.Begin);

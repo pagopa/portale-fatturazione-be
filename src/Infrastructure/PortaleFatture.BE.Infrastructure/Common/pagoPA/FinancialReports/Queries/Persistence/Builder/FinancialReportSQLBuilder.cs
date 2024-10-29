@@ -65,15 +65,21 @@ SELECT
 ";
 
     private static string _sqlFinancialReport = @"
-SELECT [abi] as ABI
-      ,[recipient_id] as RecipientId
-      ,[name]
-      ,[category]
-      ,[current_trx] as CurrentTrx
-      ,[value]
-      ,[codice_articolo] as CodiceArticolo
-      ,[year_quarter] as YearQuarter
-  FROM [ppa].[FinancialReports]
+SELECT r.[abi] as ABI
+      ,r.[recipient_id] as RecipientId
+      ,r.[name]
+      ,r.[category]
+      ,r.[current_trx] as CurrentTrx
+      ,r.[value]
+      ,r.[codice_articolo] as CodiceArticolo
+      ,r.[year_quarter] as YearQuarter 
+  FROM  [ppa].[FinancialReports] r 
+    left outer join ppa.Contracts c
+    on r.[recipient_id] = c.contract_id
+	left outer join [ppa].[KPMG] k
+	ON k.contract_id = c.contract_id
+	and k.year_quarter = r.year_quarter
+    and k.codice_articolo = r.codice_articolo  
 ";
     private static string _sqlQuarters = @"
 SELECT  distinct(year_quarter)
@@ -167,7 +173,7 @@ SELECT
 
     public static string OrderByFinancialReport()
     {
-        return " order by recipient_id asc";
+        return " order by r.recipient_id asc";
     }
 
     public static string OrderByKPMGReport()
