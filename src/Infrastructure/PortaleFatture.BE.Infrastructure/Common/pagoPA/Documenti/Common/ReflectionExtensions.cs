@@ -192,10 +192,10 @@ public static class ReflectionExtensions
         return table;
     }
 
-    public static DataSet FillPagoPAOneSheet<T>(this IEnumerable<T> data)
+    public static DataSet FillPagoPAOneSheet<T>(this IEnumerable<T> data, string tableName = "")
     {
         var ds = new DataSet();
-        var (table, headers) = ToTable<T>();
+        var (table, headers) = ToTable<T>(tableName);
         DataRow row;
         foreach (var d in data)
         {

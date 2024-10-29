@@ -84,7 +84,7 @@ public partial class PSPModule : Module, IRegistrableModule
         var mime = "application/vnd.ms-excel";
         var filename = $"{Guid.NewGuid()}.xlsx";
 
-        var dataSet = psp.PSPs!.FillPagoPAOneSheet();
+        var dataSet = psp.PSPs!.FillPagoPAOneSheet("Anagrafica PSP");
         var content = dataSet.ToExcel();
 
         content.Seek(0, SeekOrigin.Begin);

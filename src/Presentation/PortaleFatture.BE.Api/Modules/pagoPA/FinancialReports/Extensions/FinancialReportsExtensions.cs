@@ -64,7 +64,8 @@ public static class FinancialReportsExtensions
             MembershipId = req.MembershipId,
             RecipientId = req.RecipientId,
             ABI = req.ABI,
-            Quarters = req.Quarters
+            Quarters = req.Quarters,
+            Year = req.Year
         };
     }
 
@@ -73,7 +74,7 @@ public static class FinancialReportsExtensions
         return new FinancialReportQueryGetByRicerca(authInfo)
         {
             ContractIds = [req.ContractId!],
-            Quarters = [req.Quarter!]
+            Quarters = [req.Quarter!] 
         };
     }
 
@@ -93,19 +94,21 @@ public static class FinancialReportsExtensions
             MembershipId = req.MembershipId,
             RecipientId = req.RecipientId,
             ABI = req.ABI,
-            Quarters = req.Quarters
+            Quarters = req.Quarters,
+            Year = req.Year
         };
     }
 
-    public static FinancialReportQueryGetFinancialReportExcel Mapv3(this FinancialReportsRequest req, AuthenticationInfo authInfo)
+    public static FinancialReportQueryGetByRicercaExcel Mapv3(this FinancialReportsRequest req, AuthenticationInfo authInfo)
     {
-        return new FinancialReportQueryGetFinancialReportExcel(authInfo)
+        return new FinancialReportQueryGetByRicercaExcel(authInfo)
         {
             ContractIds = req.ContractIds.IsNullNotAny() ? null : req.ContractIds,
             MembershipId = req.MembershipId,
             RecipientId = req.RecipientId,
             ABI = req.ABI,
-            Quarters = req.Quarters
+            Quarters = req.Quarters,
+            Year = req.Year
         };
     }
 

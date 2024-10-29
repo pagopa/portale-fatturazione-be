@@ -14,7 +14,8 @@ public static class FinancialReportExtensions
             ContractIds = request.ContractIds,
             Quarters = request.Quarters,
             MembershipId = request.MembershipId,
-            RecipientId = request.RecipientId
+            RecipientId = request.RecipientId,
+            Year = request.Year
         };
     }
     public static IEnumerable<GridFinancialReportDto> Mapv2(this IEnumerable<GridFinancialReportDto> fr)
