@@ -4,7 +4,12 @@ using PortaleFatture.BE.Infrastructure.Common.pagoPA.Documenti.Common;
 namespace PortaleFatture.BE.Infrastructure.Common.pagoPA.FinancialReports.Dto;
 
 public sealed class GridFinancialReportDto 
-{
+{ 
+    public string? Key
+    {
+        get { return $"{ContractId!}|{YearQuarter}|{Numero}"; } 
+    }
+
     [HeaderPagoPA(caption: "Name", Order = 1)]
     public string? Name { get; set; }
 
