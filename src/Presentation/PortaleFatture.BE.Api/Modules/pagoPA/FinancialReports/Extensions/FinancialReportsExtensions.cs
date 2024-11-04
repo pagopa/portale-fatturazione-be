@@ -1,8 +1,10 @@
 ﻿using System.Collections.Generic;
 using System.Data;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml.Drawing.Diagrams;
 using DocumentFormat.OpenXml.Spreadsheet;
+using PortaleFatture.BE.Api.Modules.pagoPA.FinancialReports.Dto;
 using PortaleFatture.BE.Api.Modules.pagoPA.FinancialReports.Request;
 using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Extensions;
@@ -69,20 +71,34 @@ public static class FinancialReportsExtensions
         };
     }
 
+    private static DetailReportDto FromKey(this string key)
+    {
+        var split = key.Split("|");
+        return new DetailReportDto()
+        {
+            ContractId = split[0],
+            YearQuarter = split[1],
+            Numero = split[2]
+        };
+    }
+
     public static FinancialReportQueryGetByRicerca Map(this FinancialReportsPSPRequest req, AuthenticationInfo authInfo)
     {
+        var detail = req.Key!.FromKey();
         return new FinancialReportQueryGetByRicerca(authInfo)
         {
-            ContractIds = [req.ContractId!],
-            Quarters = [req.Quarter!] 
+            ContractIds = [detail.ContractId!],
+            Quarters = [detail.YearQuarter!],
+            Numero = detail.Numero!
         };
     }
 
     public static PSPQueryGetByRicerca Mapv2(this FinancialReportsPSPRequest req, AuthenticationInfo authInfo)
     {
+        var detail = req.Key!.FromKey();
         return new PSPQueryGetByRicerca(authInfo)
         {
-            ContractIds = [req.ContractId!]
+            ContractIds = [detail.ContractId!]
         };
     }
 
@@ -123,13 +139,16 @@ public static class FinancialReportsExtensions
 
     private static string? TableName(this string yearQuarter, int kpmg)
     {
-        var namedQuarter = yearQuarter switch
-        {
-            "2024_1" => "q1",
-            "2024_2" => "q2",
-            "2024_3" => "q3",
-            _ => "q4",
-        };
+        string? namedQuarter;
+        if (yearQuarter.Contains("_1"))
+            namedQuarter = "q1";
+        else if (yearQuarter.Contains("_2"))
+            namedQuarter = "q2";
+        else if (yearQuarter.Contains("_3"))
+            namedQuarter = "q3";
+        else  
+            namedQuarter = "q4";
+        
         var year = yearQuarter.Split("_")[0];
         return kpmg switch
         {

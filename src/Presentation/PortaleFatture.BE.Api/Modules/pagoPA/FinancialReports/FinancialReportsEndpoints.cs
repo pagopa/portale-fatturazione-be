@@ -15,7 +15,7 @@ public partial class FinancialReportsModule
 
         endpointRouteBuilder
            .MapPost("api/v2/pagopa/financialreports/dettaglio", PostFinancialReportsByPSP)
-           .WithName("Permette di visualizzare i dati relativi ai financial reports PSP pagoPA")
+           .WithName("Permette di visualizzare i dati relativi al financial report PSP pagoPA")
            .SetOpenApi(Module.FinancialReports)
            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
  

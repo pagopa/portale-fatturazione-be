@@ -56,8 +56,8 @@ public static class FinancialReportExtensions
         Dictionary<string, GridFinancialReportDto> listaReports = [];
         foreach (var ff in fr.FinancialReports!)
         {
-            var key = ff.Key();
-            if (!listaReports.TryGetValue(key, out var actualValue))
+            var key = ff.Key;
+            if (!listaReports.TryGetValue(key!, out var actualValue))
                 actualValue = ff;
 
             if (String.IsNullOrEmpty(ff.CodiceArticolo))
@@ -87,8 +87,8 @@ public static class FinancialReportExtensions
         return fr;
     }
 
-    public static string Key(this GridFinancialReportDto ff)
-    {
-        return ff.ContractId! + "|" + ff.YearQuarter;
-    }
+    //public static string Key(this GridFinancialReportDto ff)
+    //{
+    //    return $"{ff.ContractId!}|{ff.YearQuarter}|{ff.Numero}";
+    //}
 }

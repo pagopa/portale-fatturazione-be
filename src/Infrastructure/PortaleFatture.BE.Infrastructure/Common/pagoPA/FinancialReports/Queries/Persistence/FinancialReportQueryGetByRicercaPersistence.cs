@@ -38,6 +38,12 @@ public sealed class FinancialReportQueryGetByRicercaPersistence(FinancialReportQ
  
         where.AddInOrder(" k.year_quarter IN @Quarters");
 
+        if (!string.IsNullOrEmpty(_command.Numero))
+        {
+            where.AddInOrder(" k.numero = @Numero");
+            parameters.Numero = _command.Numero;
+        }
+
         if (!_command.ContractIds.IsNullNotAny())
         {
             where.AddInOrder(" c.contract_id IN @ContractIds");

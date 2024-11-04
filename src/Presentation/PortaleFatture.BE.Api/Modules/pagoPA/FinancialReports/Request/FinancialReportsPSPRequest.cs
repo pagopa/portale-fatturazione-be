@@ -1,1 +1,1 @@
-﻿namespace PortaleFatture.BE.Api.Modules.pagoPA.FinancialReports.Request;  public class FinancialReportsPSPRequest {     public string? ContractId { get; set; }      public string? Quarter { get; set; } }
+﻿namespace PortaleFatture.BE.Api.Modules.pagoPA.FinancialReports.Request;  public class FinancialReportsPSPRequest {     public string? Key { get; set; }   }

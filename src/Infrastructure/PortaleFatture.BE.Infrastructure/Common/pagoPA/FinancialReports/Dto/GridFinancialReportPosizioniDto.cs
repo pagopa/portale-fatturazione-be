@@ -3,7 +3,7 @@
 namespace PortaleFatture.BE.Infrastructure.Common.pagoPA.FinancialReports.Dto;
 
 public sealed class GridFinancialReportPosizioniDto
-{
+{ 
     [HeaderPagoPA(caption: "Category", Order = 1)]
     public string? Category { get; set; }
 
