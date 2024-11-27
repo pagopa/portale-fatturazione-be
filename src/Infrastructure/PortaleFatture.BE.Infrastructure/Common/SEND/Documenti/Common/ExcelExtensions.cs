@@ -271,7 +271,7 @@ public static class ExcelExtensions
             return false;
 
         // Check if the input starts with a leading zero (but not just "0")
-        if (inputStr.Length > 1 && inputStr.StartsWith("0"))
+        if (inputStr!.Length > 1 && inputStr.StartsWith("0"))
             return false;
 
         // Try to parse as decimal
@@ -402,7 +402,7 @@ public static class ExcelExtensions
                     sheetData.AppendChild(newRow);
                 }
             }
-            workbook.Close();
+            //workbook.Close();
         }
         memoryStream.Seek(0, SeekOrigin.Begin);
         return memoryStream;

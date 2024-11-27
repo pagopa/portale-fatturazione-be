@@ -71,7 +71,8 @@ FROM   [pfd].[fatturetestata]
 WHERE  annoriferimento = @anno
        AND meseriferimento = @mese
        AND fktipologiafattura = @TipologiaFattura
-       AND [fatturainviata] = @StatoAtteso ";
+       AND [fatturainviata] = @StatoAtteso 
+       AND FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865' --esclusione pagopa ";
 
     private static string _orderByFattureInvioSap = @"
     ORDER BY
@@ -160,6 +161,11 @@ AND t.FkTipologiaFattura IN @ListaTipologiaFattura;
 ";
 
     private static string _sqlFattureInvioSap = @"
+WITH filterData AS (
+  SELECT *
+  FROM [pfd].[FattureTestata]
+  WHERE FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865'
+)
 SELECT  
   [FkTipologiaFattura] AS TipologiaFattura,
   COUNT(*) AS NumeroFatture,
@@ -178,7 +184,7 @@ SELECT
         ELSE 6
   END AS ordine
 FROM
-  [pfd].[FattureTestata] t
+  filterData t 
 ";
 
     private static string _groupByFattureInvioSap = @"
