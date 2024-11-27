@@ -7,6 +7,16 @@ namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Extensions;
 
 public static class FattureExtensions
 {
+    public static FattureCommessaEliminateExcelQuery Map(this FattureCommessaExcelQuery command)
+    {
+        return new FattureCommessaEliminateExcelQuery(command.AuthenticationInfo)
+        {
+            Anno = command.Anno,
+            IdEnti = command.IdEnti,
+            Mese = command.Mese
+        };
+    }
+
     public static FattureIdsQueryByParameters Map(this FatturaRiptristinoSAPCommand command)
     {
         return new FattureIdsQueryByParameters(command.AuthenticationInfo!,

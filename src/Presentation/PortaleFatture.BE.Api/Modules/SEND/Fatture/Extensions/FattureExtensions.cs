@@ -129,8 +129,10 @@ public static class FattureExtensions
                 dataSet.Tables.Add(commesse[i]!.FillTableWithTotalsRel(0, $"Commesse stimate fatt. {month}"));
             else if (i == 3)
                 dataSet.Tables.Add(commesse[i]!.FillTableWithTotalsRel(0, $"Commesse fatt. {month}"));
-            else
+            else if (i == 4)
                 dataSet.Tables.Add(commesse[i]!.FillTableWithTotalsRel(0, $"Commesse non fatt. {month}"));
+            else
+                dataSet.Tables.Add(commesse[i]!.FillTableWithTotalsRel(0, $"Commesse eliminate fatt. {month}"));
         }
 
         using var memory = dataSet!.ToExcel();

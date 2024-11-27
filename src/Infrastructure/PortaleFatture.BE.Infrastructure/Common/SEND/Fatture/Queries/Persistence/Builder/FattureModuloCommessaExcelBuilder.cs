@@ -2,6 +2,21 @@
 
 public static class FattureModuloCommessaExcelBuilder
 {
+    private static string _sqlCommesseEliminate = @"
+SELECT * from
+pfd.vModuloCommessaTotali t 
+inner join 
+pfd.vModuloCommessaParziali p
+ON t.FKIdEnte = p.FKIdEnte
+AND t.AnnoValidita= p.AnnoValidita
+AND t.MeseValidita = p.MeseValidita
+inner join
+pfd.vFattureAnticipoEliminate f
+ON f.Anno = t.AnnoValidita
+AND f.IdEnte = t.FKIdEnte 
+AND f.Mese = t.MeseValidita
+";
+
     private static string _sqlCommesse = @"
 SELECT * from
 pfd.vModuloCommessaTotali t 
@@ -20,6 +35,11 @@ AND f.IdEnte = t.FKIdEnte
     public static string SelectCommesse()
     {
         return _sqlCommesse;
+    }
+
+    public static string SelectCommesseEliminate()
+    {
+        return _sqlCommesseEliminate;
     }
 
     private static string _sqlORderBy = @"
