@@ -1,5 +1,4 @@
 ﻿using System.Globalization;
-using System.IO;
 using CsvHelper;
 using CsvHelper.Configuration;
 using Microsoft.AspNetCore.Mvc;
@@ -17,39 +16,42 @@ public static class DocsExtensions
         HasHeaderRecord = true
     };
 
+    [Obsolete("This method is obsolete. Use ToStream instead.", false)]
     public static async Task<byte[]?> ToArray<T, M>(this IEnumerable<T> lista) where M : ClassMap<T>
     {
         byte[]? data;
         using (var stream = new MemoryStream())
         {
-            using (TextWriter textWriter = new StreamWriter(stream))
-            {
-                using var csv = new CsvWriter(textWriter, _csvConfiguration);
-                csv.Context.RegisterClassMap<M>();
-                stream.Position = 0;
-                await csv.WriteRecordsAsync(lista!);
-                await textWriter.FlushAsync();
-                await stream.FlushAsync();
-                data = stream.ToArray();
-                await csv.FlushAsync();
-            }
+            using TextWriter textWriter = new StreamWriter(stream);
+            using var csv = new CsvWriter(textWriter, _csvConfiguration);
+            csv.Context.RegisterClassMap<M>();
+            stream.Position = 0;
+            await csv.WriteRecordsAsync(lista!);
+            await textWriter.FlushAsync();
+            await stream.FlushAsync();
+            data = stream.ToArray();
+            await csv.FlushAsync();
         }
         return data;
     }
+
     public static async Task<Stream> ToStream<T, M>(this IEnumerable<T> lista) where M : ClassMap<T>
     {
         var stream = new MemoryStream();
-        TextWriter textWriter = new StreamWriter(stream);
-        var csv = new CsvWriter(textWriter, _csvConfiguration);
-        csv.Context.RegisterClassMap<M>();
-        await csv.FlushAsync();
-        await csv.WriteRecordsAsync(lista!);
-        await textWriter.FlushAsync(); 
-        await stream.FlushAsync();
+
+        using (var textWriter = new StreamWriter(stream, leaveOpen: true))
+        using (var csv = new CsvWriter(textWriter, _csvConfiguration))
+        {
+            csv.Context.RegisterClassMap<M>();
+            await csv.WriteRecordsAsync(lista);
+            await textWriter.FlushAsync();
+        }
+
         stream.Seek(0, SeekOrigin.Begin);
         return stream;
     }
 
+    [Obsolete("This method is obsolete. Use ToStream instead.", false)]
     private static async Task<IResult> ToFile<T, M>(this IEnumerable<T> lista) where M : ClassMap<T>
     {
         var filename = $"{Guid.NewGuid()}.csv";
@@ -70,6 +72,8 @@ public static class DocsExtensions
         }
         return Results.File(data!, _mimeCsv, filename, enableRangeProcessing: true);
     }
+
+    [Obsolete("This method is obsolete.", false)]
     public static void ForceGarbageCollection()
     {
         // Force a full collection of all generations
@@ -81,11 +85,14 @@ public static class DocsExtensions
         // Optionally, force another collection to reclaim objects that became unreachable due to finalizers
         GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true, compacting: true);
     }
+
+    [Obsolete("This method is obsolete.", false)]
     public static async Task<IResult> ToCsv<T, M>(this IEnumerable<T> lista) where M : ClassMap<T>
     {
         return await ToFile<T, M>(lista);
     }
 
+    [Obsolete("This method is obsolete.", false)]
     public static async Task<FileStreamResult> ToCsvv2<T, M>(this IEnumerable<T> lista) where M : ClassMap<T>
     {
         var filename = $"{Guid.NewGuid()}.csv";
@@ -107,6 +114,7 @@ public static class DocsExtensions
         };
     }
 
+    [Obsolete("This method is obsolete.", false)]
     public static async Task<IResult> ToExcel<T>(this IEnumerable<T> lista)
     {
         var filename = $"{Guid.NewGuid()}.xlsx";
@@ -120,6 +128,7 @@ public static class DocsExtensions
         return Results.File(data!, _mimeExcel, filename);
     }
 
+    [Obsolete("This method is obsolete.", false)]
     public static async Task<IResult> ToExcelv2<T>(this IEnumerable<T> lista)
     {
         var filename = $"{Guid.NewGuid()}.xlsx";

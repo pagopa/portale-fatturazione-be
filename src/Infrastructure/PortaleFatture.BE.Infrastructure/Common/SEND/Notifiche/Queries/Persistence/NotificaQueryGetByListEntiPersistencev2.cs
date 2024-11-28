@@ -157,6 +157,7 @@ public class NotificaQueryGetByListEntiPersistencev2(NotificaQueryGetByListaEnti
         var totalCount = 0;
         using (var cmd = ((SqlConnection)connection!).CreateCommand())
         {
+            cmd.CommandTimeout = 320;
             cmd.CommandText = sql;
             cmd.Parameters.AddRange([.. sqlParameters]);
 

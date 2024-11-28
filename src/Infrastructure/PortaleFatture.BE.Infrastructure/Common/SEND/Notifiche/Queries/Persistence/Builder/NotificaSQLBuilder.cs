@@ -2,6 +2,7 @@
 
 internal static class NotificaSQLBuilder
 {
+    // non metto LEFT JOIN pfd.Notifiche_CodiceOggetto g ON n.event_id = g.event_id
     private static string _sqlCount = @"
 SELECT Count(n.internal_organization_id) 
 FROM pfd.[Notifiche] n
@@ -22,8 +23,8 @@ SELECT [contract_id] AS IdContratto,
        [cost_eurocent] AS CostEuroInCentesimi,
        [timeline_category] AS TimelineCategory,
        [notificationtype] AS TipoNotifica,
-       [event_id] AS IdNotifica,
-       [iun] AS Iun,
+       n.[event_id] AS IdNotifica,
+       n.[iun] AS Iun,
        [notification_sent_at] AS DataInvio ,
        [internal_organization_id] AS IdEnte ,
        [event_timestamp] AS DATA ,
@@ -38,6 +39,7 @@ SELECT [contract_id] AS IdContratto,
        [recipient_tax_id] AS RecipientTaxId,
        [Recapitista] AS Recapitista,
        [Consolidatore] AS Consolidatore,
+	   g.CodiceOggetto as CodiceOggetto,
        e.description AS RagioneSociale,
        e.institutionType AS Profilo,
        c.product AS Prodotto,
@@ -61,6 +63,7 @@ SELECT [contract_id] AS IdContratto,
 FROM pfd.[Notifiche] n
 INNER JOIN pfd.Enti e ON e.InternalIstitutionId = n.internal_organization_id
 INNER JOIN pfd.Contratti c ON e.InternalIstitutionId = c.internalistitutionid
+LEFT JOIN pfd.Notifiche_CodiceOggetto g ON n.event_id = g.event_id
 LEFT JOIN pfw.Contestazioni t ON t.FkIdNotifica = n.event_id
 INNER JOIN pfw.FlagContestazione f ON f.IdFlagContestazione = ISNULL(t.FkIdFlagContestazione, 1)
 LEFT JOIN pfw.TipoContestazione a ON a.IdTipoContestazione = t.FkIdTipoContestazione

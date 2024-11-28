@@ -1,4 +1,5 @@
-﻿using MediatR;
+﻿using System.IO;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -13,6 +14,7 @@ using PortaleFatture.BE.Api.Modules.SEND.Notifiche.Extensions;
 using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Entities.SEND.DatiRel;
 using PortaleFatture.BE.Core.Entities.SEND.DatiRel.Dto;
+using PortaleFatture.BE.Core.Entities.SEND.Notifiche;
 using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Core.Resources;
@@ -301,7 +303,7 @@ public partial class RelModule
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    private async Task GetPagoPARelRigheDocumentAsync(
+    private async Task<IResult> GetPagoPARelRigheDocumentAsync(
     HttpContext context,
     [FromRoute] string? id,
     [FromServices] IStringLocalizer<Localization> localizer,
@@ -317,19 +319,14 @@ public partial class RelModule
         };
 
         var rels = await handler.Send(request.Map(authInfo));
-        if (rels == null || rels.Count() == 0)
-        {
-            await Results.NotFound("Data not found").ExecuteAsync(context);
-            return;
-        }
+        if (rels.IsNullNotAny())
+            return NotFound();
 
-        var data = await rels.ToArray<RigheRelDto, RigheRelDtoPagoPAMap>();
+        var stream = await rels!.ToStream<RigheRelDto, RigheRelDtoPagoPAMap>();
         var filename = $"{Guid.NewGuid()}.csv";
         var mimeCsv = "text/csv";
-        await Results.File(data!, mimeCsv, filename, enableRangeProcessing: true).ExecuteAsync(context);
-
-        data = null;
-        DocsExtensions.ForceGarbageCollection();
+        stream.Position = 0;
+        return Results.Stream(stream, mimeCsv, filename);
     }
 
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
@@ -620,7 +617,7 @@ public partial class RelModule
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    private async Task GetRelRigheDocumentAsync(
+    private async Task<IResult> GetRelRigheDocumentAsync(
     HttpContext context,
     [FromRoute] string? id,
     [FromServices] IStringLocalizer<Localization> localizer,
@@ -635,16 +632,17 @@ public partial class RelModule
 
         var rels = await handler.Send(request.Map(authInfo));
         if (rels == null || !rels.Any())
-        {
-            await Results.NotFound("Data not found").ExecuteAsync(context);
-            return;
-        }
+            return NotFound();
 
-        var data = await rels.ToArray<RigheRelDto, RigheRelDtoEnteMap>();
+        var stream = await rels!.ToStream<RigheRelDto, RigheRelDtoEnteMap>();
+        if (stream.Length == 0)
+            return NotFound();
+
         var filename = $"{Guid.NewGuid()}.csv";
         var mimeCsv = "text/csv";
 
-        await context.Download(data, mimeCsv, filename); 
+        stream.Position = 0;
+        return Results.Stream(stream, mimeCsv, filename);
     }
 
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]

@@ -149,32 +149,18 @@ public partial class NotificaModule
     [FromQuery] bool? binary = null)
     {
         var authInfo = context.GetAuthInfo();
-        var notifiche = await handler.Send(request.Map(authInfo, null, null)); 
+        var notifiche = await handler.Send(request.Map(authInfo, null, null));
         if (notifiche == null || notifiche.Count == 0)
-        {
-            //await Results.NotFound("Data not found").ExecuteAsync(context);
-            //return;
             return NotFound();
-        }
 
-        var data = await notifiche.Notifiche!.ToArray<SimpleNotificaDto, SimpleNotificaPagoPADtoMap>();
-
-        if (data == null || data.Length == 0)
-        {
-            //await Results.NotFound("Data not found").ExecuteAsync(context);
-            //return;
+        var stream = await notifiche.Notifiche!.ToStream<SimpleNotificaDto, SimpleNotificaPagoPADtoMap>();
+        if (stream.Length == 0)
             return NotFound();
-        }
 
         var filename = $"{Guid.NewGuid()}.csv";
         var mimeCsv = "text/csv";
-        //await context.Download(data, mimeCsv, filename);
-        var stream = new MemoryStream(data!);
         stream.Position = 0;
-        // Now you can use the stream
-        // For example, returning it in an ASP.NET Core action
         return Results.Stream(stream, mimeCsv, filename);
-        //return Results.File(data!, mimeCsv, filename);
     }
     #endregion
 
@@ -495,7 +481,7 @@ public partial class NotificaModule
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    private async Task GetNotificheRicercaDocumentAsync(
+    private async Task<IResult> GetNotificheRicercaDocumentAsync(
     HttpContext context,
     [FromBody] NotificheRicercaRequest request,
     [FromServices] IStringLocalizer<Localization> localizer,
@@ -505,17 +491,16 @@ public partial class NotificaModule
         var authInfo = context.GetAuthInfo();
         var notifiche = await handler.Send(request.Map(authInfo, null, null));
         if (notifiche == null || notifiche.Count == 0)
-        { 
-            await Results.NotFound("File not found").ExecuteAsync(context);
-            return;
-        } 
+            return NotFound();
 
-        var data = await notifiche.Notifiche!.ToArray<SimpleNotificaDto, SimpleNotificaEnteDtoMap>();
- 
+        var stream = await notifiche.Notifiche!.ToStream<SimpleNotificaDto, SimpleNotificaEnteDtoMap>();
+        if (stream.Length == 0)
+            return NotFound();
+
         var filename = $"{Guid.NewGuid()}.csv";
         var mimeCsv = "text/csv";
-
-        await context.Download(data, mimeCsv, filename);
+        stream.Position = 0;
+        return Results.Stream(stream, mimeCsv, filename);
     }
 
     [Authorize(Roles = $"{Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
