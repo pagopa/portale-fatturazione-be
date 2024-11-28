@@ -1,22 +1,15 @@
-# Automatically sync main branch and tags to GitHub on tag
+# Automatically sync main branch to GitHub
 
-trigger:
-  tags:
-    include:
-      - '*'
+on:
+  push:
+    branches:
+      - main
 
 pool:
   vmImage: 'ubuntu-22.04'
 
-resources:
-  repositories:
-    - repository: this
-      type: git
-      name: portale-fatturazione-be
-      ref: main
-
 steps:
-  - checkout: this
+  - checkout: self
     fetchTags: true
 
   - script: |
