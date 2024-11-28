@@ -181,4 +181,9 @@ public class SimpleNotificaDto
     [Header(caption: "Tipologia Fattura", Order = 24)]
     [HeaderAttributev2(caption: "Tipologia Fattura", Order = 33)]
     public string? TipologiaFattura { get; set; }
+
+    [Column("CodiceOggetto")]
+    [Header(caption: "Codice Oggetto", Order = 25)]
+    [HeaderAttributev2(caption: "Codice Oggetto", Order = 34)]
+    public string? CodiceOggetto { get; set; }
 }

@@ -138,7 +138,7 @@ public class NotificaQueryGetByListEntiPersistence(NotificaQueryGetByListaEnti c
             parameters,
             transaction,
             CommandType.Text,
-            null,
+            320,
             CommandFlags.NoCache))
         {
             notifiche.Notifiche = await values.ReadAsync<SimpleNotificaDto>();

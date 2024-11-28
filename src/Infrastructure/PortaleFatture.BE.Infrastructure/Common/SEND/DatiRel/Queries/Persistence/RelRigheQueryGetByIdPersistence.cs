@@ -64,6 +64,8 @@ public class RelRigheQueryGetByIdPersistence(RelRigheQueryGetById command) : Dap
             connection!,
             sqlEnte,
             query,
-            transaction);
+            transaction,
+            CommandType.Text,
+            320);
     }
 }
