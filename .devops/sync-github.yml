@@ -1,8 +1,8 @@
 # Automatically sync main branch to GitHub
 
-on:
-  push:
-    branches:
+trigger:
+  branches:
+    include:
       - main
 
 pool:
