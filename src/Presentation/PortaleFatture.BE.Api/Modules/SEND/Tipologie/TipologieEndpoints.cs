@@ -6,7 +6,19 @@ namespace PortaleFatture.BE.Api.Modules.Tipologie;
 public partial class TipologieModule : Module, IRegistrableModule
 { 
     public void RegisterEndpoints(IEndpointRouteBuilder endpointRouteBuilder)
-    { 
+    {
+        endpointRouteBuilder
+           .MapGet("api/tipologia/manuale/download", GetManualeDownload)
+           .WithName("Permette di scaricare il manuale pdf")
+           .SetOpenApi(Module.DatiTipologiaLabel)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+           .MapGet("api/tipologia/manuale", GetManuale)
+           .WithName("Permette di avere la uri del manuale pdf")
+           .SetOpenApi(Module.DatiTipologiaLabel)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
         endpointRouteBuilder
            .MapGet("api/tipologia/time", GetTimeAsync)
            .WithName("Permette di visualizzare il timing")

@@ -1,9 +1,11 @@
-﻿using MediatR;
+﻿using System.Net.Http;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Localization;
+using Org.BouncyCastle.Utilities;
 using PortaleFatture.BE.Api.Infrastructure;
 using PortaleFatture.BE.Api.Modules.SEND.DatiFatturazioni.Extensions;
 using PortaleFatture.BE.Api.Modules.SEND.DatiFatturazioni.Payload.Response;
@@ -19,11 +21,64 @@ using PortaleFatture.BE.Core.Resources;
 using PortaleFatture.BE.Infrastructure.Common.Identity;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Scadenziari.Queries;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Tipologie.Queries;
+using PortaleFatture.BE.Infrastructure.Gateway.Storage;
 using static Microsoft.AspNetCore.Http.TypedResults;
 
 namespace PortaleFatture.BE.Api.Modules.Tipologie;
 public partial class TipologieModule
-{ 
+{
+
+    static string GetFileNameFromUri(string uri)
+    {
+        return uri.Substring(uri.LastIndexOf('/') + 1).Split('?')[0];
+    }
+
+    [AllowAnonymous]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<IResult> GetManualeDownload(
+    HttpContext context,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IHttpClientFactory clientFactory,
+    [FromServices] IManualiStorageSASService sASService)
+    {
+        var fileUri = sASService.GetSASToken();
+        var httpClient = clientFactory.CreateClient();
+        using var response = await httpClient.GetAsync(fileUri, HttpCompletionOption.ResponseHeadersRead);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            return NotFound();
+        } 
+ 
+        var mime = response.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
+        var fileName = GetFileNameFromUri(fileUri);
+ 
+        var stream = await response.Content.ReadAsStreamAsync();
+
+        var memoryStream = new MemoryStream();
+        await stream.CopyToAsync(memoryStream); 
+        memoryStream.Seek(0, SeekOrigin.Begin); 
+        return Results.File(memoryStream, mime, fileName);
+    }
+
+    [AllowAnonymous]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private Results<Ok<string>, NotFound> GetManuale(
+    HttpContext context,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IManualiStorageSASService sASService)
+    {
+        return Ok(sASService.GetSASToken());
+    }
+
     [AllowAnonymous]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]

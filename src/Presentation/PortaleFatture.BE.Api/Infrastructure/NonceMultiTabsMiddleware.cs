@@ -17,7 +17,10 @@ public class NonceMultiTabsMiddleware(RequestDelegate next, IAesEncryption encry
             { "/api/auth/pagopa/login", "/api/auth/pagopa/login" },
             { "/api/auth/profilo", "/api/auth/profilo" },
             { "/api/auth/selfcare/login", "/api/auth/selfcare/login" },
-            { "/api/v2/auth/pagopa/login", "/api/v2/auth/pagopa/login" }
+            { "/api/v2/auth/pagopa/login", "/api/v2/auth/pagopa/login" },
+            { "/api/tipologia/time", "/api/tipologia/time" },
+            { "/api/tipologia/manuale", "/api/tipologia/manuale" },
+            { "/api/tipologia/manuale/download", "/api/tipologia/manuale/download" } 
         };
     public async Task InvokeAsync(HttpContext context)
     {
@@ -25,7 +28,7 @@ public class NonceMultiTabsMiddleware(RequestDelegate next, IAesEncryption encry
         var isInWhitelist = _whitelist.TryGetValue(url, out var value);
         if (!isInWhitelist)
         {
-            var authInfo = context.GetAuthInfo(); 
+            var authInfo = context.GetAuthInfo();
             var nonce = context.Request.Query["nonce"];
             if (string.IsNullOrWhiteSpace(nonce))
                 throw new SessionException("Session expired!");

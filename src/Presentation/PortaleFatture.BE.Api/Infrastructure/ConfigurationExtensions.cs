@@ -158,7 +158,12 @@ public static class ConfigurationExtensions
         // storages
         services.AddSingleton<IRelStorageService, RelStorageService>();
         services.AddSingleton<IDocumentStorageService, DocumentStorageService>();
-        services.AddSingleton<IDocumentStorageSASService, DocumentStorageSASService>();
+        services.AddSingleton<IDocumentStorageSASService, DocumentStorageSASService>(); 
+
+
+
+
+        services.AddSingleton<IManualiStorageSASService, ManualiStorageSASService>();
 
         var serviceProvider = services.BuildServiceProvider();
         var options = serviceProvider.GetRequiredService<IPortaleFattureOptions>();
