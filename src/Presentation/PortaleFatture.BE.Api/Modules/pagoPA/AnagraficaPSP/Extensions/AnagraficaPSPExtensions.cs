@@ -9,6 +9,14 @@ namespace PortaleFatture.BE.Api.Modules.pagoPA.AnagraficaPSP.Extensions;
 
 public static class AnagraficaPSPExtensions
 {
+    public static PSPsQuartersRequestQuery Map(this PSPsQuartersRequest req, AuthenticationInfo authInfo)
+    {
+        return new PSPsQuartersRequestQuery(authInfo)
+        {
+            Year = req.Year
+        };
+    } 
+
     public static PSPQueryGetByRicerca Map(this PSPRequest req, AuthenticationInfo authInfo)
     {
         return new PSPQueryGetByRicerca(authInfo)
@@ -16,7 +24,8 @@ public static class AnagraficaPSPExtensions
             ContractIds = req.ContractIds.IsNullNotAny() ? null : req.ContractIds,
             MembershipId = req.MembershipId,
             RecipientId = req.RecipientId,
-            ABI = req.ABI
+            ABI = req.ABI,
+            YearQuarter = req.Quarters,
         };
     }
 
@@ -29,7 +38,8 @@ public static class AnagraficaPSPExtensions
             ContractIds = req.ContractIds.IsNullNotAny() ? null : req.ContractIds,
             MembershipId = req.MembershipId,
             RecipientId = req.RecipientId,
-            ABI = req.ABI
+            ABI = req.ABI,
+            YearQuarter = req.Quarters,
         };
     }
 
@@ -37,7 +47,8 @@ public static class AnagraficaPSPExtensions
     {
         return new PSPQueryGetByName(authInfo)
         {
-            Name = req.Name,
+            Name = req.Name, 
+            YearQuarter = req.Quarters,
         };
     }
 }

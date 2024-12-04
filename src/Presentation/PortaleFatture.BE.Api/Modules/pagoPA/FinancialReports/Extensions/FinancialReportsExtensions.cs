@@ -1,9 +1,5 @@
-﻿using System.Collections.Generic;
-using System.Data;
-using System.Runtime.CompilerServices;
+﻿using System.Data;
 using System.Text.RegularExpressions;
-using DocumentFormat.OpenXml.Drawing.Diagrams;
-using DocumentFormat.OpenXml.Spreadsheet;
 using PortaleFatture.BE.Api.Modules.pagoPA.FinancialReports.Dto;
 using PortaleFatture.BE.Api.Modules.pagoPA.FinancialReports.Request;
 using PortaleFatture.BE.Core.Auth;
@@ -20,7 +16,7 @@ namespace PortaleFatture.BE.Api.Modules.pagoPA.FinancialReports.Extensions;
 
 public static class FinancialReportsExtensions
 {
-    private static readonly HttpClient _client = new HttpClient();
+    private static readonly HttpClient _client = new();
 
     public static string FileExistsAsync(this string uri)
     {

@@ -7,7 +7,10 @@ using Microsoft.Extensions.Localization;
 using PortaleFatture.BE.Api.Infrastructure;
 using PortaleFatture.BE.Api.Modules.pagoPA.AnagraficaPSP.Extensions;
 using PortaleFatture.BE.Api.Modules.pagoPA.AnagraficaPSP.Request;
+using PortaleFatture.BE.Api.Modules.pagoPA.FinancialReports.Extensions;
+using PortaleFatture.BE.Api.Modules.pagoPA.FinancialReports.Request;
 using PortaleFatture.BE.Core.Auth;
+using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Core.Resources;
 using PortaleFatture.BE.Infrastructure.Common.Identity;
 using PortaleFatture.BE.Infrastructure.Common.pagoPA.AnagraficaPSP.Dto;
@@ -19,6 +22,55 @@ namespace PortaleFatture.BE.Api.Modules.pagoPA.Auth;
 
 public partial class PSPModule : Module, IRegistrableModule
 {
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<List<string>>, NotFound>> GetPSPsYears(
+    HttpContext context,
+    [FromServices] IMediator handler,
+    [FromServices] IStringLocalizer<Localization> localizer)
+        {
+            var authInfo = context.GetAuthInfo();
+            var request = new PSPsQuartersRequest();
+            var quarters = await handler.Send(request.Map(authInfo));
+            if (quarters.IsNullNotAny())
+                return NotFound();
+
+            var values = quarters.Select(x => x.Split("_")[0]).Distinct().OrderByDescending(y => y).ToList();
+
+            return Ok(values);
+        }
+
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<List<FinancialReportsQuartersResponse>>, NotFound>> PostPSPsQuarters(
+    HttpContext context,
+    [FromBody] PSPsQuartersRequest request,
+    [FromServices] IMediator handler,
+    [FromServices] IStringLocalizer<Localization> localizer)
+        {
+            var authInfo = context.GetAuthInfo();
+            var quarters = await handler.Send(request.Map(authInfo));
+            if (quarters.IsNullNotAny())
+                return NotFound();
+            var values = quarters.Select(x => new FinancialReportsQuartersResponse()
+            {
+                Quarter = "Q" + x.Replace(request.Year + "_", string.Empty),
+                Value = x
+            }).OrderBy(y => y.Value).ToList();
+
+            return Ok(values);
+        }
 
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
     [EnableCors(CORSLabel)]

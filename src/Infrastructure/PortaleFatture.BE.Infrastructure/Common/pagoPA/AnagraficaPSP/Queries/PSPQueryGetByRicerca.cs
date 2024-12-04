@@ -11,5 +11,6 @@ public class PSPQueryGetByRicerca(IAuthenticationInfo authenticationInfo) : IReq
     public string[]? ContractIds { get; set; }
     public string? MembershipId { get; set; }
     public string? RecipientId { get; set; }
-    public string? ABI { get; set; }
+    public string? ABI { get; set; } 
+    public string[]? YearQuarter { get; set; }
 }

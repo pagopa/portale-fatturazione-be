@@ -2,6 +2,12 @@
 
 internal static class PSPSQLBuilder
 {
+    private static string _sqlQuarters = @"
+SELECT  distinct(year_quarter)
+ FROM [ppa].[Contracts]
+";
+
+
     private static string _sqlCount = @"
 SELECT count(*)
   FROM [ppa].[Contracts]
@@ -25,10 +31,11 @@ SELECT [contract_id] as ContractId
       ,[membership_id] as MembershipId
       ,[recipient_id] as RecipientId
       ,[year_month] as YearMonth
+      ,[year_quarter] as YearQuarter
   FROM [ppa].[Contracts]
 ";
     private static string _sqlContractsId = @"
-SELECT [contract_id] as contractId, [name]  FROM [ppa].[Contracts]
+SELECT [contract_id] as contractId, [name], [year_quarter] as YearQuarter   FROM [ppa].[Contracts]
 ";
     private static string _offSet = " OFFSET (@page-1)*@size ROWS FETCH NEXT @size ROWS ONLY";
     public static string OffSet()
@@ -60,4 +67,13 @@ SELECT [contract_id] as contractId, [name]  FROM [ppa].[Contracts]
     {
         return _sqlCount;
     }
+    public static string SelectQuarters()
+    {
+        return _sqlQuarters;
+    }
+
+    public static string OrderByQuarters()
+    {
+        return " order by year_quarter desc";
+    } 
 }

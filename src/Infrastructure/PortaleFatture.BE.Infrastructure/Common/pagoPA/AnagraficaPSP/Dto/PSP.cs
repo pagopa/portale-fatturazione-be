@@ -56,4 +56,7 @@ public sealed class PSP
 
     [HeaderPagoPA(caption: "YearMonth", Order = 18)]
     public string? YearMonth { get; set; }
+
+    [HeaderPagoPA(caption: "YearQuarter", Order = 19)]
+    public string? YearQuarter { get; set; }
 }
