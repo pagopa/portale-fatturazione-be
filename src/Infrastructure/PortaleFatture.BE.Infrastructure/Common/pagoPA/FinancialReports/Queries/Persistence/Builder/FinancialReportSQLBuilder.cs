@@ -76,6 +76,7 @@ SELECT r.[abi] as ABI
   FROM  [ppa].[FinancialReports] r 
     left outer join ppa.Contracts c
     on r.[recipient_id] = c.contract_id
+    AND r.[year_quarter] = c.year_quarter
 	left outer join [ppa].[KPMG] k
 	ON k.contract_id = c.contract_id
 	and k.year_quarter = r.year_quarter
@@ -95,6 +96,7 @@ SELECT count(DISTINCT(k.contract_id + '|' + k.year_quarter))
     and k.codice_articolo = r.codice_articolo
     left outer join ppa.Contracts c
     on k.contract_id = c.contract_id
+    AND k.year_quarter = c.year_quarter
 ";
     private static string _sql = @"
 SELECT 
@@ -127,6 +129,7 @@ SELECT
     and k.codice_articolo = r.codice_articolo
     left outer join ppa.Contracts c
     on k.contract_id = c.contract_id
+    AND k.year_quarter = c.year_quarter
 ";
  
     private static string _offSet = " OFFSET (@page-1)*@size ROWS FETCH NEXT @size ROWS ONLY";

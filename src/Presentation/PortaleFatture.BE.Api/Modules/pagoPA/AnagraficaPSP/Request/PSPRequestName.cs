@@ -2,5 +2,6 @@
 
 public class PSPRequestName
 {  
-    public string? Name { get; set; } 
+    public string? Name { get; set; }
+    public string[]? Quarters { get; set; }
 } 

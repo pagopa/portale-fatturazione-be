@@ -39,6 +39,14 @@ public sealed class PSPQueryGetByRicercaPersistence(PSPQueryGetByRicerca command
         else
             offset = string.Empty;
 
+        if (_command.YearQuarter.IsNullNotAny())
+            where.AddInOrder(" year_quarter = (SELECT MAX(year_quarter) FROM [ppa].[Contracts])"); 
+        else
+        {
+            where.AddInOrder(" year_quarter IN @YearQuarter");
+            parameters.YearQuarter = _command.YearQuarter;
+        }
+
         if (!_command.ContractIds.IsNullNotAny())
         {
             where.AddInOrder(" contract_id IN @ContractIds");

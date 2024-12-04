@@ -6,5 +6,5 @@ public class PSPRequest
     public string? MembershipId { get; set; }
     public string? RecipientId { get; set; } 
     public string? ABI { get; set; }
-
+    public string[]? Quarters { get; set; }
 }
