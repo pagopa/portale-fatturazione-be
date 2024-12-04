@@ -1,0 +1,93 @@
+name: Release and Deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'CODEOWNERS'
+      - '**.md'
+      - '.**'
+      - '.identity/**'
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-24.04
+
+    permissions:
+      contents: write
+      issues: write
+      packages: write
+      pull-requests: read
+
+    outputs:
+      new-release-published: ${{ steps.release.outputs.new-release-published }}
+      new-release-image: ${{ steps.release.outputs.new-release-image }}
+
+    steps:
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Release
+        id: release
+        uses: pagopa/ict-github-actions/semantic-release-ghcr@v1.4.3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Print release info
+        shell: bash
+        run: |
+          echo "Release published: ${{ steps.release.outputs.new-release-published }}"
+          echo "Release image:     ${{ steps.release.outputs.new-release-image }}"
+          echo "Release version:   ${{ steps.release.outputs.new-release-version }}"
+
+  deploy-uat:
+    name: Deploy UAT
+    runs-on: ubuntu-24.04
+    environment: uat
+    needs: [release]
+    if: needs.release.outputs.new-release-published == 'true'
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Deploy
+        uses: pagopa/ict-github-actions/appservice-deploy@v1.4.3
+        with:
+          tenant-id: ${{ secrets.ARM_TENANT_ID }}
+          subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          client-id: ${{ secrets.ARM_CLIENT_ID }}
+          resource-group-name: ${{ vars.RESOURCE_GROUP_NAME }}
+          app-name: ${{ vars.APP_NAME }}
+          image: ${{ needs.release.outputs.new-release-image }}
+
+  # TODO disabled at the moment
+  # deploy-prod:
+  #   name: Deploy PROD
+  #   runs-on: ubuntu-24.04
+  #   environment: prod
+  #   needs: [release]
+  #   if: needs.release.outputs.new-release-published == 'true'
+
+  #   permissions:
+  #     id-token: write
+  #     contents: read
+
+  #   steps:
+  #     - name: Deploy
+  #       uses: pagopa/ict-github-actions/appservice-deploy@v1.4.3
+  #       with:
+  #         tenant-id: ${{ secrets.ARM_TENANT_ID }}
+  #         subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+  #         client-id: ${{ secrets.ARM_CLIENT_ID }}
+  #         resource-group-name: ${{ vars.RESOURCE_GROUP_NAME }}
+  #         app-name: ${{ vars.APP_NAME }}
+  #         image: ${{ needs.release.outputs.new-release-image }}
