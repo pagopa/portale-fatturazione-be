@@ -16,5 +16,12 @@ public record DatiFatturazioneResponse
     public string? Pec { get; set; }
     public DateTime DataCreazione { get; set; }
     public DateTime? DataModifica { get; set; }
-    public IEnumerable<DatiFatturazioneContattoResponse>? Contatti { get; set; }
+    public IEnumerable<DatiFatturazioneContattoResponse>? Contatti { get; set; } 
+    public string? CodiceSDI{ get; set; }
+    public string? ContractCodiceSDI { get; set; }
+}
+
+public record DatiContractCodiceSDIResponse
+{ 
+    public string? ContractCodiceSDI { get; set; }
 }

@@ -1,0 +1,6 @@
+@PortaleFatture.BE.SelfCareOnBoardingAPI_HostAddress = http://localhost:5007
+
+GET {{PortaleFatture.BE.SelfCareOnBoardingAPI_HostAddress}}//v2/institutions/onboarding/recipientCode/verification/
+Accept: application/json
+
+###

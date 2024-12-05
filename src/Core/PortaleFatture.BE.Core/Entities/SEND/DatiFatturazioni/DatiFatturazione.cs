@@ -24,6 +24,7 @@ public class DatiFatturazione
     public string? Pec { get; set; }
     public bool NotaLegale { get; set; }
     public DateTimeOffset DataCreazione { get; set; }
-    public DateTimeOffset? DataModifica { get; set; }
-    public IEnumerable<DatiFatturazioneContatto>? Contatti { get; set; }
-}
+    public DateTimeOffset? DataModifica { get; set; } 
+    public IEnumerable<DatiFatturazioneContatto>? Contatti { get; set; } 
+    public string? CodiceSDI { get; set; }
+} 

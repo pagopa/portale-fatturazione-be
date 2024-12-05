@@ -38,6 +38,18 @@ partial class DatiFatturazioneModule : Module, IRegistrableModule
         .SetOpenApi(Module.DatiFatturazioneLabelPagoPA)
         .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
+        endpointRouteBuilder
+        .MapPost("api/datifatturazione/pagopa/codiceSDI", VerificaCodiceSDIDatiFatturazione)
+        .WithName("Permette di verificare il codice SDI via utente PagoPA.")
+        .SetOpenApi(Module.DatiFatturazioneLabelPagoPA)
+        .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+
+        endpointRouteBuilder
+        .MapGet("api/datifatturazione/pagopa/ente/contractCodiceSDI", GetContractCodiceSDIAsync)
+        .WithName("Permette di recuperare il contract codice SDI via utente PagoPA.")
+        .SetOpenApi(Module.DatiFatturazioneLabelPagoPA)
+        .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
         #endregion
 
         endpointRouteBuilder
@@ -55,6 +67,18 @@ partial class DatiFatturazioneModule : Module, IRegistrableModule
         endpointRouteBuilder
         .MapGet("api/datifatturazione/ente", GetDatiFatturazioneByIdEnteAsync)
         .WithName("Permette di recuperare il dato relativo ai dati fatturazione per id ente.")
+        .SetOpenApi(Module.DatiFatturazioneLabel)
+        .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+        .MapGet("api/datifatturazione/ente/contractCodiceSDI", GetContractCodiceSDIByIdEnteAsync)
+        .WithName("Permette di recuperare il contract codice SDI per id ente.")
+        .SetOpenApi(Module.DatiFatturazioneLabel)
+        .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+        .MapPost("api/datifatturazione/codiceSDI", VerificaCodiceSDIDatiFatturazioneEnte)
+        .WithName("Permette di verificare il codice SDI via Ente.")
         .SetOpenApi(Module.DatiFatturazioneLabel)
         .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
     }

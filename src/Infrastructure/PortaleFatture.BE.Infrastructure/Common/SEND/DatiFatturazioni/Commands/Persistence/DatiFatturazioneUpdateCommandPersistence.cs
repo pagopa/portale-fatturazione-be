@@ -20,7 +20,8 @@ SET    cup = @cup,
        datamodifica = @datamodifica,
        [map] = @map,
        fktipocommessa = @tipocommessa,
-       pec = @pec
+       pec = @pec,
+       codiceSDI = @codiceSDI
 WHERE  IdDatiFatturazione = @id;";
 
     private static readonly string _sqlSelect = DatiFatturazioneSQLBuilder.SelectById();
@@ -42,7 +43,8 @@ WHERE  IdDatiFatturazione = @id;";
                 map = _command.Map,
                 tipoCommessa = _command.TipoCommessa,
                 pec = _command.Pec,
-                dataModifica = _command.DataModifica
+                dataModifica = _command.DataModifica,
+                codiceSDI = _command.CodiceSDI
             }, transaction);
 
             if (rowAffected == 1)

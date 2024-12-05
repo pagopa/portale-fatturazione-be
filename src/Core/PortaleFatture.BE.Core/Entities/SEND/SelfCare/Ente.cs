@@ -26,6 +26,9 @@ public class Ente
     [Column("istatCode")]
     public string? CodiceIstat { get; set; }
 
+    [Column("originId")]
+    public string? CodiceIPA { get; set; }
+
     [Column("city")]
     public string? Citta { get; set; }
 

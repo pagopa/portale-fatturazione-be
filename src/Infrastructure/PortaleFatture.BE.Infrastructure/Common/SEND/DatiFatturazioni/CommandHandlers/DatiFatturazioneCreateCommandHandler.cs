@@ -1,35 +1,35 @@
 ﻿using MediatR;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
+using PortaleFatture.BE.Core.Common;
 using PortaleFatture.BE.Core.Entities.SEND.DatiFatturazioni;
 using PortaleFatture.BE.Core.Entities.Storici;
 using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Core.Resources;
 using PortaleFatture.BE.Infrastructure.Common.Persistence.Schemas;
-using PortaleFatture.BE.Infrastructure.Common.SEND.DatiFatturazioni;
 using PortaleFatture.BE.Infrastructure.Common.SEND.DatiFatturazioni.Commands;
 using PortaleFatture.BE.Infrastructure.Common.SEND.DatiFatturazioni.Commands.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.SEND.DatiFatturazioni.Queries.Persistence;
+using PortaleFatture.BE.Infrastructure.Common.SEND.SelfCare.Queries.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.Storici.Commands;
 using PortaleFatture.BE.Infrastructure.Common.Storici.Commands.Persistence;
+using PortaleFatture.BE.Infrastructure.Gateway;
 
 namespace PortaleFatture.BE.Infrastructure.Common.SEND.DatiFatturazioni.CommandHandlers;
 
-public class DatiFatturazioneCreateCommandHandler : IRequestHandler<DatiFatturazioneCreateCommand, DatiFatturazione>
+public class DatiFatturazioneCreateCommandHandler(
+    IFattureDbContextFactory factory,
+    ISelfCareOnBoardingHttpClient onBoardingHttpClient,
+    ISupportAPIServiceHttpClient supportAPIServiceHttpClient, 
+    IStringLocalizer<Localization> localizer,
+    ILogger<DatiFatturazioneCreateCommandHandler> logger) : IRequestHandler<DatiFatturazioneCreateCommand, DatiFatturazione>
 {
-    private readonly IFattureDbContextFactory _factory;
-    private readonly ILogger<DatiFatturazioneCreateCommandHandler> _logger;
-    private readonly IStringLocalizer<Localization> _localizer;
-    public DatiFatturazioneCreateCommandHandler(
-         IFattureDbContextFactory factory,
-         IStringLocalizer<Localization> localizer,
-         ILogger<DatiFatturazioneCreateCommandHandler> logger)
-    {
-        _factory = factory;
-        _localizer = localizer;
-        _logger = logger;
-    }
+    private readonly IFattureDbContextFactory _factory = factory;
+    private readonly ILogger<DatiFatturazioneCreateCommandHandler> _logger = logger;
+    private readonly IStringLocalizer<Localization> _localizer = localizer; 
+    private readonly ISelfCareOnBoardingHttpClient _onBoardingHttpClient = onBoardingHttpClient;
+    private readonly ISupportAPIServiceHttpClient _supportAPIServiceHttpClient = supportAPIServiceHttpClient;
 
     public async Task<DatiFatturazione> Handle(DatiFatturazioneCreateCommand command, CancellationToken ct)
     {
@@ -39,12 +39,37 @@ public class DatiFatturazioneCreateCommandHandler : IRequestHandler<DatiFatturaz
         if (!string.IsNullOrEmpty(error))
             throw new ValidationException(_localizer[error, errorDetails]);
 
-        command.DataCreazione = command.DataCreazione == null ? adesso : command.DataCreazione;
+        command.DataCreazione = command.DataCreazione == null ? adesso : command.DataCreazione; 
 
-        using var uow = await _factory.Create(true, cancellationToken: ct);
+        using var uow = await _factory.Create(true, cancellationToken: ct); 
         var actualValue = await uow.Query(new DatiFatturazioneQueryGetByIdEntePersistence(command.AuthenticationInfo.IdEnte!), ct);
         if (actualValue != null)
             throw new DomainException(_localizer["DatiFatturazioneIdEnteExistent", command.AuthenticationInfo.IdEnte!]);
+
+        if (String.IsNullOrEmpty(command.CodiceSDI))
+            throw new ValidationException("Attenzione, devi validare il codice SDI"); //non puoi cancellare il codice SDI
+
+        if (!String.IsNullOrEmpty(command.CodiceSDI))
+        {
+            var ente = await uow.Query(new EnteCodiceSDIQueryGetByIdPersistence(command.AuthenticationInfo.IdEnte), ct);
+            var (okValidation, msgValidation) = await _onBoardingHttpClient.RecipientCodeVerification(
+                ente,
+                command.CodiceSDI,
+                ct);
+
+            if (okValidation)
+            {
+                var (oKUpdate, msgUpdate) = await _supportAPIServiceHttpClient.UpdateRecipientCode(
+                    ente,
+                    command.CodiceSDI,
+                    ct);
+                if (!oKUpdate)
+                    throw new ValidationException(msgUpdate);
+            }
+            else
+                throw new ValidationException(msgValidation);
+        }
+
         try
         {
             var rowAffected = 0;
@@ -68,6 +93,7 @@ public class DatiFatturazioneCreateCommandHandler : IRequestHandler<DatiFatturaz
                     throw new DomainException(_localizer["DatiFatturazioneInputError"]);
                 }
             }
+
             var actualDatiFatturazione = command.Mapper(id.Value);
             rowAffected = await uow.Execute(new StoricoCreateCommandPersistence(new StoricoCreateCommand(
                 command.AuthenticationInfo,

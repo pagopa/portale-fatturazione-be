@@ -264,7 +264,7 @@ public static class ExcelExtensions
     public static bool IsValidDecimal(object input)
     {
         // Ensure the input is a string
-        var inputStr = input.ToString();
+        var inputStr = input!.ToString();
 
         // Check if the input can be parsed as an integer
         if (long.TryParse(inputStr, out _))
@@ -401,8 +401,7 @@ public static class ExcelExtensions
                     }
                     sheetData.AppendChild(newRow);
                 }
-            }
-            //workbook.Close();
+            } 
         }
         memoryStream.Seek(0, SeekOrigin.Begin);
         return memoryStream;

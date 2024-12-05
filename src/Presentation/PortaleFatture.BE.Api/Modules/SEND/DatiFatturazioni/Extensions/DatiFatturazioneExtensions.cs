@@ -47,7 +47,8 @@ public static class DatiFatturazioneExtensions
             Map = model.Map,
             Contatti = model.Contatti?.Select(x => x.Mapper()).ToList(),
             Pec = model.Pec,
-            TipoCommessa = model.TipoCommessa
+            TipoCommessa = model.TipoCommessa,
+            CodiceSDI = model.CodiceSDI
         };
     }
 
@@ -63,7 +64,8 @@ public static class DatiFatturazioneExtensions
            Map = model.Map,
            Contatti = model.Contatti?.Select(x => x.Mapper()).ToList(),
            Pec = model.Pec,
-           TipoCommessa = model.TipoCommessa
+           TipoCommessa = model.TipoCommessa,
+           CodiceSDI = model.CodiceSDI
        };
 
     public static DatiFatturazioneUpdateCommand Mapper(this DatiFatturazionePagoPAUpdateRequest model, AuthenticationInfo authInfo)
@@ -82,7 +84,8 @@ public static class DatiFatturazioneExtensions
             Map = model.Map,
             Contatti = model.Contatti?.Select(x => x.Mapper()).ToList(),
             Pec = model.Pec,
-            TipoCommessa = model.TipoCommessa,
+            TipoCommessa = model.TipoCommessa, 
+            CodiceSDI = model.CodiceSDI
         };
 
     }
@@ -101,6 +104,7 @@ public static class DatiFatturazioneExtensions
            Contatti = model.Contatti?.Select(x => x.Mapper()).ToList(),
            Pec = model.Pec,
            TipoCommessa = model.TipoCommessa,
+           CodiceSDI = model.CodiceSDI
        };
 
     public static DatiFatturazioneContattoResponse Mapper(this DatiFatturazioneContatto model) =>
@@ -109,7 +113,7 @@ public static class DatiFatturazioneExtensions
            Email = model.Email
        };
 
-    public static DatiFatturazioneResponse Mapper(this DatiFatturazione model) =>
+    public static DatiFatturazioneResponse Mapper(this DatiFatturazione model, string? codiceSDI = "") =>
        new()
        {
            NotaLegale = model.NotaLegale,
@@ -126,7 +130,9 @@ public static class DatiFatturazioneExtensions
            Pec = model.Pec,
            TipoCommessa = model.TipoCommessa,
            Prodotto = model.Prodotto,
-           Contatti = model.Contatti?.Select(x => x.Mapper())
+           Contatti = model.Contatti?.Select(x => x.Mapper()),
+           CodiceSDI = model.CodiceSDI,
+           ContractCodiceSDI = codiceSDI
        };
 
     public static TipoContrattoResponse Mapper(this TipoContratto model) =>

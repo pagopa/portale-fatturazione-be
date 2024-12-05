@@ -29,5 +29,6 @@ public record DatiFatturazionePagoPAUpdateRequest
     public string? TipoCommessa { get; set; }
     [Required]
     public string? Pec { get; set; }
-    public List<DatiFatturazioneContattoCreateRequest>? Contatti { get; set; }
+    public List<DatiFatturazioneContattoCreateRequest>? Contatti { get; set; } 
+    public string? CodiceSDI { get; set; }
 }

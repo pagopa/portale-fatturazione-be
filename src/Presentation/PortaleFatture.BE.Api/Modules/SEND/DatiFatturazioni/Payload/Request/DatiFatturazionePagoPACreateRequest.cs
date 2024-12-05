@@ -25,5 +25,6 @@ public record DatiFatturazionePagoPACreateRequest
     public string? Map { get; set; }
     public string? TipoCommessa { get; set; }
     public string? Pec { get; set; }
-    public List<DatiFatturazioneContattoCreateRequest>? Contatti { get; set; }
+    public List<DatiFatturazioneContattoCreateRequest>? Contatti { get; set; } 
+    public string? CodiceSDI { get; set; }
 }

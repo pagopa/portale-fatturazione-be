@@ -10,12 +10,15 @@ using PortaleFatture.BE.Api.Modules.SEND.DatiFatturazioni.Payload.Request;
 using PortaleFatture.BE.Api.Modules.SEND.DatiFatturazioni.Payload.Response;
 using PortaleFatture.BE.Api.Modules.SEND.Tipologie.Payload.Payload.Request;
 using PortaleFatture.BE.Core.Auth;
+using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Core.Resources;
 using PortaleFatture.BE.Infrastructure.Common.Identity;
 using PortaleFatture.BE.Infrastructure.Common.SEND.DatiFatturazioni.Dto;
 using PortaleFatture.BE.Infrastructure.Common.SEND.DatiFatturazioni.Queries;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Documenti.Common;
+using PortaleFatture.BE.Infrastructure.Common.SEND.SelfCare.Queries;
+using PortaleFatture.BE.Infrastructure.Gateway;
 using static Microsoft.AspNetCore.Http.TypedResults;
 
 namespace PortaleFatture.BE.Api.Modules.DatiFatturazioni;
@@ -24,7 +27,59 @@ public partial class DatiFatturazioneModule
 {
     #region PAGOPA
 
-    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)] 
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<DatiContractCodiceSDIResponse>, BadRequest, NotFound>> GetContractCodiceSDIAsync(
+    HttpContext context,
+    [FromQuery] string? idente,
+    [FromQuery] string? prodotto,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        authInfo.IdEnte = idente;
+        authInfo.Prodotto = prodotto;
+        var ente = await handler.Send(new EnteQueryCodiceSDIGetById(authInfo));
+        if (ente == null)
+            return NotFound();
+    
+        return Ok(new DatiContractCodiceSDIResponse()
+        {
+            ContractCodiceSDI = ente.CodiceSDI
+        });
+    }
+
+    [Authorize(Roles = $"{Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<bool>, BadRequest, NotFound>> VerificaCodiceSDIDatiFatturazione(
+    HttpContext context,
+    [FromBody] DatiFatturazioneVerificaCodiceSDI req,
+    [FromServices] ISelfCareOnBoardingHttpClient onBoardingHttpClient,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        authInfo.IdEnte = req.IdEnte;
+        var ente = await handler.Send(new EnteQueryCodiceSDIGetById(authInfo)) ?? throw new ValidationException("Ente non trovato!");
+     
+        var (okValidation, msgValidation) = await onBoardingHttpClient.RecipientCodeVerification(
+            ente,
+            req.CodiceSDI);
+
+        if (okValidation)
+            return Ok(true);
+        else
+            throw new ValidationException(msgValidation);
+    }
+
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -58,7 +113,7 @@ public partial class DatiFatturazioneModule
 
     }
 
-    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)] 
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -113,10 +168,13 @@ public partial class DatiFatturazioneModule
         var authInfo = context.GetAuthInfo();
         authInfo.IdEnte = idente;
         authInfo.Prodotto = prodotto;
-        var datiCommessa = await handler.Send(new DatiFatturazioneQueryGetByIdEnte(authInfo));
-        if (datiCommessa == null)
+        var ente = await handler.Send(new EnteQueryCodiceSDIGetById(authInfo));
+        if (ente == null)
             return NotFound();
-        return Ok(datiCommessa!.Mapper());
+        var datiFatturazione = await handler.Send(new DatiFatturazioneQueryGetByIdEnte(authInfo));
+        if (datiFatturazione == null)
+            return NotFound();
+        return Ok(datiFatturazione!.Mapper(ente.CodiceSDI));
     }
 
     [Authorize(Roles = $"{Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
@@ -184,9 +242,57 @@ public partial class DatiFatturazioneModule
     [FromServices] IMediator handler)
     {
         var authInfo = context.GetAuthInfo();
-        var datiCommessa = await handler.Send(new DatiFatturazioneQueryGetByIdEnte(authInfo));
-        if (datiCommessa == null)
+        var ente = await handler.Send(new EnteQueryCodiceSDIGetById(authInfo));
+        if (ente == null)
             return NotFound();
-        return Ok(datiCommessa!.Mapper());
+        var datiFatturazione = await handler.Send(new DatiFatturazioneQueryGetByIdEnte(authInfo));
+        if (datiFatturazione == null)
+            return NotFound();
+        return Ok(datiFatturazione!.Mapper(ente.CodiceSDI)); 
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<DatiContractCodiceSDIResponse>, BadRequest, NotFound>> GetContractCodiceSDIByIdEnteAsync(
+    HttpContext context,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var ente = await handler.Send(new EnteQueryCodiceSDIGetById(authInfo));
+        if (ente == null)
+            return NotFound();  
+        return Ok(new DatiContractCodiceSDIResponse()
+        { 
+            ContractCodiceSDI = ente.CodiceSDI
+        });
+    }
+
+    [Authorize(Roles = $"{Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<bool>, BadRequest, NotFound>> VerificaCodiceSDIDatiFatturazioneEnte(
+    HttpContext context,
+    [FromBody] DatiFatturazioneVerificaCodiceSDIEnte req,
+    [FromServices] ISelfCareOnBoardingHttpClient onBoardingHttpClient,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo(); 
+        var ente = await handler.Send(new EnteQueryCodiceSDIGetById(authInfo)) ?? throw new ValidationException("Ente non trovato!");
+
+        var (okValidation, msgValidation) = await onBoardingHttpClient.RecipientCodeVerification(
+            ente,
+            req.CodiceSDI);
+
+        if (okValidation)
+            return Ok(true);
+        else
+            throw new ValidationException(msgValidation);
     }
 }
