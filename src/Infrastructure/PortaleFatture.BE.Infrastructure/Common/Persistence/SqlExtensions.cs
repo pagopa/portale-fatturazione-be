@@ -13,6 +13,8 @@ public static class SqlExtensions
 
     public static string Add(this string sql, string schema)
     {
+        if (!schema.Contains("."))
+            schema = $"{schema}.";
         return sql.Replace("[schema]", schema);
     }
 

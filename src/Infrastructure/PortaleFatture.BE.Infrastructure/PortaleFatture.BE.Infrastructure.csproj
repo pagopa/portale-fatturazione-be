@@ -7,6 +7,10 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="Azure.Identity" Version="1.12.1" />
+        <PackageReference Include="Azure.Storage.Blobs" Version="12.22.1" />
+        <PackageReference Include="Azure.Storage.Common" Version="12.21.0" />
+        <PackageReference Include="ClosedXML" Version="0.104.1" />
       <Compile Remove="Common\Storici\CommandHandlers\**" />
       <Compile Remove="Common\SEND\Tipologie\CommandHandles\**" />
       <Compile Remove="Common\SEND\Tipologie\Commands\**" />
@@ -26,18 +30,18 @@
         <PackageReference Include="CsvHelper" Version="33.0.1" />
         <PackageReference Include="Dapper" Version="2.1.44" />
         <PackageReference Include="Dapper.SqlBuilder" Version="2.0.78" />
-        <PackageReference Include="Haukcode.WkHtmlToPdfDotNet" Version="1.5.90" />
-        <PackageReference Include="MailKit" Version="4.7.1.1" />
-        <PackageReference Include="MediatR" Version="12.4.0" /> 
-        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.7" />
+        <PackageReference Include="Haukcode.WkHtmlToPdfDotNet" Version="1.5.93" />
+        <PackageReference Include="MailKit" Version="4.8.0" />
+        <PackageReference Include="MediatR" Version="12.4.1" /> 
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.8" />
         <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
         <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="8.0.0" />
-        <PackageReference Include="Microsoft.Extensions.Localization.Abstractions" Version="8.0.7" />
+        <PackageReference Include="Microsoft.Extensions.Localization.Abstractions" Version="8.0.8" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
-        <PackageReference Include="Microsoft.Extensions.Http.Polly" Version="8.0.7" />
+        <PackageReference Include="Microsoft.Extensions.Http.Polly" Version="8.0.8" />
         <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
-        <PackageReference Include="Microsoft.Extensions.Localization" Version="8.0.7" />
+        <PackageReference Include="Microsoft.Extensions.Localization" Version="8.0.8" />
     </ItemGroup>
 
     <ItemGroup>

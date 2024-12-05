@@ -41,6 +41,7 @@ public static class DatiFatturazioneSQLBuilder
         builder.Select(nameof(@obj.Pec));
         builder.Select(nameof(@obj.DataCreazione));
         builder.Select(nameof(@obj.DataModifica));
+        builder.Select(nameof(@obj.CodiceSDI));
         return builder;
     }
 

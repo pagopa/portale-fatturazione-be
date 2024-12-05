@@ -17,6 +17,8 @@ public static class ModuleExtensions
         model.StorageDocumenti??= new();
         model.Synapse??= new();
         model.StoragePagoPAFinancial??= new();
+        model.SelfCareOnBoarding??= new();
+        model.SupportAPIService??= new();
 
         var selfCareUri = Environment.GetEnvironmentVariable("SELF_CARE_URI") ??
              throw new ConfigurationException("Please specify a SELF_CARE_URI!");
@@ -96,33 +98,67 @@ public static class ModuleExtensions
         var blobContainerName = Environment.GetEnvironmentVariable("STORAGE_FINANCIAL_CONTAINERNAME") ??
              throw new ConfigurationException("Please specify SYNAPSE_RESOURCEGROUPNAME!"); 
 
+        var selfCareOnBoardingEndpoint = Environment.GetEnvironmentVariable("SELFCAREONBOARDING_ENDPOINT") ??
+             throw new ConfigurationException("Please specify SELFCAREONBOARDING_ENDPOINT!");
+
+        var selfCareOnBoardingRecipientCodeUri = Environment.GetEnvironmentVariable("SELFCAREONBOARDING_URI") ??
+             throw new ConfigurationException("Please specify SELFCAREONBOARDING_URI!");
+
+        var selfCareOnBoardingAuthToken  = Environment.GetEnvironmentVariable("SELFCAREONBOARDING_AUTHTOKEN") ??
+             throw new ConfigurationException("Please specify SELFCAREONBOARDING_AUTHTOKEN!");
+
+        var supportAPIServiceEndpoint = Environment.GetEnvironmentVariable("SUPPORTAPISERVICE_ENDPOINT") ??
+             throw new ConfigurationException("Please specify SUPPORTAPISERVICE_ENDPOINT!");
+
+        var supportAPIServiceRecipientCodeUri = Environment.GetEnvironmentVariable("SUPPORTAPISERVICE_URI") ??
+             throw new ConfigurationException("Please specify SUPPORTAPISERVICE_URI!");
+
+        var supportAPIServiceAuthToken = Environment.GetEnvironmentVariable("SUPPORTAPISERVICE_AUTHTOKEN") ??
+             throw new ConfigurationException("Please specify SUPPORTAPISERVICE_AUTHTOKEN!");
 
         model.ConnectionString = connectionString; //await model.ConnectionString.Mapper();
-        model.SelfCareUri = selfCareUri;
-        model.SelfCareCertEndpoint = selfCareCertEndpoint;
+
         model.JWT.ValidAudience = validAudience;
         model.JWT.Secret = secret; //await model.JWT.Secret.Mapper();
         model.JWT.ValidIssuer = validIssuer;
+
         model.CORSOrigins = corsOrigins;
+
+        model.SelfCareUri = selfCareUri;
+        model.SelfCareCertEndpoint = selfCareCertEndpoint;
         model.SelfCareTimeOut = selfCareTimeOut;
         model.SelfCareAudience = selfCareAudience;
+
         model.AdminKey = adminKey;
         model.AzureAd.ClientId = azureADClientId;
         model.AzureAd.TenantId = azureADTenantId;
         model.AzureAd.Instance = azureADInstance;
         model.AzureAd.AdGroup = azureADGroup;
+
         model.Storage.RelFolder = relFolder;
         model.Storage.ConnectionString = storageConnectionString;
         model.StorageDocumenti!.ConnectionString = storageDocumentiConnectionString;
         model.StorageDocumenti!.DocumentiFolder = documentFolder;
+
         model.ApplicationInsights = applicationInsights;
+
         model.Synapse.SynapseWorkspaceName = synapseWorkspaceName;
         model.Synapse.PipelineNameSAP = pipelineNameSAP;
         model.Synapse.ResourceGroupName = synapseResourceGroupName;
         model.Synapse.SubscriptionId = subscriptionId;
+
         model.StoragePagoPAFinancial.BlobContainerName = blobContainerName;
         model.StoragePagoPAFinancial.AccountName = storageAccountName;
         model.StoragePagoPAFinancial.AccountKey = storageAccountKey;
+
+        model.SelfCareOnBoarding.Endpoint = selfCareOnBoardingEndpoint;
+        model.SelfCareOnBoarding.RecipientCodeUri = selfCareOnBoardingRecipientCodeUri;
+        model.SelfCareOnBoarding.AuthToken = selfCareOnBoardingAuthToken;
+
+        model.SupportAPIService.Endpoint = supportAPIServiceEndpoint;
+        model.SupportAPIService.RecipientCodeUri = supportAPIServiceRecipientCodeUri;
+        model.SupportAPIService.AuthToken = supportAPIServiceAuthToken;
+
         return model;
     }
 

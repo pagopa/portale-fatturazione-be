@@ -8,7 +8,7 @@ namespace PortaleFatture.BE.Infrastructure.Common.SEND.SelfCare.Queries.Persiste
 public class EnteQueryGetByIdPersistence : DapperBase, IQuery<Ente?>
 {
     private readonly string? _idEnte;
-    private static readonly string _sqlSelect = EnteSQLBuilder.SelectBy();
+    private static readonly string _sqlSelect = EnteSQLBuilder.SelectByIdEnte();
 
     public EnteQueryGetByIdPersistence(string idEnte)
     {

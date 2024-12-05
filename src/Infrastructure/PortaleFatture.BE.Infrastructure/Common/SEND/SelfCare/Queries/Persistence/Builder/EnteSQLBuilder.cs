@@ -6,6 +6,22 @@ namespace PortaleFatture.BE.Infrastructure.Common.SEND.SelfCare.Queries.Persiste
 
 public class EnteSQLBuilder
 {
+    private static string _sql = @"
+SELECT e.[InternalIstitutionId] as IdEnte
+      ,[description] as RagioneSociale
+	  , c.FkIdTipoContratto as IdTipoContratto
+	  , t.Descrizione as TipoContratto
+	  , c.onboardingtokenid as IdContratto
+	  , c.product as Prodotto
+	  , ISNULL(originIdPadre, e.originId) as CodiceIPA
+      , c.codiceSDI as codiceSDI
+	  , e.institutionType as institutionType 
+  FROM [pfd].[Enti] e
+  inner join pfd.contratti c
+  left join pfw.TipoContratto t
+  ON t.IdTipoContratto = c.FkIdTipoContratto
+  on e.InternalIstitutionId = c.internalistitutionid
+";
     private static string WhereById()
     {
         Ente? obj;
@@ -27,11 +43,11 @@ public class EnteSQLBuilder
         builder.Select(nameof(@obj.Citta).GetAsColumn<Ente>());
         builder.Select(nameof(@obj.Provincia).GetAsColumn<Ente>());
         builder.Select(nameof(@obj.Nazione).GetAsColumn<Ente>());
-        builder.Select(nameof(@obj.PartitaIva).GetAsColumn<Ente>());
+        builder.Select(nameof(@obj.PartitaIva).GetAsColumn<Ente>()); 
         return builder;
     }
 
-    public static string SelectBy()
+    public static string SelectByIdEnte()
     {
         var tableName = nameof(Ente);
         tableName = tableName.GetTable<Ente>();
@@ -40,5 +56,10 @@ public class EnteSQLBuilder
         builder.Where(where);
         var builderTemplate = builder.AddTemplate($"Select /**select**/ from [schema]{tableName} /**where**/ ");
         return builderTemplate.RawSql;
+    }
+
+    public static string SelectContrattoByIdEnte()
+    {
+        return _sql;
     }
 }

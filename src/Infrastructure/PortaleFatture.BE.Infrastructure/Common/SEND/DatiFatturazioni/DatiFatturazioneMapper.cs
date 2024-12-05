@@ -34,6 +34,7 @@ public static class DatiFatturazioneMapper
            TipoCommessa = model.TipoCommessa,
            Contatti = model.Contatti!.Mapper(),
            IdEnte = model.AuthenticationInfo.IdEnte,
-           Prodotto = model.AuthenticationInfo.Prodotto
+           Prodotto = model.AuthenticationInfo.Prodotto,
+           CodiceSDI = model.CodiceSDI,
        };
 }

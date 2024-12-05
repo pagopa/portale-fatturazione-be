@@ -21,7 +21,8 @@ INSERT INTO [schema]DatiFatturazione
         [map],
         fktipocommessa,
         pec,
-        fkprodotto)
+        fkprodotto,
+        codiceSDI)
 VALUES (@cup, 
         @notaLegale,
         @codcommessa,
@@ -33,7 +34,8 @@ VALUES (@cup,
         @map, 
         @tipocommessa,
         @pec,   
-        @prodotto);
+        @prodotto,
+        @codiceSDI);
 Select SCOPE_IDENTITY() 'SCOPE_IDENTITY'";
     public async Task<long?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
               => await ((IDatabase)this).ExecuteAsync<long?>(connection!, _sqlInsert.Add(schema), new
@@ -49,6 +51,7 @@ Select SCOPE_IDENTITY() 'SCOPE_IDENTITY'";
                   map = _command.Map,
                   tipoCommessa = _command.TipoCommessa,
                   pec = _command.Pec,
-                  prodotto = _command.AuthenticationInfo.Prodotto
+                  prodotto = _command.AuthenticationInfo.Prodotto,
+                  codiceSDI = _command.CodiceSDI,
               }, transaction);
 }

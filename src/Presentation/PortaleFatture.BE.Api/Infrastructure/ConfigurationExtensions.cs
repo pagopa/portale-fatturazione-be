@@ -248,8 +248,7 @@ public static class ConfigurationExtensions
     this IServiceCollection services)
     {
         services
-            .AddPersistence();
-
+            .AddPersistence(); 
 
         services
             .AddPortaleFattureHealthChecks();
@@ -266,6 +265,10 @@ public static class ConfigurationExtensions
         services.AddHttpClient();
         services.AddSingleton<ISelfCareHttpClient, SelfCareHttpClient>();
         services.AddSingleton<IPagoPAHttpClient, PagoPAHttpClient>();
+        services.AddSingleton<ISelfCareOnBoardingHttpClient, SelfCareOnBoardingHttpClient>();
+        //services.AddSingleton<ISelfCareOnBoardingHttpClient, MockSelfCareOnBoardingHttpClient>();
+        //services.AddSingleton<ISupportAPIServiceHttpClient, MockSupportAPIServiceHttpClient>();
+        services.AddSingleton<ISupportAPIServiceHttpClient, SupportAPIServiceHttpClient>();
         services.AddSingleton<IMicrosoftGraphHttpClient, MicrosoftGraphHttpClient>();
 
         var hostingEnvironment = services

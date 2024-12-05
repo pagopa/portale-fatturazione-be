@@ -20,7 +20,23 @@ public sealed class PortaleFattureOptions : IPortaleFattureOptions
     public Storage? Storage { get; set; } 
     public StorageDocumenti? StorageDocumenti { get; set; } 
     public Synapse? Synapse { get; set; }
-    public StoragePagoPAFinancial? StoragePagoPAFinancial { get; set; }
+    public StoragePagoPAFinancial? StoragePagoPAFinancial { get; set; } 
+    public SelfCareOnBoarding? SelfCareOnBoarding { get; set; } 
+    public SupportAPIService? SupportAPIService { get; set; }
+}
+
+public class SupportAPIService()
+{
+    public string? Endpoint { get; set; }
+    public string? RecipientCodeUri { get; set; }
+    public string? AuthToken { get; set; }
+}
+
+public class SelfCareOnBoarding()
+{
+    public string? Endpoint { get; set; }
+    public string? RecipientCodeUri{ get; set; } 
+    public string? AuthToken { get; set; }
 }
 
 public class Synapse()

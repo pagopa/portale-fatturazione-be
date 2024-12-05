@@ -18,5 +18,6 @@ public sealed class DatiFatturazioneUpdateCommand(IAuthenticationInfo authentica
     public string? TipoCommessa { get; set; }
     public string? Pec { get; set; }
     public DateTime? DataModifica { get; set; }
-    public List<DatiFatturazioneContattoCreateCommand>? Contatti { get; set; }
+    public List<DatiFatturazioneContattoCreateCommand>? Contatti { get; set; } 
+    public string? CodiceSDI { get; set; }
 }
