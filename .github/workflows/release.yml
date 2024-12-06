@@ -29,14 +29,14 @@ jobs:
     steps:
       - name: Checkout
         id: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           persist-credentials: false
           fetch-depth: 0
 
       - name: Release
         id: release
-        uses: pagopa/ict-github-actions/semantic-release-ghcr@v1.4.3
+        uses: pagopa/ict-github-actions/semantic-release-ghcr@24de216aa23b63d18072d9d5d5edd8b6efa4b88f # v1.4.3
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -60,7 +60,7 @@ jobs:
 
     steps:
       - name: Deploy
-        uses: pagopa/ict-github-actions/appservice-deploy@v1.4.3
+        uses: pagopa/ict-github-actions/appservice-deploy@24de216aa23b63d18072d9d5d5edd8b6efa4b88f # v1.4.3
         with:
           tenant-id: ${{ secrets.ARM_TENANT_ID }}
           subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
