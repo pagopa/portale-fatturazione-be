@@ -46,7 +46,7 @@ public sealed class FinancialReportQueryGetByRicercaPersistence(FinancialReportQ
 
         if (!_command.ContractIds.IsNullNotAny())
         {
-            where.AddInOrder(" c.contract_id IN @ContractIds");
+            where.AddInOrder(" k.contract_id IN @ContractIds");
             parameters.ContractIds = _command.ContractIds;
         }
         if (!string.IsNullOrEmpty(_command.MembershipId))
