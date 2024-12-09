@@ -40,10 +40,12 @@ public static class FinancialReportsExtensions
     public static FinancialReportsQuarterByIdResponse Map(this GridFinancialReportListDto reports, PSPListDto psps, IDocumentStorageSASService sasService)
     {
         var financialReport = reports.FinancialReports!.FirstOrDefault();
-        financialReport!.Reports = financialReport.Reports!.Select(x => sasService.GetSASToken(DocumentiSASStorageKey.Deserialize(x))).ToList();
-        var psp = psps.PSPs!.FirstOrDefault();
+        if (financialReport!.Reports!.Where(x => x.Contains(DocumentiSASStorageKey.S3Prefix)).FirstOrDefault() != null) 
+            financialReport!.Reports = financialReport.Reports!.Select(x => sasService.GetSASToken(DocumentiSASStorageKey.Deserialize(x))).ToList();
+      
+        var psp = psps.PSPs == null ? null : psps.PSPs!.FirstOrDefault();
         List<string> checkedReports = [];
-        foreach (var report in financialReport!.Reports)
+        foreach (var report in financialReport!.Reports!)
             checkedReports.Add(report.FileExistsAsync());
 
         financialReport!.Reports = checkedReports;
@@ -89,12 +91,13 @@ public static class FinancialReportsExtensions
         };
     }
 
-    public static PSPQueryGetByRicerca Mapv2(this FinancialReportsPSPRequest req, AuthenticationInfo authInfo)
+    public static PSPQueryGetByRicerca Mapv2(this FinancialReportsPSPRequest req, AuthenticationInfo authInfo, string[]? quarters)
     {
         var detail = req.Key!.FromKey();
         return new PSPQueryGetByRicerca(authInfo)
         {
-            ContractIds = [detail.ContractId!]
+            ContractIds = [detail.ContractId!],
+            YearQuarter = quarters
         };
     }
 
@@ -142,9 +145,9 @@ public static class FinancialReportsExtensions
             namedQuarter = "q2";
         else if (yearQuarter.Contains("_3"))
             namedQuarter = "q3";
-        else  
+        else
             namedQuarter = "q4";
-        
+
         var year = yearQuarter.Split("_")[0];
         return kpmg switch
         {
@@ -237,7 +240,7 @@ public static class FinancialReportsExtensions
                     totalChecks.Add(new CheckFinance
                     {
                         Numero = "Totale Risultato",
-                        Importo = checks.Sum(item => item.Importo) 
+                        Importo = checks.Sum(item => item.Importo)
                     });
                     dataSet.Tables.Add(totalChecks!.FillTable(tableName!));
                 }

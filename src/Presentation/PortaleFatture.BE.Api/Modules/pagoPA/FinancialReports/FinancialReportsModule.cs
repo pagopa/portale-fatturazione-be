@@ -58,13 +58,14 @@ public partial class FinancialReportsModule : Module, IRegistrableModule
     [FromServices] IStringLocalizer<Localization> localizer)
     {
         var authInfo = context.GetAuthInfo();
-        var reports = await handler.Send(request.Map(authInfo));
+        var command = request.Map(authInfo);
+        var reports = await handler.Send(command);
         if (reports == null || reports.Count == 0)
             return NotFound();
-        var anagrafica = await handler.Send(request.Mapv2(authInfo));
+        var anagrafica = await handler.Send(request.Mapv2(authInfo, command.Quarters));
         if (anagrafica == null || anagrafica.Count == 0)
-            return NotFound(); 
-   
+            return NotFound();
+
         return Ok(reports.Map(anagrafica, sasService));
     }
 

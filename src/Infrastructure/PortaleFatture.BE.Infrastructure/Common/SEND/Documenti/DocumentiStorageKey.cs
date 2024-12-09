@@ -5,7 +5,7 @@ public sealed class DocumentiSASStorageKey(
     string? quarter,
     string? tipologiaDocumento)
 {
-    private const string _S3Prefix = @"https://public.pdnd.pagopa.it/apps/public/invoices/";
+    public const string S3Prefix = @"https://public.pdnd.pagopa.it/apps/public/invoices/";
     public string? ContractId { get; init; } = contractId;
     public string? Quarter { get; init; } = quarter;
     public string? TipologiaDocumento { get; init; } = tipologiaDocumento;  
@@ -16,7 +16,7 @@ public sealed class DocumentiSASStorageKey(
 
     public static DocumentiSASStorageKey Deserialize(string linkDocumento)
     {
-        linkDocumento = linkDocumento.Replace(_S3Prefix, string.Empty);
+        linkDocumento = linkDocumento.Replace(S3Prefix, string.Empty);
         var dati = linkDocumento!.Split("/");
         var contractId = dati[0];
         var partial = dati[1].Split("-");
