@@ -52,7 +52,7 @@ public class NotificaQueryGetByListEntiPersistencev2(NotificaQueryGetByListaEnti
         var recipientId = string.IsNullOrEmpty(_command.RecipientId) ? null : _command.RecipientId;
 
         if (!string.IsNullOrEmpty(iun))
-            where += " AND iun=@iun";
+            where += " AND n.iun=@iun";
 
         if (!string.IsNullOrEmpty(recipientId))
             where += " AND recipient_id=@recipientId";

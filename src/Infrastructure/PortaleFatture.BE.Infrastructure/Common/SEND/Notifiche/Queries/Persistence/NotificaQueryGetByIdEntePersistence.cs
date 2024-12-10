@@ -1,11 +1,9 @@
 ﻿using System.Data;
 using Dapper;
-using DocumentFormat.OpenXml.Spreadsheet;
 using PortaleFatture.BE.Core.Entities.SEND.Notifiche;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Notifiche.Dto;
-using PortaleFatture.BE.Infrastructure.Common.SEND.Notifiche.Queries;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Notifiche.Queries.Persistence.Builder;
 
 namespace PortaleFatture.BE.Infrastructure.Common.SEND.Notifiche.Queries.Persistence;
@@ -38,7 +36,7 @@ public class NotificaQueryGetByIdEntePersistence(NotificaQueryGetByIdEnte comman
         var recipientId = string.IsNullOrEmpty(_command.RecipientId) ? null : _command.RecipientId;
 
         if (!string.IsNullOrEmpty(iun))
-            where += " AND iun=@iun";
+            where += " AND n.iun=@iun";
 
         if (!string.IsNullOrEmpty(recipientId))
             where += " AND recipient_id=@recipientId";
