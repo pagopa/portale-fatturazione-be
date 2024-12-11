@@ -7,6 +7,19 @@ public partial class NotificaModule : Module, IRegistrableModule
 { 
     public void RegisterEndpoints(IEndpointRouteBuilder endpointRouteBuilder)
     {
+        #region pagoPA-selfcare
+        endpointRouteBuilder
+          .MapGet("api/notifiche/anni", GetAnniNotificaAsync)
+          .WithName("Permette visualizzare anni notifiche conta - pagoPA")
+          .SetOpenApi(Module.DatiNotificaLabelPagoPA)
+          .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+          .MapPost("api/notifiche/mesi", PostMesiNotificaAsync)
+          .WithName("Permette visualizzare mesi notifiche conta per anno - pagoPA")
+          .SetOpenApi(Module.DatiNotificaLabelPagoPA)
+          .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+        #endregion
         #region pagoPA
 
         endpointRouteBuilder

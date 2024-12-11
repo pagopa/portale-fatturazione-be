@@ -89,4 +89,34 @@ LEFT JOIN pfw.TipoContestazione a ON a.IdTipoContestazione = t.FkIdTipoContestaz
     {
         return _sqlCount;
     }
+
+    private static string _sqlAnni = @"
+SELECT  
+      distinct [year]
+   FROM [pfd].[NotificheCount]
+";
+
+    private static string _sqlMesi = @"
+SELECT  
+      distinct [month]
+   FROM [pfd].[NotificheCount] 
+";
+
+    public static string OrderByYear()
+    {
+        return " ORDER BY year desc";
+    }
+    public static string OrderByMonth()
+    {
+        return " ORDER BY month desc";
+    }
+    public static string SelectAnni()
+    {
+        return _sqlAnni;
+    }
+ 
+    public static string SelectMesi()
+    {
+        return _sqlMesi;
+    }
 }
