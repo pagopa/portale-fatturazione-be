@@ -10,6 +10,7 @@ using PortaleFatture.BE.Api.Infrastructure.Documenti;
 using PortaleFatture.BE.Api.Modules.SEND.DatiFatturazioni.Payload.Request;
 using PortaleFatture.BE.Api.Modules.SEND.DatiRel.Extensions;
 using PortaleFatture.BE.Api.Modules.SEND.DatiRel.Payload.Request;
+using PortaleFatture.BE.Api.Modules.SEND.Fatture.Payload.Request;
 using PortaleFatture.BE.Api.Modules.SEND.Notifiche.Extensions;
 using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Entities.SEND.DatiRel;
@@ -22,6 +23,7 @@ using PortaleFatture.BE.Infrastructure.Common.Identity;
 using PortaleFatture.BE.Infrastructure.Common.SEND.DatiRel.Commands;
 using PortaleFatture.BE.Infrastructure.Common.SEND.DatiRel.Dto;
 using PortaleFatture.BE.Infrastructure.Common.SEND.DatiRel.Extensions;
+using PortaleFatture.BE.Infrastructure.Common.SEND.DatiRel.Queries;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Documenti;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Documenti.Common;
 using PortaleFatture.BE.Infrastructure.Gateway.Storage;
@@ -32,6 +34,33 @@ namespace PortaleFatture.BE.Api.Modules.Notifiche;
 public partial class RelModule
 {
     #region pagoPA
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<IResult> GetRelNonFatturateExcelAsync(
+    HttpContext context, 
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+        {
+            var authInfo = context.GetAuthInfo();
+            var rel = await handler.Send(new RelNonFatturateQuery(authInfo));
+            if (rel == null || !rel!.Any())
+                return NotFound();
+            var mime = "application/vnd.ms-excel";
+            var filename = $"{Guid.NewGuid()}.xlsx";
+
+            var dataSet = rel.FillOneSheetv2();
+            var content = dataSet.ToExcel();
+            var result = new DisposableStreamResult(content, mime)
+            {
+                FileDownloadName = filename
+            };
+            return Results.Stream(result.FileStream, result.ContentType, result.FileDownloadName);
+        }
 
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
     [EnableCors(CORSLabel)]

@@ -67,6 +67,12 @@ public partial class RelModule : Module, IRegistrableModule
         #region pagoPA
 
         endpointRouteBuilder
+        .MapGet("api/rel/pagopa/nonfatturate", GetRelNonFatturateExcelAsync)
+        .WithName("Permette di scaricare l'excel delle rel non fatturate")
+        .SetOpenApi(Module.DatiRelLabel)
+        .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
         .MapPost("api/rel/pagopa/tipologiafattura", PostTipologiaFatturaPagoPAAsync)
         .WithName("Permette di verificare le tipologie fatture pagoPA")
         .SetOpenApi(Module.DatiRelLabel)
