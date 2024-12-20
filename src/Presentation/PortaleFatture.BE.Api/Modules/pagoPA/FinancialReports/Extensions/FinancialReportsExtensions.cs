@@ -1,5 +1,7 @@
 ﻿using System.Data;
 using System.Text.RegularExpressions;
+using DocumentFormat.OpenXml.Office2010.CustomUI;
+using Microsoft.IdentityModel.Logging;
 using PortaleFatture.BE.Api.Modules.pagoPA.FinancialReports.Dto;
 using PortaleFatture.BE.Api.Modules.pagoPA.FinancialReports.Request;
 using PortaleFatture.BE.Core.Auth;
@@ -40,9 +42,9 @@ public static class FinancialReportsExtensions
     public static FinancialReportsQuarterByIdResponse Map(this GridFinancialReportListDto reports, PSPListDto psps, IDocumentStorageSASService sasService)
     {
         var financialReport = reports.FinancialReports!.FirstOrDefault();
-        if (financialReport!.Reports!.Where(x => x.Contains(DocumentiSASStorageKey.S3Prefix)).FirstOrDefault() != null) 
+        if (financialReport!.Reports!.Where(x => x.Contains(DocumentiSASStorageKey.S3Prefix)).FirstOrDefault() != null)
             financialReport!.Reports = financialReport.Reports!.Select(x => sasService.GetSASToken(DocumentiSASStorageKey.Deserialize(x))).ToList();
-      
+
         var psp = psps.PSPs == null ? null : psps.PSPs!.FirstOrDefault();
         List<string> checkedReports = [];
         foreach (var report in financialReport!.Reports!)
@@ -153,6 +155,7 @@ public static class FinancialReportsExtensions
         {
             0 => $"{namedQuarter}-financial-report",
             1 => $"{namedQuarter}-kpmg-import",
+            2 => $"{namedQuarter}-kpi-pagamenti",
             _ => $"{namedQuarter.ToUpper()} {year} check Finance",
         };
     }
@@ -162,6 +165,8 @@ public static class FinancialReportsExtensions
         DataSet? dataSet = null;
         var financials = aggregateReports.FinancialReports;
         var reports = aggregateReports.KPMGReports;
+        var sconti = aggregateReports.Sconti;
+        var scontiList = aggregateReports.ScontiLista;
 
         List<string> tableNames = [];
         if (!financials.IsNullNotAny())
@@ -189,7 +194,7 @@ public static class FinancialReportsExtensions
         {
             dataSet ??= new();
 
-            var reportsYearQuarter = reports!.GroupBy(item => new { item.YearQuarter });
+            var reportsYearQuarter = reports!.GroupBy(item => new { item.YearQuarter, item.Numero });
             var rYearQuarter = reportsYearQuarter
                       .Select(group => group.Key.YearQuarter)
                       .Distinct();
@@ -204,7 +209,7 @@ public static class FinancialReportsExtensions
                     dataSet.Tables.Add(selected!.FillTable(tableName!));
 
                     //checks
-                    tableName = yearQuarter!.TableName(2);
+                    tableName = yearQuarter!.TableName(3);
                     tableNames.Add(tableName!);
                     var checks = selected.GroupBy(item => new { item.ContractId })
                          .SelectMany(group =>
@@ -221,7 +226,8 @@ public static class FinancialReportsExtensions
                                      Numero = group.First().Numero,
                                      Quantità = item.Quantita,
                                      Sconti = null,
-                                     Totale = item.CodiceArticolo!.Contains("BOLLO") ? 0 : group.Sum(i => i.Importo),
+                                     Totale = group.Sum(i => i.Importo),
+                                     ContractId = item.ContractId 
                                  };
 
                                  if (item != group.First())
@@ -230,6 +236,7 @@ public static class FinancialReportsExtensions
                                      check.RagioneSociale = string.Empty;
                                      check.Numero = string.Empty;
                                      check.Totale = null;
+                                     check.Sconti = null;
                                  }
                                  result.Add(check);
                              }
@@ -237,12 +244,36 @@ public static class FinancialReportsExtensions
                          });
 
                     var totalChecks = checks.ToList();
+
+                    foreach (var check in totalChecks)
+                    {
+                        var item = check;
+                        var sconto = sconti != null ? sconti.Where(x => x.YearQuarter == yearQuarter && x.RecipientId == check.ContractId).Select(x=> x.ValueDiscount) : [];
+                        if (check.Totale != null)
+                        {
+                            item.Sconti = sconto.FirstOrDefault();
+                            item.TotaleScontato = check.Totale - item.Sconti;
+                        } 
+                    } 
+           
                     totalChecks.Add(new CheckFinance
                     {
                         Numero = "Totale Risultato",
-                        Importo = checks.Sum(item => item.Importo)
+                        Importo = totalChecks.Sum(item => item.Importo),
+                        Sconti = totalChecks.Sum(item => item.Sconti),
+                        Totale = totalChecks.Sum(item => item.Totale),
+                        TotaleScontato = totalChecks.Sum(item => item.TotaleScontato),
                     });
                     dataSet.Tables.Add(totalChecks!.FillTable(tableName!));
+
+                    //kpi-pagamenti
+                    var scontoLista = scontiList != null? scontiList.Where(x => x.YearQuarter == yearQuarter) : [];
+                    if(!scontoLista.IsNullNotAny())
+                    {
+                        tableName = yearQuarter!.TableName(2);
+                        tableNames.Add(tableName!); 
+                        dataSet.Tables.Add(scontoLista!.FillTable(tableName!));
+                    } 
                 }
             }
         }
@@ -263,8 +294,10 @@ public static class FinancialReportsExtensions
             return 1;
         else if (normalized.Contains("kpmg-import"))
             return 2;
-        else
+        else if (normalized.Contains("kpi-pagamenti"))
             return 3;
+        else
+            return 4;
     }
 
     private static int GetQuarterOrder(string tableName)

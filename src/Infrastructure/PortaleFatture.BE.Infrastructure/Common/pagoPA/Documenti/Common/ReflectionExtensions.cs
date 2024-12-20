@@ -3,6 +3,7 @@ using System.Reflection;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using PortaleFatture.BE.Infrastructure.Common.pagoPA.KPIPagamenti.Dto;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Documenti.Common;
 
 namespace PortaleFatture.BE.Infrastructure.Common.pagoPA.Documenti.Common;
@@ -102,6 +103,12 @@ public static class ReflectionExtensions
                         var styleIndex = Convert.ToUInt32(col.Value);
                         if (value == null)
                             cellvalue = new CellValue(string.Empty);
+                        else if (type == typeof(long))
+                        {
+                            cellvalues = CellValues.Number;
+                            styleIndex = Convert.ToUInt32(XCellStyle.StandardInteger);
+                            cellvalue = new CellValue(Convert.ToDouble(value));
+                        }
                         else if (type == typeof(decimal))
                         {
                             cellvalues = CellValues.Number;
@@ -206,5 +213,5 @@ public static class ReflectionExtensions
         }
         ds.Tables.Add(table);
         return ds;
-    }
+    } 
 }

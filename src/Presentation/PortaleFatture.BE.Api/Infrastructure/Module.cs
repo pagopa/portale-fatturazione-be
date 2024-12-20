@@ -22,6 +22,7 @@ public abstract class Module : IModule
     public static string DatiAccertamentiPagoPA = "Accertamenti PagoPA";
 
     // prodotto pagoPA
+    public static string KPIPagamenti = "KPI Pagamenti prodotto PagoPA";
     public static string PSP = "PSP prodotto PagoPA";
     public static string FinancialReports = "Financial Reports prodotto PagoPA";
 
