@@ -1,11 +1,24 @@
 ﻿using PortaleFatture.BE.Infrastructure.Common.pagoPA.FinancialReports.Dto;
 using PortaleFatture.BE.Infrastructure.Common.pagoPA.FinancialReports.Queries;
-using PortaleFatture.BE.Infrastructure.Common.pagoPA.FinancialReports.Queries.Persistence;
+using PortaleFatture.BE.Infrastructure.Common.pagoPA.KPIPagamenti.Queries;
 
 namespace PortaleFatture.BE.Infrastructure.Common.pagoPA.FinancialReports.Extensions;
 
 public static class FinancialReportExtensions
 {
+    public static KPIPagamentiScontoKPMGQuery Mapv2(this FinancialReportQueryGetKPMGReportExcel request)
+    {
+        return new KPIPagamentiScontoKPMGQuery(request.AuthenticationInfo)
+        {
+            ABI = request.ABI,
+            ContractIds = request.ContractIds,
+            Quarters = request.Quarters,
+            MembershipId = request.MembershipId,
+            RecipientId = request.RecipientId,
+            Year = request.Year
+        };
+    }
+
     public static FinancialReportQueryGetFinancialReportExcel Map(this FinancialReportQueryGetKPMGReportExcel request)
     {
         return new FinancialReportQueryGetFinancialReportExcel(request.AuthenticationInfo)

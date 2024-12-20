@@ -18,7 +18,7 @@ public class CheckFinance
     [HeaderPagoPA(caption: "Q_ta", Order = 3)]
     public int? Quantità { get; set; }
 
-    [HeaderPagoPA(caption: "SUM of Importo", Order = 3)]
+    [HeaderPagoPA(caption: "Totale Imponibile (senza sconto)", Order = 3)]
     public decimal? Importo { get; set; }
 
     [HeaderPagoPA(caption: "ABI", Order = 4)]
@@ -27,9 +27,13 @@ public class CheckFinance
     [HeaderPagoPA(caption: "Ragione Sociale", Order = 5)]
     public string? RagioneSociale { get; set; }
 
-    [HeaderPagoPA(caption: "Sconti applicati (rif. 2023)", Order = 6)]
+    [HeaderPagoPA(caption: "Sconto", Order = 6)]
     public decimal? Sconti { get; set; }
 
-    [HeaderPagoPA(caption: "", Order = 7)]
+    [HeaderPagoPA(caption: "Totale Imponibile (senza sconto) con bollo", Order = 7)]
     public decimal? Totale { get; set; }
+
+    [HeaderPagoPA(caption: "Totale Imponibile con sconto", Order = 7)]
+    public decimal? TotaleScontato { get; set; }
+    public string? ContractId { get; set; }
 } 

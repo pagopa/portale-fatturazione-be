@@ -6,6 +6,7 @@ using PortaleFatture.BE.Infrastructure.Common.pagoPA.FinancialReports.Dto;
 using PortaleFatture.BE.Infrastructure.Common.pagoPA.FinancialReports.Extensions;
 using PortaleFatture.BE.Infrastructure.Common.pagoPA.FinancialReports.Queries;
 using PortaleFatture.BE.Infrastructure.Common.pagoPA.FinancialReports.Queries.Persistence;
+using PortaleFatture.BE.Infrastructure.Common.pagoPA.KPIPagamenti.Queries.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.Persistence.Schemas;
 
 namespace PortaleFatture.BE.Infrastructure.Common.pagoPA.FinancialReports.QueryHandlers;
@@ -25,9 +26,13 @@ public sealed class FinancialReportQueryGetKPMGReportExcelHandler(
 
         using var uow = await _factory.Create(true, cancellationToken: ct);
         var financials = await uow.Query(new FinancialReportQueryGetFinancialReportExcelPersistence(command.Map()), ct);
-        var kpmgs = await uow.Query(new FinancialReportQueryGetKPMGReportExcelPersistence(command), ct);
+        var kpmgs = await uow.Query(new FinancialReportQueryGetKPMGReportExcelPersistence(command), ct); 
+        var sconti = await uow.Query(new KPIPagamentiScontoKPMGQueryPersistence(command.Mapv2()), ct);
+        var scontiLista = await uow.Query(new KPIPagamentiScontoKPMGListQueryPersistence(command.Mapv2()), ct);
         report.FinancialReports = financials;
         report.KPMGReports = kpmgs;
+        report.Sconti = sconti;
+        report.ScontiLista = scontiLista;
         return report;
     }
 }

@@ -62,6 +62,7 @@ SELECT
     and k.codice_articolo = r.codice_articolo
     left outer join ppa.Contracts c
     on k.contract_id = c.contract_id
+    AND k.year_quarter = c.year_quarter
 ";
 
     private static string _sqlFinancialReport = @"
