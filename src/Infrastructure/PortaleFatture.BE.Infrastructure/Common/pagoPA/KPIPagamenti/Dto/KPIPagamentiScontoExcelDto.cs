@@ -15,10 +15,10 @@ public sealed class KPIPagamentiScontoExcelDto
     public string? YearQuarter { get; set; } 
 
     [HeaderPagoPA(caption: "Totale ", Order = 7)]
-    public decimal Totale { get; set; }
+    public decimal? Totale { get; set; }
 
     [HeaderPagoPA(caption: "TotaleSconto", Order = 10)]
-    public decimal TotaleSconto { get; set; }
+    public decimal? TotaleSconto { get; set; }
 
     [HeaderPagoPA(caption: "Link", Order = 11)]
     public string? Link { get; set; }
@@ -33,7 +33,7 @@ public sealed class KPIPagamentiScontoExcelDto
     public string? PspId { get; set; } 
  
     [HeaderPagoPA(caption: "trx_total", Order = 6)]
-    public long TrxTotal { get; set; }
+    public long? TrxTotal { get; set; }
  
     [HeaderPagoPA(caption: "KpiOk", Order = 8)]
     public int? KpiOk { get; set; }

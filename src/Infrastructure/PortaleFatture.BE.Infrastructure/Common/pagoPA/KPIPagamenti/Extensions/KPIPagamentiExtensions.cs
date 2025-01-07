@@ -40,8 +40,8 @@ internal static class KPIPagamentiExtensions
 
             actualValue.Name = ff.RecipientName;
             actualValue.RecipientId = ff.RecipientId;
-            actualValue.Totale += ff.ValueTotal;
-            actualValue.TotaleSconto+= ff.ValueDiscount;
+            actualValue.Totale += ff.ValueTotal == null ? 0 : ff.ValueTotal.Value;
+            actualValue.TotaleSconto+= ff.ValueDiscount == null ? 0 : ff.ValueDiscount.Value;
             actualValue.YearQuarter = ff.YearQuarter; 
             actualValue.Link = ff.LinkReport;
             actualValue.KpiList = ff.KpiList;

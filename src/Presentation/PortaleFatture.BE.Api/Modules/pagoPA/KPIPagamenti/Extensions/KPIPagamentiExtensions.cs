@@ -20,7 +20,7 @@ public static class KPIPagamentiExtensions
                 KpiList = sc.KpiList,
                 PercSconto = null,
                 KpiOk = null,
-                TrxTotal = sc!.Posizioni!.Sum(x=>x.TrxTotal),
+                TrxTotal = sc!.Posizioni!.Sum(x=>x.TrxTotal==null?0: x.TrxTotal.Value),
                 FlagMQ = sc!.FlagMQ,
             });
             foreach (var pos in sc!.Posizioni!)

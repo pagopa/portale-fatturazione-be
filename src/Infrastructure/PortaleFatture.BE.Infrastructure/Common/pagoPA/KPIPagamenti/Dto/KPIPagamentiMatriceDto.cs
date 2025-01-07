@@ -35,7 +35,7 @@ public sealed class KPIPagamentiMatriceDto
     public string? KpiOutcome { get; set; }
 
     [HeaderPagoPA(caption: "dl_event_tms", Order = 11)]
-    public DateTime? DlEventTms { get; set; }   
+    public long? DlEventTms { get; set; }   
 
     [HeaderPagoPA(caption: "dl_ingestion_tms", Order = 11)]
     public long? DlIngestionTms { get; set; } 
