@@ -1,7 +1,5 @@
 ﻿using System.Data;
 using System.Text.RegularExpressions;
-using DocumentFormat.OpenXml.Office2010.CustomUI;
-using Microsoft.IdentityModel.Logging;
 using PortaleFatture.BE.Api.Modules.pagoPA.FinancialReports.Dto;
 using PortaleFatture.BE.Api.Modules.pagoPA.FinancialReports.Request;
 using PortaleFatture.BE.Core.Auth;
@@ -12,6 +10,7 @@ using PortaleFatture.BE.Infrastructure.Common.pagoPA.Documenti;
 using PortaleFatture.BE.Infrastructure.Common.pagoPA.Documenti.Common;
 using PortaleFatture.BE.Infrastructure.Common.pagoPA.FinancialReports.Dto;
 using PortaleFatture.BE.Infrastructure.Common.pagoPA.FinancialReports.Queries;
+using PortaleFatture.BE.Infrastructure.Common.pagoPA.KPIPagamenti.Dto;
 using PortaleFatture.BE.Infrastructure.Gateway.Storage.pagoPA;
 
 namespace PortaleFatture.BE.Api.Modules.pagoPA.FinancialReports.Extensions;
@@ -227,7 +226,7 @@ public static class FinancialReportsExtensions
                                      Quantità = item.Quantita,
                                      Sconti = null,
                                      Totale = group.Sum(i => i.Importo),
-                                     ContractId = item.ContractId 
+                                     ContractId = item.ContractId
                                  };
 
                                  if (item != group.First())
@@ -248,14 +247,14 @@ public static class FinancialReportsExtensions
                     foreach (var check in totalChecks)
                     {
                         var item = check;
-                        var sconto = sconti != null ? sconti.Where(x => x.YearQuarter == yearQuarter && x.RecipientId == check.ContractId).Select(x=> x.ValueDiscount) : [];
+                        var sconto = sconti != null ? sconti.Where(x => x.YearQuarter == yearQuarter && x.RecipientId == check.ContractId).Select(x => x.ValueDiscount) : [];
                         if (check.Totale != null)
                         {
                             item.Sconti = sconto.FirstOrDefault();
                             item.TotaleScontato = check.Totale - item.Sconti;
-                        } 
-                    } 
-           
+                        }
+                    }
+
                     totalChecks.Add(new CheckFinance
                     {
                         Numero = "Totale Risultato",
@@ -267,13 +266,39 @@ public static class FinancialReportsExtensions
                     dataSet.Tables.Add(totalChecks!.FillTable(tableName!));
 
                     //kpi-pagamenti
-                    var scontoLista = scontiList != null? scontiList.Where(x => x.YearQuarter == yearQuarter) : [];
-                    if(!scontoLista.IsNullNotAny())
+                    var scontoLista = scontiList != null ? scontiList.Where(x => x.YearQuarter == yearQuarter).ToList() : [];
+                    if (!scontoLista.IsNullNotAny())
                     {
                         tableName = yearQuarter!.TableName(2);
-                        tableNames.Add(tableName!); 
-                        dataSet.Tables.Add(scontoLista!.FillTable(tableName!));
-                    } 
+                        tableNames.Add(tableName!);
+
+                        var aggregatedData = scontoLista
+                        .GroupBy(item => new { item.YearQuarter, item.RecipientId, item.FlagMQ }) 
+                        .Select(group => new KPIPagamentiScontoDto
+                        {
+                            YearQuarter = group.Key.YearQuarter,
+                            RecipientId = group.Key.RecipientId,
+                            RecipientTrxTotal = group.Sum(item => item.TrxTotal),
+                            RecipientValueTotal = group.Sum(item => item.ValueTotal),
+                            RecipientValueDiscount = group.Sum(item => item.ValueDiscount),
+                            FlagMQ = group.Key.FlagMQ,
+                            PercSconto = null,
+                            KpiOk = null,
+                            TrxTotal = null,
+
+                        })
+                        .ToList();
+
+                        scontoLista.AddRange(aggregatedData);
+
+                        var orderedList = scontoLista
+                            .OrderBy(x => x.RecipientId)
+                            .ThenBy(x => x.PSPName == null ? 1 : 0)
+                            .ThenBy(x => x.PSPName)
+                            .ToList();
+
+                        dataSet.Tables.Add(orderedList!.FillTable(tableName!));
+                    }
                 }
             }
         }
