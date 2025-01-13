@@ -7,10 +7,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Azure.Identity" Version="1.12.1" />
-        <PackageReference Include="Azure.Storage.Blobs" Version="12.22.1" />
-        <PackageReference Include="Azure.Storage.Common" Version="12.21.0" />
-        <PackageReference Include="ClosedXML" Version="0.104.1" />
       <Compile Remove="Common\Storici\CommandHandlers\**" />
       <Compile Remove="Common\SEND\Tipologie\CommandHandles\**" />
       <Compile Remove="Common\SEND\Tipologie\Commands\**" />
@@ -23,13 +19,16 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Azure.Identity" Version="1.12.0" />
+        <PackageReference Include="Azure.Identity" Version="1.13.1" />
         <PackageReference Include="Azure.Storage.Blobs" Version="12.21.1" />
-        <PackageReference Include="Azure.Storage.Common" Version="12.20.1" />
+        <PackageReference Include="Azure.Storage.Common" Version="12.22.0" />
         <PackageReference Include="ClosedXML" Version="0.104.2" />
         <PackageReference Include="CsvHelper" Version="33.0.1" />
         <PackageReference Include="Dapper" Version="2.1.44" />
         <PackageReference Include="Dapper.SqlBuilder" Version="2.0.78" />
+        <PackageReference Include="Google.Apis" Version="1.68.0" />
+        <PackageReference Include="Google.Apis.Auth" Version="1.68.0" />
+        <PackageReference Include="Google.Apis.Gmail.v1" Version="1.68.0.3427" />
         <PackageReference Include="Haukcode.WkHtmlToPdfDotNet" Version="1.5.93" />
         <PackageReference Include="MailKit" Version="4.8.0" />
         <PackageReference Include="MediatR" Version="12.4.1" /> 

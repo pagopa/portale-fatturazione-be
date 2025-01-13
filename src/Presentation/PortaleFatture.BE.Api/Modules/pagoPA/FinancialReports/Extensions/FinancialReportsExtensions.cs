@@ -155,7 +155,7 @@ public static class FinancialReportsExtensions
             0 => $"{namedQuarter}-financial-report",
             1 => $"{namedQuarter}-kpmg-import",
             2 => $"{namedQuarter}-kpi-pagamenti",
-            _ => $"{namedQuarter.ToUpper()} {year} check Finance",
+            _ => $"{namedQuarter.ToUpper()} {year} Finance",
         };
     }
 

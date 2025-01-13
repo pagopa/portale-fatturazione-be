@@ -538,3 +538,6 @@ src/Presentation/PortaleFatture.BE.ImportFinancepagoPA/data
 src/Presentation/PortaleFatture.BE.ImportFinancepagoPA/.env.prod
 src/Presentation/PortaleFatture.BE.ImportFinancepagoPA/.env.uat
 src/Presentation/PortaleFatture.BE.ImportFinancepagoPA/libs
+src/Presentation/PortaleFatture.BE.SendEmailFunction/Infrastructure/Documenti/pagoPA/client_secret_131839718954-naqpisi9sl3thmuh1s00rpuele3757ts.apps.googleusercontent.com.json
+src/Presentation/PortaleFatture.BE.EmailPSPSender/Program.cs
+src/Presentation/PortaleFatture.BE.EmailPSPSender/Infrastructure/Documenti/pagoPA/credentials.json
