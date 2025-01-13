@@ -125,7 +125,7 @@ public static class DocumentExtensions
     }
 
     private static Dictionary<string, string> _names = new();
-    private static string GetName<T>(this string propertyName)
+    public static string GetName<T>(this string propertyName)
     {
         _names.TryGetValue(propertyName, out var name);
         if (name == null)

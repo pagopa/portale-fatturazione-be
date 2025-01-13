@@ -23,24 +23,24 @@ public class SendEmail(ILoggerFactory loggerFactory)
         try
         {
             // config
-            Configurazione.ConnectionString = GetEnvironmentVariable("PortaleFattureOptions:ConnectionString");
-            Configurazione.From = GetEnvironmentVariable("PortaleFattureOptions:FROM");
-            Configurazione.Smtp = GetEnvironmentVariable("PortaleFattureOptions:SMTP");
-            Configurazione.SmtpPort = Convert.ToInt32(GetEnvironmentVariable("PortaleFattureOptions:SMTP_PORT"));
-            Configurazione.SmtpAuth = GetEnvironmentVariable("PortaleFattureOptions:SMTP_AUTH");
-            Configurazione.SmtpPassword = GetEnvironmentVariable("PortaleFattureOptions:SMTP_PASSWORD");
-            if (String.IsNullOrEmpty(Configurazione.ConnectionString) ||
-                String.IsNullOrEmpty(Configurazione.From) ||
-                String.IsNullOrEmpty(Configurazione.Smtp) ||
-                String.IsNullOrEmpty(Configurazione.SmtpAuth) ||
-                String.IsNullOrEmpty(Configurazione.SmtpPassword))
+            ConfigurazioneSEND.ConnectionString = GetEnvironmentVariable("PortaleFattureOptions:ConnectionString");
+            ConfigurazioneSEND.From = GetEnvironmentVariable("PortaleFattureOptions:FROM");
+            ConfigurazioneSEND.Smtp = GetEnvironmentVariable("PortaleFattureOptions:SMTP");
+            ConfigurazioneSEND.SmtpPort = Convert.ToInt32(GetEnvironmentVariable("PortaleFattureOptions:SMTP_PORT"));
+            ConfigurazioneSEND.SmtpAuth = GetEnvironmentVariable("PortaleFattureOptions:SMTP_AUTH");
+            ConfigurazioneSEND.SmtpPassword = GetEnvironmentVariable("PortaleFattureOptions:SMTP_PASSWORD");
+            if (String.IsNullOrEmpty(ConfigurazioneSEND.ConnectionString) ||
+                String.IsNullOrEmpty(ConfigurazioneSEND.From) ||
+                String.IsNullOrEmpty(ConfigurazioneSEND.Smtp) ||
+                String.IsNullOrEmpty(ConfigurazioneSEND.SmtpAuth) ||
+                String.IsNullOrEmpty(ConfigurazioneSEND.SmtpPassword))
             {
-                Configurazione.ConnectionString = GetEnvironmentVariable("CONNECTION_STRING");
-                Configurazione.From = "send-fatturazione@pec.pagopa.it";
-                Configurazione.Smtp = GetEnvironmentVariable("SMTP");
-                Configurazione.SmtpPort = Convert.ToInt32(GetEnvironmentVariable("SMTP_PORT"));
-                Configurazione.SmtpAuth = GetEnvironmentVariable("SMTP_AUTH");
-                Configurazione.SmtpPassword = GetEnvironmentVariable("SMTP_PASSWORD"); 
+                ConfigurazioneSEND.ConnectionString = GetEnvironmentVariable("CONNECTION_STRING");
+                ConfigurazioneSEND.From = "send-fatturazione@pec.pagopa.it";
+                ConfigurazioneSEND.Smtp = GetEnvironmentVariable("SMTP");
+                ConfigurazioneSEND.SmtpPort = Convert.ToInt32(GetEnvironmentVariable("SMTP_PORT"));
+                ConfigurazioneSEND.SmtpAuth = GetEnvironmentVariable("SMTP_AUTH");
+                ConfigurazioneSEND.SmtpPassword = GetEnvironmentVariable("SMTP_PASSWORD"); 
             };
 
 
@@ -75,21 +75,20 @@ public class SendEmail(ILoggerFactory loggerFactory)
             }
 
             var subject = $"Notifica Regolare Esecuzione {tipologiafattura} Mese di {mese.GetMonth()}";
-            var sender = new EmailSender(smtpSource: Configurazione.Smtp!,
-                smtpPort: Configurazione.SmtpPort!,
-                smtpUser: Configurazione.SmtpAuth!,
-                smtpPassword: Configurazione.SmtpPassword!,
-                from: Configurazione.From!);
-            var emailService = new EmailRelService(Configurazione.ConnectionString!);
+            var sender = new EmailSender(smtpSource: ConfigurazioneSEND.Smtp!,
+                smtpPort: ConfigurazioneSEND.SmtpPort!,
+                smtpUser: ConfigurazioneSEND.SmtpAuth!,
+                smtpPassword: ConfigurazioneSEND.SmtpPassword!,
+                from: ConfigurazioneSEND.From!);
+            var emailService = new EmailRelService(ConfigurazioneSEND.ConnectionString!);
             var enti = emailService.GetSenderEmail(risposta.Anno, risposta.Mese, risposta.TipologiaFattura!);
             foreach (var ente in enti!)
                 if (ente.Pec != null)
                 {
                     var (msg, ver) = sender.SendEmail(ente.Pec, subject, builder.CreateEmailHtml(ente)!);
-                    if (!ver)
-                    {
-                        _logger.LogInformation(msg);
-                    }
+                    if (!ver) 
+                        _logger.LogInformation(msg); 
+
                     emailService.InsertTracciatoEmail(new RelEmailTracking()
                     {
                         Data = data,

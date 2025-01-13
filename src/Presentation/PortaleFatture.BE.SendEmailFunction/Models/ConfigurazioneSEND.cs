@@ -1,6 +1,6 @@
 ﻿namespace PortaleFatture_BE_SendEmailFunction.Models;
 
-public static class Configurazione
+public static class ConfigurazioneSEND
 {
     public static string? ConnectionString { get; set; }
     public static string? From { get; set; }
