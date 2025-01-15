@@ -84,7 +84,7 @@ public class SelfCareTokenService : ISelfCareTokenService
                     if (claim.Type == CustomClaim.Organization)
                     {
                         dynamic? jsonObject = JsonConvert.DeserializeObject<dynamic>(claim.Value!);
-                        data += $" idEnte: {jsonObject!.id}" + $" Ente: {jsonObject!.name} ";
+                        data += $" idEnte: {jsonObject!.id}" + $" ente: {jsonObject!.name} ";
                     }
                      
                 }
