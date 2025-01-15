@@ -1,9 +1,12 @@
-﻿using System.IdentityModel.Tokens.Jwt;
+﻿using System.Globalization;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Auth.SelfCare;
 using PortaleFatture.BE.Core.Common;
@@ -17,7 +20,7 @@ public class SelfCareTokenService : ISelfCareTokenService
     private readonly ILogger<SelfCareTokenService> _logger;
     private readonly IPortaleFattureOptions _options;
     public SelfCareTokenService(
-        ISelfCareHttpClient httpClient, 
+        ISelfCareHttpClient httpClient,
         IPortaleFattureOptions options,
         ILogger<SelfCareTokenService> logger)
     {
@@ -53,6 +56,49 @@ public class SelfCareTokenService : ISelfCareTokenService
         };
     }
 
+    private string ReadJwt(string selfcareToken)
+    {
+        var data = string.Empty;
+        try
+        { 
+            var handler = new JwtSecurityTokenHandler();
+            if (handler.CanReadToken(selfcareToken))
+            {
+                var token = handler.ReadJwtToken(selfcareToken);
+
+                foreach (var claim in token.Claims)
+                {
+                    if(claim.Type  == CustomClaim.Uid)
+                        data += "uid: " + claim.Value + " ";
+
+                    if (claim.Type == CustomClaim.Expire)
+                    {
+                        var expirationTimeUtc = DateTimeOffset.FromUnixTimeSeconds(Convert.ToInt64(claim.Value)).UtcDateTime;
+                        var italianTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Central European Standard Time");
+                        var expirationTimeLocal = TimeZoneInfo.ConvertTimeFromUtc(expirationTimeUtc, italianTimeZone); 
+                        var italianCulture = new CultureInfo("it-IT");
+                        string formattedDate = expirationTimeLocal.ToString("f", italianCulture);
+                        data += "exp: " + formattedDate + " ";
+                    }
+
+                    if (claim.Type == CustomClaim.Organization)
+                    {
+                        dynamic? jsonObject = JsonConvert.DeserializeObject<dynamic>(claim.Value!);
+                        data += $" idEnte: {jsonObject!.id}" + $" Ente: {jsonObject!.name} ";
+                    }
+                     
+                }
+                return data;
+            }
+            else
+                return string.Empty;
+        }
+        catch
+        {
+            return string.Empty;
+        } 
+    }
+
     private (ClaimsPrincipal?, bool) Verify(CertificateKey? certificate, string selfcareToken, bool requireExpirationTime)
     {
         var rsa = new RSACryptoServiceProvider();
@@ -66,7 +112,7 @@ public class SelfCareTokenService : ISelfCareTokenService
         var validationParameters = new TokenValidationParameters
         {
             RequireExpirationTime = requireExpirationTime,
-            RequireSignedTokens = true, 
+            RequireSignedTokens = true,
             ValidAudience = _options.SelfCareAudience,
             ValidateAudience = true,
             ValidIssuer = _options.SelfCareUri,
@@ -85,8 +131,8 @@ public class SelfCareTokenService : ISelfCareTokenService
         }
         catch
         {
-            var msg = "Token Exchange Expired! ExJwt: { jwt }";
-            _logger.LogError(msg, selfcareToken);
+            var msg = $"Token Exchange Expired! {ReadJwt(selfcareToken)}";
+            _logger.LogError(msg);
             throw new SecurityException(msg);
         }
         return (claimPrincipal, true);
