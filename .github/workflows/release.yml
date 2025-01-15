@@ -40,6 +40,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           dockerfile: src/Presentation/PortaleFatture.BE.Api/Dockerfile
+          platforms: linux/amd64
 
       - name: Print release info
         shell: bash
