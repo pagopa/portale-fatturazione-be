@@ -36,9 +36,10 @@ jobs:
 
       - name: Release
         id: release
-        uses: pagopa/ict-github-actions/semantic-release-ghcr@v1.4.3
+        uses: pagopa/ict-github-actions/semantic-release-ghcr@v1.5.2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          dockerfile: src/Presentation/PortaleFatture.BE.Api/Dockerfile
 
       - name: Print release info
         shell: bash
@@ -60,7 +61,7 @@ jobs:
 
     steps:
       - name: Deploy
-        uses: pagopa/ict-github-actions/appservice-deploy@v1.4.3
+        uses: pagopa/ict-github-actions/appservice-deploy@v1.5.2
         with:
           tenant-id: ${{ secrets.ARM_TENANT_ID }}
           subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
