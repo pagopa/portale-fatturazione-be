@@ -11,6 +11,7 @@ public static class CustomClaim
     public static string Email = "email";
     public static string IdTipoContratto = "idTipoContratto";
     public static string Uid = "uid";
+    public static string Expire = "exp";
     public static string Organization = "organization";
     public static string GruppoRuolo = "gruppoRuolo";
     public static string Auth = "auth";
