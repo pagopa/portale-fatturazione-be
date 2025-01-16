@@ -24,6 +24,12 @@ github = {
   environment = "prod"
 }
 
+deployments = {
+  review_required = true
+  reviewer_teams  = ["portalefatturazione-admin"]
+  reviewer_users  = ["mg-dgsspa"]
+}
+
 #
 # azure
 #

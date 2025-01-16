@@ -24,6 +24,10 @@ github = {
   environment = "uat"
 }
 
+deployments = {
+  review_required = false
+}
+
 #
 # azure
 #
