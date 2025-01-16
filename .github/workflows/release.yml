@@ -29,14 +29,14 @@ jobs:
     steps:
       - name: Checkout
         id: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           persist-credentials: false
           fetch-depth: 0
 
       - name: Release
         id: release
-        uses: pagopa/ict-github-actions/semantic-release-ghcr@v1.5.2
+        uses: pagopa/ict-github-actions/semantic-release-ghcr@7b9f0300421af37c88c729b3849a80fce8820f20 # v1.5.2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           dockerfile: src/Presentation/PortaleFatture.BE.Api/Dockerfile
@@ -62,7 +62,7 @@ jobs:
 
     steps:
       - name: Deploy
-        uses: pagopa/ict-github-actions/appservice-deploy@v1.5.2
+        uses: pagopa/ict-github-actions/appservice-deploy@7b9f0300421af37c88c729b3849a80fce8820f20 # v1.5.2
         with:
           tenant-id: ${{ secrets.ARM_TENANT_ID }}
           subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
