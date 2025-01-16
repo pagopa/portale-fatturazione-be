@@ -10,6 +10,20 @@ resource "github_repository_environment" "env" {
     protected_branches     = true
     custom_branch_policies = false
   }
+
+  dynamic "reviewers" {
+    for_each = var.deployments.review_required ? ["dummy"] : []
+    content {
+      teams = [
+        for t in var.deployments.reviewer_teams :
+        data.github_team.reviewers[t].id
+      ]
+      users = [
+        for u in var.deployments.reviewer_users :
+        data.github_user.reviewers[u].id
+      ]
+    }
+  }
 }
 
 # secrets for allowing github runner to authenticate with federated credentials
