@@ -8,6 +8,17 @@ public partial class RelModule : Module, IRegistrableModule
     public void RegisterEndpoints(IEndpointRouteBuilder endpointRouteBuilder)
     {
         #region selfcare
+        endpointRouteBuilder
+          .MapGet("api/rel/anni", GetAnniEnteRelAsync)
+          .WithName("Permette visualizzare anni REL - Ente")
+          .SetOpenApi(Module.DatiRelLabel)
+          .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+          .MapPost("api/rel/mesi", PostMesiEnteRelAsync)
+          .WithName("Permette visualizzare mesi REL per anno - Ente")
+          .SetOpenApi(Module.DatiRelLabel)
+          .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
         endpointRouteBuilder
         .MapPost("api/rel/tipologiafattura", PostTipologiaFatturaAsync)
@@ -137,6 +148,18 @@ public partial class RelModule : Module, IRegistrableModule
         .WithName("Permette di ottenere il documento quadratura Rels dell'ente per ricerca pagoPA")
         .SetOpenApi(Module.DatiRelLabelPagoPA)
         .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+          .MapGet("api/rel/pagopa/anni", GetAnniRelAsync)
+          .WithName("Permette visualizzare anni REL - pagoPA")
+          .SetOpenApi(Module.DatiRelLabelPagoPA)
+          .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+          .MapPost("api/rel/pagopa/mesi", PostMesiRelAsync)
+          .WithName("Permette visualizzare mesi REL per anno - pagoPA")
+          .SetOpenApi(Module.DatiRelLabelPagoPA)
+          .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel)); 
         #endregion
     }
 } 

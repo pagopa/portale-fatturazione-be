@@ -24,9 +24,15 @@ public class FattureQueryRicercaPersistence(FattureQueryRicerca command) : Dappe
         var tipoFattura = _command.TipologiaFattura;
 
         var sqlFatture = _command.Cancellata ? _sqlSelectAllCancellate : _sqlSelectAll;
-        var sqlEnti = _sqlSelectEnti.Add(schema);
-        var sql = string.Join(";", sqlEnti, sqlFatture);
+        var sqlEnti = _sqlSelectEnti.Add(schema); 
 
+        if (!tipoFattura.IsNullNotAny())
+            sqlFatture = sqlFatture.Replace("[condition_tipologiafattura]", "and FT.FkTipologiaFattura IN @TipologiaFattura"); 
+        else
+            sqlFatture = sqlFatture.Replace("[condition_tipologiafattura]", string.Empty); 
+
+        var sql = string.Join(";", sqlEnti, sqlFatture); 
+        
         var query = new
         {
             AnnoRiferimento = anno,

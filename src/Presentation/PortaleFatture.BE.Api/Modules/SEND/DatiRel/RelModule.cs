@@ -1,5 +1,4 @@
-﻿using System.IO;
-using MediatR;
+﻿using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -10,7 +9,7 @@ using PortaleFatture.BE.Api.Infrastructure.Documenti;
 using PortaleFatture.BE.Api.Modules.SEND.DatiFatturazioni.Payload.Request;
 using PortaleFatture.BE.Api.Modules.SEND.DatiRel.Extensions;
 using PortaleFatture.BE.Api.Modules.SEND.DatiRel.Payload.Request;
-using PortaleFatture.BE.Api.Modules.SEND.Fatture.Payload.Request;
+using PortaleFatture.BE.Api.Modules.SEND.DatiRel.Payload.Response;
 using PortaleFatture.BE.Api.Modules.SEND.Notifiche.Extensions;
 using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Entities.SEND.DatiRel;
@@ -26,6 +25,7 @@ using PortaleFatture.BE.Infrastructure.Common.SEND.DatiRel.Extensions;
 using PortaleFatture.BE.Infrastructure.Common.SEND.DatiRel.Queries;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Documenti;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Documenti.Common;
+using PortaleFatture.BE.Infrastructure.Common.SEND.SelfCare.Queries;
 using PortaleFatture.BE.Infrastructure.Gateway.Storage;
 using static Microsoft.AspNetCore.Http.TypedResults;
 
@@ -34,6 +34,55 @@ namespace PortaleFatture.BE.Api.Modules.Notifiche;
 public partial class RelModule
 {
     #region pagoPA
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<string>>, NotFound>> GetAnniRelAsync(
+    HttpContext context,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+        {
+            var authInfo = context.GetAuthInfo();
+
+            var anni = await handler.Send(new RelAnniQuery(authInfo));
+            if (anni.IsNullNotAny())
+                return NotFound();
+            return Ok(anni);
+        }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<RelMeseResponse>>, NotFound>> PostMesiRelAsync(
+    HttpContext context,
+    [FromBody] RelMesiRequest request,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+
+        var mesi = await handler.Send(new RelMesiQuery(authInfo)
+        {
+            Anno = request.Anno
+        });
+
+        if (mesi.IsNullNotAny())
+            return NotFound();
+
+        return Ok(mesi!.Select(x => new RelMeseResponse()
+        {
+            Mese = x,
+            Descrizione = Convert.ToInt32(x).GetMonth()
+        }));
+    }
+
 
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
     [EnableCors(CORSLabel)]
@@ -386,6 +435,53 @@ public partial class RelModule
     #endregion
 
     #region selfcare
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<string>>, NotFound>> GetAnniEnteRelAsync(
+    HttpContext context,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var anni = await handler.Send(new RelAnniByIdEnteQuery(authInfo));
+        if (anni.IsNullNotAny())
+            return NotFound();
+        return Ok(anni);
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<RelMeseResponse>>, NotFound>> PostMesiEnteRelAsync(
+    HttpContext context,
+    [FromBody] RelMesiRequest request,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo(); 
+ 
+        var mesi = await handler.Send(new RelMesiByIdEnteQuery(authInfo)
+        {
+            Anno = request.Anno 
+        });
+
+        if (mesi.IsNullNotAny())
+            return NotFound();
+
+        return Ok(mesi!.Select(x => new RelMeseResponse()
+        {
+            Mese = x,
+            Descrizione = Convert.ToInt32(x).GetMonth()
+        }));
+    }
 
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
     [EnableCors(CORSLabel)]

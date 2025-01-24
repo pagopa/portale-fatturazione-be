@@ -316,10 +316,47 @@ SELECT
 	INNER JOIN pfw.FatturaTestataConfig ftc ON ftc.FkTipologiaFattura = FT.FkTipologiaFattura AND ftc.FKIdTipoContratto = c.FkIdTipoContratto
     where FT.AnnoRiferimento = @AnnoRiferimento
 	and FT.MeseRiferimento = @MeseRiferimento
-	and FT.FkTipologiaFattura IN @TipologiaFattura
+	[condition_tipologiafattura]
 	and FT.FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865' --esclusione pagopa
 	ORDER BY FT.FkTipologiaFattura, FT.Progressivo
     FOR JSON PATH, INCLUDE_NULL_VALUES )";
+
+    private static string _sqlAnni = @"
+SELECT  
+      distinct AnnoRiferimento
+   FROM [pfd].[FattureTestata]
+";
+
+    private static string _sqlMesi = @"
+SELECT  
+      distinct MeseRiferimento
+   FROM [pfd].[FattureTestata]
+";
+
+    private static string _sqlSelectTipologiaFatturaAnnoMese = @"
+SELECT  
+      distinct FkTipologiaFattura,
+     CASE
+        WHEN [FkTipologiaFattura] = 'ANTICIPO' THEN 1
+        WHEN [FkTipologiaFattura] = 'ACCONTO' THEN 2
+        WHEN [FkTipologiaFattura] = 'PRIMO SALDO' THEN 3
+        WHEN [FkTipologiaFattura] = 'SECONDO SALDO' THEN 4
+        WHEN [FkTipologiaFattura] = 'VAR. SEMESTRALE' THEN 5
+        ELSE 6 
+  END AS ordine
+  		   FROM [pfd].[FattureTestata]
+     where AnnoRiferimento=@anno and MeseRiferimento=@mese
+";
+
+    public static string OrderByYear()
+    {
+        return " ORDER BY AnnoRiferimento desc";
+    }
+    public static string OrderByMonth()
+    {
+        return " ORDER BY MeseRiferimento desc";
+    }
+
     public static string SelectStored()
     {
         return _sqlStored;
@@ -362,5 +399,18 @@ SELECT
     {
         return _sqlViewByIdEnte;
     }
+    public static string SelectAnni()
+    {
+        return _sqlAnni;
+    }
 
+    public static string SelectMesi()
+    {
+        return _sqlMesi;
+    }
+
+    public static string SelectTipologiaFatturaAnnoMese()
+    {
+        return _sqlSelectTipologiaFatturaAnnoMese;
+    }
 }

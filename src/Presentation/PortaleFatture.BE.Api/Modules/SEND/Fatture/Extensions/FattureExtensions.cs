@@ -68,6 +68,15 @@ public static class FattureExtensions
     {
         Dictionary<string, byte[]> reports = [];
 
+        if(request.TipologiaFattura!.IsNullNotAny())
+        {
+            request.TipologiaFattura = (await handler.Send(new FattureTipologiaAnniMeseQuery(authInfo)
+            {
+                Anno = request.Anno!,
+                Mese = request.Mese!
+            }))!.ToArray();
+        } 
+
         foreach (var tipologia in request.TipologiaFattura!)
         {
             var month = request.Mese.GetMonth();

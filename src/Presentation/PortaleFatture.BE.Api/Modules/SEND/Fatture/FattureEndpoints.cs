@@ -64,6 +64,18 @@ public partial class FattureModule : Module, IRegistrableModule
            .WithName("Permette di cancellare o ripristinare le fatture non inviate")
            .SetOpenApi(Module.DatiFattureLabel)
            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+          .MapGet("api/fatture/anni", GetAnniFattureAsync)
+          .WithName("Permette visualizzare anni fatture conta - pagoPA")
+          .SetOpenApi(Module.DatiFattureLabel)
+          .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+          .MapPost("api/fatture/mesi", PostMesiFattureAsync)
+          .WithName("Permette visualizzare mesi fatture conta per anno - pagoPA")
+          .SetOpenApi(Module.DatiFattureLabel)
+          .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
         #endregion
 
         #region ente
