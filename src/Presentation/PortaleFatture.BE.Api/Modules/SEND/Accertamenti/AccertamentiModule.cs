@@ -8,6 +8,7 @@ using PortaleFatture.BE.Api.Infrastructure;
 using PortaleFatture.BE.Api.Infrastructure.Documenti;
 using PortaleFatture.BE.Api.Modules.SEND.Accertamenti.Extensions;
 using PortaleFatture.BE.Api.Modules.SEND.Accertamenti.Payload.Request;
+using PortaleFatture.BE.Api.Modules.SEND.Accertamenti.Payload.Response;
 using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Core.Resources;
@@ -24,6 +25,54 @@ public partial class AccertamentiModule
 {
 
     #region pagoPA
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<string>>, NotFound>> GetAnniAccertamentiAsync(
+    HttpContext context,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+
+        var anni = await handler.Send(new AccertamentiAnniQuery(authInfo));
+        if (anni.IsNullNotAny())
+            return NotFound();
+        return Ok(anni);
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<AccertamentiMeseResponse>>, NotFound>> PostMesiAccertamentiAsync(
+    HttpContext context,
+    [FromBody] AccertamentiMesiRequest request,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+
+        var mesi = await handler.Send(new AccertamentiMesiQuery(authInfo)
+        {
+            Anno = request.Anno
+        });
+
+        if (mesi.IsNullNotAny())
+            return NotFound();
+
+        return Ok(mesi!.Select(x => new AccertamentiMeseResponse()
+        {
+            Mese = x,
+            Descrizione = Convert.ToInt32(x).GetMonth()
+        }));
+    }
 
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
     [EnableCors(CORSLabel)]

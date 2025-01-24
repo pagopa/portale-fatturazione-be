@@ -1,7 +1,16 @@
 ﻿namespace PortaleFatture.BE.Infrastructure.Common.SEND.DatiRel.Queries.Persistence.Builder;
 
 internal static class RelTestataSQLBuilder
-{
+{ 
+    private static string _sqlAnni = @"
+SELECT distinct(year)
+  FROM [pfd].[RelTestata] 
+";
+
+    private static string _sqlMesi = @"
+SELECT distinct(month)
+  FROM [pfd].[RelTestata]
+";
 
     private static string _sqlDistinctTipologiaFatturaPagoPA = @"
 SELECT TipologiaFattura
@@ -149,4 +158,22 @@ SELECT [internal_organization_id] as IdEnte
     {
         return " ORDER BY ordine ";
     }
+
+    public static string SelectAnni()
+    {
+        return _sqlAnni;
+    }
+
+    public static string SelectMesi()
+    {
+        return _sqlMesi;
+    }
+
+    public static string OrderByMonth = " order by month desc";
+
+    public static string OrderByYear= " order by year desc";
+
+    public static string GroupByOrderByYear = " group by year, internal_organization_id, contract_id order by year desc";
+
+    public static string GroupByMonthByYear = " group by year, month, internal_organization_id, contract_id  order by month desc";
 }

@@ -8,6 +8,7 @@ using PortaleFatture.BE.Api.Infrastructure;
 using PortaleFatture.BE.Api.Infrastructure.Documenti;
 using PortaleFatture.BE.Api.Modules.SEND.Fatture.Extensions;
 using PortaleFatture.BE.Api.Modules.SEND.Fatture.Payload.Request;
+using PortaleFatture.BE.Api.Modules.SEND.Fatture.Payload.Response;
 using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Common;
 using PortaleFatture.BE.Core.Exceptions;
@@ -30,6 +31,54 @@ public partial class FattureModule
 {
 
     #region pagoPA
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<string>>, NotFound>> GetAnniFattureAsync(
+    HttpContext context,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+        {
+            var authInfo = context.GetAuthInfo();
+
+            var anni = await handler.Send(new FattureAnniQuery(authInfo));
+            if (anni.IsNullNotAny())
+                return NotFound();
+            return Ok(anni);
+        }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<FattureMeseResponse>>, NotFound>> PostMesiFattureAsync(
+    HttpContext context,
+    [FromBody] FattureMesiRequest request,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+
+        var mesi = await handler.Send(new FattureMesiQuery(authInfo)
+        {
+            Anno = request.Anno
+        });
+
+        if (mesi.IsNullNotAny())
+            return NotFound();
+
+        return Ok(mesi!.Select(x => new FattureMeseResponse()
+        {
+            Mese = x,
+            Descrizione = Convert.ToInt32(x).GetMonth()
+        }));
+    }
 
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
     [EnableCors(CORSLabel)]
@@ -214,9 +263,7 @@ public partial class FattureModule
     [FromServices] ILogger<FattureModule> logger,
     [FromServices] IMediator handler)
     {
-        var authInfo = context.GetAuthInfo();
-        if (request.TipologiaFattura!.IsNullNotAny())
-            return NotFound();
+        var authInfo = context.GetAuthInfo(); 
 
         var reports = await request.ReportFatture(handler, authInfo);
 
@@ -245,9 +292,7 @@ public partial class FattureModule
         [FromServices] IDocumentStorageService storageService)
     {
         var authInfo = context.GetAuthInfo();
-        if (request.TipologiaFattura!.IsNullNotAny())
-            return NotFound();
-
+ 
         var contentType = MimeMapping.ZIP;
         var contentLanguage = LanguageMapping.IT;
 

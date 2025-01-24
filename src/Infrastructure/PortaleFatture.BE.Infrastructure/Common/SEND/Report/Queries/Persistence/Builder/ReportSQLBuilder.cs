@@ -1,6 +1,19 @@
 ﻿namespace PortaleFatture.BE.Infrastructure.Common.SEND.Report.Queries.Persistence.Builder;
 internal static class ReportSQLBuilder
 {
+    private static string _sqlAnni = @"
+SELECT  
+      distinct Anno 
+  FROM [pfd].[Report] 
+  order by anno desc
+";
+
+    private static string _sqlMesi = @"
+SELECT  
+      distinct mese 
+  FROM [pfd].[Report] 
+"; 
+
     private static string _sqlMatriceCostiRecapitisti = @"
 SELECT  
       [geokey] AS GeoKey,
@@ -73,5 +86,16 @@ SELECT [IdReport]
     public static string SelectMatriceCostiRecapitisti()
     {
         return _sqlMatriceCostiRecapitisti;
+    } 
+    public static string SelectAnni()
+    {
+        return _sqlAnni;
     }
+
+    public static string SelectMesi()
+    {
+        return _sqlMesi;
+    }
+
+    public static string OrderByMonth = " order by mese desc";
 }
