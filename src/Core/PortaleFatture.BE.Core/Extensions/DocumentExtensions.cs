@@ -66,13 +66,16 @@ public static class DocumentExtensions
         for (var i = 0; i < ordineCommessa!.Count; i++)
         {
             var commessa = ordineCommessa!.ToList()[i];
-            var table = String.Format(_tableModuloCommessa, i == commesse!.Count() - 1 ? "ending" : "details")
-              .Replace(nameof(commessa.Tipo).GetName<DatiModuloCommessaTotaleDto>(), commessa.Tipo)
-              .Replace(nameof(commessa.NumeroNotificheNazionali).GetName<DatiModuloCommessaTotaleDto>(), commessa.NumeroNotificheNazionali.ToString())
-              .Replace(nameof(commessa.NumeroNotificheInternazionali).GetName<DatiModuloCommessaTotaleDto>(), commessa.NumeroNotificheInternazionali.ToString())
-              .Replace(nameof(commessa.TotaleNotifiche).GetName<DatiModuloCommessaTotaleDto>(), commessa.TotaleNotifiche.ToString())
-              ;
-            builder.Append(table);
+            if(commessa!=null)
+            {
+                var table = String.Format(_tableModuloCommessa, i == commesse!.Count() - 1 ? "ending" : "details")
+                  .Replace(nameof(commessa.Tipo).GetName<DatiModuloCommessaTotaleDto>(), commessa.Tipo)
+                  .Replace(nameof(commessa.NumeroNotificheNazionali).GetName<DatiModuloCommessaTotaleDto>(), commessa.NumeroNotificheNazionali.ToString())
+                  .Replace(nameof(commessa.NumeroNotificheInternazionali).GetName<DatiModuloCommessaTotaleDto>(), commessa.NumeroNotificheInternazionali.ToString())
+                  .Replace(nameof(commessa.TotaleNotifiche).GetName<DatiModuloCommessaTotaleDto>(), commessa.TotaleNotifiche.ToString())
+                  ;
+                builder.Append(table);
+            } 
         }
         return builder.ToString();
     }
@@ -272,13 +275,13 @@ public static class DocumentExtensions
         totali.Add(
            new DatiModuloCommessaTotaleCostoDto()
            {
-               Totale = totaleDigitale!.TotaleCategoria,
+               Totale = totaleDigitale == null ? 0 : totaleDigitale.TotaleCategoria,
                Descrizione = digitale
            });
         totali.Add(
            new DatiModuloCommessaTotaleCostoDto()
            {
-               Totale = totaleAnalogico!.TotaleCategoria,
+               Totale = totaleAnalogico == null ? 0 : totaleAnalogico.TotaleCategoria,
                Descrizione = analogico
            });
         totali.Add(
