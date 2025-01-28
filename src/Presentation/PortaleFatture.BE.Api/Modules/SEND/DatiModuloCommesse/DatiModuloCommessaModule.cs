@@ -212,7 +212,7 @@ public partial class DatiModuloCommessaModule
 
         await VerificaContratto(handler, localizer, authInfo);
 
-        var dati = await handler.Send(new DatiModuloCommessaDocumentoQueryGet(authInfo)
+        var dati = await handler.Send(new DatiModuloCommessaDocumentoPagoPAQueryGet(authInfo)
         {
             AnnoValidita = anno,
             MeseValidita = mese
@@ -247,7 +247,7 @@ public partial class DatiModuloCommessaModule
 
         await VerificaContratto(handler, localizer, authInfo);
 
-        var dati = await handler.Send(new DatiModuloCommessaDocumentoQueryGet(authInfo)
+        var dati = await handler.Send(new DatiModuloCommessaDocumentoPagoPAQueryGet(authInfo)
         {
             AnnoValidita = anno,
             MeseValidita = mese
