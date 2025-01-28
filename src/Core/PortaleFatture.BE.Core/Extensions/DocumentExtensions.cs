@@ -227,7 +227,7 @@ public static class DocumentExtensions
             Contatti = fatt.Contatti,
             DataDocumento = fatt.DataDocumento,
             DataModifica = dataModificaCommessa == DateTime.MinValue ? dataCreazioneCommessa : dataModificaCommessa,
-            SplitPayment = fatt.SplitPayment == true ? "SI" : "NO",
+            SplitPayment = fatt.SplitPayment == null? null : fatt.SplitPayment == true ? "SI" : "NO",
             IdDocumento = fatt.IdDocumento,
             Map = fatt.Map,
             TipoCommessa = fatt.TipoCommessa == "1" ? "Ordine" : "Contratto",
