@@ -1,7 +1,6 @@
 ﻿using MediatR;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
-using PortaleFatture.BE.Core.Common;
 using PortaleFatture.BE.Core.Entities.SEND.DatiFatturazioni;
 using PortaleFatture.BE.Core.Entities.Storici;
 using PortaleFatture.BE.Core.Exceptions;
@@ -49,20 +48,22 @@ public class DatiFatturazioneUpdateCommandHandler(
             throw new DomainException(_localizer["DatiFatturazioneMismatchError"]); 
 
         if (String.IsNullOrEmpty(command.CodiceSDI))
-            throw new ValidationException("Attenzione, devi validare il codice SDI"); //non puoi cancellare il codice SDI
+            throw new ValidationException("Attenzione, devi validare il codice SDI"); //non puoi cancellare il codice SDI 
 
-        else if (!String.IsNullOrEmpty(command.CodiceSDI) && command.CodiceSDI != actualValue.CodiceSDI) // se sono diversi allora rieseguo la validazione via API
+        else if (command.CodiceSDI != actualValue.CodiceSDI) // se sono diversi allora rieseguo la validazione via API
         { 
-            var ente = await uow.Query(new EnteCodiceSDIQueryGetByIdPersistence(actualValue.IdEnte), ct); 
+            var contratto = await uow.Query(new EnteCodiceSDIQueryGetByIdPersistence(actualValue.IdEnte), ct);
+            var skipVerifica = (command.CodiceSDI == contratto.CodiceSDI);
             var (okValidation, msgValidation) = await _onBoardingHttpClient.RecipientCodeVerification(
-                ente, 
-                command.CodiceSDI, 
+                contratto, 
+                command.CodiceSDI,
+                skipVerifica,
                 ct);
 
             if(okValidation)
             {
                 var (oKUpdate, msgUpdate) = await _supportAPIServiceHttpClient.UpdateRecipientCode(
-                    ente,
+                    contratto,
                     command.CodiceSDI,
                     ct);
                 if (!oKUpdate)

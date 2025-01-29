@@ -93,7 +93,7 @@ public static class FinancialReportExtensions
                 actualValue.Posizioni!.Add(cc);
             }
 
-            listaReports.TryAdd(key, actualValue);
+            listaReports.TryAdd(key!, actualValue);
         }
 
         fr.FinancialReports = [.. listaReports.Values];

@@ -23,12 +23,12 @@ public class Aggregate
     public string? SubunitType { get; set; }
     public string? VatNumber { get; set; }
     public string? ParentDescription { get; set; }
-    public List<GeographicTaxonomy> GeographicTaxonomies { get; set; }
+    public List<GeographicTaxonomy>? GeographicTaxonomies { get; set; }
     public string? Address { get; set; }
     public string? ZipCode { get; set; }
     public string? OriginId { get; set; }
     public string? Origin { get; set; }
-    public List<User> Users { get; set; }
+    public List<User>? Users { get; set; }
     public string? RecipientCode { get; set; }
     public string? DigitalAddress { get; set; }
     public string? City { get; set; }

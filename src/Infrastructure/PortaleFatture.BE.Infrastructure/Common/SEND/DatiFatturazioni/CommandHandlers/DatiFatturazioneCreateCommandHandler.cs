@@ -47,14 +47,16 @@ public class DatiFatturazioneCreateCommandHandler(
             throw new DomainException(_localizer["DatiFatturazioneIdEnteExistent", command.AuthenticationInfo.IdEnte!]);
 
         if (String.IsNullOrEmpty(command.CodiceSDI))
-            throw new ValidationException("Attenzione, devi validare il codice SDI"); //non puoi cancellare il codice SDI
-
-        if (!String.IsNullOrEmpty(command.CodiceSDI))
+            throw new ValidationException("Attenzione, devi validare il codice SDI"); //non puoi cancellare il codice SDI 
+        else
         {
+            var contratto = await uow.Query(new EnteCodiceSDIQueryGetByIdPersistence(command.AuthenticationInfo.IdEnte), ct);
+            var skipVerifica = !String.IsNullOrWhiteSpace(contratto.CodiceSDI);
             var ente = await uow.Query(new EnteCodiceSDIQueryGetByIdPersistence(command.AuthenticationInfo.IdEnte), ct);
             var (okValidation, msgValidation) = await _onBoardingHttpClient.RecipientCodeVerification(
                 ente,
                 command.CodiceSDI,
+                skipVerifica,
                 ct);
 
             if (okValidation)
