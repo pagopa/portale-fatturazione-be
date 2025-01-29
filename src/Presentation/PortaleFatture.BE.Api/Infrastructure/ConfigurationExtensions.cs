@@ -268,6 +268,7 @@ public static class ConfigurationExtensions
         services.AddSingleton<ISelfCareOnBoardingHttpClient, SelfCareOnBoardingHttpClient>();
         //services.AddSingleton<ISelfCareOnBoardingHttpClient, MockSelfCareOnBoardingHttpClient>();
         //services.AddSingleton<ISupportAPIServiceHttpClient, MockSupportAPIServiceHttpClient>();
+        //
         services.AddSingleton<ISupportAPIServiceHttpClient, SupportAPIServiceHttpClient>();
         services.AddSingleton<IMicrosoftGraphHttpClient, MicrosoftGraphHttpClient>();
 
