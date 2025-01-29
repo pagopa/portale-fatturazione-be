@@ -66,11 +66,12 @@ public partial class DatiFatturazioneModule
     {
         var authInfo = context.GetAuthInfo();
         authInfo.IdEnte = req.IdEnte;
-        var ente = await handler.Send(new EnteQueryCodiceSDIGetById(authInfo)) ?? throw new ValidationException("Ente non trovato!");
-     
+        var contratto = await handler.Send(new EnteQueryCodiceSDIGetById(authInfo)) ?? throw new ValidationException("Ente non trovato!");
+        var skipVerifica = (req.CodiceSDI == contratto.CodiceSDI);
         var (okValidation, msgValidation) = await onBoardingHttpClient.RecipientCodeVerification(
-            ente,
-            req.CodiceSDI);
+            contratto,
+            req.CodiceSDI,
+            skipVerifica);
 
         if (okValidation)
             return Ok(true);
@@ -284,11 +285,12 @@ public partial class DatiFatturazioneModule
     [FromServices] IMediator handler)
     {
         var authInfo = context.GetAuthInfo(); 
-        var ente = await handler.Send(new EnteQueryCodiceSDIGetById(authInfo)) ?? throw new ValidationException("Ente non trovato!");
-
+        var contratto = await handler.Send(new EnteQueryCodiceSDIGetById(authInfo)) ?? throw new ValidationException("Ente non trovato!");
+        var skipVerifica = (req.CodiceSDI == contratto.CodiceSDI);
         var (okValidation, msgValidation) = await onBoardingHttpClient.RecipientCodeVerification(
-            ente,
-            req.CodiceSDI);
+            contratto,
+            req.CodiceSDI,
+            skipVerifica);
 
         if (okValidation)
             return Ok(true);

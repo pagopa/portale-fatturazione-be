@@ -16,7 +16,7 @@ public sealed class Group
     public string? ODataType { get; set; }
 
     [JsonPropertyName("id")]
-    public string Id { get; set; }
+    public string? Id { get; set; }
 
     [JsonPropertyName("displayName")]
     public string? DisplayName { get; set; } 

@@ -33,10 +33,10 @@ public class SelfCareOnBoardingHttpClient(
         return client;
     }
 
-    public async Task<(bool Success, string Message)> RecipientCodeVerification(EnteContrattoDto ente, string? codiceSDI, CancellationToken ct = default)
+    public async Task<(bool Success, string Message)> RecipientCodeVerification(EnteContrattoDto ente, string? codiceSDI, bool skipVerifica, CancellationToken ct = default)
     {
-        // regola richiesta da Chiara, validare solo se InstitutionType == PA
-        if (ente.InstitutionType!.ToLower() != Profilo.PubblicaAmministrazione.ToLower())
+        // validare solo se InstitutionType == PA
+        if (ente.InstitutionType!.ToLower() != Profilo.PubblicaAmministrazione.ToLower() || skipVerifica)
             return (true, string.Empty);
 
         try

@@ -4,7 +4,7 @@ using PortaleFatture.BE.Core.Exceptions;
 namespace PortaleFatture.BE.Infrastructure.Gateway;
 public class MockSelfCareOnBoardingHttpClient : ISelfCareOnBoardingHttpClient
 {
-    public Task<(bool Success, string Message)> RecipientCodeVerification(EnteContrattoDto ente, string? codiceSDI, CancellationToken ct = default)
+    public Task<(bool Success, string Message)> RecipientCodeVerification(EnteContrattoDto ente, string? codiceSDI, bool skipVerifica, CancellationToken ct = default)
     {
         try
         {

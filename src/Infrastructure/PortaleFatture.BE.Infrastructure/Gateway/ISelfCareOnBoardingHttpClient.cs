@@ -5,6 +5,6 @@ namespace PortaleFatture.BE.Infrastructure.Gateway
 {
     public interface ISelfCareOnBoardingHttpClient
     {
-        Task<(bool Success, string Message)> RecipientCodeVerification(EnteContrattoDto ente, string? codiceSDI, CancellationToken ct = default);
+        Task<(bool Success, string Message)> RecipientCodeVerification(EnteContrattoDto ente, string? codiceSDI, bool skipVerifica, CancellationToken ct = default);
     }
 }
