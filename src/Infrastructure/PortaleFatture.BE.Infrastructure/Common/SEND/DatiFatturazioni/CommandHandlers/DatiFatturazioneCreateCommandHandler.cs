@@ -51,7 +51,7 @@ public class DatiFatturazioneCreateCommandHandler(
         else
         {
             var contratto = await uow.Query(new EnteCodiceSDIQueryGetByIdPersistence(command.AuthenticationInfo.IdEnte), ct);
-            var skipVerifica = !String.IsNullOrWhiteSpace(contratto.CodiceSDI);
+            var skipVerifica = (command.CodiceSDI == contratto.CodiceSDI);
             var ente = await uow.Query(new EnteCodiceSDIQueryGetByIdPersistence(command.AuthenticationInfo.IdEnte), ct);
             var (okValidation, msgValidation) = await _onBoardingHttpClient.RecipientCodeVerification(
                 ente,
