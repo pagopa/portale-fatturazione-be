@@ -245,6 +245,7 @@ public static class FattureExtensions
                     Numero = item.fattura!.Numero,
                     Posizione = pos.CodiceMateriale,
                     Totale = pos.Imponibile.ToString("0.00"),
+                    PeriodoRiferimento = pos.PeriodoRiferimento
                 });
             }
             result.Add(new FattureExcel()

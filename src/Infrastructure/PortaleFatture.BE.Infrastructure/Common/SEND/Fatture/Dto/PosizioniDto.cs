@@ -21,4 +21,7 @@ public class PosizioniDto
 
     [JsonPropertyName("imponibile")]
     public double Imponibile { get; set; }
+
+    [JsonPropertyName("periodoRiferimento")]
+    public string? PeriodoRiferimento { get; set; }
 }
