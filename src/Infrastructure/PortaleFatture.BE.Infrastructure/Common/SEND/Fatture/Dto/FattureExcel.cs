@@ -5,10 +5,13 @@ namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Dto;
 
 public class FattureExcel
 {
+    [HeaderAttributev2(caption: "PeriodoRiferimento", Order = 18)]
+    public string? PeriodoRiferimento { get; set; }
+
     [HeaderAttributev2(caption: "Posizione", Order = 17)]
     public string? Posizione { get; set; }
 
-    [HeaderAttributev2(caption: "Totale €", Order = 18)]
+    [HeaderAttributev2(caption: "Totale €", Order = 19)]
     public string? Totale { get; set; }
 
     [HeaderAttributev2(caption: "Numero", Order = 7)]

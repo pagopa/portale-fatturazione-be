@@ -44,7 +44,8 @@ public static class FattureQueryRicercaBuilder
                 FR.CodiceMateriale AS 'codiceMateriale',
                 FR.Quantita AS 'quantita',
                 CAST(FR.PrezzoUnitario AS DECIMAL(10, 2))  AS 'prezzoUnitario',
-                CAST(FR.Imponibile AS DECIMAL(10, 2))  AS 'imponibile'
+                CAST(FR.Imponibile AS DECIMAL(10, 2))  AS 'imponibile',
+				FR.PeriodoRiferimento as 'periodoRiferimento'
             FROM [pfd].[FattureRighe] FR
 			LEFT JOIN [pfw].[CodiciMateriali] CM
 			ON FR.CodiceMateriale = CM.CodiceMateriale
@@ -237,7 +238,8 @@ SELECT
                 FR.CodiceMateriale AS 'codiceMateriale',
                 FR.Quantita AS 'quantita',
                 CAST(FR.PrezzoUnitario AS DECIMAL(10, 2))  AS 'prezzoUnitario',
-                CAST(FR.Imponibile AS DECIMAL(10, 2))  AS 'imponibile'
+                CAST(FR.Imponibile AS DECIMAL(10, 2))  AS 'imponibile',
+				FR.PeriodoRiferimento as 'periodoRiferimento'
             FROM [pfd].[FattureRighe_Eliminate] FR
 			LEFT JOIN [pfw].[CodiciMateriali] CM
 			ON FR.CodiceMateriale = CM.CodiceMateriale
@@ -302,7 +304,8 @@ SELECT
                 FR.CodiceMateriale AS 'codiceMateriale',
                 FR.Quantita AS 'quantita',
                 CAST(FR.PrezzoUnitario AS DECIMAL(10, 2))  AS 'prezzoUnitario',
-                CAST(FR.Imponibile AS DECIMAL(10, 2))  AS 'imponibile'
+                CAST(FR.Imponibile AS DECIMAL(10, 2))  AS 'imponibile',
+				FR.PeriodoRiferimento as 'periodoRiferimento'
             FROM [pfd].[FattureRighe] FR
 			LEFT JOIN [pfw].[CodiciMateriali] CM
 			ON FR.CodiceMateriale = CM.CodiceMateriale
