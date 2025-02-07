@@ -2,7 +2,6 @@
 using Microsoft.Extensions.Localization;
 using PortaleFatture.BE.Core.Resources;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
-using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Commands;
 
 namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Commands.Persistence;
 
@@ -20,7 +19,8 @@ public class FatturaCancellazioneRigheCommandPersistence(FatturaCancellazioneCom
       ,[Quantita]
       ,[PrezzoUnitario]
       ,[Imponibile]
-      ,[RigaBollo])
+      ,[RigaBollo]
+      ,[PeriodoRiferimento])
 SELECT 
       [FkIdFattura]
       ,[NumeroLinea]
@@ -30,6 +30,7 @@ SELECT
       ,[PrezzoUnitario]
       ,[Imponibile]
       ,[RigaBollo]
+      ,[PeriodoRiferimento]
   FROM [pfd].[FattureRighe]
 where FkIdFattura IN @IdFatture";
 
@@ -42,7 +43,8 @@ where FkIdFattura IN @IdFatture";
       ,[Quantita]
       ,[PrezzoUnitario]
       ,[Imponibile]
-      ,[RigaBollo])
+      ,[RigaBollo]
+      ,[PeriodoRiferimento])
 SELECT 
       [FkIdFattura]
       ,[NumeroLinea]
@@ -52,6 +54,7 @@ SELECT
       ,[PrezzoUnitario]
       ,[Imponibile]
       ,[RigaBollo]
+      ,[PeriodoRiferimento]
   FROM [pfd].[FattureRighe_Eliminate]
 where FkIdFattura IN @IdFatture";
     public async Task<int> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
