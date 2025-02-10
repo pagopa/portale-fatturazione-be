@@ -86,11 +86,11 @@ public class FattureRelExcelDto
     [Column("RelTotaleIvatoAnalogico")]
     public decimal RelTotaleIvatoAnalogico { get; set; }
 
-    [HeaderAttributev2(caption: "Totale Imponibile Digitale €", Order = 14)]
+    [HeaderAttributev2(caption: "Totale Ivato Digitale €", Order = 14)]
     [Column("RelTotaleIvatoDigitale")]
     public decimal RelTotaleIvatoDigitale { get; set; }
 
-    [HeaderAttributev2(caption: "Totale Ivato Digitale €", Order = 15)]
+    [HeaderAttributev2(caption: "Totale Ivato €", Order = 15)]
     [Column("RelTotaleIvato")]
     public decimal RelTotaleIvato { get; set; }
 
