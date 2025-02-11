@@ -30,7 +30,87 @@ namespace PortaleFatture.BE.Api.Modules.Fatture;
 public partial class FattureModule
 {
 
-    #region pagoPA
+    #region pagoPA  
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<IResult> PostContrattiTipologiaDownloadAsync(
+    HttpContext context,
+    [FromBody] RicercaContrattiTipologiaRequest request, 
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var listaContratti = await handler.Send(new RicercaContrattiTipologiaQuery(authInfo)
+        {
+            IdEnti = request.IdEnti,
+            TipologiaContratto = request.TipologiaContratto 
+        });
+
+        if (listaContratti == null || !listaContratti.Contratti!.Any())
+            return NotFound();
+
+        var mime = "application/vnd.ms-excel";
+        var filename = $"{Guid.NewGuid()}.xlsx";
+
+        var dataSet = listaContratti.Contratti!.FillOneSheetv2();
+        var content = dataSet.ToExcel();
+        var result = new DisposableStreamResult(content, mime)
+        {
+            FileDownloadName = filename
+        };
+
+        return Results.Stream(result.FileStream, result.ContentType, result.FileDownloadName); 
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<bool?>, NotFound>> PostContrattiModificaAsync(
+    HttpContext context,
+    [FromBody] ModificaContrattoTipologiaRequest request,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var modifica = await handler.Send(new FatturaModificaTipoContrattoCommand(authInfo)
+        {
+            IdEnte = request.IdEnte,
+            TipoContratto = request.TipologiaContratto
+        });
+        return Ok(modifica);
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<ContrattiTipologiaDto>, NotFound>> PostContrattiTipologiaAsync(
+    HttpContext context,
+    [FromBody] RicercaContrattiTipologiaRequest request,
+    [FromQuery] int page,
+    [FromQuery] int pageSize,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var listaContratti = await handler.Send(new RicercaContrattiTipologiaQuery(authInfo)
+        {
+            IdEnti = request.IdEnti,
+            TipologiaContratto = request.TipologiaContratto,
+            Page = page,
+            Size = pageSize,
+        });
+        return Ok(listaContratti);
+    }
 
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
     [EnableCors(CORSLabel)]
@@ -42,14 +122,14 @@ public partial class FattureModule
     HttpContext context,
     [FromServices] IStringLocalizer<Localization> localizer,
     [FromServices] IMediator handler)
-        {
-            var authInfo = context.GetAuthInfo();
+    {
+        var authInfo = context.GetAuthInfo();
 
-            var anni = await handler.Send(new FattureAnniQuery(authInfo));
-            if (anni.IsNullNotAny())
-                return NotFound();
-            return Ok(anni);
-        }
+        var anni = await handler.Send(new FattureAnniQuery(authInfo));
+        if (anni.IsNullNotAny())
+            return NotFound();
+        return Ok(anni);
+    }
 
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
     [EnableCors(CORSLabel)]
@@ -113,7 +193,7 @@ public partial class FattureModule
     {
         var authInfo = context.GetAuthInfo();
         var result = await synapseService.InviaASapFatture(options.Synapse!.PipelineNameSAP, request.Map());
-     
+
         if (result == true)
         {
             var command = request.Map2(authInfo, invio: true);
@@ -126,8 +206,8 @@ public partial class FattureModule
             await Results.StatusCode(500).ExecuteAsync(context);
             return null!;
         }
-           
-        return Ok(result);  
+
+        return Ok(result);
     }
 
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
@@ -157,7 +237,7 @@ public partial class FattureModule
             .Select(g => g.OrderByDescending(f => f.Ordine).First())
             .Where(c => c.Azione != 2); // diverso da disabilitato
 
-        if(maxOrdineByAzione.IsNullNotAny())
+        if (maxOrdineByAzione.IsNullNotAny())
             return NotFound();
 
         return Ok(maxOrdineByAzione);
@@ -180,7 +260,7 @@ public partial class FattureModule
 
         var result = await handler.Send(new FatturaCancellazioneCommand(authInfo, request.IdFatture, request.Cancellazione));
         if (result.Value == false)
-            return BadRequest(); 
+            return BadRequest();
         return Ok(result.Value);
     }
 
@@ -263,7 +343,7 @@ public partial class FattureModule
     [FromServices] ILogger<FattureModule> logger,
     [FromServices] IMediator handler)
     {
-        var authInfo = context.GetAuthInfo(); 
+        var authInfo = context.GetAuthInfo();
 
         var reports = await request.ReportFatture(handler, authInfo);
 
@@ -292,7 +372,7 @@ public partial class FattureModule
         [FromServices] IDocumentStorageService storageService)
     {
         var authInfo = context.GetAuthInfo();
- 
+
         var contentType = MimeMapping.ZIP;
         var contentLanguage = LanguageMapping.IT;
 
