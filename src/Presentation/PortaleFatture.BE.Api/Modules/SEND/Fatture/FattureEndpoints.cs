@@ -10,6 +10,24 @@ public partial class FattureModule : Module, IRegistrableModule
     public void RegisterEndpoints(IEndpointRouteBuilder endpointRouteBuilder)
     {
         endpointRouteBuilder
+        .MapPost("api/fatture/contratti/download", PostContrattiTipologiaDownloadAsync)
+        .WithName("Permette fare il download la lista contratti tipologia")
+        .SetOpenApi(Module.DatiFattureLabel)
+        .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+            .MapPost("api/fatture/contratti/modifica", PostContrattiModificaAsync)
+            .WithName("Permette di modificare un singolo contratto tipologia")
+            .SetOpenApi(Module.DatiFattureLabel)
+            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+            .MapPost("api/fatture/contratti/tipologia", PostContrattiTipologiaAsync)
+            .WithName("Permette di visualizzare la lista contratti tipologia")
+            .SetOpenApi(Module.DatiFattureLabel)
+            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
            .MapPost("api/fatture/resetta/pipeline", PostResettaFatturePipelineSapAsync)
            .WithName("Permette di resettare le fatture per invio a SAP")
            .SetOpenApi(Module.DatiFattureLabel)

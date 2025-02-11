@@ -19,4 +19,6 @@ public class EnteContrattoDto
     public string? CodiceSDI { get; set; }
 
     public string? InstitutionType { get; set; } 
+
+    public int IdTipoContratto { get; set; }
 } 
