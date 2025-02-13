@@ -26,7 +26,7 @@ github = {
 
 deployments = {
   review_required = true
-  reviewer_teams  = ["portalefatturazione-admin"]
+  reviewer_teams  = ["portalefatturazione-admin", "portalefatturazione-release-approvers"]
   reviewer_users  = ["mg-dgsspa"]
 }
 
