@@ -562,6 +562,7 @@ OPTION (MAXRECURSION 12);
         return $@"
             SELECT DISTINCT  Anno 
             FROM [pfd].[FattureWhiteList] 
+            WHERE DataFine IS NULL
             ORDER BY Anno DESC; 
     ";
     }
