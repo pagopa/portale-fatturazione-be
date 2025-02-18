@@ -11,7 +11,7 @@ public sealed class WhiteListFatturaEnteMesiQueryPersistence(WhiteListFatturaEnt
     private static readonly string _orderBy = FattureQueryRicercaBuilder.OrderByWhiteListMesi(); 
     public async Task<IEnumerable<int>?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
     {
-        var where  = " WHERE anno=@anno"; 
+        var where  = " WHERE anno=@anno AND DataFine IS NULL"; 
         return await ((IDatabase)this).SelectAsync<int>(connection!, _sqlSelectAll + where + _orderBy, _command, transaction);
     }
 }
