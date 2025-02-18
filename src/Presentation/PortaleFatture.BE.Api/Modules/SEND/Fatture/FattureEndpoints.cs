@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Cors;
-using Polly;
 using PortaleFatture.BE.Api.Infrastructure;
 
 namespace PortaleFatture.BE.Api.Modules.Fatture;
@@ -10,10 +9,64 @@ public partial class FattureModule : Module, IRegistrableModule
     public void RegisterEndpoints(IEndpointRouteBuilder endpointRouteBuilder)
     {
         endpointRouteBuilder
-        .MapPost("api/fatture/contratti/download", PostContrattiTipologiaDownloadAsync)
-        .WithName("Permette fare il download la lista contratti tipologia")
-        .SetOpenApi(Module.DatiFattureLabel)
-        .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+            .MapPost("api/fatture/pagopa/whitelist/download", PostPagoPAWhiteListFatturazioneDownloadAsync)
+            .WithName("Permette di scaricare il file excel degli enti da non fatturare via utente PagoPA.")
+            .SetOpenApi(Module.DatiFattureLabel)
+            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+            .MapPost("api/fatture/pagopa/whitelist/inserisci", PostPagoPAWhiteListFatturazioneInserimentoAsync)
+            .WithName("Permette di inserire gli enti non fatturabili in modifica via utente PagoPA.")
+            .SetOpenApi(Module.DatiFattureLabel)
+            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+            .MapPost("api/fatture/pagopa/whitelist/mesi/modifica", PostPagoPAWhiteListFatturazioneMesiModificaAsync)
+            .WithName("Permette di recuperare i mesi relativi agli enti non fatturabili in modifica via utente PagoPA.")
+            .SetOpenApi(Module.DatiFattureLabel)
+            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+            .MapPost("api/fatture/pagopa/whitelist/anni/modifica", PostPagoPAWhiteListFatturazioneAnniModificaAsync)
+            .WithName("Permette di recuperare gli anni relativi agli enti non fatturabili in modifica via utente PagoPA.")
+            .SetOpenApi(Module.DatiFattureLabel)
+            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+            .MapDelete("api/fatture/pagopa/whitelist", DeletePagoPAWhiteListFatturazioneAnniAsync)
+            .WithName("Permette di eliminare le tipologie non fatturabili via utente PagoPA.")
+            .SetOpenApi(Module.DatiFattureLabel)
+            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+            .MapGet("api/fatture/pagopa/whitelist/tipologieFattura", GetPagoPAWhiteListFatturazioneTipologieAsync)
+            .WithName("Permette di recuperare gli anni relativi alle tipologie non fatturabili via utente PagoPA.")
+            .SetOpenApi(Module.DatiFattureLabel)
+            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+            .MapGet("api/fatture/pagopa/whitelist/anni", GetPagoPAWhiteListFatturazioneAnniAsync)
+            .WithName("Permette di recuperare gli anni relativi agli enti non fatturabili via utente PagoPA.")
+            .SetOpenApi(Module.DatiFattureLabel)
+            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+            .MapPost("api/fatture/pagopa/whitelist/mesi", PostPagoPAWhiteListFatturazioneMesiAsync)
+            .WithName("Permette di recuperare i mesi relativi agli enti non fatturabili via utente PagoPA.")
+            .SetOpenApi(Module.DatiFattureLabel)
+            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+            .MapPost("api/fatture/pagopa/whitelist", PostPagoPAWhiteListFatturazioneAsync)
+            .WithName("Permette di recuperare gli enti da non fatturare via utente PagoPA.")
+            .SetOpenApi(Module.DatiFattureLabel)
+            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+            .MapPost("api/fatture/contratti/download", PostContrattiTipologiaDownloadAsync)
+            .WithName("Permette fare il download la lista contratti tipologia")
+            .SetOpenApi(Module.DatiFattureLabel)
+            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
         endpointRouteBuilder
             .MapPost("api/fatture/contratti/modifica", PostContrattiModificaAsync)
@@ -96,7 +149,7 @@ public partial class FattureModule : Module, IRegistrableModule
           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
         #endregion
 
-        #region ente
+    #region ente
         endpointRouteBuilder
              .MapPost("api/fatture/ente/tipologia", PostTipologiaEnteFatture)
                .WithName("Permette di visualizzare la tipologia fatture per ente")
