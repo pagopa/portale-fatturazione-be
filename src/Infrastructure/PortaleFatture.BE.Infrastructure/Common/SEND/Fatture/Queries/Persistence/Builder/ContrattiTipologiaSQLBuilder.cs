@@ -50,6 +50,5 @@ FROM   [pfd].[contrattitipologia] ct
     {
         return _sqlCount;
     }
-
 }
 

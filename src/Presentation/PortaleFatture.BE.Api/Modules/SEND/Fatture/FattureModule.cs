@@ -1,4 +1,5 @@
-﻿using MediatR;
+﻿using System.Text.RegularExpressions;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -30,7 +31,217 @@ namespace PortaleFatture.BE.Api.Modules.Fatture;
 public partial class FattureModule
 {
 
-    #region pagoPA  
+    #region pagoPA    
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<IResult> PostPagoPAWhiteListFatturazioneDownloadAsync(
+    HttpContext context,
+    RicercaWhiteListFatture request,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+
+        var lista = await handler.Send(new WhiteListFatturaEnteQuery(authInfo)
+        {
+            Anno = request.Anno,
+            IdEnti = request.IdEnti,
+            Mesi = request.Mesi,
+            TipologiaContratto = request.TipologiaContratto,
+            TipologiaFattura = request.TipologiaFattura,
+        });
+
+        if (lista == null! || lista.Whitelist.IsNullNotAny())
+            return NotFound();
+        var mime = "application/vnd.ms-excel";
+        var filename = $"{Guid.NewGuid()}.xlsx";
+
+        var dataSet = lista.Whitelist!.FillOneSheetv2();
+        var content = dataSet.ToExcel();
+        var result = new DisposableStreamResult(content, mime)
+        {
+            FileDownloadName = filename
+        };
+        return Results.Stream(result.FileStream, result.ContentType, result.FileDownloadName);
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<bool?>, Conflict, NotFound>> PostPagoPAWhiteListFatturazioneInserimentoAsync(
+    HttpContext context,
+    WhiteListFattureMesiInserimentoRequest request,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var result = await handler.Send(new FattureWhiteListFattureAggiungiCommand(authInfo)
+        {
+            TipologiaFattura = request.TipologiaFattura,
+            IdEnte = request.IdEnte,
+            Anno = request.Anno,
+            Mesi = request.Mesi
+        });
+        if (result.HasValue && result.Value)
+            return Ok(result);
+        else
+            return Conflict();
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<FattureMeseResponse>>, BadRequest, NotFound>> PostPagoPAWhiteListFatturazioneMesiModificaAsync(
+    HttpContext context,
+    RicercaWhiteListFattureMesiModifica request,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var wlist = await handler.Send(new WhiteListFatturaEnteAnniInserisciQuery(authInfo)
+        {
+            TipologiaFattura = request.TipologiaFattura,
+            IdEnte = request.IdEnte,
+            Anno = request.Anno,
+        });
+
+        if (wlist.IsNullNotAny())
+            return NotFound();
+
+        wlist = wlist!.Where(x => x.AnnoRiferimento == request.Anno);
+
+        return Ok(wlist!.Select(x => new FattureMeseResponse()
+        {
+            Mese = Convert.ToString(x.MeseRiferimento),
+            Descrizione = Convert.ToInt32(x.MeseRiferimento).GetMonth()
+        }));
+    }
+
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<int>>, BadRequest, NotFound>> PostPagoPAWhiteListFatturazioneAnniModificaAsync(
+    HttpContext context,
+    RicercaWhiteListFattureAnniModifica request,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var wlist = await handler.Send(new WhiteListFatturaEnteAnniInserisciQuery(authInfo)
+        {
+            TipologiaFattura = request.TipologiaFattura,
+            IdEnte = request.IdEnte
+        });
+
+        if (wlist.IsNullNotAny())
+            return NotFound();
+
+        return Ok(wlist!.Select(x => x.AnnoRiferimento).Distinct());
+    }
+
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<bool>, BadRequest, Conflict, NotFound>> DeletePagoPAWhiteListFatturazioneAnniAsync(
+    HttpContext context,
+    [FromBody] DeleteWhiteListFatture request,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var result = await handler.Send(new FatturaWhiteListCancellazioneCommand(authInfo, ids: request.Ids));
+
+        if (result.HasValue)
+        {
+            if (result == 0)
+                return Ok(true);
+            else if (result < 0)
+                return Conflict();
+            else
+                return BadRequest();
+        }
+        else
+            return BadRequest();
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<string>>, BadRequest, NotFound>> GetPagoPAWhiteListFatturazioneTipologieAsync(
+    HttpContext context,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var tipologie = await handler.Send(new WhiteListFatturaEnteTipologiaFatturaQuery(authInfo)
+        {
+
+        });
+        return Ok(tipologie);
+
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<int>>, BadRequest, NotFound>> GetPagoPAWhiteListFatturazioneAnniAsync(
+    HttpContext context,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var anni = await handler.Send(new WhiteListFatturaEnteAnniQuery(authInfo)
+        {
+
+        });
+        return Ok(anni);
+    }
+
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<FattureMeseResponse>>, BadRequest, NotFound>> PostPagoPAWhiteListFatturazioneMesiAsync(
+    HttpContext context,
+    RicercaWhiteListFattureMesi request,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var mesi = await handler.Send(new WhiteListFatturaEnteMesiQuery(authInfo)
+        {
+            Anno = request.Anno
+        });
+
+        if (mesi.IsNullNotAny())
+            return NotFound();
+
+        return Ok(mesi!.Select(x => new FattureMeseResponse()
+        {
+            Mese = Convert.ToString(x),
+            Descrizione = Convert.ToInt32(x).GetMonth()
+        }));
+    }
+
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -39,7 +250,7 @@ public partial class FattureModule
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     private async Task<IResult> PostContrattiTipologiaDownloadAsync(
     HttpContext context,
-    [FromBody] RicercaContrattiTipologiaRequest request, 
+    [FromBody] RicercaContrattiTipologiaRequest request,
     [FromServices] IStringLocalizer<Localization> localizer,
     [FromServices] IMediator handler)
     {
@@ -47,7 +258,7 @@ public partial class FattureModule
         var listaContratti = await handler.Send(new RicercaContrattiTipologiaQuery(authInfo)
         {
             IdEnti = request.IdEnti,
-            TipologiaContratto = request.TipologiaContratto 
+            TipologiaContratto = request.TipologiaContratto
         });
 
         if (listaContratti == null || !listaContratti.Contratti!.Any())
@@ -63,7 +274,7 @@ public partial class FattureModule
             FileDownloadName = filename
         };
 
-        return Results.Stream(result.FileStream, result.ContentType, result.FileDownloadName); 
+        return Results.Stream(result.FileStream, result.ContentType, result.FileDownloadName);
     }
 
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
@@ -110,6 +321,37 @@ public partial class FattureModule
             Size = pageSize,
         });
         return Ok(listaContratti);
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<WhiteListFatturaEnteDto>, BadRequest, NotFound>> PostPagoPAWhiteListFatturazioneAsync(
+    HttpContext context,
+    RicercaWhiteListFatture request,
+    [FromQuery] int page,
+    [FromQuery] int pageSize,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+
+        var lista = await handler.Send(new WhiteListFatturaEnteQuery(authInfo)
+        {
+            Anno = request.Anno,
+            IdEnti = request.IdEnti,
+            Mesi = request.Mesi,
+            TipologiaContratto = request.TipologiaContratto,
+            TipologiaFattura = request.TipologiaFattura,
+            Page = page,
+            Size = pageSize
+        });
+
+        if (lista == null! || lista.Whitelist.IsNullNotAny())
+            return NotFound();
+        return Ok(lista);
     }
 
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]

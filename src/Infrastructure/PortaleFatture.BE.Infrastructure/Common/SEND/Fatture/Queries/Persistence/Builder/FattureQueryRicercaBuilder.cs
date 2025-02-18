@@ -351,6 +351,68 @@ SELECT
      where AnnoRiferimento=@anno and MeseRiferimento=@mese
 ";
 
+    private static string _sqlWhiteList = @"
+SELECT 
+    idLista AS Id,
+    description AS RagioneSociale,
+    w.FkIdEnte AS IdEnte,
+    Anno,
+    Mese,
+    [DataInizio],
+    [DataFine],
+    w.[FkTipologiaFattura] AS TipologiaFattura,
+    c.FkIdTipoContratto AS IdTipoContratto,
+    tc.Descrizione AS TipoContratto,
+    CASE 
+        WHEN ft.FkTipologiaFattura IS NOT NULL AND 
+		ft.AnnoRiferimento = w.Anno 
+		AND ft.MeseRiferimento = w.Mese 
+		AND ft.FkTipologiaFattura = w.FkTipologiaFattura 
+		AND ft.FkIdEnte = w.FkIdEnte
+		THEN 0
+        ELSE 1
+    END AS Cancella
+FROM [pfd].[FattureWhiteList] w
+INNER JOIN pfd.Enti e ON e.InternalIstitutionId = w.FkIdEnte
+INNER JOIN pfd.Contratti c ON c.internalistitutionid = e.InternalIstitutionId
+INNER JOIN pfw.TipoContratto tc ON tc.IdTipoContratto = c.FkIdTipoContratto
+LEFT JOIN [pfd].[FattureTestata] ft 
+    ON ft.FkTipologiaFattura = w.FkTipologiaFattura
+    AND ft.AnnoRiferimento = w.Anno
+    AND ft.MeseRiferimento = w.Mese
+	AND ft.FkIdEnte = w.FkIdEnte
+";
+
+
+    private static string _sqlWhiteListCount = @"
+SELECT 
+  count(*)
+  FROM [pfd].[FattureWhiteList] w
+  inner join pfd.Enti e
+ on e.InternalIstitutionId =  w.FkIdEnte
+ inner join pfd.Contratti c
+ on c.internalistitutionid = e.InternalIstitutionId
+ inner join pfw.TipoContratto tc
+ on tc.IdTipoContratto = c.FkIdTipoContratto
+";
+
+
+    private static string _sqlWhiteListTipologiaFattura = @"
+SELECT  
+      distinct TipologiaFattura,
+     CASE
+        WHEN TipologiaFattura = 'ANTICIPO' THEN 1
+        WHEN TipologiaFattura = 'ACCONTO' THEN 2
+        WHEN TipologiaFattura = 'PRIMO SALDO' THEN 3
+        WHEN TipologiaFattura = 'SECONDO SALDO' THEN 4
+        WHEN TipologiaFattura = 'VAR. SEMESTRALE' THEN 5
+        ELSE 6 
+  END AS ordine
+  		   FROM [pfd].[FattureTipologia]
+order by ordine
+";
+
+
     public static string OrderByYear()
     {
         return " ORDER BY AnnoRiferimento desc";
@@ -415,5 +477,106 @@ SELECT
     public static string SelectTipologiaFatturaAnnoMese()
     {
         return _sqlSelectTipologiaFatturaAnnoMese;
+    }
+
+    public static string SelectWhiteList()
+    {
+        return _sqlWhiteList;
+    }
+
+    public static string OrderByWhiteList()
+    {
+        return " ORDER BY anno DESC, mese ";
+    }
+
+    public static string SelectWhiteListCount()
+    {
+        return _sqlWhiteListCount;
+    }
+
+    private static string _offSet = " OFFSET (@page-1)*@size ROWS FETCH NEXT @size ROWS ONLY";
+    public static string OffSet()
+    {
+        return _offSet;
+    }
+
+    public static string SelectWhiteListTipologiaFattura()
+    {
+        return _sqlWhiteListTipologiaFattura;
+    }
+
+    public static string SelectWhiteListAnniInserisci()
+    {
+        return $@"
+
+WITH Months AS (
+    SELECT 1 AS Mese
+    UNION ALL
+    SELECT Mese + 1 FROM Months WHERE Mese < 12
+),
+ExistingData AS ( 
+    -- Combine data from FattureTestata and FattureWhiteList
+    SELECT DISTINCT
+        ft.annoriferimento AS anno,
+        ft.meseriferimento AS mese
+    FROM [pfd].[FattureTestata] ft
+    WHERE ft.FkTipologiaFattura = @TipologiaFattura
+    AND ft.annoriferimento <= @anno
+
+    UNION
+
+    SELECT DISTINCT
+        fwl.Anno AS anno,
+        fwl.Mese AS mese
+    FROM [pfd].[FattureWhiteList] fwl
+    WHERE fwl.FkTipologiaFattura = @TipologiaFattura
+    AND fwl.Anno <= @anno  
+    AND fwl.FkIdEnte = @IdEnte  
+    AND fwl.DataFine IS NULL
+)
+
+-- Select missing months for the given years (previous and current)
+SELECT 
+    m.AnnoRiferimento,
+    m.MeseRiferimento,
+    @TipologiaFattura AS TipologiaFattura
+FROM (
+    -- Generate months for previous year and current year
+    SELECT @anno - 1 AS AnnoRiferimento, Mese AS MeseRiferimento
+    FROM Months
+    UNION ALL
+    SELECT @anno AS AnnoRiferimento, Mese AS MeseRiferimento
+    FROM Months
+) AS m
+LEFT JOIN ExistingData e 
+    ON m.AnnoRiferimento = e.anno AND m.MeseRiferimento = e.mese
+WHERE e.mese IS NULL  -- Exclude months that already exist in both tables
+ORDER BY AnnoRiferimento DESC, MeseRiferimento
+OPTION (MAXRECURSION 12);
+
+    ";
+    }
+
+    public static string SelectWhiteListAnni()
+    {
+        return $@"
+            SELECT DISTINCT  Anno 
+            FROM [pfd].[FattureWhiteList] 
+            ORDER BY Anno DESC; 
+    ";
+    }
+
+    public static string SelectWhiteListMesi()
+    {
+        return $@"
+            SELECT DISTINCT  mese 
+            FROM [pfd].[FattureWhiteList]  
+    ";
+    }
+    public static string OrderByWhiteListMesi()
+    {
+        return $@"
+            ORDER BY mese DESC; 
+    ";
     }
 }
