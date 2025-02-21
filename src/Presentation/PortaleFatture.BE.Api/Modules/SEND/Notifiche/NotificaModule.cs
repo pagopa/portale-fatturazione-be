@@ -1,4 +1,7 @@
 ﻿using System.Globalization;
+using Azure.Storage.Blobs;
+using Azure.Storage;
+using Azure.Storage.Sas;
 using CsvHelper;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -6,6 +9,7 @@ using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Options;
 using PortaleFatture.BE.Api.Infrastructure;
 using PortaleFatture.BE.Api.Infrastructure.Documenti;
 using PortaleFatture.BE.Api.Modules.SEND.DatiFatturazioni.Payload.Request;
@@ -13,6 +17,7 @@ using PortaleFatture.BE.Api.Modules.SEND.Notifiche.Extensions;
 using PortaleFatture.BE.Api.Modules.SEND.Notifiche.Payload.Request;
 using PortaleFatture.BE.Api.Modules.SEND.Notifiche.Payload.Response;
 using PortaleFatture.BE.Core.Auth;
+using PortaleFatture.BE.Core.Common;
 using PortaleFatture.BE.Core.Entities.SEND.Notifiche;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Core.Resources;
@@ -22,6 +27,7 @@ using PortaleFatture.BE.Infrastructure.Common.SEND.Notifiche.Commands;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Notifiche.Dto;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Notifiche.Queries;
 using static Microsoft.AspNetCore.Http.TypedResults;
+using PortaleFatture.BE.Infrastructure.Common.SEND.SelfCare.Queries;
 
 namespace PortaleFatture.BE.Api.Modules.Notifiche;
 
@@ -537,21 +543,57 @@ public partial class NotificaModule
     [FromBody] NotificheRicercaRequest request,
     [FromServices] IStringLocalizer<Localization> localizer,
     [FromServices] IMediator handler,
+    [FromServices] IPortaleFattureOptions options,
     [FromQuery] bool? binary = null)
     {
         var authInfo = context.GetAuthInfo();
-        var notifiche = await handler.Send(request.Map(authInfo, null, null));
-        if (notifiche == null || notifiche.Count == 0)
-            return NotFound();
+        var tempAnno = 2025;
+        var tempMese = 1;
+        var tempIdEnte = "53b40136-65f2-424b-acfb-7fae17e35c60";
+        var tempName = "inps";
 
-        var stream = await notifiche.Notifiche!.ToStream<SimpleNotificaDto, SimpleNotificaEnteDtoMap>();
-        if (stream.Length == 0)
-            return NotFound();
+        if (request.Anno == tempAnno && request.Mese == tempMese && authInfo.IdEnte == tempIdEnte)
+        {
+            var ente = await handler.Send(new EnteQueryGetById(authInfo));
+            if(ente == null) return NotFound();
+            if(!ente.Descrizione!.ToLower()!.Contains(tempName))
+            {
+                return NotFound();
+            }
+            
+            var blobNameDetailed = "Notifiche _Istituto Nazionale Previdenza Sociale - INPS_01 _2025.csv";
+            var storageSharedKeyCredential = new StorageSharedKeyCredential(options.StoragePagoPAFinancial!.AccountName, options.StoragePagoPAFinancial!.AccountKey);
+            var blobContainerName = "temp";
 
-        var filename = $"{Guid.NewGuid()}.csv";
-        var mimeCsv = "text/csv";
-        stream.Position = 0;
-        return Results.Stream(stream, mimeCsv, filename);
+            BlobSasBuilder sasBuilderDetailed = new()
+            {
+                BlobContainerName = blobContainerName,
+                BlobName = blobNameDetailed,
+                Resource = "b",  
+                StartsOn = DateTimeOffset.UtcNow.AddMinutes(-5),
+                ExpiresOn = DateTimeOffset.UtcNow.AddMinutes(30)
+            };
+
+            sasBuilderDetailed.SetPermissions(BlobSasPermissions.Read);
+            var sasTokenDetailed = sasBuilderDetailed.ToSasQueryParameters(storageSharedKeyCredential).ToString();
+            var blobUrlDetailed = $"https://{options.StoragePagoPAFinancial!.AccountName}.blob.core.windows.net/{blobContainerName}/{blobNameDetailed}";
+            return Ok($"{blobUrlDetailed}?{sasTokenDetailed}");
+        }
+        else
+        {
+            var notifiche = await handler.Send(request.Map(authInfo, null, null));
+            if (notifiche == null || notifiche.Count == 0)
+                return NotFound();
+
+            var stream = await notifiche.Notifiche!.ToStream<SimpleNotificaDto, SimpleNotificaEnteDtoMap>();
+            if (stream.Length == 0)
+                return NotFound();
+
+            var filename = $"{Guid.NewGuid()}.csv";
+            var mimeCsv = "text/csv";
+            stream.Position = 0;
+            return Results.Stream(stream, mimeCsv, filename);
+        }
     }
 
     [Authorize(Roles = $"{Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
