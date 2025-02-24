@@ -28,6 +28,8 @@ using PortaleFatture.BE.Infrastructure.Common.SEND.Notifiche.Dto;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Notifiche.Queries;
 using static Microsoft.AspNetCore.Http.TypedResults;
 using PortaleFatture.BE.Infrastructure.Common.SEND.SelfCare.Queries;
+using Azure.Storage.Blobs.Models;
+using System.IO;
 
 namespace PortaleFatture.BE.Api.Modules.Notifiche;
 
@@ -550,17 +552,17 @@ public partial class NotificaModule
         var tempAnno = 2025;
         var tempMese = 1;
         var tempIdEnte = "53b40136-65f2-424b-acfb-7fae17e35c60";
-        var tempName = "inps";
+        var tempName = "inps"; 
 
         if (request.Anno == tempAnno && request.Mese == tempMese && authInfo.IdEnte == tempIdEnte)
         {
             var ente = await handler.Send(new EnteQueryGetById(authInfo));
-            if(ente == null) return NotFound();
-            if(!ente.Descrizione!.ToLower()!.Contains(tempName))
+            if (ente == null) return NotFound();
+            if (!ente.Descrizione!.ToLower()!.Contains(tempName))
             {
                 return NotFound();
             }
-            
+
             var blobNameDetailed = "Notifiche _Istituto Nazionale Previdenza Sociale - INPS_01 _2025.csv";
             var storageSharedKeyCredential = new StorageSharedKeyCredential(options.StoragePagoPAFinancial!.AccountName, options.StoragePagoPAFinancial!.AccountKey);
             var blobContainerName = "temp";
@@ -569,7 +571,7 @@ public partial class NotificaModule
             {
                 BlobContainerName = blobContainerName,
                 BlobName = blobNameDetailed,
-                Resource = "b",  
+                Resource = "b",
                 StartsOn = DateTimeOffset.UtcNow.AddMinutes(-5),
                 ExpiresOn = DateTimeOffset.UtcNow.AddMinutes(30)
             };
@@ -577,7 +579,17 @@ public partial class NotificaModule
             sasBuilderDetailed.SetPermissions(BlobSasPermissions.Read);
             var sasTokenDetailed = sasBuilderDetailed.ToSasQueryParameters(storageSharedKeyCredential).ToString();
             var blobUrlDetailed = $"https://{options.StoragePagoPAFinancial!.AccountName}.blob.core.windows.net/{blobContainerName}/{blobNameDetailed}";
-            return Ok($"{blobUrlDetailed}?{sasTokenDetailed}");
+
+            var uri = $"{blobUrlDetailed}?{sasTokenDetailed}";
+            var blobUri = new Uri(uri);
+            var blobClient = new BlobClient(blobUri);
+
+            BlobDownloadInfo download = await blobClient.DownloadAsync();
+            var stream = new MemoryStream();
+            await download.Content.CopyToAsync(stream);
+            var mimeCsv = "text/csv";
+            stream.Position = 0;
+            return Results.Stream(stream, mimeCsv, blobNameDetailed);
         }
         else
         {
