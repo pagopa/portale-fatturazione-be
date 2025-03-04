@@ -21,6 +21,7 @@ using PortaleFatture.BE.Infrastructure.Common.Identity;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.Persistence.Schemas;
 using PortaleFatture.BE.Infrastructure.Common.SEND;
+using PortaleFatture.BE.Infrastructure.Common.SEND.DatiRel.Services;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Documenti;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Dto;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Service;
@@ -158,9 +159,10 @@ public static class ConfigurationExtensions
         // storages
         services.AddSingleton<IRelStorageService, RelStorageService>();
         services.AddSingleton<IDocumentStorageService, DocumentStorageService>();
-        services.AddSingleton<IDocumentStorageSASService, DocumentStorageSASService>(); 
+        services.AddSingleton<IDocumentStorageSASService, DocumentStorageSASService>();
 
-
+        // rel righe storage
+        services.AddSingleton<IRelRigheStorageService, RelRigheStorageService>();
 
 
         services.AddSingleton<IManualiStorageSASService, ManualiStorageSASService>();

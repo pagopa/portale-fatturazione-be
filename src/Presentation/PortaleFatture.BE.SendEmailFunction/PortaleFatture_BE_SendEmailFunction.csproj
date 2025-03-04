@@ -43,5 +43,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Infrastructure\PortaleFatture.BE.Infrastructure\PortaleFatture.BE.Infrastructure.csproj" />
+    <ProjectReference Include="..\PortaleFatture.BE.Api\PortaleFatture.BE.Api.csproj" />
   </ItemGroup>
 </Project>

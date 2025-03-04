@@ -1,4 +1,6 @@
-﻿using MediatR;
+﻿using System.Net.Http.Headers;
+using DocumentFormat.OpenXml.Bibliography;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -6,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Localization;
 using PortaleFatture.BE.Api.Infrastructure;
 using PortaleFatture.BE.Api.Infrastructure.Documenti;
+using PortaleFatture.BE.Api.Modules.pagoPA.FinancialReports.Extensions;
 using PortaleFatture.BE.Api.Modules.SEND.DatiFatturazioni.Payload.Request;
 using PortaleFatture.BE.Api.Modules.SEND.DatiRel.Extensions;
 using PortaleFatture.BE.Api.Modules.SEND.DatiRel.Payload.Request;
@@ -23,6 +26,7 @@ using PortaleFatture.BE.Infrastructure.Common.SEND.DatiRel.Commands;
 using PortaleFatture.BE.Infrastructure.Common.SEND.DatiRel.Dto;
 using PortaleFatture.BE.Infrastructure.Common.SEND.DatiRel.Extensions;
 using PortaleFatture.BE.Infrastructure.Common.SEND.DatiRel.Queries;
+using PortaleFatture.BE.Infrastructure.Common.SEND.DatiRel.Services;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Documenti;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Documenti.Common;
 using PortaleFatture.BE.Infrastructure.Common.SEND.SelfCare.Queries;
@@ -45,14 +49,14 @@ public partial class RelModule
     HttpContext context,
     [FromServices] IStringLocalizer<Localization> localizer,
     [FromServices] IMediator handler)
-        {
-            var authInfo = context.GetAuthInfo();
+    {
+        var authInfo = context.GetAuthInfo();
 
-            var anni = await handler.Send(new RelAnniQuery(authInfo));
-            if (anni.IsNullNotAny())
-                return NotFound();
-            return Ok(anni);
-        }
+        var anni = await handler.Send(new RelAnniQuery(authInfo));
+        if (anni.IsNullNotAny())
+            return NotFound();
+        return Ok(anni);
+    }
 
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
     [EnableCors(CORSLabel)]
@@ -91,25 +95,25 @@ public partial class RelModule
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     private async Task<IResult> GetRelNonFatturateExcelAsync(
-    HttpContext context, 
+    HttpContext context,
     [FromServices] IStringLocalizer<Localization> localizer,
     [FromServices] IMediator handler)
-        {
-            var authInfo = context.GetAuthInfo();
-            var rel = await handler.Send(new RelNonFatturateQuery(authInfo));
-            if (rel == null || !rel!.Any())
-                return NotFound();
-            var mime = "application/vnd.ms-excel";
-            var filename = $"{Guid.NewGuid()}.xlsx";
+    {
+        var authInfo = context.GetAuthInfo();
+        var rel = await handler.Send(new RelNonFatturateQuery(authInfo));
+        if (rel == null || !rel!.Any())
+            return NotFound();
+        var mime = "application/vnd.ms-excel";
+        var filename = $"{Guid.NewGuid()}.xlsx";
 
-            var dataSet = rel.FillOneSheetv2();
-            var content = dataSet.ToExcel();
-            var result = new DisposableStreamResult(content, mime)
-            {
-                FileDownloadName = filename
-            };
-            return Results.Stream(result.FileStream, result.ContentType, result.FileDownloadName);
-        }
+        var dataSet = rel.FillOneSheetv2();
+        var content = dataSet.ToExcel();
+        var result = new DisposableStreamResult(content, mime)
+        {
+            FileDownloadName = filename
+        };
+        return Results.Stream(result.FileStream, result.ContentType, result.FileDownloadName);
+    }
 
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
     [EnableCors(CORSLabel)]
@@ -122,14 +126,14 @@ public partial class RelModule
     [FromBody] RelTipologiaFatturaPagoPARequest? request,
     [FromServices] IMediator handler,
     [FromServices] IStringLocalizer<Localization> localizer)
-        {
-            var authInfo = context.GetAuthInfo();
+    {
+        var authInfo = context.GetAuthInfo();
 
-            var tipologie = await handler.Send(request!.Map(authInfo));
-            if (tipologie == null || tipologie.Count() == 0)
-                return NotFound();
-            return Ok(tipologie);
-        }
+        var tipologie = await handler.Send(request!.Map(authInfo));
+        if (tipologie == null || tipologie.Count() == 0)
+            return NotFound();
+        return Ok(tipologie);
+    }
 
 
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
@@ -152,7 +156,7 @@ public partial class RelModule
             IdTestata = id
         };
         var rel = await handler.Send(request.Map(authInfo));
-        if (rel == null 
+        if (rel == null
             || rel.TipologiaFattura!.ToLower().Contains("var")
             || rel.TipologiaFattura!.ToLower().Contains("semestrale")
             || rel.TipologiaFattura!.ToLower().Contains("annuale"))
@@ -386,25 +390,23 @@ public partial class RelModule
     [FromRoute] string? id,
     [FromServices] IStringLocalizer<Localization> localizer,
     [FromServices] IMediator handler,
+    [FromServices] IRelRigheStorageService storageService,
     [FromQuery] bool? binary = null)
     {
         var authInfo = context.GetAuthInfo();
         var idEnte = id!.Split("_")[0];
         authInfo.IdEnte = idEnte;
-        var request = new RelRigheByIdRequest()
-        {
-            IdTestata = id
-        };
 
-        var rels = await handler.Send(request.Map(authInfo));
-        if (rels.IsNullNotAny())
+        var ente = await handler.Send(new EnteQueryGetById(authInfo) { });
+        if (ente == null)
             return NotFound();
 
-        var stream = await rels!.ToStream<RigheRelDto, RigheRelDtoPagoPAMap>();
-        var filename = $"{Guid.NewGuid()}.csv";
-        var mimeCsv = "text/csv";
-        stream.Position = 0;
-        return Results.Stream(stream, mimeCsv, filename);
+        var url = storageService.GetSASToken(id, ente.Descrizione!);
+        url = url!.FileExistsAsync();
+        if(string.IsNullOrEmpty(url))
+            return NotFound();
+
+        return Ok(url);
     }
 
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
@@ -466,11 +468,11 @@ public partial class RelModule
     [FromServices] IStringLocalizer<Localization> localizer,
     [FromServices] IMediator handler)
     {
-        var authInfo = context.GetAuthInfo(); 
- 
+        var authInfo = context.GetAuthInfo();
+
         var mesi = await handler.Send(new RelMesiByIdEnteQuery(authInfo)
         {
-            Anno = request.Anno 
+            Anno = request.Anno
         });
 
         if (mesi.IsNullNotAny())
@@ -559,7 +561,7 @@ public partial class RelModule
             || rel.TipologiaFattura!.ToLower().Contains("var")
             || rel.TipologiaFattura!.ToLower().Contains("semestrale")
             || rel.TipologiaFattura!.ToLower().Contains("annuale"))
-            return NotFound(); 
+            return NotFound();
 
         var bytes = await storageService.ReadBytes(key);
         await handler.Send(new RelDownloadCommand(authInfo)
