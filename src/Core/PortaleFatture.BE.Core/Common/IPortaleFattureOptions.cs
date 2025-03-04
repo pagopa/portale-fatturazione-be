@@ -20,5 +20,6 @@ public interface IPortaleFattureOptions
     public Synapse? Synapse { get; set; } 
     public SelfCareOnBoarding? SelfCareOnBoarding { get; set; }
     public StoragePagoPAFinancial? StoragePagoPAFinancial { get; set; } 
-    public SupportAPIService? SupportAPIService { get; set; }
+    public SupportAPIService? SupportAPIService { get; set; } 
+    public StorageREL? StorageREL { get; set; }
 }

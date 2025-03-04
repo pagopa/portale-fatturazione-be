@@ -19,6 +19,7 @@ public static class ModuleExtensions
         model.StoragePagoPAFinancial??= new();
         model.SelfCareOnBoarding??= new();
         model.SupportAPIService??= new();
+        model.StorageREL ??= new();
 
         var selfCareUri = Environment.GetEnvironmentVariable("SELF_CARE_URI") ??
              throw new ConfigurationException("Please specify a SELF_CARE_URI!");
@@ -116,6 +117,20 @@ public static class ModuleExtensions
         var supportAPIServiceAuthToken = Environment.GetEnvironmentVariable("SUPPORTAPISERVICE_AUTHTOKEN") ??
              throw new ConfigurationException("Please specify SUPPORTAPISERVICE_AUTHTOKEN!");
 
+        // REL storage righe
+        var storageRELAccountName = Environment.GetEnvironmentVariable("StorageRELAccountName") ??
+     throw new ConfigurationException("Please specify StorageRELAccountName!");
+
+        var storageRELAccountKey = Environment.GetEnvironmentVariable("StorageRELAccountKey") ??
+             throw new ConfigurationException("Please specify StorageRELAccountKey!");
+
+        var storageRELBlobContainerName = Environment.GetEnvironmentVariable("StorageRELBlobContainerName") ??
+             throw new ConfigurationException("Please specify StorageRELBlobContainerName!");
+
+        var storageRELCustomDns = Environment.GetEnvironmentVariable("StorageRELCustomDns") ??
+             throw new ConfigurationException("Please specify StorageRELCustomDns!");
+
+
         model.ConnectionString = connectionString; //await model.ConnectionString.Mapper();
 
         model.JWT.ValidAudience = validAudience;
@@ -158,6 +173,11 @@ public static class ModuleExtensions
         model.SupportAPIService.Endpoint = supportAPIServiceEndpoint;
         model.SupportAPIService.RecipientCodeUri = supportAPIServiceRecipientCodeUri;
         model.SupportAPIService.AuthToken = supportAPIServiceAuthToken;
+
+        model.StorageREL.StorageRELAccountName = storageRELAccountName;
+        model.StorageREL.StorageRELAccountKey = storageRELAccountKey;
+        model.StorageREL.StorageRELBlobContainerName = storageRELBlobContainerName;
+        model.StorageREL.StorageRELCustomDns = storageRELCustomDns;
 
         return model;
     }

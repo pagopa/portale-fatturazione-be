@@ -22,7 +22,16 @@ public sealed class PortaleFattureOptions : IPortaleFattureOptions
     public Synapse? Synapse { get; set; }
     public StoragePagoPAFinancial? StoragePagoPAFinancial { get; set; } 
     public SelfCareOnBoarding? SelfCareOnBoarding { get; set; } 
-    public SupportAPIService? SupportAPIService { get; set; }
+    public SupportAPIService? SupportAPIService { get; set; } 
+    public StorageREL? StorageREL { get; set; }
+}
+
+public class StorageREL()
+{
+    public string? StorageRELAccountName { get; set; }
+    public string? StorageRELAccountKey { get; set; }
+    public string? StorageRELBlobContainerName { get; set; }
+    public string? StorageRELCustomDns { get; set; }
 }
 
 public class SupportAPIService()
