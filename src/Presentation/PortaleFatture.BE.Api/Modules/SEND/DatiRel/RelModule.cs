@@ -1,6 +1,4 @@
-﻿using System.Net.Http.Headers;
-using DocumentFormat.OpenXml.Bibliography;
-using MediatR;
+﻿using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -749,27 +747,24 @@ public partial class RelModule
     [FromRoute] string? id,
     [FromServices] IStringLocalizer<Localization> localizer,
     [FromServices] IMediator handler,
+    [FromServices] IRelRigheStorageService storageService,
     [FromQuery] bool? binary = null)
     {
-        var authInfo = context.GetAuthInfo();
-        var request = new RelRigheByIdRequest()
-        {
-            IdTestata = id
-        };
-
-        var rels = await handler.Send(request.Map(authInfo));
-        if (rels == null || !rels.Any())
+        var authInfo = context.GetAuthInfo(); 
+        var idEnte = id!.Split("_")[0];
+        if (idEnte != authInfo.IdEnte)
             return NotFound();
 
-        var stream = await rels!.ToStream<RigheRelDto, RigheRelDtoEnteMap>();
-        if (stream.Length == 0)
+        var ente = await handler.Send(new EnteQueryGetById(authInfo) { });
+        if (ente == null)
             return NotFound();
 
-        var filename = $"{Guid.NewGuid()}.csv";
-        var mimeCsv = "text/csv";
+        var url = storageService.GetSASToken(id, ente.Descrizione!);
+        url = url!.FileExistsAsync();
+        if (string.IsNullOrEmpty(url))
+            return NotFound();
 
-        stream.Position = 0;
-        return Results.Stream(stream, mimeCsv, filename);
+        return Ok(url); 
     }
 
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
