@@ -550,20 +550,21 @@ public partial class NotificaModule
     {
         var authInfo = context.GetAuthInfo();
         var tempAnno = 2025;
-        var tempMese = 1;
+        int[] tempMese = [1, 2];
         var tempIdEnte = "53b40136-65f2-424b-acfb-7fae17e35c60";
-        var tempName = "inps"; 
+        var tempName = "inps";
 
-        if (request.Anno == tempAnno && request.Mese == tempMese && authInfo.IdEnte == tempIdEnte)
+
+        if (request.Anno == tempAnno && tempMese.Contains(request.Mese!.Value) && authInfo.IdEnte == tempIdEnte)
         {
             var ente = await handler.Send(new EnteQueryGetById(authInfo));
             if (ente == null) return NotFound();
-            if (!ente.Descrizione!.ToLower()!.Contains(tempName))
+            if (!ente.Descrizione!.ToLower()!.Contains(tempName, StringComparison.CurrentCultureIgnoreCase))
             {
                 return NotFound();
             }
-
-            var blobNameDetailed = "Notifiche _Istituto Nazionale Previdenza Sociale - INPS_01 _2025.csv";
+            var pmese = request.Mese!.Value.ToString().Length == 1 ? $"0{request.Mese!.Value}" : request.Mese!.Value.ToString();
+            var blobNameDetailed = $"Notifiche _Istituto Nazionale Previdenza Sociale - INPS_{pmese} _2025.csv";
             var storageSharedKeyCredential = new StorageSharedKeyCredential(options.StoragePagoPAFinancial!.AccountName, options.StoragePagoPAFinancial!.AccountKey);
             var blobContainerName = "temp";
 
