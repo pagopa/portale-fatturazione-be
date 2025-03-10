@@ -18,47 +18,49 @@ public class FatturaRiptristinoSAPCommandHandler(
  IFattureDbContextFactory factory,
  IMediator handler,
  IStringLocalizer<Localization> localizer,
- ILogger<FatturaRiptristinoSAPCommandHandler> logger) : IRequestHandler<FatturaRiptristinoSAPCommand, bool>
+ ILogger<FatturaRiptristinoSAPCommandHandler> logger) : IRequestHandler<FatturaRiptristinoSAPCommandList, bool>
 {
     private readonly IFattureDbContextFactory _factory = factory;
     private readonly IMediator _handler = handler;
     private readonly ILogger<FatturaRiptristinoSAPCommandHandler> _logger = logger;
     private readonly IStringLocalizer<Localization> _localizer = localizer;
 
-    public async Task<bool> Handle(FatturaRiptristinoSAPCommand command, CancellationToken ct)
+    public async Task<bool> Handle(FatturaRiptristinoSAPCommandList commands, CancellationToken ct)
     {
+        var execute = true;
         using var uow = await _factory.Create(true, cancellationToken: ct);
         {
             try
             {
-                var queryCommand = command.Map();
-                var result = await uow.Query(new FattureIdsQueryByParametersPersistence(queryCommand), ct);
-                if (result)
+                foreach (var command in commands.Commands)
                 {
-                    await uow.Execute(new FatturaRiptristinoSAPCommandPersistence(command, _localizer), ct);
-
-                    //log request
-                    await uow.Execute(new StoricoCreateCommandPersistence(new StoricoCreateCommand(
-                         command.AuthenticationInfo!,
-                         DateTime.UtcNow.ItalianTime(),
-                         command.Invio ? TipoStorico.InvioSAP : TipoStorico.AnnullaSAP,
-                         queryCommand.Serialize())), ct);
-
-                    uow.Commit();
-                    return true;
-                }
-                else
-                {
-                    uow.Rollback();
-                    return false;
+                    var queryCommand = command.Map();
+                    var result = await uow.Query(new FattureIdsQueryByParametersPersistence(queryCommand), ct);
+                    if (result)
+                    {
+                        await uow.Execute(new FatturaRiptristinoSAPCommandPersistence(command, _localizer), ct);
+ 
+                        await uow.Execute(new StoricoCreateCommandPersistence(new StoricoCreateCommand(
+                             command.AuthenticationInfo!,
+                             DateTime.UtcNow.ItalianTime(),
+                             command.Invio ? TipoStorico.InvioSAP : TipoStorico.AnnullaSAP,
+                             queryCommand.Serialize())), ct);
+                        execute &= true;
+                    }
+                    else
+                        execute &= false;
                 }
             }
             catch (Exception)
-            {
-                //log here
-                uow.Rollback();
-                return false;
+            { 
+                execute &= false;
             }
+
+            if(execute)
+                uow.Commit();
+            else
+                uow.Rollback();
         }
+        return execute;
     }
 }

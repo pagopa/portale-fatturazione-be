@@ -6,4 +6,5 @@ public interface ISynapseService
 {
     string? GetSynapseWorkspaceUrl();
     Task<bool> InviaASapFatture(string? pipelineName, FatturaInvioSap parameters);
+    Task<bool> InviaASapFattureMultiplo(string? pipelineName, List<FatturaInvioSap> parameters);
 }

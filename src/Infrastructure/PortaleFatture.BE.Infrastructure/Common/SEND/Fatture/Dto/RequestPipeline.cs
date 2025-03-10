@@ -1,14 +1,17 @@
 ﻿using System.Text.Json.Serialization;
 
 namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Dto;
-public class PipelineParameters()
+public class PipelineParameter()
 {
-    [JsonPropertyName("AnnoRiferimento")]
-    public int AnnoRiferimento { get; set; }
+    [JsonPropertyName("tipoFattura")]
+    public string? TipoFattura { get; set; }
 
-    [JsonPropertyName("MeseRiferimento")]
-    public int MeseRiferimento { get; set; }
-
-    [JsonPropertyName("TipologiaFattura")]
-    public string? TipologiaFattura { get; set; }
+    [JsonPropertyName("MesidaFatturare")]
+    public List<string>? MesiDaFatturare { get; set; }
+}
+ 
+public class ParametriFatturazioneInvioSAP
+{
+    [JsonPropertyName("parametri")]
+    public List<PipelineParameter>? Parametri { get; set; }
 }

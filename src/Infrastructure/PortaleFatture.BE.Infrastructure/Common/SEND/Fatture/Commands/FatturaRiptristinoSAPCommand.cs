@@ -13,3 +13,8 @@ public class FatturaRiptristinoSAPCommand(IAuthenticationInfo? authenticationInf
     public int StatoAtteso { get; set; } = 1;
     public bool Invio { get; set; } = false;
 }
+
+public class FatturaRiptristinoSAPCommandList(List<FatturaRiptristinoSAPCommand> commands) : IRequest<bool>
+{
+    public List<FatturaRiptristinoSAPCommand> Commands { get; } = commands;
+}

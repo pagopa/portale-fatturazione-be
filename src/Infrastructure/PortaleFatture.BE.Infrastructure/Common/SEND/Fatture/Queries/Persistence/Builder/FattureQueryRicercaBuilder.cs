@@ -412,6 +412,50 @@ SELECT
 order by ordine
 ";
 
+    private static string _sqlFattureInvioMultiploSap = @"
+SELECT 
+    COUNT(CASE WHEN FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865' THEN IdFattura END) AS NumeroFatture,
+    [FkProdotto], 
+    [FkTipologiaFattura] as TipologiaFattura, 
+    [AnnoRiferimento],
+    [MeseRiferimento],
+    SUM(CASE WHEN FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865' THEN TotaleFattura ELSE 0 END) AS Importo,
+    CASE 
+        WHEN fatturainviata IS NULL THEN 2 
+        ELSE 0
+    END AS StatoInvio
+  FROM [pfd].[FattureTestata]
+WHERE fatturainviata = 0 OR fatturainviata is null
+GROUP BY 
+    [FkProdotto], 
+    [FkTipologiaFattura],
+    [AnnoRiferimento], 
+    [MeseRiferimento],
+    CASE 
+        WHEN fatturainviata IS NULL THEN 2
+        ELSE 0
+    END
+order by AnnoRiferimento, MeseRiferimento desc
+";
+
+
+    private static string _sqlFattureInvioMultiploSapPeriodo = @"
+SELECT 
+    [IdFattura] as IdFattura,
+    [FkProdotto], 
+    [FkTipologiaFattura] as TipologiaFattura, 
+    [FkIdEnte] as IdEnte, 
+	e.description as RagioneSociale,
+    [DataFattura] as DataFattura, 
+    [TotaleFattura] as Importo, 
+    [AnnoRiferimento],
+    [MeseRiferimento]
+  FROM [pfd].[FattureTestata] f
+  inner join pfd.Enti e
+  ON e.InternalIstitutionId = f.FkIdEnte
+WHERE (fatturainviata = 0 OR fatturainviata is NULL)
+and FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865' 
+";
 
     public static string OrderByYear()
     {
@@ -579,5 +623,33 @@ OPTION (MAXRECURSION 12);
         return $@"
             ORDER BY mese DESC; 
     ";
+    }
+
+    public static string SelectFattureInvioMultiploSap()
+    {
+        return _sqlFattureInvioMultiploSap;
+    }
+    public static string SelectFattureInvioMultiploSapPeriodo()
+    {
+        return _sqlFattureInvioMultiploSapPeriodo;
+    }
+
+    public static string SelectFattureDate()
+    {
+        return $@"
+SELECT DataFattura, FkTipologiaFattura as TipologiaFattura from pfd.FattureTestata ";
+    }
+
+    public static string OrderByFattureDate()
+    {
+        return @"
+group by DataFattura, FkTipologiaFattura 
+order by FkTipologiaFattura, DataFattura desc; 
+"; 
+    }
+    public static string SelectFattureDateCancellate()
+    {
+        return $@"
+SELECT DataFattura, FkTipologiaFattura as TipologiaFattura from pfd.FattureTestata_Eliminate ";
     }
 }
