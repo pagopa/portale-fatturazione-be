@@ -637,19 +637,19 @@ OPTION (MAXRECURSION 12);
     public static string SelectFattureDate()
     {
         return $@"
-SELECT DataFattura, FkTipologiaFattura as TipologiaFattura from pfd.FattureTestata ";
+SELECT CONVERT(varchar(10), DataFattura, 120) as DataFattura, FkTipologiaFattura as TipologiaFattura from pfd.FattureTestata ";
     }
 
     public static string OrderByFattureDate()
     {
         return @"
-group by DataFattura, FkTipologiaFattura 
-order by FkTipologiaFattura, DataFattura desc; 
+group by CONVERT(varchar(10), DataFattura, 120), FkTipologiaFattura 
+order by FkTipologiaFattura, CONVERT(varchar(10), DataFattura, 120) desc; 
 "; 
     }
     public static string SelectFattureDateCancellate()
     {
         return $@"
-SELECT DataFattura, FkTipologiaFattura as TipologiaFattura from pfd.FattureTestata_Eliminate ";
+SELECT CONVERT(varchar(10), DataFattura, 120) as DataFattura, FkTipologiaFattura as TipologiaFattura from pfd.FattureTestata_Eliminate ";
     }
 }
