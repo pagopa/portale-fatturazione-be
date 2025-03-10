@@ -99,6 +99,23 @@ public partial class FattureModule : Module, IRegistrableModule
            .SetOpenApi(Module.DatiFattureLabel)
            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
+        endpointRouteBuilder
+           .MapGet("api/fatture/invio/sap/multiplo", GetFattureInvioSapMultiploAsync)
+           .WithName("Permette di ottenere l'invio sap multiplo con numero fatture ed Enti")
+           .SetOpenApi(Module.DatiFattureLabel)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+           .MapPost("api/fatture/invio/sap/multiplo/periodo", PostFattureInvioSapMultiploPeriodoAsync)
+           .WithName("Permette di ottenere l'invio sap multiplo periodo anno mese tipologia")
+           .SetOpenApi(Module.DatiFattureLabel)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+           .MapPut("api/fatture/invio/sap/multiplo", PutFattureInvioSapMultiploPipelinePeriodoAsync)
+           .WithName("Permette di inviare a sap multiplo lista anno mese tipologia")
+           .SetOpenApi(Module.DatiFattureLabel)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
         endpointRouteBuilder
            .MapPost("api/fatture", PostFattureByRicercaAsync)
@@ -147,9 +164,15 @@ public partial class FattureModule : Module, IRegistrableModule
           .WithName("Permette visualizzare mesi fatture conta per anno - pagoPA")
           .SetOpenApi(Module.DatiFattureLabel)
           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+           .MapPost("api/fatture/date", PostFattureDateByRicercaAsync)
+           .WithName("Permette di ottenere le fatture date per ricerca")
+           .SetOpenApi(Module.DatiFattureLabel)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
         #endregion
 
-    #region ente
+        #region ente
         endpointRouteBuilder
              .MapPost("api/fatture/ente/tipologia", PostTipologiaEnteFatture)
                .WithName("Permette di visualizzare la tipologia fatture per ente")

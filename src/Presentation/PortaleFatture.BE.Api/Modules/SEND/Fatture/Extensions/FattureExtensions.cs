@@ -20,6 +20,18 @@ namespace PortaleFatture.BE.Api.Modules.SEND.Fatture.Extensions;
 
 public static class FattureExtensions
 {
+    public static FattureDateQueryRicerca Map2(this FatturaRicercaRequest req, AuthenticationInfo authInfo)
+    {
+        return new FattureDateQueryRicerca(authInfo)
+        {
+            Anno = req.Anno,
+            Mese = req.Mese,
+            IdEnti = req.IdEnti,
+            TipologiaFattura = req.TipologiaFattura,
+            Cancellata = req.Cancellata == null ? false : req.Cancellata.Value
+        };
+    }
+
     public static FattureQueryRicercaByEnte Map(this FatturaRicercaEnteRequest req, AuthenticationInfo authInfo)
     {
         return new FattureQueryRicercaByEnte(authInfo)
@@ -28,14 +40,16 @@ public static class FattureExtensions
             Mese = req.Mese,
             TipologiaFattura = req.TipologiaFattura
         };
-    }
+    } 
 
-    public static FatturaRiptristinoSAPCommand Map2(this FatturaPipelineSapRequest request, AuthenticationInfo authInfo, bool invio)
+    public static FatturaRiptristinoSAPCommandList Map2(this List<FatturaPipelineSapRequest> request, AuthenticationInfo authInfo, bool invio)
     {
-        return new FatturaRiptristinoSAPCommand(authInfo, request.AnnoRiferimento!.Value, request.MeseRiferimento!.Value, request.TipologiaFattura)
+        return new FatturaRiptristinoSAPCommandList(
+            request.Select(x => new FatturaRiptristinoSAPCommand(authInfo, x.AnnoRiferimento!.Value, x.MeseRiferimento!.Value, x.TipologiaFattura)
         {
             Invio = invio
-        };
+        })
+        .ToList());  
     }
 
     public static FatturaInvioSap Map(this FatturaPipelineSapRequest request)
@@ -46,6 +60,16 @@ public static class FattureExtensions
             MeseRiferimento = request.MeseRiferimento!.Value,
             TipologiaFattura = request.TipologiaFattura
         };
+    }
+
+    public static List<FatturaInvioSap> Map(this List<FatturaPipelineSapRequest> request)
+    {
+        return request.Select(x => new FatturaInvioSap()
+        {
+            AnnoRiferimento = x.AnnoRiferimento!.Value,
+            MeseRiferimento = x.MeseRiferimento!.Value,
+            TipologiaFattura = x.TipologiaFattura
+        }).ToList();
     }
 
     public static Dictionary<string, object> ToDictionary<T>(this T obj)
@@ -68,14 +92,14 @@ public static class FattureExtensions
     {
         Dictionary<string, byte[]> reports = [];
 
-        if(request.TipologiaFattura!.IsNullNotAny())
+        if (request.TipologiaFattura!.IsNullNotAny())
         {
             request.TipologiaFattura = (await handler.Send(new FattureTipologiaAnniMeseQuery(authInfo)
             {
                 Anno = request.Anno!,
                 Mese = request.Mese!
             }))!.ToArray();
-        } 
+        }
 
         foreach (var tipologia in request.TipologiaFattura!)
         {

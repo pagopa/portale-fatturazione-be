@@ -1,5 +1,4 @@
-﻿using System.Text.RegularExpressions;
-using MediatR;
+﻿using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -31,7 +30,112 @@ namespace PortaleFatture.BE.Api.Modules.Fatture;
 public partial class FattureModule
 {
 
-    #region pagoPA    
+    #region pagoPA     
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<FattureDateDto>>, NotFound>> PostFattureDateByRicercaAsync(
+    HttpContext context,
+    [FromBody] FatturaRicercaRequest request,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var dateFatture = await handler.Send(request.Map2(authInfo));
+        if (dateFatture == null || !dateFatture!.Any())
+            return NotFound();
+        return Ok(dateFatture);
+    }  
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<bool>, NotFound>> PutFattureInvioSapMultiploPipelinePeriodoAsync(
+    HttpContext context,
+    [FromBody] List<FatturaPipelineSapRequest> request,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] ISynapseService synapseService,
+    [FromServices] IPortaleFattureOptions options,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var result = await synapseService.InviaASapFattureMultiplo(options.Synapse!.PipelineNameSAP, request.Map());
+
+        if (result == true)
+        {
+            var command = request.Map2(authInfo, invio: true);
+            foreach (var cmd in command.Commands)
+            {
+                cmd.FatturaInviata = null;
+                cmd.StatoAtteso = 0;
+            }
+            result = await handler.Send(command);
+        }
+        if (!result)
+        {
+            await Results.StatusCode(500).ExecuteAsync(context);
+            return null!;
+        }
+
+        return Ok(result);
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<FatturaInvioMultiploSapPeriodo>>, NotFound>> PostFattureInvioSapMultiploPeriodoAsync(
+    HttpContext context,
+    [FromBody] FattureInvioSapMultiploPeriodoRequest request,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var invioSap = await handler.Send(new FattureInvioSapMultiploPeriodoQuery(authInfo)
+        {
+            AnnoRiferimento = request.AnnoRiferimento,
+            MeseRiferimento = request.MeseRiferimento,
+            TipologiaFattura = request.TipologiaFattura
+        });
+
+        if (invioSap == null || !invioSap!.Any())
+            return NotFound();
+
+        return Ok(invioSap);
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<FatturaInvioMultiploSap>>, NotFound>> GetFattureInvioSapMultiploAsync(
+    HttpContext context,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var invioSap = await handler.Send(new FattureInvioSapMultiploQuery(authInfo)
+        {
+
+        });
+
+        if (invioSap == null || !invioSap!.Any())
+            return NotFound();
+
+        return Ok(invioSap);
+    }
+
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -415,7 +519,8 @@ public partial class FattureModule
     [FromServices] IMediator handler)
     {
         var authInfo = context.GetAuthInfo();
-        var resetta = await handler.Send(request.Map2(authInfo, invio: false));
+        var command = (new List<FatturaPipelineSapRequest>() { request }).Map2(authInfo, invio: false);
+        var resetta = await handler.Send(command);
         return Ok(resetta);
     }
 
@@ -438,9 +543,12 @@ public partial class FattureModule
 
         if (result == true)
         {
-            var command = request.Map2(authInfo, invio: true);
-            command.FatturaInviata = null;
-            command.StatoAtteso = 0;
+            var command = (new List<FatturaPipelineSapRequest>() { request }).Map2(authInfo, invio: true);
+            foreach (var cmd in command.Commands)
+            {
+                cmd.FatturaInviata = null;
+                cmd.StatoAtteso = 0;
+            }
             result = await handler.Send(command);
         }
         if (!result)
