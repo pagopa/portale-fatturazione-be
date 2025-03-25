@@ -26,8 +26,8 @@ try
     var path = fileInfo.Directory!.FullName;
 
     // params
-    var anno = 2024;
-    var mese = 12;
+    var anno = 2025;
+    var mese = 1;
     var tipologiafattura = "PRIMO SALDO";
     var data = DateTime.UtcNow.ItalianTime().ToString("yyyy-MM-dd HH:mm:ss");
     var ricalcola = 0;

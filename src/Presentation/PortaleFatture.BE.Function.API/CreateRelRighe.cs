@@ -1,7 +1,9 @@
+﻿using System.Net;
 using Azure.Storage;
 using Azure.Storage.Blobs;
 using MediatR;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using PortaleFatture.BE.Api.Infrastructure.Documenti;
@@ -9,15 +11,15 @@ using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Entities.SEND.DatiRel;
 using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Core.Extensions;
+using PortaleFatture.BE.Function.API.Models;
 using PortaleFatture.BE.Infrastructure;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.Persistence.Schemas;
 using PortaleFatture.BE.Infrastructure.Common.SEND.DatiRel.Dto;
 using PortaleFatture.BE.Infrastructure.Common.SEND.DatiRel.Queries;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Documenti.Common;
-using PortaleFatture_BE_SendEmailFunction.Models;
 
-namespace PortaleFatture_BE_SendEmailFunction;
+namespace PortaleFatture.BE.Function.API;
 
 public class CreateRelRighe(ILoggerFactory loggerFactory)
 {
@@ -51,7 +53,7 @@ public class CreateRelRighe(ILoggerFactory loggerFactory)
     }
 
     [Function("CreateRelRighe")]
-    public async Task RunAsync([ActivityTrigger] CreateRelRigheDataRequest req)
+    public async Task<HttpResponseData> Run([HttpTrigger(AuthorizationLevel.Anonymous, "get", "post")] HttpRequestData req)
     {
         var risposta = new RispostaRelRighe();
 
@@ -79,16 +81,16 @@ public class CreateRelRighe(ILoggerFactory loggerFactory)
                     .AddViewLocalization();
             var serviceProvider = services.BuildServiceProvider();
 
-     
+            // resolve
             var mediator = serviceProvider.GetRequiredService<IMediator>();
 
-            var anno = Convert.ToInt32(req.Anno);
-            var mese = Convert.ToInt32(req.Mese);
-            var tipologiafattura = req.TipologiaFattura;
+            var anno = Convert.ToInt32(req.Query["anno"]);
+            var mese = Convert.ToInt32(req.Query["mese"]);
+            var tipologiafattura = req.Query["tipologiafattura"];
 
             _logger.LogInformation("HTTP trigger function processed a request.");
 
-           
+            // response
             risposta = new RispostaRelRighe()
             {
                 Anno = anno,
@@ -152,11 +154,14 @@ public class CreateRelRighe(ILoggerFactory loggerFactory)
             _logger.LogInformation(ex.Message);
         }
 
-        _logger.LogInformation(risposta.Serialize());
+        var response = req.CreateResponse(HttpStatusCode.OK);
+        response.Headers.Add("Content-Type", "application/json; charset=utf-8");
+        response.WriteString(risposta.Serialize());
+        return response;
     }
 
     private static string? GetEnvironmentVariable(string name)
     {
         return Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.Process);
     }
-} 
+}

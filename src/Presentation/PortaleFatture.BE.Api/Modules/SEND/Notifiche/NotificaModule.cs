@@ -1,6 +1,7 @@
 ﻿using System.Globalization;
-using Azure.Storage.Blobs;
 using Azure.Storage;
+using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
 using Azure.Storage.Sas;
 using CsvHelper;
 using MediatR;
@@ -9,7 +10,6 @@ using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Localization;
-using Microsoft.Extensions.Options;
 using PortaleFatture.BE.Api.Infrastructure;
 using PortaleFatture.BE.Api.Infrastructure.Documenti;
 using PortaleFatture.BE.Api.Modules.SEND.DatiFatturazioni.Payload.Request;
@@ -26,10 +26,8 @@ using PortaleFatture.BE.Infrastructure.Common.SEND.Documenti.Common;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Notifiche.Commands;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Notifiche.Dto;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Notifiche.Queries;
-using static Microsoft.AspNetCore.Http.TypedResults;
 using PortaleFatture.BE.Infrastructure.Common.SEND.SelfCare.Queries;
-using Azure.Storage.Blobs.Models;
-using System.IO;
+using static Microsoft.AspNetCore.Http.TypedResults;
 
 namespace PortaleFatture.BE.Api.Modules.Notifiche;
 
