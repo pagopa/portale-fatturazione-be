@@ -1,7 +1,5 @@
-using System.Net;
 using System.Reflection;
 using Microsoft.Azure.Functions.Worker;
-using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using PortaleFatture.BE.Core.Entities.pagoPA.AnagraficaPSP;
 using PortaleFatture.BE.Core.Extensions;
@@ -18,7 +16,7 @@ public class SendEmailPsp(ILoggerFactory loggerFactory)
     private readonly ILogger _logger = loggerFactory.CreateLogger<SendEmail>();
 
     [Function("SendEmailPsp")]
-    public HttpResponseData Run([HttpTrigger(AuthorizationLevel.Anonymous, "get", "post")] HttpRequestData req)
+    public async Task RunAsync([ActivityTrigger] EmailPspDataRequest req)
     {
         var risposta = new RispostapagoPA();
         try
@@ -53,11 +51,11 @@ public class SendEmailPsp(ILoggerFactory loggerFactory)
             var path = fileInfo.Directory!.FullName;
 
             // params
-            var anno = Convert.ToInt32(req.Query["trimestre"]!.Split("_")[0]);
-            int? reinvio = Convert.ToInt32(req.Query["reinvio"]);
-            var trimestre = req.Query["trimestre"];
+            var anno = Convert.ToInt32(req.Anno);
+            int? reinvio = Convert.ToInt32(req.Reinvio);
+            var trimestre = req.Trimestre;
             var tipologia = EmailPspTipologia.Financial;
-            var data = req.Query["data"];
+            var data = req.Date;
 
             _logger.LogInformation("HTTP trigger function processed a request.");
 
@@ -111,28 +109,30 @@ public class SendEmailPsp(ILoggerFactory loggerFactory)
             var apiKeyFilePath = builder.ApiKeyFilePath();  
             _logger.LogInformation(psps.Serialize());
 
+            Thread.Sleep(60000); // 1 minuto
+
             foreach (var psp in psps!)
                 if (psp.Email != null)
                 {
-                    var body = builder.CreateEmailHtml(psp);
-                    var (msg, ver) = sender.SendEmail(psp.Email, psp.RagioneSociale!, subject, body!, Guid.NewGuid().ToString());
-                    //var (msg, ver) = sender.SendEmail(ConfigurazionepagoPA.To!, ConfigurazionepagoPA.ToName!, subject, body!, Guid.NewGuid().ToString());
+                    //var body = builder.CreateEmailHtml(psp);
+                    //var (msg, ver) = sender.SendEmail(psp.Email, psp.RagioneSociale!, subject, body!, Guid.NewGuid().ToString());
+                    ////var (msg, ver) = sender.SendEmail(ConfigurazionepagoPA.To!, ConfigurazionepagoPA.ToName!, subject, body!, Guid.NewGuid().ToString());
 
-                    if (!ver)
-                        _logger.LogInformation(msg);
+                    //if (!ver)
+                    //    _logger.LogInformation(msg);
 
-                    emailService.InsertTracciatoEmail(new PspEmailTracking()
-                    {
-                        Data = data,
-                        IdContratto = psp.IdContratto,
-                        Invio = Convert.ToByte(ver == true ? 1 : 0),
-                        Anno = psp.Anno,
-                        Messaggio = msg,
-                        Email = psp.Email,
-                        Trimestre = psp.Trimestre,
-                        RagioneSociale = psp.RagioneSociale,
-                        Tipologia = psp.Tipologia
-                    });
+                    //emailService.InsertTracciatoEmail(new PspEmailTracking()
+                    //{
+                    //    Data = data,
+                    //    IdContratto = psp.IdContratto,
+                    //    Invio = Convert.ToByte(ver == true ? 1 : 0),
+                    //    Anno = psp.Anno,
+                    //    Messaggio = msg,
+                    //    Email = psp.Email,
+                    //    Trimestre = psp.Trimestre,
+                    //    RagioneSociale = psp.RagioneSociale,
+                    //    Tipologia = psp.Tipologia
+                    //});
                 }
 
             risposta.NumeroInvio = psps.Count();
@@ -144,10 +144,7 @@ public class SendEmailPsp(ILoggerFactory loggerFactory)
             _logger.LogInformation(ex.Message);
         }
 
-        var response = req.CreateResponse(HttpStatusCode.OK);
-        response.Headers.Add("Content-Type", "application/json; charset=utf-8");
-        response.WriteString(risposta.Serialize());
-        return response;
+        _logger.LogInformation(risposta.Serialize());
     }
 
     private static string? GetEnvironmentVariable(string name)

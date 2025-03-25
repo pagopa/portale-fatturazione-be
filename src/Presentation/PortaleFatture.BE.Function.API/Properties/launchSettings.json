@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "PortaleFatture.BE.Function.API": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 7210",
+      "launchBrowser": false
+    }
+  }
+}
