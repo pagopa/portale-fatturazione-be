@@ -13,4 +13,5 @@ public sealed class OrchestratoreByDateRequest
         get { return _stati; }
         set { _stati = value!.IsNullNotAny() ? null : value; }
     } 
+    public int? Ordinamento { get; set; }
 }

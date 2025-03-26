@@ -41,6 +41,7 @@ public partial class OrchestratoreModule
             Stati = req.Stati,
             Page = page,
             Size = pageSize,
+            Ordinamento = req.Ordinamento
         });
         if (orchestratore == null || orchestratore.Items.IsNullNotAny())
             return NotFound();
@@ -82,6 +83,7 @@ public partial class OrchestratoreModule
             Stati = req.Stati,
             Page = null,
             Size = null,
+            Ordinamento = req.Ordinamento,
         });
 
         if (orchestratore == null || orchestratore.Items.IsNullNotAny())
