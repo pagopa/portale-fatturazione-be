@@ -32,7 +32,7 @@ FROM  pfd.vOrchestratore
 
     public static string OrderBy()
     {
-        return " ORDER BY ISNULL(DataEsecuzione, DataFineContestazioni) desc";
+        return " ORDER BY ISNULL(DataEsecuzione, DataFineContestazioni) [ordinamento]";
     }
 
     public static string SelectAll()

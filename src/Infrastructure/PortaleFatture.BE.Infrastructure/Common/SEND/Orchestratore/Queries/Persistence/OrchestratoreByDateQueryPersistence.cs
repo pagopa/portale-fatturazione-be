@@ -26,6 +26,7 @@ public class OrchestratoreByDateQueryPersistence(OrchestratoreByDateQuery comman
         var inizio = _command.Init;
         var fine = _command.End;
         var stati = _command.Stati;
+        var ordinamento = _command.Ordinamento.HasValue ? (_command.Ordinamento == 0 ? "ASC": "DESC") : "ASC";
 
         if (inizio.HasValue && fine.HasValue)
             where += " WHERE ISNULL(DataEsecuzione, DataFineContestazioni) BETWEEN @inizio AND @fine";
@@ -42,7 +43,7 @@ public class OrchestratoreByDateQueryPersistence(OrchestratoreByDateQuery comman
         if (!stati.IsNullNotAny())
             where += $" AND Esecuzione IN @Stati";
 
-        var orderBy = _orderBy;
+        var orderBy = _orderBy.Replace("[ordinamento]", ordinamento);
 
         var select = _sqlSelectAll;
         var selectCount = _sqlSelectAllCount;
