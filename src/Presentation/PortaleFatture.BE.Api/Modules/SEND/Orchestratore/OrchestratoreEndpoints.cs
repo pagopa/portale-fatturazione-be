@@ -25,6 +25,18 @@ public partial class OrchestratoreModule : Module, IRegistrableModule
            .WithName("Permette fare il download dei dati relativi all'orchestratore by date")
            .SetOpenApi(Module.DatiOrchestratoreLabel)
            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+           .MapGet("api/orchestratore/tipologie", GetOrchestratoreTipologie)
+           .WithName("Permette di ottenere le tipologie relative all'orchestratore")
+           .SetOpenApi(Module.DatiOrchestratoreLabel)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+           .MapGet("api/orchestratore/fasi", GetOrchestratoreFasi)
+           .WithName("Permette di ottenere le fasi relative all'orchestratore")
+           .SetOpenApi(Module.DatiOrchestratoreLabel)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
         #endregion
     } 
 }

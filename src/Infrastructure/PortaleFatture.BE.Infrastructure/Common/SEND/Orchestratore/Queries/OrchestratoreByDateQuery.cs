@@ -12,5 +12,7 @@ public sealed class OrchestratoreByDateQuery(IAuthenticationInfo authenticationI
     public short[]? Stati { get; set; }
     public int? Page { get; set; }
     public int? Size { get; set; }
-    public int? Ordinamento { get; set; } = 0;
+    public int? Ordinamento { get; set; } = 0; 
+    public string[]? Tipologie { get; set; } 
+    public string[]? Fasi { get; set; }
 } 

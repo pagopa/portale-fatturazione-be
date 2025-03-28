@@ -43,5 +43,23 @@ FROM  pfd.vOrchestratore
     public static string SelectAllCount()
     {
         return _sqlCount;
-    } 
+    }
+
+    public static string SelectTipologie()
+    {
+        return $@"
+SELECT DISTINCT 
+       [Tipologia] 
+  FROM [pfd].[vOrchestratore]
+";
+    }
+
+    public static string SelectFasi()
+    {
+        return $@"
+SELECT DISTINCT 
+       [Fase] 
+  FROM [pfd].[vOrchestratore]
+";
+    }
 }

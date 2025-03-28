@@ -3,7 +3,6 @@ using System.Dynamic;
 using Dapper;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
-using PortaleFatture.BE.Infrastructure.Common.SEND.Notifiche.Dto;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Orchestratore.Dto;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Orchestratore.Queries.Persistence.Builder;
 
@@ -27,6 +26,8 @@ public class OrchestratoreByDateQueryPersistence(OrchestratoreByDateQuery comman
         var fine = _command.End;
         var stati = _command.Stati;
         var ordinamento = _command.Ordinamento.HasValue ? (_command.Ordinamento == 0 ? "ASC": "DESC") : "ASC";
+        var tipologie = _command.Tipologie;
+        var fasi = _command.Fasi;
 
         if (inizio.HasValue && fine.HasValue)
             where += " WHERE ISNULL(DataEsecuzione, DataFineContestazioni) BETWEEN @inizio AND @fine";
@@ -42,6 +43,12 @@ public class OrchestratoreByDateQueryPersistence(OrchestratoreByDateQuery comman
 
         if (!stati.IsNullNotAny())
             where += $" AND Esecuzione IN @Stati";
+
+        if (!tipologie.IsNullNotAny())
+            where += $" AND Tipologia IN @Tipologie";
+
+        if (!fasi.IsNullNotAny())
+            where += $" AND Fase IN @Fasi";
 
         var orderBy = _orderBy.Replace("[ordinamento]", ordinamento);
 
@@ -61,8 +68,10 @@ public class OrchestratoreByDateQueryPersistence(OrchestratoreByDateQuery comman
             parameters.Page = page;
         if (size.HasValue)
             parameters.Size = size;
+
         if (inizio.HasValue)
             parameters.Inizio = inizio;
+
         if (fine.HasValue)
             parameters.Fine = fine;
 
@@ -70,7 +79,13 @@ public class OrchestratoreByDateQueryPersistence(OrchestratoreByDateQuery comman
             parameters.Fine = fine;
 
         if (!stati.IsNullNotAny())
-            parameters.Stati = stati; 
+            parameters.Stati = stati;
+
+        if (!tipologie.IsNullNotAny())
+            parameters.Tipologie = tipologie;
+
+        if (!fasi.IsNullNotAny())
+            parameters.Fasi = fasi;
 
         using (var values = await ((IDatabase)this).QueryMultipleAsync<OrchestratoreItem>(
             connection!,
