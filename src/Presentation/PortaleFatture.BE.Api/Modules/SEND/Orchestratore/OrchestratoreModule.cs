@@ -41,7 +41,9 @@ public partial class OrchestratoreModule
             Stati = req.Stati,
             Page = page,
             Size = pageSize,
-            Ordinamento = req.Ordinamento
+            Ordinamento = req.Ordinamento,
+            Tipologie = req.Tipologie,
+            Fasi = req.Fasi
         });
         if (orchestratore == null || orchestratore.Items.IsNullNotAny())
             return NotFound();
@@ -84,6 +86,8 @@ public partial class OrchestratoreModule
             Page = null,
             Size = null,
             Ordinamento = req.Ordinamento,
+            Tipologie = req.Tipologie,
+            Fasi = req.Fasi
         });
 
         if (orchestratore == null || orchestratore.Items.IsNullNotAny())
@@ -98,4 +102,44 @@ public partial class OrchestratoreModule
         stream.Position = 0;
         return Results.Stream(stream, mime, filename);
     }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<string>>, NotFound>> GetOrchestratoreTipologie(
+      HttpContext context,
+      [FromServices] IStringLocalizer<Localization> localizer,
+      [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var tipologie = await handler.Send(new OrchestratoreByTipologiaQuery(authInfo) { });
+
+        if (tipologie == null || tipologie.IsNullNotAny())
+            return NotFound();
+
+        return Ok(tipologie);
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<string>>, NotFound>> GetOrchestratoreFasi(
+      HttpContext context,
+      [FromServices] IStringLocalizer<Localization> localizer,
+      [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var tipologie = await handler.Send(new OrchestratoreByFaseQuery(authInfo) { });
+
+        if (tipologie == null || tipologie.IsNullNotAny())
+            return NotFound();
+
+        return Ok(tipologie);
+    } 
 }
