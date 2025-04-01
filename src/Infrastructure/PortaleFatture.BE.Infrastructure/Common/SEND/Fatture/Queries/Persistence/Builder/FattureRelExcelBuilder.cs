@@ -8,7 +8,8 @@ t.IdFattura as IdFattura,
 e.description as RagioneSociale,
 t.FkIdTipoDocumento as TipoDocumento, 
 t.FkIdEnte as IdEnte, 
-t.DataFattura as DataFattura, 
+t.DataFattura as DataFattura,  
+t.Progressivo as Progressivo,
 -t.TotaleFattura as TotaleFatturaImponibile,
 r.CodiceMateriale as CodiceMateriale,
 r.Imponibile as RigaImponibile, 
@@ -49,6 +50,7 @@ e.description as RagioneSociale,
 t.FkIdTipoDocumento as TipoDocumento, 
 t.FkIdEnte as IdEnte, 
 t.DataFattura as DataFattura,
+t.Progressivo as Progressivo,
 CAST(
 	CASE
 	WHEN t.FkIdTipoDocumento  = 'TD04'  

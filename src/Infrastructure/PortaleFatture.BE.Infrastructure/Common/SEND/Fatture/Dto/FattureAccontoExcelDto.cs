@@ -52,13 +52,15 @@ public sealed class FattureAccontoExcelDto
     public decimal TotaleDigitale { get; set; }
 
     [HeaderAttributev2(caption: "Totale Imponibile", Order = 13)]
-    public decimal Totale { get; set; }
-
-    //-fattura 
-    [HeaderAttributev2(caption: "IdFattura", Order = 14)]
-
+    public decimal Totale { get; set; } 
+ 
     [Column("IdFattura")]
     public string? IdFattura { get; set; }
+
+    [HeaderAttributev2(caption: "N. Fattura", Order = 14)]
+
+    [Column("Progressivo")]
+    public string? Progressivo { get; set; }
 
     public int IdTipoContratto { get; set; }
 

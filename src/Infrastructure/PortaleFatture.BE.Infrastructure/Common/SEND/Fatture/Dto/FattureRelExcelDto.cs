@@ -28,10 +28,17 @@ public class FattureRelExcelDto
     public string? TipologiaFattura { get; set; }
 
 
-    [HeaderAttributev2(caption: "IdFattura", Order = 4)]
+    //[HeaderAttributev2(caption: "IdFattura", Order = 4)]
 
     [Column("IdFattura")]
     public string? IdFattura { get; set; }
+
+
+    [HeaderAttributev2(caption: "N. Fattura", Order = 4)]
+
+    [Column("Progressivo")]
+    public string? Progressivo { get; set; }
+
 
 
     [HeaderAttributev2(caption: "TipoDocumento", Order = 4)]
