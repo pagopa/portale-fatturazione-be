@@ -43,13 +43,15 @@ public sealed class FattureCommessaExcelDto
     public int NumeroNotificheNazionali890 { get; set; }
 
     [HeaderAttributev2(caption: "N. Notifiche INT", Order = 13)]
-    public int NumeroNotificheInternazionali890 { get; set; }
-
-    //-fattura
-    [HeaderAttributev2(caption: "IdFattura", Order = 14)]
+    public int NumeroNotificheInternazionali890 { get; set; } 
 
     [Column("IdFattura")]
     public string? IdFattura { get; set; }
+
+    [HeaderAttributev2(caption: "N. Fattura", Order = 14)]
+
+    [Column("Progressivo")]
+    public string? Progressivo { get; set; }
 
 
     [HeaderAttributev2(caption: "Totale imponibile anticipo analogico", Order = 15)]
