@@ -18,22 +18,22 @@ public class CheckFinance
     [HeaderPagoPA(caption: "Q_ta", Order = 3)]
     public int? Quantità { get; set; }
 
-    [HeaderPagoPA(caption: "Totale Imponibile (senza sconto)", Order = 3)]
+    [HeaderPagoPA(caption: "Totale Imponibile (senza sconto)", Order = 4)]
     public decimal? Importo { get; set; }
 
-    [HeaderPagoPA(caption: "ABI", Order = 4)]
+    [HeaderPagoPA(caption: "ABI", Order = 5)]
     public string? ABI { get; set; }
 
-    [HeaderPagoPA(caption: "Ragione Sociale", Order = 5)]
+    [HeaderPagoPA(caption: "Ragione Sociale", Order = 6)]
     public string? RagioneSociale { get; set; }
 
-    [HeaderPagoPA(caption: "Sconto", Order = 6)]
+    [HeaderPagoPA(caption: "Sconto", Order = 7)]
     public decimal? Sconti { get; set; }
 
-    [HeaderPagoPA(caption: "Totale Imponibile (senza sconto) con bollo", Order = 7)]
+    [HeaderPagoPA(caption: "Totale Imponibile (senza sconto) con bollo", Order = 8)]
     public decimal? Totale { get; set; }
 
-    [HeaderPagoPA(caption: "Totale Imponibile con sconto", Order = 7)]
+    [HeaderPagoPA(caption: "Totale Imponibile con sconto", Order = 9)]
     public decimal? TotaleScontato { get; set; }
     public string? ContractId { get; set; }
 } 

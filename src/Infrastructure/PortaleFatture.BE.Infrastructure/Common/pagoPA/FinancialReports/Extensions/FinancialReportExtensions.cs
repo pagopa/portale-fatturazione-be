@@ -1,4 +1,5 @@
-﻿using PortaleFatture.BE.Infrastructure.Common.pagoPA.FinancialReports.Dto;
+﻿using PortaleFatture.BE.Infrastructure.Common.pagoPA.EntiPrivati.Queries;
+using PortaleFatture.BE.Infrastructure.Common.pagoPA.FinancialReports.Dto;
 using PortaleFatture.BE.Infrastructure.Common.pagoPA.FinancialReports.Queries;
 using PortaleFatture.BE.Infrastructure.Common.pagoPA.KPIPagamenti.Queries;
 
@@ -6,6 +7,32 @@ namespace PortaleFatture.BE.Infrastructure.Common.pagoPA.FinancialReports.Extens
 
 public static class FinancialReportExtensions
 {
+    public static ReportPrivatiECQueryGetExcel Mapv4(this FinancialReportQueryGetKPMGReportExcel request)
+    {
+        return new ReportPrivatiECQueryGetExcel(request.AuthenticationInfo)
+        {
+            ABI = request.ABI,
+            ContractIds = request.ContractIds,
+            Quarters = request.Quarters,
+            MembershipId = request.MembershipId,
+            RecipientId = request.RecipientId,
+            Year = request.Year
+        };
+    }
+
+    public static ReportPrivatiVBSQueryGetExcel Mapv3(this FinancialReportQueryGetKPMGReportExcel request)
+    {
+        return new ReportPrivatiVBSQueryGetExcel(request.AuthenticationInfo)
+        {
+            ABI = request.ABI,
+            ContractIds = request.ContractIds,
+            Quarters = request.Quarters,
+            MembershipId = request.MembershipId,
+            RecipientId = request.RecipientId,
+            Year = request.Year
+        };
+    }
+
     public static KPIPagamentiScontoKPMGQuery Mapv2(this FinancialReportQueryGetKPMGReportExcel request)
     {
         return new KPIPagamentiScontoKPMGQuery(request.AuthenticationInfo)

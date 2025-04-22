@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using PortaleFatture.BE.Core.Resources;
+using PortaleFatture.BE.Infrastructure.Common.pagoPA.EntiPrivati.Queries.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.pagoPA.FinancialReports.Dto;
 using PortaleFatture.BE.Infrastructure.Common.pagoPA.FinancialReports.Extensions;
 using PortaleFatture.BE.Infrastructure.Common.pagoPA.FinancialReports.Queries;
@@ -29,10 +30,14 @@ public sealed class FinancialReportQueryGetKPMGReportExcelHandler(
         var kpmgs = await uow.Query(new FinancialReportQueryGetKPMGReportExcelPersistence(command), ct); 
         var sconti = await uow.Query(new KPIPagamentiScontoKPMGQueryPersistence(command.Mapv2()), ct);
         var scontiLista = await uow.Query(new KPIPagamentiScontoKPMGListQueryPersistence(command.Mapv2()), ct);
+        var privatiVBS =  await uow.Query(new ReportPrivatiVBSQueryGetExcelPersistence(command.Mapv3()), ct);
+        var privatiEC = await uow.Query(new ReportPrivatiECSQueryGetExcelPersistence(command.Mapv4()), ct);
         report.FinancialReports = financials;
         report.KPMGReports = kpmgs;
         report.Sconti = sconti;
         report.ScontiLista = scontiLista;
+        report.ReportPrivatiVBS = privatiVBS;
+        report.ReportPrivatiEC = privatiEC;
         return report;
     }
 }
