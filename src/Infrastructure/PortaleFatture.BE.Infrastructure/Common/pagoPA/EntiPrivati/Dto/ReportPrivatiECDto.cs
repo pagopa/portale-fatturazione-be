@@ -15,23 +15,28 @@ public class ReportPrivatiECDto
     [HeaderPagoPA(caption: "Codice Articolo", Order = 3)]
     public string? CodiceArticolo { get; set; }
 
-    [HeaderPagoPA(caption: "Totale Async", Order = 4)]
+    [HeaderPagoPA(caption: "Totale Async", Order = 6)]
     public int? TotaleAsync { get; set; } // SUM(ASYNC_numero_tot)
 
-    [HeaderPagoPA(caption: "Imponibile Async", Order = 5)]
+    [HeaderPagoPA(caption: "Imponibile Async", Order = 7)]
     public decimal? ValoreAsync { get; set; } // SUM(ASYNC_valore_tot) 
 
-    [HeaderPagoPA(caption: "Totale Sync", Order = 6)]
+    [HeaderPagoPA(caption: "Totale Sync", Order = 8)]
     public int? TotaleSync { get; set; } // SUM(SYNC_numero_tot)
 
-    [HeaderPagoPA(caption: "Imponibile Sync", Order = 7)]
+    [HeaderPagoPA(caption: "Imponibile Sync", Order = 9)]
     public decimal? ValoreSync { get; set; } // SUM(SYNC_valore_tot) 
 
     public string? YearQuarter { get; set; }
 
-    [HeaderPagoPA(caption: "Imponibile", Order = 8)]
+    [HeaderPagoPA(caption: "Imponibile", Order = 10)]
     public decimal? Imponibile { get; set; }
 
+    [HeaderPagoPA(caption: "recipient_id", Order = 4)]
+    public string? RecipientId { get; set; }
+
+    [HeaderPagoPA(caption: "name", Order = 5)]
+    public string? Name { get; set; }
     public ReportPrivatiECDto Clone()
     {
         return (ReportPrivatiECDto)this.MemberwiseClone();

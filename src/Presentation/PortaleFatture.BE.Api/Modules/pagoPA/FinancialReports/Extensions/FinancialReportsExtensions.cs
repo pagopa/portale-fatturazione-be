@@ -444,6 +444,17 @@ public static class FinancialReportsExtensions
 
                             reportPrivatiECList.Add(item);
                         }
+
+                        reportPrivatiECList.Add(new ReportPrivatiECDto
+                        {
+                            RagioneSociale = "Totale Risultato",
+                            Imponibile = reportPrivatiECList.Sum(item => item.Imponibile),
+                            ValoreAsync = reportPrivatiECList.Sum(item => item.ValoreAsync),
+                            ValoreSync = reportPrivatiECList.Sum(item => item.ValoreSync),
+                            TotaleAsync = reportPrivatiECList.Sum(item => item.TotaleAsync),
+                            TotaleSync = reportPrivatiECList.Sum(item => item.TotaleSync),
+                        });
+
                         dataSet.Tables.Add(reportPrivatiECList!.FillTable(tableName!));
                     }
                 }

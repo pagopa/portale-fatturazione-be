@@ -13,6 +13,8 @@ SELECT
       ,SUM([SYNC_numero_tot]) as totalesync
       ,SUM([SYNC_valore_tot]) as valoresync
       ,p.[year_quarter] as YearQuarter
+	  ,p.recipient_id as RecipientId
+	  ,c.name as name
   FROM [ppa].[report_privati] p 
   	left outer join [ppa].[FinancialReports] r
 	ON p.recipient_id = r.recipient_id
@@ -29,7 +31,7 @@ SELECT
     }
     public static string GroupByEC()
     {
-        return " group by p.internalistitutionid, CodiceArticolo, p.year_quarter, taxcode, description";
+        return " group by p.internalistitutionid, CodiceArticolo, p.year_quarter, taxcode, description, p.recipient_id, c.name";
     }
 
     public static string OrderByEC()
