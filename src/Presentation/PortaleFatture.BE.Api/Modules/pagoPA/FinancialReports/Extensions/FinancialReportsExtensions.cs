@@ -8,6 +8,7 @@ using PortaleFatture.BE.Infrastructure.Common.pagoPA.AnagraficaPSP.Dto;
 using PortaleFatture.BE.Infrastructure.Common.pagoPA.AnagraficaPSP.Queries;
 using PortaleFatture.BE.Infrastructure.Common.pagoPA.Documenti;
 using PortaleFatture.BE.Infrastructure.Common.pagoPA.Documenti.Common;
+using PortaleFatture.BE.Infrastructure.Common.pagoPA.EntiPrivati.Dto;
 using PortaleFatture.BE.Infrastructure.Common.pagoPA.FinancialReports.Dto;
 using PortaleFatture.BE.Infrastructure.Common.pagoPA.FinancialReports.Queries;
 using PortaleFatture.BE.Infrastructure.Common.pagoPA.KPIPagamenti.Dto;
@@ -155,7 +156,9 @@ public static class FinancialReportsExtensions
             0 => $"{namedQuarter}-financial-report",
             1 => $"{namedQuarter}-kpmg-import",
             2 => $"{namedQuarter}-kpi-pagamenti",
-            _ => $"{namedQuarter.ToUpper()} {year} Finance",
+            3 => $"{namedQuarter.ToUpper()} {year} Finance",
+            4 => $"{namedQuarter.ToUpper()} {year} Finance VBS",
+            _ => $"{namedQuarter.ToUpper()} {year} Finance EC",
         };
     }
 
@@ -166,6 +169,8 @@ public static class FinancialReportsExtensions
         var reports = aggregateReports.KPMGReports;
         var sconti = aggregateReports.Sconti;
         var scontiList = aggregateReports.ScontiLista;
+        var reportPrivatiVBS = aggregateReports.ReportPrivatiVBS;
+        var reportPrivatiEC = aggregateReports.ReportPrivatiEC;
 
         List<string> tableNames = [];
         if (!financials.IsNullNotAny())
@@ -273,7 +278,7 @@ public static class FinancialReportsExtensions
                         tableNames.Add(tableName!);
 
                         var aggregatedData = scontoLista
-                        .GroupBy(item => new { item.YearQuarter, item.RecipientId, item.FlagMQ }) 
+                        .GroupBy(item => new { item.YearQuarter, item.RecipientId, item.FlagMQ })
                         .Select(group => new KPIPagamentiScontoDto
                         {
                             YearQuarter = group.Key.YearQuarter,
@@ -301,6 +306,148 @@ public static class FinancialReportsExtensions
                     }
                 }
             }
+
+            //privati VBS
+            if (!rYearQuarter.IsNullNotAny())
+            {
+                foreach (var yearQuarter in rYearQuarter)
+                {
+                    var selected = reports!.Where(item => item.YearQuarter == yearQuarter);
+                    //checks
+                    var tableName = yearQuarter!.TableName(4);
+                    tableNames.Add(tableName!);
+                    var checks = selected.GroupBy(item => new { item.ContractId })
+                         .SelectMany(group =>
+                         {
+                             var result = new List<CheckFinanceVBSDto>();
+                             foreach (var item in group)
+                             {
+                                 var check = new CheckFinanceVBSDto
+                                 {
+                                     ABI = group.First().Abi,
+                                     RagioneSociale = group.First().Name,
+                                     CodiceArticolo = item.CodiceArticolo,
+                                     Importo = item.Importo,
+                                     Numero = group.First().Numero,
+                                     Quantità = item.Quantita,
+                                     Sconti = null,
+                                     Totale = group.Sum(i => i.Importo),
+                                     ContractId = item.ContractId
+                                 };
+
+                                 if (item != group.First())
+                                 {
+                                     check.ABI = string.Empty;
+                                     check.RagioneSociale = string.Empty;
+                                     check.Numero = string.Empty;
+                                     check.Totale = null;
+                                     check.Sconti = null;
+                                     check.Tipologia = check.CodiceArticolo == "BOLLO" ? null : TipologiaPubblicoPrivato.PUBBLICO;
+                                     check.QuantitàTipologia = check.CodiceArticolo == "BOLLO" ? null : check.Quantità;
+
+                                     var filteredreportPrivatiVBS = reportPrivatiVBS?.Where(x => x.RecipientId == item.ContractId && x.YearQuarter == item.YearQuarter && x.CodiceArticolo == item.CodiceArticolo);
+                                     if (filteredreportPrivatiVBS != null && filteredreportPrivatiVBS.Count() > 1)
+                                         throw new Exception($"Duplicati valori per codice articolo: {item.CodiceArticolo} psp: {item.ContractId} year quarter: {item.YearQuarter}");
+
+                                     if (filteredreportPrivatiVBS != null && filteredreportPrivatiVBS.Any())
+                                     {
+                                         var singlereportPrivatiVBS = filteredreportPrivatiVBS.FirstOrDefault();
+                                         var checkVBS = new CheckFinanceVBSDto
+                                         {
+                                             ABI = null,
+                                             RagioneSociale = null,
+                                             CodiceArticolo = item.CodiceArticolo,
+                                             Importo = singlereportPrivatiVBS!.Valore,
+                                             Numero = null,
+                                             QuantitàTipologia = singlereportPrivatiVBS!.Numero,
+                                             Sconti = null,
+                                             Totale = null,
+                                             ContractId = item.ContractId,
+                                             Tipologia = TipologiaPubblicoPrivato.PRIVATO
+                                         };
+
+                                         check.Importo = check.Importo - checkVBS.Importo;
+                                         check.QuantitàTipologia = check.Quantità - checkVBS.QuantitàTipologia;
+
+                                         result.Add(check);
+                                         result.Add(checkVBS);
+                                     }
+                                     else
+                                         result.Add(check);
+                                 }
+                                 else
+                                     result.Add(check);
+                             }
+                             return result;
+                         });
+
+                    var totalChecks = checks.ToList();
+
+                    foreach (var check in totalChecks)
+                    {
+                        var item = check;
+                        var sconto = sconti != null ? sconti.Where(x => x.YearQuarter == yearQuarter && x.RecipientId == check.ContractId).Select(x => x.ValueDiscount) : [];
+                        if (check.Totale != null)
+                        {
+                            item.Sconti = sconto.FirstOrDefault();
+                            item.TotaleScontato = check.Totale - item.Sconti;
+                        }
+                    }
+
+                    totalChecks.Add(new CheckFinanceVBSDto
+                    {
+                        Numero = "Totale Risultato",
+                        Importo = totalChecks.Sum(item => item.Importo),
+                        Sconti = totalChecks.Sum(item => item.Sconti),
+                        Totale = totalChecks.Sum(item => item.Totale),
+                        TotaleScontato = totalChecks.Sum(item => item.TotaleScontato),
+                    });
+                    dataSet.Tables.Add(totalChecks!.FillTable(tableName!));
+                }
+            }
+
+            // privati EC
+            if (!rYearQuarter.IsNullNotAny())
+            {
+                foreach (var yearQuarter in rYearQuarter)
+                {
+                    var singlePrivatiEC = reportPrivatiEC?.Where(x => x.YearQuarter == yearQuarter).ToList();
+                    if (singlePrivatiEC != null && singlePrivatiEC.Any())
+                    {
+                        List<ReportPrivatiECDto> reportPrivatiECList = new();
+                        var tableName = yearQuarter!.TableName(6);
+                        tableNames.Add(tableName!);
+                        ReportPrivatiECDto? previousItem = new();
+                        foreach (var item in singlePrivatiEC)
+                        {
+                            if (previousItem == null || previousItem.InternalInstitutionId != item.InternalInstitutionId)
+                            {
+                                var totale = new ReportPrivatiECDto
+                                {
+                                    YearQuarter = item.YearQuarter,
+                                    InternalInstitutionId = item!.InternalInstitutionId,
+                                    RagioneSociale = item!.RagioneSociale,
+                                    Imponibile = singlePrivatiEC.Where(x => x.InternalInstitutionId == item.InternalInstitutionId).Sum(x => x.ValoreAsync + x.ValoreSync),
+                                    TaxCode = item.TaxCode,
+                                    ValoreAsync = singlePrivatiEC.Where(x => x.InternalInstitutionId == item.InternalInstitutionId).Sum(x => x.ValoreAsync),
+                                    ValoreSync = singlePrivatiEC.Where(x => x.InternalInstitutionId == item.InternalInstitutionId).Sum(x => x.ValoreSync),
+                                    TotaleAsync = singlePrivatiEC.Where(x => x.InternalInstitutionId == item.InternalInstitutionId).Sum(x => x.TotaleAsync),
+                                    TotaleSync = singlePrivatiEC.Where(x => x.InternalInstitutionId == item.InternalInstitutionId).Sum(x => x.TotaleSync),
+                                };
+                                reportPrivatiECList.Add(totale);
+                                previousItem = item.Clone();
+                            }
+                            item.InternalInstitutionId = null;
+                            item.RagioneSociale = null;
+                            item.TaxCode = null;
+                            item.YearQuarter = null;
+
+                            reportPrivatiECList.Add(item);
+                        }
+                        dataSet.Tables.Add(reportPrivatiECList!.FillTable(tableName!));
+                    }
+                }
+            }
         }
 
         var desiredOrder = tableNames
@@ -321,6 +468,10 @@ public static class FinancialReportsExtensions
             return 2;
         else if (normalized.Contains("kpi-pagamenti"))
             return 3;
+        else if (normalized.Contains("VBS"))
+            return 5;
+        else if (normalized.Contains("EC"))
+            return 6;
         else
             return 4;
     }

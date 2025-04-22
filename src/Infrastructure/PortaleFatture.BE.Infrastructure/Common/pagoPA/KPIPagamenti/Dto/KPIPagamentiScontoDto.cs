@@ -3,7 +3,7 @@ using PortaleFatture.BE.Infrastructure.Common.pagoPA.Documenti.Common;
 
 namespace PortaleFatture.BE.Infrastructure.Common.pagoPA.KPIPagamenti.Dto;
 
-public sealed class KPIPagamentiScontoDto
+public class KPIPagamentiScontoDto
 { 
     public string? RecipientName { get; set; } 
 

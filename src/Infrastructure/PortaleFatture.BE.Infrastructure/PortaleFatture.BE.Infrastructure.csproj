@@ -49,4 +49,8 @@
         <ProjectReference Include="..\..\Core\PortaleFatture.BE.Core\PortaleFatture.BE.Core.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Common\pagoPA\EntiPrivati\QueryHandlers\" />
+    </ItemGroup>
+
 </Project>
