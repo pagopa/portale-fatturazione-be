@@ -22,7 +22,7 @@ INSERT INTO [pfw].[ApiKeysIPs]
     public async Task<int?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
     {
         try
-        {
+        { 
             return await ((IDatabase)this).ExecuteAsync(connection!, _sqlInsert, _command, transaction);
         }
         catch (SqlException ex) when (ex.Number == 2601)  
