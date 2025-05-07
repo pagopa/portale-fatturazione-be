@@ -9,4 +9,7 @@ public class TipoStorico
     public const string RipristionFatture = "RF";
     public const string AnnullaSAP = "ASAP";
     public const string InvioSAP = "ISAP";
+    public const string CreaAPIKey = "APIK";
+    public const string CreaAPIIp = "APICIP";
+    public const string EliminaAPIIp = "APIEIP";
 }

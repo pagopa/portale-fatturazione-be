@@ -8,19 +8,20 @@ using PortaleFatture.BE.Infrastructure.Common.Persistence.Schemas;
 using PortaleFatture.BE.Infrastructure.Common.SEND.ApiKeys.Dto;
 using PortaleFatture.BE.Infrastructure.Common.SEND.ApiKeys.Queries;
 using PortaleFatture.BE.Infrastructure.Common.SEND.ApiKeys.Queries.Persistence;
+using PortaleFatture.BE.Infrastructure.Gateway;
 
 namespace PortaleFatture.BE.Infrastructure.Common.SEND.ApiKeys.QueryHandlers;
 
 public class ApiKeyIpsQueryGetHandler(
     ISelfCareDbContextFactory factory,
-    IStringLocalizer<Localization> localizer,
-    IMediator handler,
+    IStringLocalizer<Localization> localizer, 
+    IAesEncryption encryption,
     ILogger<ApiKeyIpsQueryGetHandler> logger) : IRequestHandler<ApiKeyIpsQueryGet, IEnumerable<ApiKeyIpsDto>?>
 {
     private readonly ISelfCareDbContextFactory _factory = factory;
     private readonly ILogger<ApiKeyIpsQueryGetHandler> _logger = logger;
-    private readonly IStringLocalizer<Localization> _localizer = localizer;
-    private readonly IMediator _handler = handler;
+    private readonly IStringLocalizer<Localization> _localizer = localizer; 
+    private readonly IAesEncryption _encryption = encryption;
     public async Task<IEnumerable<ApiKeyIpsDto>?> Handle(ApiKeyIpsQueryGet request, CancellationToken ct)
     {
         using var rs = await _factory.Create(true, cancellationToken: ct);
@@ -28,10 +29,10 @@ public class ApiKeyIpsQueryGetHandler(
             var result = await rs.Query(new CheckApiKeyQueryGetPersistence(new ApiKeyQueryGet(request.AuthenticationInfo)
             {
                 IdEnte = request.IdEnte
-            }), ct); 
+            }, _encryption), ct); 
             if(result.IsNullNotAny())
                 throw new SecurityException("Ente non registrato!");
-            return await rs.Query(new ApiKeyIpsQueryGetPersistence(request), ct);
+            return await rs.Query(new ApiKeyIpsQueryGetPersistence(request, _encryption), ct);
         } 
     }
 }

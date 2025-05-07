@@ -542,3 +542,4 @@ src/Presentation/PortaleFatture.BE.SendEmailFunction/Infrastructure/Documenti/pa
 src/Presentation/PortaleFatture.BE.EmailPSPSender/Program.cs
 src/Presentation/PortaleFatture.BE.EmailPSPSender/Infrastructure/Documenti/pagoPA/credentials.json
 src/Presentation/PortaleFatture.BE.Function.API/local.settings.json
+src/Presentation/PortaleFatture.BE.Function.API/PortaleFatture.BE.Function.API.sln

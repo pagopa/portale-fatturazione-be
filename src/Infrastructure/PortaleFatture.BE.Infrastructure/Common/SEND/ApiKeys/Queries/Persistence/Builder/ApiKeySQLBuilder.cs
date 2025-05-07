@@ -32,6 +32,11 @@ WHERE attiva=1
     {
         return _sqlIps;
     }
+
+    public static string OrderByIps()
+    {
+        return "  order by DataCreazione ASC;";
+    }
     public static string SelectCheck()
     {
         return _sqlCheck;
