@@ -18,7 +18,7 @@ namespace PortaleFatture.BE.Function.API.Autenticazione;
 public static class Authentication
 {
     [Function("Authentication")] 
-    [OpenApiOperation(operationId: "authenticateUser", tags: ["authentication"], Summary = "Authenticates a user.", Description = "Authenticates a user based on provided credentials.")]
+    [OpenApiOperation(operationId: "authenticateUser", tags: ["Autenticazione"], Summary = "Verifica autenticazione.", Description = "Autentica le chiamate via api key.")]
     [OpenApiSecurity("ApiKeyAuth", SecuritySchemeType.ApiKey, Name = "X-API-KEY", In = OpenApiSecurityLocationType.Header)]
     [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(AuthenticationResponse), Description = "Returns 'Auth Response' on successful authentication.")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = MessageHelper.Unauthorized)]

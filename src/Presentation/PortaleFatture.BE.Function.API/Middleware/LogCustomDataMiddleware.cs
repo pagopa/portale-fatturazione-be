@@ -19,8 +19,17 @@ public class LogCustomDataMiddleware(
     public async Task Invoke(FunctionContext context, FunctionExecutionDelegate next)
     {
         var httpRequestData = await context.GetHttpRequestDataAsync();
+        if (!context.FunctionDefinition.InputBindings.TryGetValue("req", out var binding) || binding.Type != "httpTrigger")
+        {
+            await next(context);
+            return;
+        }
+
         if (httpRequestData == null)
-            return; 
+        {
+            await next(context);
+            return;
+        }
 
         if (httpRequestData.SkipSwagger())
         {

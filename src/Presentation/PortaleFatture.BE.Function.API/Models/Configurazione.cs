@@ -1,7 +1,8 @@
 ﻿namespace PortaleFatture.BE.Function.API.Models;
 
-internal static class Configurazione
+public class Configurazione : IConfigurazione
 {
-    public static string? ConnectionString { get; set; }
-    public static string? AESKey { get; set; }
-} 
+    public string? ConnectionString { get; set; }
+    public string? AESKey { get; set; }
+    public string? CustomDomain { get; set; }
+}
