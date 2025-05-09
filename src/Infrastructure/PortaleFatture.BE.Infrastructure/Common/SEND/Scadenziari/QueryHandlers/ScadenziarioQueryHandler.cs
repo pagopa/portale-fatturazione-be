@@ -40,8 +40,8 @@ public class ScadenziarioQueryHandler(
         else
             throw new ConfigurationException("Time table not configured for the specific data.");
 
-        if (authInfo.Ruolo != Ruolo.ADMIN)
-            return (false, scadenziario);
+        ////if (authInfo.Ruolo != Ruolo.ADMIN)
+        ////    return (false, scadenziario);
 
         if (tipo == TipoScadenziario.DatiModuloCommessa)
         {

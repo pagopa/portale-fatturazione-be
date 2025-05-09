@@ -33,6 +33,28 @@ public partial class DatiModuloCommessaModule
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<ModuloCommessaAnnoMeseDto>>, NotFound>> GetPagoPADatiModuloCommessaAnnoMeseAsync(
+      HttpContext context,
+      [FromServices] IStringLocalizer<Localization> localizer,
+      [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        authInfo.Prodotto = "prod-pn";  
+
+        var annomesi = await handler.Send(new DatiModuloCommessaGetAnniMesi(authInfo));
+        if (annomesi.IsNullNotAny())
+            return NotFound();
+        
+        return Ok(annomesi);
+    }
+
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     private async Task<Results<Ok<DatiModuloCommessaResponse>, NotFound>> GetPagoPADatiModuloCommessaAsync(
     HttpContext context,
     [FromQuery] string? idEnte,

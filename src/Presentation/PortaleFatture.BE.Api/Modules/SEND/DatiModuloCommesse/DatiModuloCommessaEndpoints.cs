@@ -9,6 +9,13 @@ public partial class DatiModuloCommessaModule : Module, IRegistrableModule
     public void RegisterEndpoints(IEndpointRouteBuilder endpointRouteBuilder)
     {
         #region PagoPA
+
+        endpointRouteBuilder
+        .MapGet("api/modulocommessa/pagopa/periodo", GetPagoPADatiModuloCommessaAnnoMeseAsync)
+        .WithName("Permette di ottenere i dati relativi al modulo commessa via utente PagoPA anno mese.")
+        .SetOpenApi(Module.DatiModuloCommessaLabelPagoPA)
+        .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
         endpointRouteBuilder
          .MapGet("api/modulocommessa/pagopa/", GetPagoPADatiModuloCommessaAsync)
          .WithName("Permette di ottenere i dati relativi al modulo commessa via utente PagoPA per mese anno.")

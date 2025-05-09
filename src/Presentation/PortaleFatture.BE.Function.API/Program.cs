@@ -8,34 +8,41 @@ using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using PortaleFatture.BE.Function.API.Extensions;
 using PortaleFatture.BE.Function.API.Middleware;
+using PortaleFatture.BE.Function.API.Models;
 using PortaleFatture.BE.Infrastructure;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.Persistence.Schemas;
+using PortaleFatture.BE.Infrastructure.Common.SEND.Scadenziari;
 using PortaleFatture.BE.Infrastructure.Gateway;
 
 var host = new HostBuilder()
-    .ConfigureAppConfiguration((context, configBuilder) =>
-    {
-        configBuilder.AddJsonFile("appsettings.json", optional: true)
-                     .AddEnvironmentVariables();
-    }) 
     .ConfigureFunctionsWebApplication(app => {
         app.UseMiddleware<AuthMiddleware>();
         app.UseMiddleware<LogCustomDataMiddleware>();
     })
     .ConfigureServices((context, services) =>
     {
+        //services.AddFunctionsWorkerDefaults();
         var assemblies = new[]
             {
                 Assembly.GetExecutingAssembly(),
                 typeof(RootInfrastructure).Assembly
-            }; 
+            };
+
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(assemblies));
         services.AddSingleton<ILogger<AuthMiddleware>, Logger<AuthMiddleware>>();
 
         var configuration = context.Configuration;
         var aesKey = configuration["AES_KEY"];  
         var dbConnectionString = configuration["CONNECTION_STRING"];
+        var customDomain = configuration["OpenApi:HostNames"];
+
+        services.AddSingleton<IConfigurazione>(new Configurazione()
+        {
+             AESKey = aesKey,
+             ConnectionString  = dbConnectionString,
+             CustomDomain = customDomain
+        });
 
         services.AddSingleton<IAesEncryption>(new AesEncryption(aesKey!));
         services.AddSingleton<IFattureDbContextFactory>(new DbContextFactory(dbConnectionString!, "pfw"));
@@ -44,6 +51,7 @@ var host = new HostBuilder()
         services.AddControllersWithViews()
                 .AddDataAnnotationsLocalization()
                 .AddViewLocalization();
+        services.AddSingleton<IScadenziarioService, ScadenziarioService>();
         services.AddCors(options =>
         {
             options.AddDefaultPolicy(policy =>

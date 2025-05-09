@@ -35,4 +35,16 @@ public class DatiModuloCommessaAnniSQLBuilder
         var builderTemplate = builder.AddTemplate($"Select DISTINCT(/**select**/) from [schema]{tableName} /**where**/ ");
         return builderTemplate.RawSql;
     }
+    public static string SelectByAnnoMese()
+    {
+        return $@"
+SELECT DISTINCT
+    ([AnnoValidita]) as anno,
+    [MeseValidita] as mese
+FROM [pfw].[DatiModuloCommessa] ";
+    }
+    public static string OrderByAnnoMeseDesc()
+    {
+        return $@" ORDER BY  AnnoValidita DESC, MeseValidita DESC";
+    }
 }

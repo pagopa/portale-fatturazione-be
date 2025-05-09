@@ -1,16 +1,24 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace PortaleFatture.BE.Api.Modules.SEND.DatiModuloCommesse.Payload.Request;
 
+ 
 public class DatiModuloCommessaCreateRequest
 {
+    [JsonPropertyName("moduliCommessa")]
     public List<DatiModuloCommessaCreateSimpleRequest>? ModuliCommessa { get; set; }
 
 }
 public class DatiModuloCommessaCreateSimpleRequest
 {
+    [JsonPropertyName("numeroNotificheNazionali")]
     public int NumeroNotificheNazionali { get; set; }
+
+    [JsonPropertyName("numeroNotificheInternazionali")]
     public int NumeroNotificheInternazionali { get; set; }
+
+    [JsonPropertyName("idTipoSpedizione")]
     public int IdTipoSpedizione { get; set; }
 }
 
