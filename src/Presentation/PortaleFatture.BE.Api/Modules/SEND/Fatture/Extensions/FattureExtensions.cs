@@ -40,16 +40,16 @@ public static class FattureExtensions
             Mese = req.Mese,
             TipologiaFattura = req.TipologiaFattura
         };
-    } 
+    }
 
     public static FatturaRiptristinoSAPCommandList Map2(this List<FatturaPipelineSapRequest> request, AuthenticationInfo authInfo, bool invio)
     {
         return new FatturaRiptristinoSAPCommandList(
             request.Select(x => new FatturaRiptristinoSAPCommand(authInfo, x.AnnoRiferimento!.Value, x.MeseRiferimento!.Value, x.TipologiaFattura)
-        {
-            Invio = invio
-        })
-        .ToList());  
+            {
+                Invio = invio
+            })
+        .ToList());
     }
 
     public static FatturaInvioSap Map(this FatturaPipelineSapRequest request)
@@ -176,7 +176,14 @@ public static class FattureExtensions
     {
         DataSet? dataSet = new();
         for (var i = 0; i < commesse.Count; i++)
-            dataSet.Tables.Add(commesse[i]!.FillTableWithTotalsRel(0, $"Acconto {month}"));
+        {
+            var fattureNONzero = commesse[i].Where(x => x.TotaleFattura != 0);
+            if (!fattureNONzero.IsNullNotAny())
+                dataSet.Tables.Add(fattureNONzero!.FillTableWithTotalsRel(0, $"Acconto {month}"));
+            var fatturezero = commesse[i].Where(x => x.TotaleFattura == 0);
+            if (!fatturezero.IsNullNotAny())
+                dataSet.Tables.Add(fatturezero!.FillTableWithTotalsRel(0, $"Acconto a zero {month}"));
+        } 
         using var memory = dataSet!.ToExcel();
         return memory.ToArray();
     }
@@ -189,7 +196,13 @@ public static class FattureExtensions
             if (i == 0)
                 dataSet.Tables.Add(fatture[i]!.FillTableWithTotalsRel(9, $"Regolari Esecuzioni {month}"));
             else if (i == 1)
-                dataSet.Tables.Add(fatture[i]!.FillTableWithTotalsRel(9, $"Enti Fatturabili  {month}"));
+            {
+                var fattureNONzero = fatture[i].Where(x => x.TotaleFatturaImponibile != 0);
+                dataSet.Tables.Add(fattureNONzero!.FillTableWithTotalsRel(9, $"Enti Fatturabili {month}"));
+                var fatturezero = fatture[i].Where(x => x.TotaleFatturaImponibile == 0);
+                if (!fatturezero.IsNullNotAny())
+                    dataSet.Tables.Add(fatturezero!.FillTableWithTotalsRel(9, $"Enti Fatturabili a Zero {month}"));
+            }
             else
                 dataSet.Tables.Add(fatture[i]!.FillTableWithTotalsRel(9, $"Note di Credito {month}"));
         }

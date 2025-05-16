@@ -62,6 +62,7 @@ public static class FattureQueryRicercaBuilder
     and FT.FkIdEnte = @IdEnte
 	and FT.FkTipologiaFattura IN @TipologiaFattura
 	and FT.FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865' --esclusione pagopa
+	and FT.TotaleFattura > 0
 	ORDER BY FT.FkTipologiaFattura, FT.Progressivo
     FOR JSON PATH, INCLUDE_NULL_VALUES )";
 
@@ -321,6 +322,7 @@ SELECT
 	and FT.MeseRiferimento = @MeseRiferimento
 	[condition_tipologiafattura]
 	and FT.FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865' --esclusione pagopa
+	and FT.TotaleFattura > 0
 	ORDER BY FT.FkTipologiaFattura, FT.Progressivo
     FOR JSON PATH, INCLUDE_NULL_VALUES )";
 
