@@ -78,10 +78,11 @@ public class SimpleNotificaPagoPADtoMap : ClassMap<SimpleNotificaDto>
         Map(m => m.NoteRecapitista).Name("Risposta Recapitista").Index(30);
         Map(m => m.NoteConsolidatore).Name("Risposta Consolidatore").Index(31);
         Map(m => m.TipoContestazione).Name("Tipo Contestazione").Index(32);
-        Map(m => m.Contestazione).Name("Contestazione").Index(33);
-        Map(m => m.StatoContestazione).Name("Stato contestazione").Index(34);
-        Map(m => m.TipologiaFattura).Name("Tipologia Fattura").Index(35); 
-        Map(m => m.CodiceOggetto).Name("Codice Oggetto").Index(36);
+        Map(m => m.IdTipoContestazione).Name("Id Tipo Contestazione").Index(33);
+        Map(m => m.Contestazione).Name("Contestazione").Index(34);
+        Map(m => m.StatoContestazione).Name("Stato contestazione").Index(35);
+        Map(m => m.TipologiaFattura).Name("Tipologia Fattura").Index(36); 
+        Map(m => m.CodiceOggetto).Name("Codice Oggetto").Index(37);
     }
 }
 
