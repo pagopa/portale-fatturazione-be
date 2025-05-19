@@ -45,7 +45,8 @@ SELECT [contract_id] AS IdContratto,
        c.product AS Prodotto,
        f.FlagContestazione AS Contestazione,
        f.IdFlagContestazione AS StatoContestazione,
-       a.TipoContestazione AS TipoContestazione,
+       ISNULL(a.TipoContestazione, f.FlagContestazione) AS TipoContestazione,
+	   a.IdTipoContestazione AS IdTipoContestazione,
        n.Fatturabile as Fatturata,
  		   CAST(
              CASE

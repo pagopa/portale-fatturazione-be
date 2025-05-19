@@ -177,13 +177,18 @@ public class SimpleNotificaDto
     [HeaderAttributev2(caption: "Tipo Contestazione", Order = 32)]
     public string? TipoContestazione { get; set; }
 
+    [Column("IdTipoContestazione")]
+    [Header(caption: "Id Tipo Contestazione", Order = 24)]
+    [HeaderAttributev2(caption: "Id Tipo Contestazione", Order = 33)] 
+    public int? IdTipoContestazione { get; set; }
+
     [Column("TipologiaFattura")]
-    [Header(caption: "Tipologia Fattura", Order = 24)]
-    [HeaderAttributev2(caption: "Tipologia Fattura", Order = 33)]
+    [Header(caption: "Tipologia Fattura", Order = 25)]
+    [HeaderAttributev2(caption: "Tipologia Fattura", Order = 34)]
     public string? TipologiaFattura { get; set; }
 
     [Column("CodiceOggetto")]
-    [Header(caption: "Codice Oggetto", Order = 25)]
-    [HeaderAttributev2(caption: "Codice Oggetto", Order = 34)]
+    [Header(caption: "Codice Oggetto", Order = 26)]
+    [HeaderAttributev2(caption: "Codice Oggetto", Order = 35)]
     public string? CodiceOggetto { get; set; }
 }
