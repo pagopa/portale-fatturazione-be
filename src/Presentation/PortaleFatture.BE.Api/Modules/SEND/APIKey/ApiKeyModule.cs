@@ -7,10 +7,12 @@ using Microsoft.Extensions.Localization;
 using PortaleFatture.BE.Api.Infrastructure;
 using PortaleFatture.BE.Api.Modules.SEND.APIKey.Payload.Request;
 using PortaleFatture.BE.Core.Auth;
+using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Core.Resources;
 using PortaleFatture.BE.Infrastructure.Common.Identity;
 using PortaleFatture.BE.Infrastructure.Common.SEND.ApiKeys.Commands;
 using PortaleFatture.BE.Infrastructure.Common.SEND.ApiKeys.Dto;
+using PortaleFatture.BE.Infrastructure.Common.SEND.ApiKeys.Extensions;
 using PortaleFatture.BE.Infrastructure.Common.SEND.ApiKeys.Queries;
 using static Microsoft.AspNetCore.Http.TypedResults;
 
@@ -58,14 +60,17 @@ public partial class ApiKeyModule
         var authInfo = context.GetAuthInfo();
 
 
+        if (!req.IpAddress.VerifyIp())
+            throw new ValidationException($"L'indirizzo IP '{req.IpAddress}' non è valido.");
+
         var result = await handler.Send(new CreateIpsCommand(authInfo)
         {
-             IpAddress = req.IpAddress
+            IpAddress = req.IpAddress
         });
 
         if (!result.HasValue || result <= 0)
             return BadRequest();
-        return Ok(result > 0); 
+        return Ok(result > 0);
     } 
 
     [Authorize(Roles = $"{Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
