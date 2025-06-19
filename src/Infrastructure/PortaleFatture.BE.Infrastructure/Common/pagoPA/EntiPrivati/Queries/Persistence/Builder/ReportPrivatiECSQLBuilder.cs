@@ -15,6 +15,9 @@ SELECT
       ,p.[year_quarter] as YearQuarter
 	  ,p.recipient_id as RecipientId
 	  ,c.name as name
+	  ,p.parentID
+	  ,p.parentDescription
+	  ,IIF(p.parentID IS NULL, 'NO', 'SI') as mandatario
   FROM [ppa].[report_privati] p 
   	left outer join [ppa].[FinancialReports] r
 	ON p.recipient_id = r.recipient_id
@@ -31,11 +34,11 @@ SELECT
     }
     public static string GroupByEC()
     {
-        return " group by p.internalistitutionid, CodiceArticolo, p.year_quarter, taxcode, description, p.recipient_id, c.name";
+        return " group by p.internalistitutionid, CodiceArticolo, p.year_quarter, taxcode, description, p.recipient_id, c.name, p.parentID, p.parentDescription";
     }
 
     public static string OrderByEC()
     {
-        return "  ORDER BY  p.description, CodiceArticolo";
+        return "  ORDER BY  p.parentID desc, p.description, CodiceArticolo";
     }
 }

@@ -39,6 +39,44 @@ public static class FinancialReportsExtensions
         }
     }
 
+    public static List<ReportPrivatiECDto> Map(this List<ReportPrivatiECDto> lista, bool isMandatario = false)
+    {
+        List<ReportPrivatiECDto> reportPrivatiECList = [];
+        ReportPrivatiECDto? previousItem = new();
+        foreach (var item in lista)
+        {
+            if (previousItem == null || previousItem.InternalInstitutionId != item.InternalInstitutionId)
+            {
+                var totale = new ReportPrivatiECDto
+                {
+                    YearQuarter = item.YearQuarter,
+                    InternalInstitutionId = item!.InternalInstitutionId,
+                    RagioneSociale = item!.RagioneSociale,
+                    Imponibile = lista.Where(x => x.InternalInstitutionId == item.InternalInstitutionId).Sum(x => x.ValoreAsync + x.ValoreSync),
+                    TaxCode = item.TaxCode,
+                    ValoreAsync = lista.Where(x => x.InternalInstitutionId == item.InternalInstitutionId).Sum(x => x.ValoreAsync),
+                    ValoreSync = lista.Where(x => x.InternalInstitutionId == item.InternalInstitutionId).Sum(x => x.ValoreSync),
+                    TotaleAsync = lista.Where(x => x.InternalInstitutionId == item.InternalInstitutionId).Sum(x => x.TotaleAsync),
+                    TotaleSync = lista.Where(x => x.InternalInstitutionId == item.InternalInstitutionId).Sum(x => x.TotaleSync),
+                    ParentId = isMandatario ? null : item.InternalInstitutionId,
+                    ParentDescription = isMandatario ? null : item.RagioneSociale,
+                    Mandatario = isMandatario ? null : "NO",
+                };
+                reportPrivatiECList.Add(totale);
+                previousItem = item.Clone();
+            }
+            item.InternalInstitutionId = null;
+            item.RagioneSociale = null;
+            item.TaxCode = null;
+            item.YearQuarter = null;
+            item.ParentDescription = null;
+            item.ParentId = null;
+            item.Mandatario = null;
+            reportPrivatiECList.Add(item);
+        }
+        return reportPrivatiECList;
+    }
+
     public static FinancialReportsQuarterByIdResponse Map(this GridFinancialReportListDto reports, PSPListDto psps, IDocumentStorageSASService sasService)
     {
         var financialReport = reports.FinancialReports!.FirstOrDefault();
@@ -414,48 +452,60 @@ public static class FinancialReportsExtensions
                     var singlePrivatiEC = reportPrivatiEC?.Where(x => x.YearQuarter == yearQuarter).ToList();
                     if (singlePrivatiEC != null && singlePrivatiEC.Any())
                     {
-                        List<ReportPrivatiECDto> reportPrivatiECList = new();
                         var tableName = yearQuarter!.TableName(6);
                         tableNames.Add(tableName!);
-                        ReportPrivatiECDto? previousItem = new();
-                        foreach (var item in singlePrivatiEC)
-                        {
-                            if (previousItem == null || previousItem.InternalInstitutionId != item.InternalInstitutionId)
-                            {
-                                var totale = new ReportPrivatiECDto
-                                {
-                                    YearQuarter = item.YearQuarter,
-                                    InternalInstitutionId = item!.InternalInstitutionId,
-                                    RagioneSociale = item!.RagioneSociale,
-                                    Imponibile = singlePrivatiEC.Where(x => x.InternalInstitutionId == item.InternalInstitutionId).Sum(x => x.ValoreAsync + x.ValoreSync),
-                                    TaxCode = item.TaxCode,
-                                    ValoreAsync = singlePrivatiEC.Where(x => x.InternalInstitutionId == item.InternalInstitutionId).Sum(x => x.ValoreAsync),
-                                    ValoreSync = singlePrivatiEC.Where(x => x.InternalInstitutionId == item.InternalInstitutionId).Sum(x => x.ValoreSync),
-                                    TotaleAsync = singlePrivatiEC.Where(x => x.InternalInstitutionId == item.InternalInstitutionId).Sum(x => x.TotaleAsync),
-                                    TotaleSync = singlePrivatiEC.Where(x => x.InternalInstitutionId == item.InternalInstitutionId).Sum(x => x.TotaleSync),
-                                };
-                                reportPrivatiECList.Add(totale);
-                                previousItem = item.Clone();
-                            }
-                            item.InternalInstitutionId = null;
-                            item.RagioneSociale = null;
-                            item.TaxCode = null;
-                            item.YearQuarter = null;
 
-                            reportPrivatiECList.Add(item);
+                        // prendi non qualificati
+                        var nonQualificati = singlePrivatiEC.Where(x => x.ParentId == null).ToList();
+                        var reportPrivatiECListNonQualificati = nonQualificati.Map();
+
+                        // aggiungi mandatari qualificati 
+                        ReportPrivatiECDto? previousParentId = new();
+                        List<ReportPrivatiECDto> reportPrivatiECListMandatariQualificati = [];
+                        var mandatari = singlePrivatiEC.Where(x => x.ParentId != null).ToList();
+
+                        var groupedByParent = mandatari
+                                .GroupBy(x => x.ParentId)
+                                .ToList();
+                        foreach (var item in groupedByParent)
+                        {
+                            var lista = item.ToList();
+
+                            var mandatario = new ReportPrivatiECDto
+                            {
+                                ParentId = lista[0].ParentId,
+                                ParentDescription = lista[0].ParentDescription,
+                                Mandatario = lista[0].Mandatario,
+                                YearQuarter = lista[0].YearQuarter,
+                                Imponibile = lista.Where(x => x.ParentId == lista[0].ParentId).Sum(x => x.ValoreAsync + x.ValoreSync),
+                                ValoreAsync = lista.Where(x => x.ParentId == lista[0].ParentId).Sum(x => x.ValoreAsync),
+                                ValoreSync = lista.Where(x => x.ParentId == lista[0].ParentId).Sum(x => x.ValoreSync),
+                                TotaleAsync = lista.Where(x => x.ParentId == lista[0].ParentId).Sum(x => x.TotaleAsync),
+                                TotaleSync = lista.Where(x => x.ParentId == lista[0].ParentId).Sum(x => x.TotaleSync),
+                            };
+                            reportPrivatiECListMandatariQualificati.Add(mandatario);
+
+                            var result = lista.Map(true);
+                            reportPrivatiECListMandatariQualificati.AddRange(result); 
                         }
 
-                        reportPrivatiECList.Add(new ReportPrivatiECDto
+                        reportPrivatiECListMandatariQualificati.AddRange(reportPrivatiECListNonQualificati);
+
+                        // totale alla fine
+                        reportPrivatiECListMandatariQualificati.Add(new ReportPrivatiECDto
                         {
-                            RagioneSociale = "Totale Risultato",
-                            Imponibile = reportPrivatiECList.Where(x=>x.RecipientId== null).Sum(item => item.Imponibile),
-                            ValoreAsync = reportPrivatiECList.Where(x => x.RecipientId != null).Sum(item => item.ValoreAsync),
-                            ValoreSync = reportPrivatiECList.Where(x => x.RecipientId != null).Sum(item => item.ValoreSync),
-                            TotaleAsync = reportPrivatiECList.Where(x => x.RecipientId != null).Sum(item => item.TotaleAsync),
-                            TotaleSync = reportPrivatiECList.Where(x => x.RecipientId != null).Sum(item => item.TotaleSync),
+                            ParentDescription = "Totale Risultato",
+                            // Fix for CS1003, CS8389, and CS0307 errors
+                            Imponibile = reportPrivatiECListMandatariQualificati
+                                .Where(x => x.RecipientId == null && x.InternalInstitutionId != null)
+                                .Sum(item => item.Imponibile ?? 0), 
+                            ValoreAsync = reportPrivatiECListMandatariQualificati.Where(x => x.RecipientId != null).Sum(item => item.ValoreAsync),
+                            ValoreSync = reportPrivatiECListMandatariQualificati.Where(x => x.RecipientId != null).Sum(item => item.ValoreSync),
+                            TotaleAsync = reportPrivatiECListMandatariQualificati.Where(x => x.RecipientId != null).Sum(item => item.TotaleAsync),
+                            TotaleSync = reportPrivatiECListMandatariQualificati.Where(x => x.RecipientId != null).Sum(item => item.TotaleSync),
                         });
 
-                        dataSet.Tables.Add(reportPrivatiECList!.FillTable(tableName!));
+                        dataSet.Tables.Add(reportPrivatiECListMandatariQualificati!.FillTable(tableName!));
                     }
                 }
             }
