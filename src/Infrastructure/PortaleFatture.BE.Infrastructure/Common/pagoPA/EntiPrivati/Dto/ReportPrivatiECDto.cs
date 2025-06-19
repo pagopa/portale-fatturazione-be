@@ -37,6 +37,16 @@ public class ReportPrivatiECDto
 
     [HeaderPagoPA(caption: "name", Order = 5)]
     public string? Name { get; set; }
+
+    [HeaderPagoPA(caption: "parent_id", Order = -2)]
+    public string? ParentId { get; set; }
+
+    [HeaderPagoPA(caption: "parent_description", Order = -3)]
+    public string? ParentDescription { get; set; }
+
+    [HeaderPagoPA(caption: "mandatario", Order = -1)]
+    public string? Mandatario { get; set; }
+
     public ReportPrivatiECDto Clone()
     {
         return (ReportPrivatiECDto)this.MemberwiseClone();
