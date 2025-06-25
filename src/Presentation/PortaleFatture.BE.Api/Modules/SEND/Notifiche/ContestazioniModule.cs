@@ -661,6 +661,60 @@ public partial class ContestazioniModule
         else
             return Ok(storageService.GetSASToken(report.ReportContestazione!.LinkDocumento!, report.ReportContestazione!.NomeDocumento!));
     }
+
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<IResult> GetReportsContestazioniEnteAsync(
+    HttpContext context,
+    [FromQuery] int idReport,
+    [FromQuery] string? tipoReport,
+    [FromServices] IContestazioniStorageService storageService,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var report = await handler.Send(new ContestazioniReportStepQuery(authInfo)
+        {
+            IdReport = idReport,
+        });
+
+        if (report?.Steps == null || !report.Steps.Any())
+            return NotFound();
+
+        if (string.IsNullOrEmpty(tipoReport))
+            tipoReport = "json";
+
+        var values = report.Steps.Map(storageService);
+
+        var filename = $"{idReport}_expires_{DateTimeOffset.UtcNow.AddHours(1)}";
+
+        if (tipoReport.Equals("json", StringComparison.CurrentCultureIgnoreCase))
+        {
+            var mime = "application/json";
+            var json = values.Serialize();
+            var stream = new MemoryStream(Encoding.UTF8.GetBytes(json))
+            {
+                Position = 0
+            };
+            return Results.Stream(stream, mime, $"{filename}.json");
+        }
+        else
+        {
+            if (values?.Steps == null || !values.Steps.Any())
+                return NotFound();
+
+            IEnumerable<ReportContestazioneStepsWithLinkDto> r = values.Steps;
+            var stream = await r.ToStream<ReportContestazioneStepsWithLinkDto, ReportContestazioneStepsDtoMap>();
+            var mimeCsv = "text/csv";
+            stream.Position = 0;
+            return Results.Stream(stream, mimeCsv, $"{filename}.csv");
+        }
+    } 
     #endregion
 }
 
