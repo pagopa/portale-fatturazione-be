@@ -1,6 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using Microsoft.AspNetCore.Mvc;
-using PortaleFatture.BE.Api.Modules.SEND.Notifiche.Payload.Request;
+﻿using PortaleFatture.BE.Api.Modules.SEND.Notifiche.Payload.Request;
 using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Notifiche.Queries;
 

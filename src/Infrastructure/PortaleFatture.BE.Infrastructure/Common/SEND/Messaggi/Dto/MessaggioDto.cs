@@ -26,7 +26,8 @@ public class MessaggioDto
     public string? Rhash { get; set; }
     public string? ContentType { get; set; }
     public string? ContentLanguage { get; set; }
-    public long? IdReport { get; set; }
+    public long? IdReport { get; set; } 
+    public string? RagioneSociale { get; set; }
 }
 
 public sealed class MessaggioListaDto

@@ -27,5 +27,5 @@ public static class NotificaExtensions
             "890" => TipoNotifica.Analogico890.ToString(),
             _ => TipoNotifica.Digitali.ToString(),
         };
-    }
+    } 
 }

@@ -22,4 +22,5 @@ public interface IPortaleFattureOptions
     public StoragePagoPAFinancial? StoragePagoPAFinancial { get; set; } 
     public SupportAPIService? SupportAPIService { get; set; } 
     public StorageREL? StorageREL { get; set; }
+    public StorageContestazioni? StorageContestazioni { get; set; }
 }

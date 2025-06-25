@@ -72,6 +72,12 @@ public class SimpleNotificaDto
     [HeaderAttributev2(caption: "paper_product_type", Order = 10)]
     public string? TipoNotifica { get; set; }
 
+
+    [Column("notificationtype")]
+    [Header(caption: "notification_type", Order = 8)]
+    [HeaderAttributev2(caption: "notification_type", Order = 10)] 
+    public string? NotificationType { get; set; }
+
     [Column("event_id")]
     [Header(caption: "event_id", Order = 9)]
     [HeaderAttributev2(caption: "event_id", Order = 11)]

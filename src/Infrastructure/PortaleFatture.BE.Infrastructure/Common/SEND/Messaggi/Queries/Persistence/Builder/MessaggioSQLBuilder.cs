@@ -1,7 +1,4 @@
-﻿using Org.BouncyCastle.Asn1.Pkcs;
-using Org.BouncyCastle.Crypto.Digests;
-
-namespace PortaleFatture.BE.Infrastructure.Common.SEND.Messaggi.Queries.Persistence.Builder;
+﻿namespace PortaleFatture.BE.Infrastructure.Common.SEND.Messaggi.Queries.Persistence.Builder;
 
 internal static class MessaggioSQLBuilder
 {
@@ -28,7 +25,10 @@ internal static class MessaggioSQLBuilder
       ,m.[Hash]
       ,m.[FKIdReport] as IdReport
 	  ,r.Hash as rhash
+	  ,e.description as RagioneSociale
 FROM[pfd].[Messaggi] m
+left outer join pfd.Enti e
+on e.InternalIstitutionId = m.IdEnte
 left outer join
 pfd.Report r
 ON m.[FKIdReport] = r.IdReport";

@@ -4,6 +4,7 @@ public static class MimeMapping
 {
     public static string PDF = "application/pdf";
     public static string ZIP = "application/zip";
+    public static string JSON = "application/json";
 
     public static readonly Dictionary<string, string> Extensions = new(StringComparer.InvariantCultureIgnoreCase)
     {
@@ -22,9 +23,9 @@ public static class MimeMapping
         { "text/csv", ".csv" },
         { "application/vnd.ms-excel", ".xlsx" }
     };
-}
-
+} 
+ 
 public static class LanguageMapping
 {
     public static string IT = "it-IT";
-} 
+}

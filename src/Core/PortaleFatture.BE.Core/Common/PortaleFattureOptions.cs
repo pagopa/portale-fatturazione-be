@@ -23,7 +23,8 @@ public sealed class PortaleFattureOptions : IPortaleFattureOptions
     public StoragePagoPAFinancial? StoragePagoPAFinancial { get; set; } 
     public SelfCareOnBoarding? SelfCareOnBoarding { get; set; } 
     public SupportAPIService? SupportAPIService { get; set; } 
-    public StorageREL? StorageREL { get; set; }
+    public StorageREL? StorageREL { get; set; } 
+    public StorageContestazioni? StorageContestazioni { get; set; }
 }
 
 public class StorageREL()
@@ -45,7 +46,7 @@ public class SelfCareOnBoarding()
 {
     public string? Endpoint { get; set; }
     public string? RecipientCodeUri{ get; set; } 
-    public string? AuthToken { get; set; }
+    public string? AuthToken { get; set; } 
 }
 
 public class Synapse()
@@ -75,6 +76,13 @@ public class StoragePagoPAFinancial()
     public string? BlobContainerName { get; set; }
 }
 
+public class StorageContestazioni()
+{
+    public string? AccountName { get; set; }
+    public string? AccountKey { get; set; }
+    public string? BlobContainerName { get; set; } 
+    public string? CustomDns { get; set; }
+}
 
 public class AzureAd()
 {

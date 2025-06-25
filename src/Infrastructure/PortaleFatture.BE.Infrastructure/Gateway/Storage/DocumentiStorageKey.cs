@@ -1,4 +1,4 @@
-﻿namespace PortaleFatture.BE.Infrastructure.Common.SEND.Documenti;
+﻿namespace PortaleFatture.BE.Infrastructure.Gateway.Storage;
 
 public sealed class DocumentiStorageKey(
     string? idEnte,
@@ -7,11 +7,12 @@ public sealed class DocumentiStorageKey(
     int annoInserimento,
     string? hash)
 {
+
     public string? IdEnte { get; init; } = idEnte;
     public string? IdUtente { get; init; } = idUtente;
     public string? TipologiaDocumento { get; init; } = tipologiaDocumento;
     public int? Anno { get; init; } = annoInserimento;
-    public string? Hash { get; init; } = hash;
+    public string? Hash { get; init; } = hash; 
 
     public override string ToString()
     {
@@ -19,7 +20,7 @@ public sealed class DocumentiStorageKey(
     }
 
     public static DocumentiStorageKey Deserialize(string linkDocumento)
-    {
+    { 
         var dati = linkDocumento!.Split("_");
         var idEnte = dati[0];
         var idUtente = dati[1];
@@ -38,9 +39,15 @@ public sealed class DocumentiStorageKey(
     {
         return $"{parentFolder}/{linkDocumento.IdEnte}/{linkDocumento.IdUtente}/{linkDocumento.Anno}";
     }
-
     public static string FileName(DocumentiStorageKey linkDocumento)
-    {
-        return $"{linkDocumento}";
-    }
+    { 
+        //linkDocumento = linkDocumento.Replace(S3Prefix, string.Empty);
+        //var dati = linkDocumento!.Split("/");
+        //var contractId = dati[0];
+        //var partial = dati[1].Split("-");
+        //var quarter = $"{partial[0]}-{partial[1]}";
+        //var tipologiaDocumento = partial[2].Replace(".csv", string.Empty);
+        //return new DocumentiSASStorageKey(contractId, quarter, tipologiaDocumento);
+        return  string.Empty;
+    }  
 }

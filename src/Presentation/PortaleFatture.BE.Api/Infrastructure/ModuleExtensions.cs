@@ -20,6 +20,7 @@ public static class ModuleExtensions
         model.SelfCareOnBoarding??= new();
         model.SupportAPIService??= new();
         model.StorageREL ??= new();
+        model.StorageContestazioni??= new();
 
         var selfCareUri = Environment.GetEnvironmentVariable("SELF_CARE_URI") ??
              throw new ConfigurationException("Please specify a SELF_CARE_URI!");
@@ -179,6 +180,12 @@ public static class ModuleExtensions
         model.StorageREL.StorageRELBlobContainerName = storageRELBlobContainerName;
         model.StorageREL.StorageRELCustomDns = storageRELCustomDns;
 
+ 
+        // contestazioni
+        model.StorageContestazioni.BlobContainerName = "contestazioni";
+        model.StorageContestazioni.AccountName = storageAccountName;
+        model.StorageContestazioni.AccountKey = storageAccountKey;
+        model.StorageContestazioni.CustomDns = storageRELCustomDns;
         return model;
     }
 

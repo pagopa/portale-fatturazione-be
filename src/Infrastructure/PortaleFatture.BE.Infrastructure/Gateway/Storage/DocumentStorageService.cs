@@ -5,7 +5,6 @@ using Microsoft.Extensions.Logging;
 using PortaleFatture.BE.Core.Common;
 using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Core.Resources;
-using PortaleFatture.BE.Infrastructure.Common.SEND.Documenti;
 
 namespace PortaleFatture.BE.Infrastructure.Gateway.Storage;
 
@@ -15,8 +14,7 @@ public class DocumentStorageService(IPortaleFattureOptions options,
 {
     private readonly IStringLocalizer<Localization> _localizer = localizer;
     private readonly ILogger<DocumentStorageService> _logger = logger;
-    private readonly IPortaleFattureOptions _options = options;
-
+    private readonly IPortaleFattureOptions _options = options; 
 
     public async Task<bool> AddDocumentPagoPA(
          MemoryStream memoryStream,

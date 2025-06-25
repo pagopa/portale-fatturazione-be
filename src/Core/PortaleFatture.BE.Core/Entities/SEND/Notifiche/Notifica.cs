@@ -57,6 +57,13 @@ public class Notifica
         set { _tipoNotifica = value; }
     }
 
+    [Column("notification_type")]
+    public string? NotificationType
+    {
+        get => _tipoNotifica;
+        set { _tipoNotifica = value; }
+    }
+
     [Column("event_id")]
     public string? IdNotifica { get; set; }
 

@@ -14,6 +14,8 @@ public abstract class Module : IModule
     public static string DatiRelLabel = "Dati Rel";
     public static string DatiRelLabelPagoPA = "Dati Rel PagoPA";
     public static string DatiNotificaLabelPagoPA = "Dati Notifiche PagoPA";
+    public static string DatiContestazioniLabelPagoPA = "Dati Contestazioni Notifiche PagoPA";
+    public static string DatiContestazioniLabelEnti= "Dati Contestazioni Notifiche Enti";
     public static string DatiNotificaLabelRecapitisti = "Dati Notifiche Recapitisti";
     public static string DatiNotificaLabelConsolidatori = "Dati Notifiche Consolidatori";
     public static string DatiAuthLabel = "Autenticazione";
