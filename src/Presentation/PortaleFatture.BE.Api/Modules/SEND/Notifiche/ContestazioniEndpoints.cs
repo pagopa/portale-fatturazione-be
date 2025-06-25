@@ -152,7 +152,14 @@ public partial class ContestazioniModule : Module, IRegistrableModule
         endpointRouteBuilder
           .MapPost("api/notifiche/enti/contestazioni/reports/document", PostReportsDocumentContestazioniEnteAsync)
           .WithName("Permette di avere il sas token del report  - Ente")
-          .SetOpenApi(Module.DatiContestazioniLabelPagoPA)
+          .SetOpenApi(Module.DatiContestazioniLabelEnti)
+          .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+
+        endpointRouteBuilder
+          .MapGet("api/notifiche/enti/contestazioni/reports", GetReportsContestazioniEnteAsync)
+          .WithName("Permette visualizzare report steps attività contestazioni per ente  - Ente")
+          .SetOpenApi(Module.DatiContestazioniLabelEnti)
           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
         #endregion  
     }
