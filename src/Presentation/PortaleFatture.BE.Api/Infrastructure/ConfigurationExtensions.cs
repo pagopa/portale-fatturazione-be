@@ -21,6 +21,7 @@ using PortaleFatture.BE.Infrastructure.Common.Identity;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.Persistence.Schemas;
 using PortaleFatture.BE.Infrastructure.Common.SEND;
+using PortaleFatture.BE.Infrastructure.Common.SEND.Contestazioni.Services;
 using PortaleFatture.BE.Infrastructure.Common.SEND.DatiRel.Services;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Documenti;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Dto;
@@ -160,6 +161,8 @@ public static class ConfigurationExtensions
         services.AddSingleton<IRelStorageService, RelStorageService>();
         services.AddSingleton<IDocumentStorageService, DocumentStorageService>();
         services.AddSingleton<IDocumentStorageSASService, DocumentStorageSASService>();
+        services.AddSingleton<IContestazioniStorageService, ContestazioniStorageService>();
+
 
         // rel righe storage
         services.AddSingleton<IRelRigheStorageService, RelRigheStorageService>();
@@ -195,9 +198,7 @@ public static class ConfigurationExtensions
 
     [DebuggerStepThrough]
     public static WebApplication UseModules(this WebApplication application)
-    {
-        if (!application.Environment.IsDevelopment())
-            application.UseHttpsRedirection();
+    { 
 
         application
             .UseCulture()
@@ -212,6 +213,7 @@ public static class ConfigurationExtensions
                     var exception = exceptionHandlerPathFeature?.Error;
                     var problem = exception switch
                     {
+                        UploadException => Results.Problem(statusCode: StatusCodes.Status409Conflict, detail: exception.Message),
                         SessionException => Results.Problem(statusCode: StatusCodes.Status419AuthenticationTimeout, detail: exception.Message),
                         ConfigurationException => Results.Problem(statusCode: StatusCodes.Status400BadRequest, detail: exception.Message),
                         SecurityException => Results.Problem(statusCode: StatusCodes.Status401Unauthorized),
@@ -248,7 +250,7 @@ public static class ConfigurationExtensions
 
     private static IServiceCollection AddInfrastructure(
     this IServiceCollection services)
-    {
+    { 
         services
             .AddPersistence(); 
 
@@ -283,7 +285,7 @@ public static class ConfigurationExtensions
 
     private static IServiceCollection AddIdentities(this IServiceCollection services, IPortaleFattureOptions options)
     {
-        JwtConfiguration jwtAuth = options.JWT!;
+        var jwtAuth = options.JWT!;
         services
             .AddScoped<ITokenService>(_ => new JwtTokenService(jwtAuth))
             .AddScoped<IIdentityUsersService, IdentityUsersService>()

@@ -1,6 +1,4 @@
-﻿using System.Text.Json;
-using System.Text.Json.Nodes;
-using MediatR;
+﻿using MediatR;
 using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Entities.Messaggi;
 using PortaleFatture.BE.Core.Extensions;
@@ -13,7 +11,7 @@ public class MessaggioCreateCommand(IAuthenticationInfo? authenticationInfo) : I
     public string? TipologiaDocumento { get; set; }
     public string? CategoriaDocumento { get; set; }
     public DateTime DataInserimento { get; set; } = DateTime.UtcNow.ItalianTime();
-    public short Stato { get; set; } = TipologiaStatoMessaggio.PresaInCarico;
+    public short Stato { get; set; } = TipologiaStatoMessaggio.CaricamentoFile;
     public int? Anno { get; set; }
     public int? Mese { get; set; }
     public string? IdUtente { get; set; } = authenticationInfo!.Id;

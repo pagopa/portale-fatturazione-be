@@ -3,7 +3,6 @@ using PortaleFatture.BE.Core.Entities.SEND.Notifiche;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Notifiche.Dto;
-using PortaleFatture.BE.Infrastructure.Common.SEND.Notifiche.Queries;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Notifiche.Queries.Persistence.Builder;
 
 namespace PortaleFatture.BE.Infrastructure.Common.SEND.Notifiche.Queries.Persistence;

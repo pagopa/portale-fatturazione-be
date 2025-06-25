@@ -45,47 +45,50 @@ WHERE rr.month= @mese and rr.year=@anno and rr.TipologiaFattura=@tipologiafattur
 
     private static string _sqlRel = @"
 SELECT 
-t.IdFattura as IdFattura, 
-e.description as RagioneSociale,
-t.FkIdTipoDocumento as TipoDocumento, 
-t.FkIdEnte as IdEnte, 
-t.DataFattura as DataFattura,
-t.Progressivo as Progressivo,
-CAST(
-	CASE
-	WHEN t.FkIdTipoDocumento  = 'TD04'  
-		THEN -t.TotaleFattura
-	ELSE t.TotaleFattura
-             END AS decimal(18,2)) as TotaleFatturaImponibile, 
-r.CodiceMateriale as CodiceMateriale,
-r.Imponibile as RigaImponibile, 
-t.CodiceContratto as IdContratto,
-t.AnnoRiferimento as Anno,
-t.MeseRiferimento as Mese,
-rr.[TipologiaFattura], 
-ISNULL(rr.[TotaleAnalogico],0) as RelTotaleAnalogico,
-ISNULL(rr.[TotaleDigitale],0) as RelTotaleDigitale,
-ISNULL(rr.[TotaleNotificheAnalogiche],0) as RelTotaleNotificheAnalogiche,
-ISNULL(rr.[TotaleNotificheDigitali],0) as RelTotaleNotificheDigitali,
-ISNULL(rr.[TotaleNotificheAnalogiche],0) + ISNULL(rr.[TotaleNotificheDigitali],0) as RelTotaleNotifiche,
-ISNULL(rr.[Totale],0) as RelTotale,
-ISNULL(rr.[TotaleAnalogicoIva],0)  as RelTotaleIvatoAnalogico,
-ISNULL(rr.[TotaleDigitaleIva],0)  as RelTotaleIvatoDigitale,
-ISNULL(rr.[TotaleIva],0)  as RelTotaleIvato,
-rr.[Caricata] as Caricata,
-rr.[RelFatturata]
-FROM pfd.FattureTestata t
-LEFT OUTER join pfd.Enti e
-ON e.InternalIstitutionId = t.FkIdEnte
-INNER JOIN pfd.FattureRighe r
-ON t.IdFattura = r.FkIdFattura
-INNER JOIN  [pfd].[RelTestata] rr
-ON rr.year = t.AnnoRiferimento 
-AND rr.month = t.MeseRiferimento 
-AND rr.TipologiaFattura = t.FkTipologiaFattura
-AND rr.internal_organization_id = t.FkIdEnte 
-AND rr.contract_id = t.CodiceContratto
-WHERE rr.month= @mese and rr.year=@anno and rr.TipologiaFattura=@tipologiafattura 
+	t.IdFattura as IdFattura, 
+	e.description as RagioneSociale,
+	t.FkIdTipoDocumento as TipoDocumento, 
+	t.FkIdEnte as IdEnte, 
+	t.DataFattura as DataFattura,
+	t.Progressivo as Progressivo,
+	CAST(
+		CASE
+		WHEN t.FkIdTipoDocumento  = 'TD04'  
+			THEN -t.TotaleFattura
+		ELSE t.TotaleFattura
+				 END AS decimal(18,2)) as TotaleFatturaImponibile, 
+	r.CodiceMateriale as CodiceMateriale,
+	r.Imponibile as RigaImponibile, 
+	t.CodiceContratto as IdContratto,
+	t.AnnoRiferimento as Anno,
+	t.MeseRiferimento as Mese,
+	rr.[TipologiaFattura], 
+	ISNULL(rr.[TotaleAnalogico],0) as RelTotaleAnalogico,
+	ISNULL(rr.[TotaleDigitale],0) as RelTotaleDigitale,
+	ISNULL(rr.[TotaleNotificheAnalogiche],0) as RelTotaleNotificheAnalogiche,
+	ISNULL(rr.[TotaleNotificheDigitali],0) as RelTotaleNotificheDigitali,
+	ISNULL(rr.[TotaleNotificheAnalogiche],0) + ISNULL(rr.[TotaleNotificheDigitali],0) as RelTotaleNotifiche,
+	ISNULL(rr.[Totale],0) as RelTotale,
+	ISNULL(rr.[TotaleAnalogicoIva],0)  as RelTotaleIvatoAnalogico,
+	ISNULL(rr.[TotaleDigitaleIva],0)  as RelTotaleIvatoDigitale,
+	ISNULL(rr.[TotaleIva],0)  as RelTotaleIvato,
+	rr.[Caricata] as Caricata,
+	rr.[RelFatturata]
+	FROM pfd.FattureTestata t
+	LEFT OUTER join pfd.Enti e
+	ON e.InternalIstitutionId = t.FkIdEnte
+    LEFT OUTER join pfd.FattureRighe r
+	ON t.IdFattura = r.FkIdFattura
+	LEFT OUTER join  [pfd].[RelTestata] rr
+	ON rr.year = t.AnnoRiferimento 
+	AND rr.month = t.MeseRiferimento 
+	AND rr.TipologiaFattura = t.FkTipologiaFattura
+	AND rr.internal_organization_id = t.FkIdEnte 
+	AND rr.contract_id = t.CodiceContratto 
+    LEFT JOIN pfd.RelTestata rt ON t.fkidente = rt.internal_organization_id 
+								and t.annoriferimento = rt.year
+								and t.meseriferimento = rt.month
+    WHERE rr.month= @mese and rr.year=@anno and rr.TipologiaFattura=@tipologiafattura 
 ";
 
 

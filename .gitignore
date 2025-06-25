@@ -543,3 +543,6 @@ src/Presentation/PortaleFatture.BE.EmailPSPSender/Program.cs
 src/Presentation/PortaleFatture.BE.EmailPSPSender/Infrastructure/Documenti/pagoPA/credentials.json
 src/Presentation/PortaleFatture.BE.Function.API/local.settings.json
 src/Presentation/PortaleFatture.BE.Function.API/PortaleFatture.BE.Function.API.sln
+src/Presentation/PortaleFatture.BE.ImportFattureGrandiAderenti/data/fatture/primo saldo/FatturePagoPa_01_2025.json
+src/Presentation/PortaleFatture.BE.ImportFattureGrandiAderenti/data/fatture/primo saldo/FatturePagoPa_02_2025.json
+src/Presentation/PortaleFatture.BE.ImportFattureGrandiAderenti/data/fatture/primo saldo/FatturePagoPa_03_2025.json

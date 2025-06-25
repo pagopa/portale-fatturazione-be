@@ -267,4 +267,16 @@
   <data name="UtenteProfiloError" xml:space="preserve">
     <value>Si è verificato un errore nel recuperare il profilo utente.</value>
   </data>
+  <data name="ContestazioniFormEmpty" xml:space="preserve">
+    <value>Passare un file valido.</value>
+  </data>
+  <data name="ContestazioniOnlyCSV" xml:space="preserve">
+    <value>Passare un file csv.</value>
+  </data>
+  <data name="ContestazioniContractEmpty" xml:space="preserve">
+    <value>Atteso un id contratto "{0}" trovato "{1}".</value>
+  </data>
+  <data name="ContestazioniEnteEmpty" xml:space="preserve">
+    <value>Atteso un id ente "{0}" trovato "{1}".</value>
+  </data>
 </root>

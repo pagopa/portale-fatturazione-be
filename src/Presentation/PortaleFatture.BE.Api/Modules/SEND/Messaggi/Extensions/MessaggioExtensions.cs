@@ -1,10 +1,10 @@
 ﻿using PortaleFatture.BE.Api.Modules.SEND.Messaggi.Payload.Request;
 using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Entities.Messaggi;
-using PortaleFatture.BE.Infrastructure.Common.SEND.Documenti;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Messaggi.Commands;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Messaggi.Dto;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Messaggi.Queries;
+using PortaleFatture.BE.Infrastructure.Gateway.Storage;
 
 namespace PortaleFatture.BE.Api.Modules.SEND.Messaggi.Extensions;
 

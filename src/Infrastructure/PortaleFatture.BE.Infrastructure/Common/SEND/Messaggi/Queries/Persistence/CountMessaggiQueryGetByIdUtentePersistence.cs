@@ -11,7 +11,7 @@ public class CountMessaggiQueryGetByIdUtentePersistence(CountMessaggiQueryGetByI
     public async Task<int?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
     {
         var idUtente = _command.AuthenticationInfo.Id;
-        var where = " WHERE IdUtente=@IdUtente AND lettura=0 AND stato=2";
+        var where = " WHERE IdUtente=@IdUtente AND lettura=0";
 
         return await ((IDatabase)this).SingleAsync<int>(
             connection!,

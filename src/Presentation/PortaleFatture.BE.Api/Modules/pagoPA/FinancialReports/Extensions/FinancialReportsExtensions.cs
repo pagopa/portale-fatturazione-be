@@ -12,6 +12,7 @@ using PortaleFatture.BE.Infrastructure.Common.pagoPA.EntiPrivati.Dto;
 using PortaleFatture.BE.Infrastructure.Common.pagoPA.FinancialReports.Dto;
 using PortaleFatture.BE.Infrastructure.Common.pagoPA.FinancialReports.Queries;
 using PortaleFatture.BE.Infrastructure.Common.pagoPA.KPIPagamenti.Dto;
+using PortaleFatture.BE.Infrastructure.Common.SEND.Documenti;
 using PortaleFatture.BE.Infrastructure.Gateway.Storage.pagoPA;
 
 namespace PortaleFatture.BE.Api.Modules.pagoPA.FinancialReports.Extensions;
@@ -80,8 +81,8 @@ public static class FinancialReportsExtensions
     public static FinancialReportsQuarterByIdResponse Map(this GridFinancialReportListDto reports, PSPListDto psps, IDocumentStorageSASService sasService)
     {
         var financialReport = reports.FinancialReports!.FirstOrDefault();
-        if (financialReport!.Reports!.Where(x => x.Contains(DocumentiSASStorageKey.S3Prefix)).FirstOrDefault() != null)
-            financialReport!.Reports = financialReport.Reports!.Select(x => sasService.GetSASToken(DocumentiSASStorageKey.Deserialize(x))).ToList();
+        if (financialReport!.Reports!.Where(x => x.Contains(DocumentiFinancialReportSASStorageKey.S3Prefix)).FirstOrDefault() != null)
+            financialReport!.Reports = financialReport.Reports!.Select(x => sasService.GetSASToken(DocumentiFinancialReportSASStorageKey.Deserialize(x))).ToList();
 
         var psp = psps.PSPs == null ? null : psps.PSPs!.FirstOrDefault();
         List<string> checkedReports = [];
