@@ -395,6 +395,49 @@ public partial class ContestazioniModule
     #endregion
 
     #region Enti
+    [Authorize(Roles = $"{Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<string>>, NotFound>> GetAnniContestazioniEntiAzioneAsync(
+    HttpContext context,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+
+        var annimesi = await handler.Send(new ContestazioniEnteAnniMesiQuery(authInfo));
+        if (annimesi.IsNullNotAny())
+            return NotFound();
+        return Ok(annimesi!.Select(x => x.AnnoContestazione!).Distinct());
+    }
+
+    [Authorize(Roles = $"{Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<List<ContestazioniMeseResponse>>, NotFound>> PostMesiContestazioniEntiAzioneAsync(
+    HttpContext context,
+    [FromBody] ContestazioniMesi request,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+
+        var annimesi = await handler.Send(new ContestazioniEnteAnniMesiQuery(authInfo));
+        if (annimesi.IsNullNotAny())
+            return NotFound();
+        var mesi = annimesi!.Where(x => x.AnnoContestazione == request.Anno).Select(x => x.MeseContestazione);
+
+        if (mesi.IsNullNotAny())
+            return NotFound();
+        return Ok(mesi!.Map());
+    }
+
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -522,12 +565,12 @@ public partial class ContestazioniModule
     {
         var authInfo = context.GetAuthInfo();
         // recupera contract id 
-        string? contractId; 
+        string? contractId;
         using var uow = await factory.Create();
         {
             var contratto = await uow.Query(new EnteCodiceSDIQueryGetByIdPersistence(authInfo.IdEnte));
             contractId = contratto?.IdContratto;
-        } 
+        }
 
         var recap = await handler.Send(new ContestazioniRecapQuery(authInfo)
         {
@@ -618,8 +661,8 @@ public partial class ContestazioniModule
             IdReport = idReport,
         });
 
-        if(report == null || report.Steps.IsNullNotAny())
-            return NotFound(); 
+        if (report == null || report.Steps.IsNullNotAny())
+            return NotFound();
 
         return Ok(report.Steps);
     }
@@ -714,7 +757,7 @@ public partial class ContestazioniModule
             stream.Position = 0;
             return Results.Stream(stream, mimeCsv, $"{filename}.csv");
         }
-    } 
+    }
     #endregion
 }
 
