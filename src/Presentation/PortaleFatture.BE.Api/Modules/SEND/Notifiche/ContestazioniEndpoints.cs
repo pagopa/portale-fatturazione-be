@@ -95,6 +95,18 @@ public partial class ContestazioniModule : Module, IRegistrableModule
 
         #region enti
         endpointRouteBuilder
+          .MapGet("api/notifiche/enti/contestazioni/azione/anni", GetAnniContestazioniEntiAzioneAsync)
+          .WithName("Permette di contestare anni - Enti")
+          .SetOpenApi(Module.DatiContestazioniLabelEnti)
+          .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+          .MapPost("api/notifiche/enti/contestazioni/azione/mesi", PostMesiContestazioniEntiAzioneAsync)
+          .WithName("Permette di contestare mesi notifiche per anno - Enti")
+          .SetOpenApi(Module.DatiContestazioniLabelEnti)
+          .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
           .MapGet("api/notifiche/enti/contestazioni/anni", GetAnniContestazioniEntiAsync)
           .WithName("Permette visualizzare anni notifiche - Enti")
           .SetOpenApi(Module.DatiContestazioniLabelEnti)

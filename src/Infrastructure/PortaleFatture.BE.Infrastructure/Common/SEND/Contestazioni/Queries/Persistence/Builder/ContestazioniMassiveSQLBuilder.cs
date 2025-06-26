@@ -1,6 +1,7 @@
 ﻿namespace PortaleFatture.BE.Infrastructure.Common.SEND.Contestazioni.Queries.Persistence.Builder; 
 internal static class ContestazioniMassiveSQLBuilder
 {
+ 
     private static string _sqlTipologiaReport = @"
 SELECT [IdTipologiaReport]
       ,[CategoriaDocumento]
@@ -252,5 +253,21 @@ SELECT [step]
       ,[descrizione]
   FROM [pfd].[ReportContestazioniStep]
 order by step";
+    }
+
+    public static string SelectContestazioneEnteAnniMesi()
+    {
+        return @"
+SELECT 
+    [MeseContestazione],
+    [AnnoContestazione] 
+FROM 
+    [pfw].[ContestazioniCalendario]
+WHERE 
+    [DataVerifica] >= SYSDATETIMEOFFSET() AT TIME ZONE 'UTC' AT TIME ZONE 'Central European Standard Time'
+ORDER BY 
+    [AnnoContestazione] DESC, 
+    [MeseContestazione] DESC;
+";
     }
 }
