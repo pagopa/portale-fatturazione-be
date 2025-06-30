@@ -75,6 +75,12 @@ public partial class ContestazioniModule : Module, IRegistrableModule
           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
         endpointRouteBuilder
+          .MapPost("api/notifiche/pagopa/contestazioni/single/report", PostSingleReportContestazioniAsync)
+          .WithName("Permette visualizzare single report by id attività contestazioni per ente  - pagoPA")
+          .SetOpenApi(Module.DatiContestazioniLabelPagoPA)
+          .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
           .MapGet("api/notifiche/pagopa/contestazioni/reports/steps", GetReportsStepsContestazioniAsync)
           .WithName("Permette visualizzare reports steps attività contestazioni per ente  - pagoPA")
           .SetOpenApi(Module.DatiContestazioniLabelPagoPA)

@@ -40,6 +40,31 @@ public partial class ContestazioniModule
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<ReportContestazioneByIdDto>, NotFound>> PostSingleReportContestazioniAsync(
+      HttpContext context, 
+      [FromBody] ContestazioniSingleReportRequest request,
+      [FromServices] IStringLocalizer<Localization> localizer,
+      [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo(); 
+        var idReport = request.IdReport; 
+
+        var report = await handler.Send(new ContestazioniReportStepQuery(authInfo)
+        {
+            IdReport = idReport,
+        });
+
+        if(report == null || report.Steps.IsNullNotAny())
+            return NotFound();
+        return Ok(report);
+    }
+
+    [Authorize(Roles = $"{Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     private async Task<IResult> GetReportsContestazioniAsync(
         HttpContext context,
         [FromQuery] int idReport,
