@@ -6,11 +6,11 @@ namespace PortaleFatture_BE_SendEmailFunction.Orchestrators;
 public class SendEmailOrchestrator
 {
     [Function("SendEmailOrchestrator")]
-    public async Task<string> RunAsync(
+    public async Task<Risposta> RunAsync(
         [OrchestrationTrigger] TaskOrchestrationContext context)
     {
         var data = context.GetInput<EmailRelDataRequest>();
-        await context.CallActivityAsync("SendEmail", data);
-        return "Email sent.";
+        var risposta = await context.CallActivityAsync<Risposta>("SendEmail", data);
+        return risposta;
     }
 }

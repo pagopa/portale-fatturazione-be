@@ -170,6 +170,7 @@ public static class DocumentExtensions
             .Replace(nameof(model.TipologiaFattura).GetName<RelEmail>(), model.TipologiaFattura)
             .Replace(nameof(model.Pec).GetName<RelEmail>(), model.Pec)
             .Replace(nameof(model.RagioneSociale).GetName<RelEmail>(), model.RagioneSociale)
+            .Replace(nameof(model.Semestre).GetName<RelEmail>(), model.Semestre)
             ;
 
         return template;

@@ -77,6 +77,7 @@ SELECT [internal_organization_id] as IdEnte
       ,[AsseverazioneTotaleAnalogicoIva]
       ,[AsseverazioneTotaleDigitaleIva]
       ,[AsseverazioneTotaleIva]
+      ,[FlagConguaglio]
   FROM [pfd].[RelTestata] t
   inner join pfd.Enti e
   on e.InternalIstitutionId =t.internal_organization_id

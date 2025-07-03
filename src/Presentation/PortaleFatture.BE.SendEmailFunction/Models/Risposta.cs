@@ -8,7 +8,9 @@ public sealed class Risposta
     public string? Data { get; set; }
     public int? Ricalcola { get; set; }
     public bool? DbConnection { get; set; } = true;
-    public string? Error { get; set; }
+    public string? Error { get; set; } 
+    public string? Semestre { get; set; } 
+    public string? Log { get; set; }
 }
 
 public sealed class RispostaRelRighe

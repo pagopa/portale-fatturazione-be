@@ -1,0 +1,105 @@
+{
+  "listaFatture": [
+    {
+      "fattura": {
+        "numero": "6195",
+        "dataFattura": "2025-04-30",
+        "prodotto": "prod-pn",
+        "identificativo": "2/2025",
+        "tipologiaFattura": "PRIMO SALDO",
+        "istitutioID": "53b40136-65f2-424b-acfb-7fae17e35c60",
+        "onboardingTokenID": "2ca5aae4-5517-4cc1-924e-e78179e1ee64",
+        "tipoDocumento": "TD01",
+        "divisa": "EUR",
+        "metodoPagamento": "B30",
+        "causale": "SEND - SALDO REPORT DI  2/2025",
+        "split": true,
+        "sollecito": "",
+        "datiGeneraliDocumento": [
+          {
+            "tipologia": "",
+            "idDocumento": "",
+            "numItem": "",
+            "codiceCommessaConvenzione": "",
+            "CUP": "",
+            "CIG": ""
+          }
+        ],
+        "posizioni": [
+        {
+            "numerolinea": 1,
+            "testo": "Notifiche Digitali: Art. 2, allegato Ciclo PN, saldo per le notifiche oggetto di rendicontazione e di attestazione regolare esecuzione delle prestazioni riferite al report di 02/2025. Totale n. notifiche 417730",
+            "codiceMateriale": "PRIMO SALDO N.DIG.",
+            "quantita": 1,
+            "prezzoUnitario": 417730.00,
+            "imponibile": 417730.00,
+            "periodoRiferimento": "12/2024"
+          },
+          {
+            "numerolinea": 2,
+            "testo": "Notifiche Digitali: Art. 2, allegato Ciclo PN, saldo per le notifiche oggetto di rendicontazione e di attestazione regolare esecuzione delle prestazioni riferite al report di 02/2025. Totale n. notifiche 11612",
+            "codiceMateriale": "PRIMO SALDO N.DIG.",
+            "quantita": 1,
+            "prezzoUnitario": 11612.00,
+            "imponibile": 11612.00,
+            "periodoRiferimento": "01/2025"
+          },
+          {
+            "numerolinea": 3,
+            "testo": "Notifiche Digitali: Art. 2, allegato Ciclo PN, saldo per le notifiche oggetto di rendicontazione e di attestazione regolare esecuzione delle prestazioni riferite al report di 02/2025. Totale n. notifiche 14101",
+            "codiceMateriale": "PRIMO SALDO N.DIG.",
+            "quantita": 1,
+            "prezzoUnitario": 14101.00,
+            "imponibile": 14101.00,
+            "periodoRiferimento": "02/2025"
+          },
+          {
+            "numerolinea": 4,
+            "testo": "Notifiche Digitali: Art. 2, allegato Ciclo PN, storno quota parte anticipazione versata.",
+            "codiceMateriale": "STORNO ANTICIPO ND",
+            "quantita": 1,
+            "prezzoUnitario": 133032.90,
+            "imponibile": 133032.90,
+            "periodoRiferimento": "12/2024"
+          },
+          {
+            "numerolinea": 5,
+            "testo": "Notifiche Analogiche: Art. 2, allegato Ciclo PN, saldo per le notifiche oggetto di rendicontazione e di attestazione regolare esecuzione delle prestazioni riferite al report di 02/2025. Totale n. notifiche 397212",
+            "codiceMateriale": "PRIMO SALDO N.ANL",
+            "quantita": 1,
+            "prezzoUnitario": 1503171.14,
+            "imponibile": 1503171.14,
+            "periodoRiferimento": "12/2024"
+          },
+          {
+            "numerolinea": 6,
+            "testo": "Notifiche Analogiche: Art. 2, allegato Ciclo PN, saldo per le notifiche oggetto di rendicontazione e di attestazione regolare esecuzione delle prestazioni riferite al report di 02/2025. Totale n. notifiche 53762",
+            "codiceMateriale": "PRIMO SALDO N.ANL",
+            "quantita": 1,
+            "prezzoUnitario": 209313.14,
+            "imponibile": 209313.14,
+            "periodoRiferimento": "01/2025"
+          },
+          {
+            "numerolinea": 7,
+            "testo": "Notifiche Analogiche: Art. 2, allegato Ciclo PN, saldo per le notifiche oggetto di rendicontazione e di attestazione regolare esecuzione delle prestazioni riferite al report di 02/2025. Totale n. notifiche 5064",
+            "codiceMateriale": "PRIMO SALDO N.ANL",
+            "quantita": 1,
+            "prezzoUnitario": 20940.69,
+            "imponibile": 20940.69,
+            "periodoRiferimento": "02/2025"
+          },
+          {
+            "numerolinea": 8,
+            "testo": "Notifiche Analogiche: Art. 2, allegato Ciclo PN, storno quota parte anticipazione versata.",
+            "codiceMateriale": "STORNO ANTICIPO NA",
+            "quantita": 1,
+            "prezzoUnitario": 520027.49,
+            "imponibile": 520027.49,
+            "periodoRiferimento": "12/2024"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,4 +1,6 @@
-﻿using PortaleFatture.BE.Core.Entities.SEND.DatiModuloCommesse.Dto;
+﻿using DocumentFormat.OpenXml.Drawing.Diagrams;
+using MimeKit.Text;
+using PortaleFatture.BE.Core.Entities.SEND.DatiModuloCommesse.Dto;
 using PortaleFatture.BE.Core.Entities.SEND.DatiRel;
 using PortaleFatture.BE.Core.Entities.SEND.DatiRel.Dto;
 using PortaleFatture.BE.Core.Exceptions;
@@ -10,6 +12,7 @@ public class DocumentBuilder : IDocumentBuilder
 {
     private static string _fileEmailPrimoSaldo = $"primo_saldo.html";
     private static string _fileEmailSecondoSaldo = $"secondo_saldo.html";
+    private static string _fileVarSemestrale = $"var_semestrale.html";
     private static string _filePrimoSaldoRel = $"PRIMO_SALDO_rel.html";
     private static string _fileSecondoSaldoRel = $"SECONDO_SALDO_rel.html";
     private static string _fileModuloCommessa = $"daticommessa.html";
@@ -28,12 +31,15 @@ public class DocumentBuilder : IDocumentBuilder
         string? _fileEmail;
         if (dati.TipologiaFattura!.ToLower().Contains("primo"))
             _fileEmail = _fileEmailPrimoSaldo;
-        else
+        else if (dati.TipologiaFattura!.ToLower().Contains("secondo"))
             _fileEmail = _fileEmailSecondoSaldo;
+        else
+            _fileEmail = _fileVarSemestrale;
+
         var filePath = Path.Combine([_directoryPath, _fileEmail]);
         var text = ReadFromFile(filePath);
         text = dati.Replace(text!);
-        return text;
+        return text.Replace("\r", string.Empty).Replace("\n", string.Empty); ;
     }
 
     public string? CreateModuloCommessaHtml(ModuloCommessaDocumentoDto dati)

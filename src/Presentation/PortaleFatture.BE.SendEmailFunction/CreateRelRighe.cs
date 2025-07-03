@@ -51,7 +51,7 @@ public class CreateRelRighe(ILoggerFactory loggerFactory)
     }
 
     [Function("CreateRelRighe")]
-    public async Task RunAsync([ActivityTrigger] CreateRelRigheDataRequest req)
+    public async Task<string> RunAsync([ActivityTrigger] CreateRelRigheDataRequest req)
     {
         var risposta = new RispostaRelRighe();
 
@@ -143,6 +143,7 @@ public class CreateRelRighe(ILoggerFactory loggerFactory)
             else
             {
                 risposta.Error += "Non ci sono rel per l'anno, mese e tipologia specificate";
+                throw new DomainException(risposta.Serialize());
             }
         }
         catch (Exception ex)
@@ -150,9 +151,11 @@ public class CreateRelRighe(ILoggerFactory loggerFactory)
             risposta.DbConnection = false;
             risposta.Error = ex.Message;
             _logger.LogInformation(ex.Message);
+            throw new DomainException(ex.Message, ex);
         }
 
         _logger.LogInformation(risposta.Serialize());
+        return risposta.Serialize();
     }
 
     private static string? GetEnvironmentVariable(string name)

@@ -8,7 +8,8 @@ public class RelEmail
     public int Anno { get; set; }
     public int Mese { get; set; }
     public string? Pec { get; set; }
-    public string? RagioneSociale { get; set; }
+    public string? RagioneSociale { get; set; } 
+    public string? Semestre { get; set; }
 }
 
 public sealed class RelEmailTracking : RelEmail

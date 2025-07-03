@@ -1,4 +1,5 @@
 ﻿using System.Data;
+using DocumentFormat.OpenXml.Math;
 using PortaleFatture.BE.Core.Entities.SEND.DatiRel;
 using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
@@ -17,13 +18,12 @@ public class RelRigheQueryGetByIdPersistence(RelRigheQueryGetById command) : Dap
         var where = string.Empty;
         var idEnte = _command.AuthenticationInfo.IdEnte;
 
-        where += " WHERE r.year=@anno";
-
         if (!(dati.TipologiaFattura!.ToLower().Contains("var")
             || dati.TipologiaFattura!.ToLower().Contains("semestrale")
             || dati.TipologiaFattura!.ToLower().Contains("annuale")))
-            where += " AND r.month=@mese";
-
+            where += " WHERE r.year=@anno AND r.month=@mese";
+        else 
+            where += " WHERE r.FlagConguaglio=@FlagConguaglio"; 
 
         where += " AND r.internal_organization_id=@IdEnte ";
         var anno = dati.Anno;
@@ -57,7 +57,8 @@ public class RelRigheQueryGetByIdPersistence(RelRigheQueryGetById command) : Dap
             Mese = mese,
             IdEnte = idEnte,
             TipologiaFattura = tipoFattura,
-            IdContratto = idContratto
+            IdContratto = idContratto,
+            FlagConguaglio = _command.FlagConguaglio
         };
 
         return await ((IDatabase)this).SelectAsync<RigheRelDto>(

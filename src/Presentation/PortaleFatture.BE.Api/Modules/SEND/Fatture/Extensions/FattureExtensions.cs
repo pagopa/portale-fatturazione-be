@@ -117,6 +117,11 @@ public static class FattureExtensions
                     if (fatture.IsNotEmpty())
                         reports.Add($"Lista {tipologia} {year} {month}", fatture!.ReportFattureRel(request.Mese.GetMonth(), tipologia));
                     break;
+                case TipologiaFattura.VAR_SEMESTRALE:
+                    fatture = await handler.Send(request.Mapv2(authInfo, tipologia));
+                    if (fatture.IsNotEmpty())
+                        reports.Add($"Lista {tipologia} {year} {month}", fatture!.ReportFattureRel(request.Mese.GetMonth(), tipologia));
+                    break;
                 case TipologiaFattura.ANTICIPO:
                     var commesse = await handler.Send(request.Mapv3(authInfo));
                     if (commesse.IsNotEmpty())

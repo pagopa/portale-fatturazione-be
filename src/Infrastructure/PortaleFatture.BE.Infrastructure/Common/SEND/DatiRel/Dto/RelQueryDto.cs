@@ -11,5 +11,6 @@ public class RelQueryDto
     public string? IdContratto { get; set; }
     public byte? Caricata { get; set; }
     public string? Azione { get; set; }
-    public string[]? EntiIds { get; set; } = null;
+    public string[]? EntiIds { get; set; } = null; 
+    public string? FlagConguaglio { get; set; }
 }
