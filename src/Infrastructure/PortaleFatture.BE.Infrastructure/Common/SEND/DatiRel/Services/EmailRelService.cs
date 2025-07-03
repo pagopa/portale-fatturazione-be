@@ -17,6 +17,7 @@ public class EmailRelService(string cn) : IEmailRelService
         ,[month] as mese
         ,[PEC] as pec
         ,[RagioneSociale] as ragionesociale
+        ,[FlagConguaglio] as semestre
         FROM [pfd].[EmailRel]
         WHERE [year] = @year
         AND [month] = @month
@@ -73,7 +74,8 @@ public class EmailRelService(string cn) : IEmailRelService
                         Anno = reader.GetInt32(3),
                         Mese = reader.GetInt32(4),
                         Pec = reader.IsDBNull(5) ? string.Empty : reader.GetString(5),
-                        RagioneSociale = reader.GetString(6)
+                        RagioneSociale = reader.GetString(6),
+                        Semestre = reader.IsDBNull(7) ? null : reader.GetString(7)
                     });
                 }
             }

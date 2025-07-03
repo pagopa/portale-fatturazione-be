@@ -8,4 +8,5 @@ public class RelRigheQueryGetById(IAuthenticationInfo authenticationInfo) : IReq
 {
     public IAuthenticationInfo AuthenticationInfo { get; internal set; } = authenticationInfo;
     public string? IdTestata { get; set; }
+    public string? FlagConguaglio { get; set; }
 }

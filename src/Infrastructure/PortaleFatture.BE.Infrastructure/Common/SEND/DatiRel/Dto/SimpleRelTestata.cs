@@ -197,4 +197,7 @@ public class SimpleRelTestata
 
     [Column("AsseverazioneTotaleIva")]
     public decimal AsseverazioneTotaleIva { get; set; }
+
+    [Column("FlagConguaglio")]
+    public string? FlagConguaglio { get; set; }
 }

@@ -27,6 +27,9 @@
     <None Update="Infrastructure\Documenti\pagoPA\email_psp.html">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="Infrastructure\Documenti\var_semestrale.html">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Infrastructure\Documenti\secondo_saldo.html">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

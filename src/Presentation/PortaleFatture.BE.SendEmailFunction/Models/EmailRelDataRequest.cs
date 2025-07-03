@@ -6,5 +6,5 @@ public class EmailRelDataRequest
     public string? Mese { get; set; }
     public string? TipologiaFattura { get; set; } 
     public string? Ricalcola { get; set; } 
-    public string? Data { get; set; }
+    public string? Data { get; set; }  
 }

@@ -114,25 +114,25 @@ public class SendEmailPsp(ILoggerFactory loggerFactory)
             foreach (var psp in psps!)
                 if (psp.Email != null)
                 {
-                    //var body = builder.CreateEmailHtml(psp);
-                    //var (msg, ver) = sender.SendEmail(psp.Email, psp.RagioneSociale!, subject, body!, Guid.NewGuid().ToString());
-                    ////var (msg, ver) = sender.SendEmail(ConfigurazionepagoPA.To!, ConfigurazionepagoPA.ToName!, subject, body!, Guid.NewGuid().ToString());
+                    var body = builder.CreateEmailHtml(psp);
+                    var (msg, ver) = sender.SendEmail(psp.Email, psp.RagioneSociale!, subject, body!, Guid.NewGuid().ToString());
+                    //var (msg, ver) = sender.SendEmail(ConfigurazionepagoPA.To!, ConfigurazionepagoPA.ToName!, subject, body!, Guid.NewGuid().ToString());
 
-                    //if (!ver)
-                    //    _logger.LogInformation(msg);
+                    if (!ver)
+                        _logger.LogInformation(msg);
 
-                    //emailService.InsertTracciatoEmail(new PspEmailTracking()
-                    //{
-                    //    Data = data,
-                    //    IdContratto = psp.IdContratto,
-                    //    Invio = Convert.ToByte(ver == true ? 1 : 0),
-                    //    Anno = psp.Anno,
-                    //    Messaggio = msg,
-                    //    Email = psp.Email,
-                    //    Trimestre = psp.Trimestre,
-                    //    RagioneSociale = psp.RagioneSociale,
-                    //    Tipologia = psp.Tipologia
-                    //});
+                    emailService.InsertTracciatoEmail(new PspEmailTracking()
+                    {
+                        Data = data,
+                        IdContratto = psp.IdContratto,
+                        Invio = Convert.ToByte(ver == true ? 1 : 0),
+                        Anno = psp.Anno,
+                        Messaggio = msg,
+                        Email = psp.Email,
+                        Trimestre = psp.Trimestre,
+                        RagioneSociale = psp.RagioneSociale,
+                        Tipologia = psp.Tipologia
+                    });
                 }
 
             risposta.NumeroInvio = psps.Count();
@@ -151,4 +151,4 @@ public class SendEmailPsp(ILoggerFactory loggerFactory)
     {
         return Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.Process);
     } 
-}
+} 
