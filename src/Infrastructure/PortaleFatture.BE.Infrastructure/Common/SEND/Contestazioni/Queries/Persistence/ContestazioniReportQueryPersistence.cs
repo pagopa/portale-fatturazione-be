@@ -34,10 +34,16 @@ public class ContestazioniReportQueryPersistence(ContestazioniReportQuery comman
         if (size.HasValue)
             parameters.Size = size;
         else
-            offset = string.Empty; 
+            offset = string.Empty;
 
-        where += " WHERE anno=@anno ";
-        parameters.Anno = _command.Anno;
+        if (!string.IsNullOrEmpty(_command.Anno))
+        {
+            where += " WHERE anno=@anno ";
+            parameters.Anno = _command.Anno;
+        } else
+        {
+            where += " WHERE 1=1"; 
+        } 
 
         if (!string.IsNullOrEmpty(_command.Mese))
         {
