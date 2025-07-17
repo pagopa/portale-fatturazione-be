@@ -21,6 +21,8 @@ public static class ModuleExtensions
         model.SupportAPIService??= new();
         model.StorageREL ??= new();
         model.StorageContestazioni??= new();
+        model.StorageNotifiche ??= new();
+        model.AzureFunction ??= new();
 
         var selfCareUri = Environment.GetEnvironmentVariable("SELF_CARE_URI") ??
              throw new ConfigurationException("Please specify a SELF_CARE_URI!");
@@ -91,14 +93,17 @@ public static class ModuleExtensions
              throw new ConfigurationException("Please specify SYNAPSE_RESOURCEGROUPNAME!");
 
         //  
-        var storageAccountName = Environment.GetEnvironmentVariable("STORAGE_FINANCIAL_ACCOUNTNAME") ??
-            throw new ConfigurationException("Please specify STORAGE_FINANCIAL_ACCOUNTNAME!");
+        var storageAccountNameNotifiche = Environment.GetEnvironmentVariable("StorageNotificheAccountName") ??
+            throw new ConfigurationException("Please specify StorageNotificheAccountName!");
 
-        var storageAccountKey = Environment.GetEnvironmentVariable("STORAGE_FINANCIAL_ACCOUNTKEY") ??
-            throw new ConfigurationException("Please specify a SYNAPSE_SUBSCRIPTIONID!");
+        var storageAccountKeyNotifiche = Environment.GetEnvironmentVariable("StorageNotificheAccountKey") ??
+            throw new ConfigurationException("Please specify a StorageNotificheAccountKey!");
 
-        var blobContainerName = Environment.GetEnvironmentVariable("STORAGE_FINANCIAL_CONTAINERNAME") ??
-             throw new ConfigurationException("Please specify SYNAPSE_RESOURCEGROUPNAME!"); 
+        var blobContainerNameNotifiche = Environment.GetEnvironmentVariable("StorageNotificheBlobContainerName") ??
+             throw new ConfigurationException("Please specify StorageNotificheBlobContainerName!");
+
+        var customDNSNotifiche = Environment.GetEnvironmentVariable("StorageNotificheCustomDNS") ??
+            throw new ConfigurationException("Please specify StorageNotificheCustomDNS!");
 
         var selfCareOnBoardingEndpoint = Environment.GetEnvironmentVariable("SELFCAREONBOARDING_ENDPOINT") ??
              throw new ConfigurationException("Please specify SELFCAREONBOARDING_ENDPOINT!");
@@ -118,9 +123,18 @@ public static class ModuleExtensions
         var supportAPIServiceAuthToken = Environment.GetEnvironmentVariable("SUPPORTAPISERVICE_AUTHTOKEN") ??
              throw new ConfigurationException("Please specify SUPPORTAPISERVICE_AUTHTOKEN!");
 
+        var storageAccountName = Environment.GetEnvironmentVariable("STORAGE_FINANCIAL_ACCOUNTNAME") ??
+             throw new ConfigurationException("Please specify STORAGE_FINANCIAL_ACCOUNTNAME!");
+
+        var storageAccountKey = Environment.GetEnvironmentVariable("STORAGE_FINANCIAL_ACCOUNTKEY") ??
+            throw new ConfigurationException("Please specify a SYNAPSE_SUBSCRIPTIONID!");
+
+        var blobContainerName = Environment.GetEnvironmentVariable("STORAGE_FINANCIAL_CONTAINERNAME") ??
+             throw new ConfigurationException("Please specify SYNAPSE_RESOURCEGROUPNAME!");
+
         // REL storage righe
         var storageRELAccountName = Environment.GetEnvironmentVariable("StorageRELAccountName") ??
-     throw new ConfigurationException("Please specify StorageRELAccountName!");
+             throw new ConfigurationException("Please specify StorageRELAccountName!");
 
         var storageRELAccountKey = Environment.GetEnvironmentVariable("StorageRELAccountKey") ??
              throw new ConfigurationException("Please specify StorageRELAccountKey!");
@@ -131,6 +145,11 @@ public static class ModuleExtensions
         var storageRELCustomDns = Environment.GetEnvironmentVariable("StorageRELCustomDns") ??
              throw new ConfigurationException("Please specify StorageRELCustomDns!");
 
+        var azureFunctionNotificheUri = Environment.GetEnvironmentVariable("AzureFunctionNotificheUri") ??
+              throw new ConfigurationException("Please specify AzureFunctionNotificheUri!");
+
+        var azureFunctionAppKey = Environment.GetEnvironmentVariable("AzureFunctionAppKey") ??
+             throw new ConfigurationException("Please specify AzureFunctionAppKey!");
 
         model.ConnectionString = connectionString; //await model.ConnectionString.Mapper();
 
@@ -186,6 +205,13 @@ public static class ModuleExtensions
         model.StorageContestazioni.AccountName = storageAccountName;
         model.StorageContestazioni.AccountKey = storageAccountKey;
         model.StorageContestazioni.CustomDns = storageRELCustomDns;
+        model.StorageNotifiche.BlobContainerName = blobContainerNameNotifiche;
+        model.StorageNotifiche.AccountName = storageAccountNameNotifiche;
+        model.StorageNotifiche.AccountKey = storageAccountKeyNotifiche;
+        model.StorageNotifiche.CustomDNS = customDNSNotifiche;
+
+        model.AzureFunction.NotificheUri    = azureFunctionNotificheUri;
+        model.AzureFunction.AppKey = azureFunctionAppKey;
         return model;
     }
 

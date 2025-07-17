@@ -112,10 +112,16 @@ public partial class NotificaModule : Module, IRegistrableModule
         .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
         endpointRouteBuilder
-        .MapPost("api/notifiche/ente/documento/ricerca", GetNotificheRicercaDocumentAsync)
-        .WithName("Permette di ottenere il file excel/csv per le notifiche per ricerca")
+        .MapPost("api/v2/notifiche/ente/documento/ricerca", GetNotificheRicercaDocumentAzureFunctionAsync)
+        .WithName("Permette di ottenere il file excel/csv per le notifiche per ricerca via azure function")
         .SetOpenApi(Module.DatiNotificaLabel)
         .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+         .MapPost("api/notifiche/ente/documento/ricerca", GetNotificheRicercaDocumentAsync)
+         .WithName("Permette di ottenere il file excel/csv per le notifiche per ricerca via query")
+         .SetOpenApi(Module.DatiNotificaLabel)
+         .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel)); 
 
         endpointRouteBuilder
          .MapPost("api/notifiche/contestazione", CreateContestazioneAsync)
@@ -134,6 +140,31 @@ public partial class NotificaModule : Module, IRegistrableModule
          .WithName("Permette di gestire i dati relativi ad una singola contestazione.")
          .SetOpenApi(Module.DatiNotificaLabel)
          .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+         .MapGet("api/notifiche/richiesta/count", GetRichiesteNotificheCountAsync)
+         .WithName("Permette di tornare il count delle richieste effettuate relative alle notifiche.")
+         .SetOpenApi(Module.DatiNotificaLabel)
+         .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+
+        endpointRouteBuilder
+         .MapPost("api/notifiche/richiesta", PostRichiesteNotificheAsync)
+         .WithName("Permette di tornare le richieste effettuate relative alle notifiche.")
+         .SetOpenApi(Module.DatiNotificaLabel)
+         .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel)); 
+
+        endpointRouteBuilder
+         .MapGet("api/notifiche/richiesta/download", GetRichiesteNotificheDownloadAsync)
+         .WithName("Permette di tornare il report richieste effettuate relative alle notifiche per id report.")
+         .SetOpenApi(Module.DatiNotificaLabel)
+         .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+        .MapPost("api/notifiche/richiesta/verifica", PostVerificaNotificheDownloadAsync)
+        .WithName("Permette di tornare la verifica per le notifiche id report.")
+        .SetOpenApi(Module.DatiNotificaLabel)
+        .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
         #endregion
     }
 } 

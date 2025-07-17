@@ -79,7 +79,7 @@ public class CreateRelRighe(ILoggerFactory loggerFactory)
                     .AddViewLocalization();
             var serviceProvider = services.BuildServiceProvider();
 
-     
+
             var mediator = serviceProvider.GetRequiredService<IMediator>();
 
             var anno = Convert.ToInt32(req.Anno);
@@ -88,7 +88,7 @@ public class CreateRelRighe(ILoggerFactory loggerFactory)
 
             _logger.LogInformation("HTTP trigger function processed a request.");
 
-           
+
             risposta = new RispostaRelRighe()
             {
                 Anno = anno,
@@ -162,4 +162,4 @@ public class CreateRelRighe(ILoggerFactory loggerFactory)
     {
         return Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.Process);
     }
-} 
+}

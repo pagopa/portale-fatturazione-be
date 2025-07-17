@@ -1,6 +1,7 @@
 ﻿using System.Text.Json.Serialization;
 using PortaleFatture.BE.Core.Entities.SEND.Notifiche;
-namespace PortaleFatture.BE.Api.Modules.SEND.Notifiche.Payload.Request;
+
+namespace PortaleFatture_BE_SendEmailFunction.Models;
 
 public class NotificheRicercaRequest
 {

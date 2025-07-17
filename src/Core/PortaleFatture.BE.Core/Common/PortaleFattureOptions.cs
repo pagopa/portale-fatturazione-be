@@ -25,6 +25,8 @@ public sealed class PortaleFattureOptions : IPortaleFattureOptions
     public SupportAPIService? SupportAPIService { get; set; } 
     public StorageREL? StorageREL { get; set; } 
     public StorageContestazioni? StorageContestazioni { get; set; }
+    public StorageNotifiche? StorageNotifiche { get; set; } 
+    public AzureFunction? AzureFunction { get; set; }
 }
 
 public class StorageREL()
@@ -33,6 +35,14 @@ public class StorageREL()
     public string? StorageRELAccountKey { get; set; }
     public string? StorageRELBlobContainerName { get; set; }
     public string? StorageRELCustomDns { get; set; }
+}
+
+public class StorageNotifiche()
+{
+    public string? AccountName { get; set; }
+    public string? AccountKey { get; set; }
+    public string? BlobContainerName { get; set; } 
+    public string? CustomDNS { get; set; }
 }
 
 public class SupportAPIService()
@@ -90,4 +100,12 @@ public class AzureAd()
     public string? TenantId { get; set; }
     public string? ClientId { get; set; } 
     public string? AdGroup { get; set; }
-} 
+}
+
+public class AzureFunction()
+{
+    public string? NotificheUri { get; set; }
+    public string? AppKey { get; set; } 
+}
+ 
+        

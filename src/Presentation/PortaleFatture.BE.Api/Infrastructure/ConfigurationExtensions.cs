@@ -26,6 +26,7 @@ using PortaleFatture.BE.Infrastructure.Common.SEND.DatiRel.Services;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Documenti;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Dto;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Service;
+using PortaleFatture.BE.Infrastructure.Common.SEND.Notifiche.Services;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Scadenziari;
 using PortaleFatture.BE.Infrastructure.Gateway;
 using PortaleFatture.BE.Infrastructure.Gateway.Storage;
@@ -167,6 +168,11 @@ public static class ConfigurationExtensions
         // rel righe storage
         services.AddSingleton<IRelRigheStorageService, RelRigheStorageService>();
 
+        // call azure function
+        services.AddSingleton<IBlobStorageNotifiche, BlobStorageNotifiche>();
+
+        // save notifiche
+        services.AddSingleton<IFunctionNotificheCaller, FunctionNotificheCaller>();
 
         services.AddSingleton<IManualiStorageSASService, ManualiStorageSASService>();
 

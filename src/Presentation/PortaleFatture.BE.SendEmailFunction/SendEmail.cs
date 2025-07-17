@@ -40,7 +40,7 @@ public class SendEmail(ILoggerFactory loggerFactory)
                 ConfigurazioneSEND.SmtpAuth = GetEnvironmentVariable("SMTP_AUTH");
                 ConfigurazioneSEND.SmtpPassword = GetEnvironmentVariable("SMTP_PASSWORD");
             }
-            ; 
+            ;
 
             var fileInfo = new FileInfo(Assembly.GetExecutingAssembly().Location);
             string path = fileInfo.Directory!.FullName;
@@ -155,4 +155,4 @@ public class SendEmail(ILoggerFactory loggerFactory)
             throw new ArgumentException("Mese non valido.");
         }
     }
-} 
+}
