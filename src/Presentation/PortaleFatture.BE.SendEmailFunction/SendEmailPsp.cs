@@ -44,7 +44,8 @@ public class SendEmailPsp(ILoggerFactory loggerFactory)
                 ConfigurazionepagoPA.FromName = GetEnvironmentVariable("FROMNAME");
                 ConfigurazionepagoPA.To = GetEnvironmentVariable("TO");
                 ConfigurazionepagoPA.ToName = GetEnvironmentVariable("TONAME");
-            };
+            }
+            ;
 
 
             var fileInfo = new FileInfo(Assembly.GetExecutingAssembly().Location);
@@ -85,7 +86,7 @@ public class SendEmailPsp(ILoggerFactory loggerFactory)
             var emailService = new EmailPspService(ConfigurazionepagoPA.ConnectionString!);
             if (reinvio is null || reinvio != 1)
             {
-                // verifica comunque se c'è stato un invio
+                // verifica comunque se c'Ã¨ stato un invio
                 var count = emailService.CountInvio(risposta.Trimestre);
                 if (!count)
                     psps = emailService.GetSenderEmail(risposta.Trimestre);
@@ -93,20 +94,20 @@ public class SendEmailPsp(ILoggerFactory loggerFactory)
                 {
                     var message = $"The email has been already sent for quarter {trimestre}.";
                     risposta.Error = message;
-                    _logger.LogInformation($"The email has been already sent"); 
-                }  
+                    _logger.LogInformation($"The email has been already sent");
+                }
             }
             else // reinvio == 1
             {
-                var subPsps  = emailService.GetSenderEmailReinvio(risposta.Trimestre);
-                if(!subPsps.IsNullNotAny())
+                var subPsps = emailService.GetSenderEmailReinvio(risposta.Trimestre);
+                if (!subPsps.IsNullNotAny())
                 {
                     var totalPsps = emailService.GetSenderEmail(risposta.Trimestre);
                     psps = totalPsps!.Where(x => subPsps.Contains(x.IdContratto));
-                } 
+                }
             }
 
-            var apiKeyFilePath = builder.ApiKeyFilePath();  
+            var apiKeyFilePath = builder.ApiKeyFilePath();
             _logger.LogInformation(psps.Serialize());
 
             Thread.Sleep(60000); // 1 minuto
@@ -150,5 +151,5 @@ public class SendEmailPsp(ILoggerFactory loggerFactory)
     private static string? GetEnvironmentVariable(string name)
     {
         return Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.Process);
-    } 
-} 
+    }
+}

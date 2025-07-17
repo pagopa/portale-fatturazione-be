@@ -121,4 +121,9 @@ SELECT
     {
         return _sqlMesi;
     }
+
+    public static string SelectRichiesteNotificheCount()
+    {
+        return @"SELECT  count(*) FROM [pfw].[ReportNotifiche] WHERE letto = 0 AND internal_organization_id=@idEnte AND stato IN (0,1)";
+    }
 }

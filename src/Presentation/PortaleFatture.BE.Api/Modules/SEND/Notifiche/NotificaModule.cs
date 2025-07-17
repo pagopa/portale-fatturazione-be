@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using System.Net;
 using Azure.Storage;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
@@ -26,6 +27,7 @@ using PortaleFatture.BE.Infrastructure.Common.SEND.Documenti.Common;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Notifiche.Commands;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Notifiche.Dto;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Notifiche.Queries;
+using PortaleFatture.BE.Infrastructure.Common.SEND.Notifiche.Services;
 using PortaleFatture.BE.Infrastructure.Common.SEND.SelfCare.Queries;
 using static Microsoft.AspNetCore.Http.TypedResults;
 
@@ -538,6 +540,97 @@ public partial class NotificaModule
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<IResult> GetNotificheRicercaDocumentAzureFunctionAsync(
+    HttpContext context,
+    [FromBody] NotificheRicercaRequest request,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler,
+    [FromServices] IPortaleFattureOptions options,
+    [FromServices] IFunctionNotificheCaller fn,
+    [FromQuery] bool? binary = null)
+    {
+        var authInfo = context.GetAuthInfo();
+ 
+        var ente = await handler.Send(new EnteQueryCodiceSDIGetById(authInfo));
+        if (ente == null)
+            return NotFound();
+
+        request.IdEnte = ente.IdEnte;
+        request.RagioneSociale = ente.RagioneSociale;
+        request.IdContratto = ente.IdContratto;
+
+        // evita richieste duplicate se già c'è una richiesta in corso
+        var istanza = new ReportNotificheByIdHashQueryCommand(authInfo)
+        {
+            Json = request.Serialize(),
+        };
+
+        var report = await handler.Send(istanza);
+        if (report != null) 
+            return Results.Json(new
+            {
+                message = "Attendi l'esecuzione della richiesta precedente.",
+            }, statusCode: 300);
+
+        var instanceId = Guid.NewGuid().ToString();
+        request.InstanceId = instanceId;
+        var command = new ReportNotificheCreateCommand(authInfo)
+        {
+            UniqueId = instanceId,
+            Json = request.Serialize(),
+            Anno = request.Anno!.Value,
+            Mese = request.Mese!.Value,
+            ContractId = ente.IdContratto,
+            Storage = options.StorageNotifiche!.AccountName,
+            NomeDocumento = null,
+            Link = null
+        };
+
+        var idReport = await handler.Send(command);
+        if (!idReport.HasValue)
+            return BadRequest();
+
+        request.IdReport = idReport;
+      
+        var resultCallFunction = await fn.CallAzureFunction(request);
+        if (resultCallFunction == null)
+        { 
+            await handler.Send(new ReportNotificheUpdateCommand(authInfo)
+            { 
+                NomeDocumento = null,
+                Stato = 3, // errore
+                StatoAtteso = 0,
+                UniqueId = command.UniqueId
+            });
+            return BadRequest(new { message = "Errore durante l'esecuzione della funzione." });
+        } 
+
+        var uniqueId = resultCallFunction.InstanceId;
+        if (string.IsNullOrEmpty(uniqueId))
+            return BadRequest();
+
+        else
+        {
+            var updateCommand = new ReportNotificheUpdateByIdCommand(authInfo)
+            {
+                UniqueId = uniqueId,
+                IdReport = idReport.Value,
+                LinkDocumento = $"{options.StorageNotifiche.BlobContainerName}/{ente.IdEnte}/{ente.IdContratto}/{uniqueId}"
+            };
+
+            var guid = await handler.Send(updateCommand);
+            if (string.IsNullOrEmpty(guid))
+                return NotFound();
+            return Ok(resultCallFunction);
+        }
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     private async Task<IResult> GetNotificheRicercaDocumentAsync(
     HttpContext context,
     [FromBody] NotificheRicercaRequest request,
@@ -694,6 +787,122 @@ public partial class NotificaModule
             Risposta = azione!.RispostaPermessa
         };
         return Ok(response);
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<int?>, NotFound>> GetRichiesteNotificheCountAsync(
+    HttpContext context,
+   [FromServices] IStringLocalizer<Localization> localizer,
+   [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var command = new ReportNotificheQueryCount(authInfo) { };
+
+        var count = await handler.Send(command);
+        return Ok(count);
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<ReportNotificheListCountDto>, NotFound>> PostRichiesteNotificheAsync(
+    HttpContext context,
+    [FromQuery] int page,
+    [FromQuery] int pageSize,
+    [FromBody] ReportNotificheRequest request,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var command = new ReportNotificheQueryCommand(authInfo)
+        {
+
+            Init = request.Init,
+            End = request.End,
+            Ordinamento = request.Ordinamento,
+            Page = page,
+            Size = pageSize
+        };
+
+        var reports = await handler.Send(command);
+        if (reports == null || reports.Items.IsNullNotAny())
+            return NotFound();
+
+        return Ok(reports);
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<string>, NotFound, BadRequest>> GetRichiesteNotificheDownloadAsync(
+    HttpContext context,
+    [FromQuery] int idReport,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler,
+    [FromServices] IBlobStorageNotifiche storage)
+    {
+        var authInfo = context.GetAuthInfo();
+        var command = new ReportNotificheByIdQueryCommand(authInfo)
+        {
+            IdReport = idReport,
+        };
+
+        var report = await handler.Send(command);
+        if (report == null)
+            return NotFound();
+
+        var token = storage.GetSasToken(report.InternalOrganizationId!, report.Anno, report.Mese, report.UniqueId!, report.NomeDocumento!);
+        if (string.IsNullOrEmpty(token))
+            return NotFound();
+        else
+        {
+            var result = await handler.Send(new ReportNotificheUpdateLettoCommand(authInfo)
+            {
+                IdReport = idReport,
+                Letto = 1,
+                StatoAtteso = 0
+            });
+            if (result == 1)
+                return Ok(token);
+            else
+                return BadRequest();
+        }
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<DurableFunctionResponse>, NotFound, BadRequest<string>>> PostVerificaNotificheDownloadAsync(
+    HttpContext context,
+    [FromBody] NotificheRiceraVerificaRequest request,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler,
+    [FromServices] IFunctionNotificheCaller fn,
+    [FromServices] IBlobStorageNotifiche storage)
+    {
+        var authInfo = context.GetAuthInfo();
+        if(authInfo.IdEnte != request.IdEnte)
+            return NotFound();
+
+        var resultCallFunction  = await fn.CallDurableFunctionWebhook(request.StatusQueryGetUri!);
+        if (resultCallFunction.Item1 == null)
+            return BadRequest(resultCallFunction.Item2); 
+ 
+        return Ok(resultCallFunction.Item1);
     }
     #endregion
 }
