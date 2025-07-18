@@ -566,15 +566,17 @@ public partial class NotificaModule
         };
 
         var report = await handler.Send(istanza);
-        if (report != null) 
+        if (report != null && report.DataInserimento > DateTime.UtcNow.ItalianTime().AddHours(-1))
+        {
             return Results.Json(new
             {
                 message = "Attendi l'esecuzione della richiesta precedente.",
             }, statusCode: 300);
+        }
 
-        var instanceId = Guid.NewGuid().ToString();
-        request.InstanceId = instanceId;
-        var command = new ReportNotificheCreateCommand(authInfo)
+        var instanceId = Guid.NewGuid().ToString(); 
+
+        var idReport = await handler.Send(new ReportNotificheCreateCommand(authInfo)
         {
             UniqueId = instanceId,
             Json = request.Serialize(),
@@ -584,14 +586,13 @@ public partial class NotificaModule
             Storage = options.StorageNotifiche!.AccountName,
             NomeDocumento = null,
             Link = null
-        };
-
-        var idReport = await handler.Send(command);
+        });
         if (!idReport.HasValue)
             return BadRequest();
 
-        request.IdReport = idReport;
-      
+        request.IdReport = idReport; 
+        request.InstanceId = instanceId;
+
         var resultCallFunction = await fn.CallAzureFunction(request);
         if (resultCallFunction == null)
         { 
@@ -600,15 +601,14 @@ public partial class NotificaModule
                 NomeDocumento = null,
                 Stato = 3, // errore
                 StatoAtteso = 0,
-                UniqueId = command.UniqueId
+                UniqueId = instanceId
             });
             return BadRequest(new { message = "Errore durante l'esecuzione della funzione." });
         } 
 
         var uniqueId = resultCallFunction.InstanceId;
         if (string.IsNullOrEmpty(uniqueId))
-            return BadRequest();
-
+            return BadRequest(); 
         else
         {
             var updateCommand = new ReportNotificheUpdateByIdCommand(authInfo)
