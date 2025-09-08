@@ -38,13 +38,20 @@ internal static class CalendarioContestazioneSQLBuilder
         return builderTemplate.RawSql;
     }
 
+    private static string _selectAll = $@"
+SELECT [MeseContestazione]
+      ,[AnnoContestazione]
+      ,[DataInizio]
+      ,[DataFine]
+      ,DATEADD(day, 30, [DataFine]) AS ChiusuraContestazioni
+      ,DATEADD(day, 45, [DataFine]) AS TempoRisposta
+      ,[DataVerifica]
+      ,[DataCalcoloPrimoSecondo]
+FROM [pfw].[ContestazioniCalendario] 
+";
     public static string SelectAll()
     {
-        var tableName = nameof(CalendarioContestazione);
-        tableName = tableName.GetTable<CalendarioContestazione>();
-        var builder = CreateSelect();
-        var builderTemplate = builder.AddTemplate($"Select /**select**/ from [schema]{tableName}");
-        return builderTemplate.RawSql;
+      return _selectAll;
     }
     public static string OrderBy()
     {

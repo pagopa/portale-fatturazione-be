@@ -23,15 +23,21 @@ public sealed class OrchestratoreItem
     [HeaderAttributev2(caption: "Data Fine Contestazioni", Order = 6)]
     public DateTime? DataFineContestazioni { get; set; }
 
-    [HeaderAttributev2(caption: "Data Fatturazione", Order = 6)]
+    [HeaderAttributev2(caption: "Data Chiusura Contestazioni", Order = 7)]
+    public DateTime? ChiusuraContestazioni { get; set; }
+
+    [HeaderAttributev2(caption: "Data Tempo Risposta", Order = 8)]
+    public DateTime? TempoRisposta { get; set; } 
+
+    [HeaderAttributev2(caption: "Data Fatturazione", Order = 9)]
     public DateTime? DataFatturazione { get; set; }
 
     public int? Esecuzione { get; set; }
 
-    [HeaderAttributev2(caption: "Count", Order = 6)]
+    [HeaderAttributev2(caption: "Count", Order = 10)]
     public int? Count { get; set; }
 
-    [HeaderAttributev2(caption: "Esecuzione", Order = 6)]
+    [HeaderAttributev2(caption: "Esecuzione", Order = 11)]
     public string? DescrizioneEsecuzione
     {
         get
@@ -41,4 +47,4 @@ public sealed class OrchestratoreItem
                 : null;
         }
     } 
-} 
+}

@@ -11,6 +11,12 @@ public class CalendarioContestazione
     [Column("DataInizio")]
     public DateTime DataInizio { get; set; }
 
+    [Column("ChiusuraContestazioni")]
+    public DateTime ChiusuraContestazioni { get; set; }
+
+    [Column("TempoRisposta")]
+    public DateTime TempoRisposta { get; set; }
+
     [Column("DataVerifica")]
     public DateTime DataVerifica { get; set; }
 

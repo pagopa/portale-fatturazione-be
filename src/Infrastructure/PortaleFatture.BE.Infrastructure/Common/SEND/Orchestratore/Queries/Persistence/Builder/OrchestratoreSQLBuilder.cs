@@ -17,6 +17,8 @@ SELECT
 	Fase,
 	CAST(DataEsecuzione AS DATE) as DataEsecuzione,
 	DataFineContestazioni,
+    ChiusuraContestazioni,
+    TempoRisposta,
 	CAST(DataFatturazione AS DATE) as DataFatturazione,
 	Esecuzione,
 	Count
