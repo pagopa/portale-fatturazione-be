@@ -5,7 +5,9 @@ namespace PortaleFatture.BE.Api.Modules.SEND.Tipologie.Payload.Payload.Response;
 public sealed class CalendarioContestazioniResponse
 {
     public string? DataFine { get; set; }
-    public string? DataInizio { get; set; }
+    public string? DataInizio { get; set; } 
+    public string? ChiusuraContestazioni { get; set; }
+    public string? TempoRisposta { get; set; } 
     public string? MeseContestazione { get; set; }
     public int AnnoContestazione { get; set; }
     public string? DataRecapitistaFine { get; set; }
