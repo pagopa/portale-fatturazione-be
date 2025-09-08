@@ -56,6 +56,6 @@ FROM [pfw].[ContestazioniCalendario]
     public static string OrderBy()
     {
         CalendarioContestazione? @obj = null;
-        return $" ORDER BY {nameof(@obj.AnnoContestazione).GetColumn<CalendarioContestazione>()} DESC, {nameof(@obj.MeseContestazione).GetColumn<CalendarioContestazione>()}";
+        return $" ORDER BY {nameof(@obj.AnnoContestazione).GetColumn<CalendarioContestazione>()} DESC, {nameof(@obj.MeseContestazione).GetColumn<CalendarioContestazione>()} DESC";
     }
 }
