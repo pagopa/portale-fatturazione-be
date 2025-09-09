@@ -608,7 +608,7 @@ public partial class FattureModule
         var authInfo = context.GetAuthInfo();
         // verifica se c'è malleabilità
 
-        var result = await handler.Send(new FatturaCancellazioneCommand(authInfo, request.IdFatture, request.Cancellazione));
+        var result = await handler.Send(new FatturaCancellazioneRipristinoCommand(authInfo, request.IdFatture, request.Cancellazione));
         if (result.Value == false)
             return BadRequest();
         return Ok(result.Value);

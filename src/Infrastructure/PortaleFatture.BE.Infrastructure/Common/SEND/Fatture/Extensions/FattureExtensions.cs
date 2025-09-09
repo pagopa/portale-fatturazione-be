@@ -1,4 +1,5 @@
-﻿using PortaleFatture.BE.Core.Entities.SEND.Fatture;
+﻿using System.Data;
+using PortaleFatture.BE.Core.Entities.SEND.Fatture;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Commands;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Dto;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries;
@@ -7,6 +8,24 @@ namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Extensions;
 
 public static class FattureExtensions
 {
+    public static DataTable CreateRipristinoFattureTable(this long[]? idFatture)
+    {
+        var table = new DataTable();
+
+        // The UDTT only needs IdFattura column
+        table.Columns.Add("IdFattura", typeof(long));
+
+        if (idFatture != null)
+        {
+            foreach (var id in idFatture)
+            {
+                table.Rows.Add(id);
+            }
+        }
+
+        return table;
+    }
+
     public static FattureCommessaEliminateExcelQuery Map(this FattureCommessaExcelQuery command)
     {
         return new FattureCommessaEliminateExcelQuery(command.AuthenticationInfo)
