@@ -3,7 +3,7 @@ using PortaleFatture.BE.Core.Auth;
 
 namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Commands;
 
-public class FatturaCancellazioneCommand(IAuthenticationInfo? authenticationInfo, long[]? idFatture, bool cancellazione) : IRequest<bool?>
+public class FatturaCancellazioneRipristinoCommand(IAuthenticationInfo? authenticationInfo, long[]? idFatture, bool cancellazione) : IRequest<bool?>
 {
     public IAuthenticationInfo? AuthenticationInfo { get; internal set; } = authenticationInfo;
     public long[]? IdFatture { get; set; } = idFatture;

@@ -264,7 +264,7 @@ SELECT
 FROM 
     [pfw].[ContestazioniCalendario]
 WHERE 
-    [DataVerifica] >= SYSDATETIMEOFFSET() AT TIME ZONE 'UTC' AT TIME ZONE 'Central European Standard Time'
+    DATEADD(day, 30, [DataFine]) >= SYSDATETIMEOFFSET() AT TIME ZONE 'UTC' AT TIME ZONE 'Central European Standard Time'
 ORDER BY 
     [AnnoContestazione] DESC, 
     [MeseContestazione] DESC;

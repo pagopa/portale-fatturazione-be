@@ -34,19 +34,20 @@ public class ServiceWorkFlowFatture : IServiceWorkFlowFatture
                   TipologiaFattura = TipologiaFattura.SECONDOSALDO,
                   Ordine = 4,
                   Condition = 4
-             },
-             new()
-             {
-                  TipologiaFattura = TipologiaFattura.VAR_SEMESTRALE,
-                  Ordine = 5,
-                  Condition = 5
-             },
-              new()
-             {
-                  TipologiaFattura = TipologiaFattura.VAR_ANNUALE,
-                  Ordine = 6,
-                  Condition =  null
              }
+             //,
+             //new()
+             //{
+             //     TipologiaFattura = TipologiaFattura.VAR_SEMESTRALE,
+             //     Ordine = 5,
+             //     Condition = 5
+             //},
+             // new()
+             //{
+             //     TipologiaFattura = TipologiaFattura.VAR_ANNUALE,
+             //     Ordine = 6,
+             //     Condition =  null
+             //}
         ];
     }
 
