@@ -88,6 +88,7 @@ SELECT
     LEFT JOIN pfd.RelTestata rt ON t.fkidente = rt.internal_organization_id 
 								and t.annoriferimento = rt.year
 								and t.meseriferimento = rt.month
+                                and t.FkTipologiaFattura = rt.TipologiaFattura
     WHERE rr.month= @mese and rr.year=@anno and rr.TipologiaFattura=@tipologiafattura 
 ";
 
