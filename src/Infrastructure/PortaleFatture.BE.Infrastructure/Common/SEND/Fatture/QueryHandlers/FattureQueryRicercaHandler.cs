@@ -36,11 +36,10 @@ public class FattureQueryRicercaHandler(
 
             foreach (var fatt in fatture!)
             {
-                //fatt.fattura!.Elaborazione = fatt.fattura!.Inviata == 2 ? fatt.fattura!.Inviata : conditions!.
-                //    Where(x => x.TipologiaFattura == fatt.fattura.TipologiaFattura)
-                //    .Select(x => x.ExtraCondition!.Value == 0 ? x.ExtraCondition!.Value : x.Modifica!.Value)
-                //    .FirstOrDefault();
-                fatt.fattura!.Elaborazione = 0;
+                fatt.fattura!.Elaborazione = fatt.fattura!.Inviata == 2 ? fatt.fattura!.Inviata : conditions!.
+                    Where(x => x.TipologiaFattura == fatt.fattura.TipologiaFattura)
+                    .Select(x => x.ExtraCondition!.Value == 0 ? x.ExtraCondition!.Value : x.Modifica!.Value)
+                    .FirstOrDefault();
             }
         }
         return fatture;
