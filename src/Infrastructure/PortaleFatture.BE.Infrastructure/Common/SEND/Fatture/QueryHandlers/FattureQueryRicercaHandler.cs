@@ -41,6 +41,7 @@ public class FattureQueryRicercaHandler(
                 //    .Select(x => x.ExtraCondition!.Value == 0 ? x.ExtraCondition!.Value : x.Modifica!.Value)
                 //    .FirstOrDefault();
                 fatt.fattura!.Elaborazione = 0;
+                //
             }
         }
         return fatture;
