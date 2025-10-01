@@ -88,6 +88,7 @@ public static class FinancialReportsExtensions
  
         var psp = psps.PSPs == null ? null : psps.PSPs!.FirstOrDefault();
         List<string> checkedReports = [];
+        //
         foreach (var report in financialReport!.Reports!)
             checkedReports.Add(report.FileExistsAsync());
 
