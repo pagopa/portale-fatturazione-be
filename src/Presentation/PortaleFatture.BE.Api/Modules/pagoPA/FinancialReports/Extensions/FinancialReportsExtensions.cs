@@ -80,8 +80,12 @@ public static class FinancialReportsExtensions
 
     public static FinancialReportsQuarterByIdResponse Map(this GridFinancialReportListDto reports, PSPListDto psps, IDocumentStorageSASService sasService)
     {
-        var financialReport = reports.FinancialReports!.FirstOrDefault(); 
-        // elimina verifica
+        var financialReport = reports.FinancialReports!.FirstOrDefault();
+        if (financialReport!.Reports!.Where(x => x.Contains(DocumentiFinancialReportSASStorageKey.S3Prefix)).FirstOrDefault() != null)
+            financialReport!.Reports = financialReport.Reports!.Select(x => sasService.GetSASToken(DocumentiFinancialReportSASStorageKey.Deserialize(x))).ToList();
+        else
+            financialReport!.Reports = financialReport.Reports!.Select(x => sasService.GetSASToken(DocumentiFinancialReportSASStorageKey.DeserializeBare(x))).ToList();
+ 
         var psp = psps.PSPs == null ? null : psps.PSPs!.FirstOrDefault();
         List<string> checkedReports = [];
         foreach (var report in financialReport!.Reports!)
@@ -485,7 +489,7 @@ public static class FinancialReportsExtensions
                             reportPrivatiECListMandatariQualificati.Add(mandatario);
 
                             var result = lista.Map(true);
-                            reportPrivatiECListMandatariQualificati.AddRange(result); 
+                            reportPrivatiECListMandatariQualificati.AddRange(result);
                         }
 
                         reportPrivatiECListMandatariQualificati.AddRange(reportPrivatiECListNonQualificati);
@@ -497,7 +501,7 @@ public static class FinancialReportsExtensions
                             // Fix for CS1003, CS8389, and CS0307 errors
                             Imponibile = reportPrivatiECListMandatariQualificati
                                 .Where(x => x.RecipientId == null && x.InternalInstitutionId != null)
-                                .Sum(item => item.Imponibile ?? 0), 
+                                .Sum(item => item.Imponibile ?? 0),
                             ValoreAsync = reportPrivatiECListMandatariQualificati.Where(x => x.RecipientId != null).Sum(item => item.ValoreAsync),
                             ValoreSync = reportPrivatiECListMandatariQualificati.Where(x => x.RecipientId != null).Sum(item => item.ValoreSync),
                             TotaleAsync = reportPrivatiECListMandatariQualificati.Where(x => x.RecipientId != null).Sum(item => item.TotaleAsync),
