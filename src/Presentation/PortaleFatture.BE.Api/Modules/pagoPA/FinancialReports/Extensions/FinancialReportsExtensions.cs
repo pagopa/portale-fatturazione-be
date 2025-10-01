@@ -80,9 +80,7 @@ public static class FinancialReportsExtensions
 
     public static FinancialReportsQuarterByIdResponse Map(this GridFinancialReportListDto reports, PSPListDto psps, IDocumentStorageSASService sasService)
     {
-        var financialReport = reports.FinancialReports!.FirstOrDefault();
-        if (financialReport!.Reports!.Where(x => x.Contains(DocumentiFinancialReportSASStorageKey.S3Prefix)).FirstOrDefault() != null)
-            financialReport!.Reports = financialReport.Reports!.Select(x => sasService.GetSASToken(DocumentiFinancialReportSASStorageKey.Deserialize(x))).ToList();
+        var financialReport = reports.FinancialReports!.FirstOrDefault(); 
 
         var psp = psps.PSPs == null ? null : psps.PSPs!.FirstOrDefault();
         List<string> checkedReports = [];

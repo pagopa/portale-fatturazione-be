@@ -5,6 +5,7 @@ public sealed class DocumentiFinancialReportSASStorageKey(
     string? tipologiaDocumento)
 {
     public const string S3Prefix = @"https://public.pdnd.pagopa.it/apps/public/invoices/";
+    public const string AzurePrefix = @"blob.core.windows.net";
     public string? ContractId { get; init; } = contractId;
     public string? Quarter { get; init; } = quarter;
     public string? TipologiaDocumento { get; init; } = tipologiaDocumento;  
