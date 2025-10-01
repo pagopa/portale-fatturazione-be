@@ -81,7 +81,7 @@ public static class FinancialReportsExtensions
     public static FinancialReportsQuarterByIdResponse Map(this GridFinancialReportListDto reports, PSPListDto psps, IDocumentStorageSASService sasService)
     {
         var financialReport = reports.FinancialReports!.FirstOrDefault(); 
-        // no filter
+        // elimina verifica
         var psp = psps.PSPs == null ? null : psps.PSPs!.FirstOrDefault();
         List<string> checkedReports = [];
         foreach (var report in financialReport!.Reports!)
