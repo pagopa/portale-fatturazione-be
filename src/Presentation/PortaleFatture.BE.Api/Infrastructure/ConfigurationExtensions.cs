@@ -38,6 +38,7 @@ public static class ConfigurationExtensions
     private static readonly ModuleManager _moduleManager = new();
     public static IServiceCollection AddModules(this WebApplicationBuilder builder)
     {
+        // verifica
         var services = builder.Services;
         var configuration = builder.Configuration;
         var isProd = builder.Environment.IsProduction();
