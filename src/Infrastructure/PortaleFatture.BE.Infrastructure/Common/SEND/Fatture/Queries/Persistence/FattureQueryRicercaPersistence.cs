@@ -60,9 +60,13 @@ public class FattureQueryRicercaPersistence(FattureQueryRicerca command) : Dappe
                 f.fattura!.RagioneSociale = ente.RagioneSociale;
                 f.fattura!.TipoContratto = ente.TipoContratto;
                 f.fattura!.IdContratto = ente.IdContratto;
+
+                //ordina posizioni
+                f.fattura.Posizioni = f.fattura!.Posizioni?.OrderBy(p => p.NumeroLinea).ToList();
             }
         }
-        var fattData = new FattureListaDto();
+        var fattData = new FattureListaDto(); 
+
         fattData.AddRange(computedFatture);
         return fattData;
     }
