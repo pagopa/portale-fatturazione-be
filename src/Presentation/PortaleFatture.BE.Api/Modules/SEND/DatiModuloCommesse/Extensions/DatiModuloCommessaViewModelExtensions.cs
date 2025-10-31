@@ -1,15 +1,61 @@
-﻿using Azure;
+﻿using MediatR;
 using PortaleFatture.BE.Api.Modules.SEND.DatiModuloCommesse.Payload.Request;
 using PortaleFatture.BE.Api.Modules.SEND.DatiModuloCommesse.Payload.Response;
 using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Entities.SEND.DatiModuloCommesse;
 using PortaleFatture.BE.Core.Entities.SEND.DatiModuloCommesse.Dto;
+using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Infrastructure.Common.SEND.DatiModuloCommesse.Commands;
+using PortaleFatture.BE.Infrastructure.Common.SEND.DatiModuloCommesse.Queries;
 
 namespace PortaleFatture.BE.Api.Modules.SEND.DatiModuloCommesse.Extensions;
 
 public static class DatiModuloCommessaViewModelExtensions
 {
+    public static async Task<IEnumerable<ModuloCommessaPrevisionaleTotaleDto>?> ValidateModuloCommessaPrevisionale(IMediator handler, List<DatiModuloCommessaCreateRequest> req, AuthenticationInfo? authInfo)
+    {
+        var anniMesi = req.Select(r => (r.Anno, r.Mese)).ToList();
+
+        // verifica chiusura via pipeline, se c'è almeno un chiusa/caricato o stimato
+        foreach (var (anno, mese) in anniMesi)
+        {
+            var verifica = await handler.Send(new DatiModuloCommessaVerificaChiusura()
+            {
+                Anno = anno,
+                Mese = mese
+            });
+            if (verifica == true)
+                throw new DomainException("Non puoi inserire il modulo commessa per scadenza termini.");
+        }
+
+        // torna i moduli commessa ammissibili attuali con obbligatori e facoltativi
+        var moduliCommessa = await handler.Send(new DatiModuloCommessaPrevisionaleQueryGetByAnno(authInfo!)
+        {
+            AnnoValidita = null,
+        });
+
+        var check = true;
+        // verifica valori ammissibili modifica o mancanza di calendario
+        foreach (var sreq in req)
+        {
+            var moduliCommessaDaInserire = moduliCommessa!.Where(x => x.AnnoValidita == sreq.Anno && x.MeseValidita == sreq.Mese).FirstOrDefault();
+            if (moduliCommessaDaInserire == null)
+                check = check && false;
+            else
+            {
+                if (moduliCommessaDaInserire.Modifica == false)
+                {
+                    throw new DomainException("Non puoi modificare il modulo commessa per scadenza termini.");
+                }
+            }
+        }
+
+        if (!check)
+            throw new DomainException("Non puoi modificare il modulo commessa per scadenza termini.");
+
+        return moduliCommessa;
+    }
+
     public static DatiModuloCommessaByAnnoResponse Mapper(this ModuloCommessaByAnnoDto model)
     {
         Dictionary<int, ModuloCommessaMeseTotaleResponse>? totali = [];

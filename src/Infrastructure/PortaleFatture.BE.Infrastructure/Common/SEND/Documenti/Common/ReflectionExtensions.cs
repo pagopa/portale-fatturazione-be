@@ -174,7 +174,12 @@ public static class ReflectionExtensions
         {
             row = table.NewRow();
             foreach (var hh in headers)
-                row[hh.Name!] = d!.GetType().GetProperty(hh.Name!)!.GetValue(d, null);
+            {
+                var value = d!.GetType().GetProperty(hh.Name!)!.GetValue(d, null);
+                row[hh.Name!] = (value == null || (value is string s && string.IsNullOrEmpty(s)))
+                 ? DBNull.Value
+                 : value;
+            } 
 
             table.Rows.Add(row);
         }

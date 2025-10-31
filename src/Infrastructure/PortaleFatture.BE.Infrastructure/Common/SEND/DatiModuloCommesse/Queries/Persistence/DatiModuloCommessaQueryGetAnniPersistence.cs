@@ -8,7 +8,7 @@ public class DatiModuloCommessaQueryGetAnniPersistence(string? idEnte, string? p
 {
     private readonly string? _idEnte = idEnte;
     private readonly string? _prodotto = prodotto;
-    private static readonly string _sqlSelect = DatiModuloCommessaAnniSQLBuilder.SelectBy();
+    private static readonly string _sqlSelect = DatiModuloCommessaAnniSQLBuilder.SelectAllAnniByIdEnte();
 
     public async Task<IEnumerable<string>?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken ct = default)
     {

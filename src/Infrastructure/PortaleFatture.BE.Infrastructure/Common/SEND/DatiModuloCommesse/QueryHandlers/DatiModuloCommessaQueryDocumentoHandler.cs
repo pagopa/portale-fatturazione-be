@@ -36,6 +36,7 @@ namespace PortaleFatture.BE.Infrastructure.Common.SEND.DatiModuloCommesse.QueryH
                 AnnoValidita = command.AnnoValidita,
                 MeseValidita = command.MeseValidita,
             }, ct);
+
             if (datiModuloCommessa == null)
                 return null;
 
@@ -54,7 +55,10 @@ namespace PortaleFatture.BE.Infrastructure.Common.SEND.DatiModuloCommesse.QueryH
                 AnnoValidita = command.AnnoValidita,
             });
 
-            var moduloTotaleMese = moduliTotaleAnno!.Where(x => x.MeseValidita == command.MeseValidita).FirstOrDefault();
+            ModuloCommessaByAnnoDto? moduloTotaleMese = null;
+
+            if (!(moduliTotaleAnno == null || moduliTotaleAnno.IsNullNotAny()))
+                moduloTotaleMese = moduliTotaleAnno!.Where(x => x.MeseValidita == command.MeseValidita).FirstOrDefault();
 
             var prepare = new ModuloCommessaAggregateDto()
             {

@@ -18,9 +18,9 @@ public class DatiModuloCommessaCreateCommand : IRequest<DatiModuloCommessa>
     public string? Stato { get; set; }
     public string? Prodotto { get; set; }
     public int IdTipoSpedizione { get; set; }
-    public decimal ValoreNazionali { get; set; }
-    public decimal PrezzoNazionali { get; set; }
-    public decimal ValoreInternazionali { get; set; }
-    public decimal PrezzoInternazionali { get; set; }
+    public decimal? ValoreNazionali { get; set; }
+    public decimal? PrezzoNazionali { get; set; }
+    public decimal? ValoreInternazionali { get; set; }
+    public decimal? PrezzoInternazionali { get; set; }
     public bool Fatturabile { get; set; }
 }

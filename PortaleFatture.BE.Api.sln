@@ -43,6 +43,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PortaleFatture.BE.EmailPSPS
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PortaleFatture.BE.Function.API", "src\Presentation\PortaleFatture.BE.Function.API\PortaleFatture.BE.Function.API.csproj", "{3BDADB61-3359-BEC6-F0D3-AAB0DD56D62B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PortaleFatture.BE.ImportModuloCommessaAderenti", "src\Presentation\PortaleFatture.BE.ImportModuloCommessaAderenti\PortaleFatture.BE.ImportModuloCommessaAderenti.csproj", "{2E3F6B30-E7E0-4147-8906-DFA66F65738A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -91,6 +93,10 @@ Global
 		{3BDADB61-3359-BEC6-F0D3-AAB0DD56D62B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3BDADB61-3359-BEC6-F0D3-AAB0DD56D62B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3BDADB61-3359-BEC6-F0D3-AAB0DD56D62B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2E3F6B30-E7E0-4147-8906-DFA66F65738A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2E3F6B30-E7E0-4147-8906-DFA66F65738A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2E3F6B30-E7E0-4147-8906-DFA66F65738A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2E3F6B30-E7E0-4147-8906-DFA66F65738A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -108,6 +114,7 @@ Global
 		{E32705A0-D6F3-40F7-B2D0-4A08FEAE18B2} = {FCE0D4DD-5884-4A2A-814E-F58B18092F76}
 		{E41A8735-126D-4F6D-82C2-166CB605EB8D} = {FCE0D4DD-5884-4A2A-814E-F58B18092F76}
 		{3BDADB61-3359-BEC6-F0D3-AAB0DD56D62B} = {FCE0D4DD-5884-4A2A-814E-F58B18092F76}
+		{2E3F6B30-E7E0-4147-8906-DFA66F65738A} = {FCE0D4DD-5884-4A2A-814E-F58B18092F76}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {E21864C8-BAF8-4D8B-957E-726DB3040371}

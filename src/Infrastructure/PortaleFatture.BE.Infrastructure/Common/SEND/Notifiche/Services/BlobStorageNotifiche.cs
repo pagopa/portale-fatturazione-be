@@ -1,9 +1,7 @@
-﻿using System;
-using Azure.Storage;
+﻿using Azure.Storage;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Azure.Storage.Sas;
-using Org.BouncyCastle.Ocsp;
 using PortaleFatture.BE.Core.Common;
 
 namespace PortaleFatture.BE.Infrastructure.Common.SEND.Notifiche.Services;

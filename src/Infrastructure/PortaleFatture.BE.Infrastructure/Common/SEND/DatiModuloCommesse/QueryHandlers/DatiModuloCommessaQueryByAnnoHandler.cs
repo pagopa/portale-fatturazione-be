@@ -67,38 +67,41 @@ namespace PortaleFatture.BE.Infrastructure.Common.SEND.DatiModuloCommesse.QueryH
             foreach (var dato in dati!)
             {
                 var dates = moduloCommesseDate!.Where(x => x.MeseValidita == dato.MeseValidita).FirstOrDefault()!;
-                var dataModifica = dates.DataModifica == DateTime.MinValue ? dates.DataCreazione : dates.DataModifica;
-                lista.TryGetValue(dato.MeseValidita, out var modulo);
-                modulo ??= new()
+                if(dates is not null)
                 {
-                    Prodotto = dato.Prodotto,
-                    AnnoValidita = dato.AnnoValidita,
-                    IdEnte = dato.IdEnte,
-                    IdTipoContratto = dato.IdTipoContratto,
-                    MeseValidita = dato.MeseValidita,
-                    Stato = dato.Stato,
-                    Totali = [],
-                    DataModifica = dataModifica
-                };
+                    var dataModifica = dates!.DataModifica == DateTime.MinValue ? dates.DataCreazione : dates.DataModifica;
+                    lista.TryGetValue(dato.MeseValidita, out var modulo);
+                    modulo ??= new()
+                    {
+                        Prodotto = dato.Prodotto,
+                        AnnoValidita = dato.AnnoValidita,
+                        IdEnte = dato.IdEnte,
+                        IdTipoContratto = dato.IdTipoContratto,
+                        MeseValidita = dato.MeseValidita,
+                        Stato = dato.Stato,
+                        Totali = [],
+                        DataModifica = dataModifica
+                    };
 
-                modulo.Totali!.TryGetValue(dato.IdCategoriaSpedizione, out var totMese);
-                totMese = new()
-                {
-                    IdCategoriaSpedizione = dato.IdCategoriaSpedizione,
-                    Tipo = dicCategorie[dato.IdCategoriaSpedizione],
-                    TotaleCategoria = dato.TotaleCategoria
-                };
-                modulo.Totali[dato.IdCategoriaSpedizione] = totMese;
-                modulo.Totale = modulo.Totali.Sum(x => x.Value.TotaleCategoria);
+                    modulo.Totali!.TryGetValue(dato.IdCategoriaSpedizione, out var totMese);
+                    totMese = new()
+                    {
+                        IdCategoriaSpedizione = dato.IdCategoriaSpedizione,
+                        Tipo = dicCategorie[dato.IdCategoriaSpedizione],
+                        TotaleCategoria = dato.TotaleCategoria
+                    };
+                    modulo.Totali[dato.IdCategoriaSpedizione] = totMese;
+                    modulo.Totale = modulo.Totali.Sum(x => x.Value.TotaleCategoria);
 
-                var (valid, scadenziario) = await _scadenziarioService.GetScadenziario(
-                     command.AuthenticationInfo,
-                     TipoScadenziario.DatiModuloCommessa,
-                     dato.AnnoValidita,
-                     dato.MeseValidita);
+                    var (valid, scadenziario) = await _scadenziarioService.GetScadenziario(
+                         command.AuthenticationInfo,
+                         TipoScadenziario.DatiModuloCommessa,
+                         dato.AnnoValidita,
+                         dato.MeseValidita);
 
-                modulo.Modifica = dato.Stato == StatoModuloCommessa.ApertaCaricato && valid;
-                lista[dato.MeseValidita] = modulo;
+                    modulo.Modifica = dato.Stato == StatoModuloCommessa.ApertaCaricato && valid;
+                    lista[dato.MeseValidita] = modulo;
+                } 
             }
 
             return lista.Select(x => x.Value);

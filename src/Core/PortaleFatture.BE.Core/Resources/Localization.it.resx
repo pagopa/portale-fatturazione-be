@@ -279,4 +279,10 @@
   <data name="ContestazioniEnteEmpty" xml:space="preserve">
     <value>Atteso un id ente "{0}" trovato "{1}".</value>
   </data>
+  <data name="DatiModuloCommessaObbligatoriNotInserted" xml:space="preserve">
+    <value />
+  </data>
+  <data name="DatiModuloCommessaErrorInsertPrevisionale" xml:space="preserve">
+    <value />
+  </data>
 </root>
