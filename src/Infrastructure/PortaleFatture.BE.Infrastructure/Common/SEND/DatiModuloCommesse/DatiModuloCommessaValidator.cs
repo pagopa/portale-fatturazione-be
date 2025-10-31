@@ -24,7 +24,7 @@ public static class DatiModuloCommessaValidator
         int? meseValidita,
         string? stato)
     {
-        var (annoFatturazione, meseFatturazione, _, _) = Time.YearMonthDayFatturazione();
+        //var (annoFatturazione, meseFatturazione, _, _) = Time.YearMonthDayFatturazione();
 
         if (numeroNotificheNazionali == null || numeroNotificheNazionali < 0)
             return ("DatiModuloCommessaInvalid", Array.Empty<string>());
@@ -32,11 +32,11 @@ public static class DatiModuloCommessaValidator
         if (numeroNotificheInternazionali == null || numeroNotificheInternazionali < 0)
             return ("DatiModuloCommessaInvalid", Array.Empty<string>());
 
-        if (annoValidita == null || annoValidita != annoFatturazione)
-            return ("DatiModuloCommessaDataInvalid", Array.Empty<string>());
+        //if (annoValidita == null || annoValidita != annoFatturazione)
+        //    return ("DatiModuloCommessaDataInvalid", Array.Empty<string>());
 
-        if (meseValidita == null || meseValidita != meseFatturazione)
-            return ("DatiModuloCommessaDataInvalid", Array.Empty<string>());
+        //if (meseValidita == null || meseValidita != meseFatturazione)
+        //    return ("DatiModuloCommessaDataInvalid", Array.Empty<string>());
 
         if (string.IsNullOrEmpty(stato))
             return ("DatiModuloCommessaStatoInvalid", Array.Empty<string>());

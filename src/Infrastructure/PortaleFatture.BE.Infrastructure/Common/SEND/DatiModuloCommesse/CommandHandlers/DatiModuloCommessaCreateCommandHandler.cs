@@ -3,7 +3,6 @@ using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using PortaleFatture.BE.Core.Entities.SEND.DatiModuloCommesse;
 using PortaleFatture.BE.Core.Entities.SEND.DatiModuloCommesse.Dto;
-using PortaleFatture.BE.Core.Entities.SEND.Scadenziari;
 using PortaleFatture.BE.Core.Entities.SEND.Tipologie;
 using PortaleFatture.BE.Core.Entities.Storici;
 using PortaleFatture.BE.Core.Exceptions;
@@ -34,11 +33,8 @@ public class DatiModuloCommessaCreateCommandHandler(
     public async Task<ModuloCommessaDto?> Handle(DatiModuloCommessaCreateListCommand command, CancellationToken ct)
     {
         var (annoAttuale, meseAttuale, giornoAttuale, adesso) = Time.YearMonthDayFatturazione();
-
-        var (valid, scadenziario) = await _scadenziarioService.GetScadenziario(command.AuthenticationInfo, TipoScadenziario.DatiModuloCommessa, annoAttuale, meseAttuale);
-
-        if (!valid)
-            throw new ValidationException(_localizer["DataScadenziarioValidationError", $"{scadenziario.GiornoInizio}-{scadenziario.GiornoFine}"]);
+        var mesePrecedente = command.Mese;
+        var annoPrecedente = command.Anno; 
 
         var idTipoContratto = command.AuthenticationInfo.IdTipoContratto;
         var prodotto = command.AuthenticationInfo.Prodotto;
@@ -49,7 +45,7 @@ public class DatiModuloCommessaCreateCommandHandler(
         {
             // recupero sempre lo stesso contratto mese anno prodotto ente
             // anche se è cambiato il contratto
-            var datiAttivi = await at.Query(new DatiModuloCommessaQueryGetByIdPersistence(idEnte, annoAttuale, meseAttuale, prodotto), ct);
+            var datiAttivi = await at.Query(new DatiModuloCommessaQueryGetByIdPersistence(idEnte, command.Anno, command.Anno, prodotto), ct);
             if (!datiAttivi!.IsNullNotAny())
                 idTipoContratto = datiAttivi!.Select(x => x.IdTipoContratto).FirstOrDefault();
         }
@@ -96,7 +92,7 @@ public class DatiModuloCommessaCreateCommandHandler(
             stato = statoCommessa!.Stato;
         }
 
-        var commandTotale = command.GetTotali(categorie, confModuloCommessa, idEnte, annoAttuale, meseAttuale, idTipoContratto.Value, prodotto, stato);
+        var commandTotale = command.GetTotali(categorie, confModuloCommessa, idEnte, command.Anno, command.Mese, idTipoContratto.Value, prodotto, stato);
 
         var fatturabile = true;
         foreach (var cmd in command.DatiModuloCommessaListCommand!) // validazione per id tipo spedizione
@@ -104,20 +100,24 @@ public class DatiModuloCommessaCreateCommandHandler(
             cmd.Stato = stato;
             cmd.Prodotto = prodotto;
             cmd.IdTipoContratto = idTipoContratto.Value;
-            cmd.AnnoValidita = annoAttuale;
-            cmd.MeseValidita = meseAttuale;
+            cmd.AnnoValidita = command.Anno;
+            cmd.MeseValidita = command.Mese;
             cmd.DataCreazione = adesso;
             cmd.DataModifica = adesso;
             fatturabile = cmd.Fatturabile; // segno fatturabile se passato
 
             var (error, errorDetails) = DatiModuloCommessaValidator.Validate(cmd);
             if (!string.IsNullOrEmpty(error))
-                throw new DomainException(_localizer[error, errorDetails]);
+                throw new DomainException(_localizer[error, errorDetails]); 
 
-            cmd.ValoreNazionali = commandTotale.ParzialiTipoCommessa![cmd.IdTipoSpedizione].ValoreNazionali;
-            cmd.ValoreInternazionali = commandTotale.ParzialiTipoCommessa![cmd.IdTipoSpedizione].ValoreInternazionali;
-            cmd.PrezzoNazionali = commandTotale.ParzialiTipoCommessa![cmd.IdTipoSpedizione].PrezzoNazionali;
-            cmd.PrezzoInternazionali = commandTotale.ParzialiTipoCommessa![cmd.IdTipoSpedizione].PrezzoInternazionali;
+ 
+            if (meseAttuale == mesePrecedente && annoAttuale == annoPrecedente)
+            {
+                cmd.ValoreNazionali = commandTotale.ParzialiTipoCommessa![cmd.IdTipoSpedizione].ValoreNazionali;
+                cmd.ValoreInternazionali = commandTotale.ParzialiTipoCommessa![cmd.IdTipoSpedizione].ValoreInternazionali;
+                cmd.PrezzoNazionali = commandTotale.ParzialiTipoCommessa![cmd.IdTipoSpedizione].PrezzoNazionali;
+                cmd.PrezzoInternazionali = commandTotale.ParzialiTipoCommessa![cmd.IdTipoSpedizione].PrezzoInternazionali;
+            } 
         }
 
         using var uow = await _factory.Create(true, cancellationToken: ct);
@@ -127,9 +127,34 @@ public class DatiModuloCommessaCreateCommandHandler(
             if (rowAffected == command.DatiModuloCommessaListCommand!.Count)
             {
                 commandTotale.DatiModuloCommessaTotaleListCommand!.ForEach(x => x.Fatturabile = fatturabile);
-                rowAffected = await uow.Execute(new DatiModuloCommessaCreateTotaleCommandPersistence(commandTotale), ct);
+                if (meseAttuale == mesePrecedente && annoAttuale == annoPrecedente)
+                    rowAffected = await uow.Execute(new DatiModuloCommessaCreateTotaleCommandPersistence(commandTotale), ct);
+                else
+                    rowAffected = commandTotale.DatiModuloCommessaTotaleListCommand!.Count;
+
                 if (rowAffected == commandTotale.DatiModuloCommessaTotaleListCommand!.Count)
-                    uow.Commit();
+                {
+                    if (!command.ValoriRegioni.IsNullNotAny())
+                    {
+                        await uow.Execute(new DatiModuloCommessaValoriRegioniDeleteCommandPersistence(command.AuthenticationInfo.IdEnte,
+                            command.Anno,
+                            command.Mese
+                            ), ct);
+                        rowAffected = await uow.Execute(new DatiModuloCommessaValoriRegioniInsertCommandPersistence(command.ValoriRegioni!), ct);
+                    }
+                    else
+                    {
+                        await uow.Execute(new DatiModuloCommessaValoriRegioniDeleteCommandPersistence(command.AuthenticationInfo.IdEnte,
+                            command.Anno,
+                            command.Mese
+                            ), ct);
+                    }
+
+                    if (rowAffected > 0)
+                        uow.Commit();
+                    else
+                        uow.Rollback();
+                }
                 else
                 {
                     uow.Rollback();
@@ -150,11 +175,11 @@ public class DatiModuloCommessaCreateCommandHandler(
             throw new DomainException(_localizer["DatiModuloCommessaError", idEnte!]);
         }
 
-        var datic = await uow.Query(new DatiModuloCommessaQueryGetByIdPersistence(idEnte, annoAttuale, meseAttuale, prodotto), ct);
-        var datit = await uow.Query(new DatiModuloCommessaTotaleQueryGetByIdPersistence(idEnte, annoAttuale, meseAttuale, prodotto), ct);
+        var datic = await uow.Query(new DatiModuloCommessaQueryGetByIdPersistence(idEnte, command.Anno, command.Mese, prodotto), ct);
+        var datit = await uow.Query(new DatiModuloCommessaTotaleQueryGetByIdPersistence(idEnte, command.Anno, command.Mese, prodotto), ct);
         var moduloCommessa = new ModuloCommessaDto()
         {
-            Modifica = valid && stato == StatoModuloCommessa.ApertaCaricato,
+            Modifica = true, // da verificare questo
             DatiModuloCommessa = datic!,
             DatiModuloCommessaTotale = datit!,
             Anno = datic!.Select(x => x.AnnoValidita).FirstOrDefault(),

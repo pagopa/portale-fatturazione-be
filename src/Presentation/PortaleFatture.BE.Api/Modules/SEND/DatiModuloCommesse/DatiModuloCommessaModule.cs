@@ -16,6 +16,7 @@ using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Core.Resources;
 using PortaleFatture.BE.Infrastructure.Common.Identity;
 using PortaleFatture.BE.Infrastructure.Common.SEND.DatiModuloCommesse.Dto;
+using PortaleFatture.BE.Infrastructure.Common.SEND.DatiModuloCommesse.Extensions;
 using PortaleFatture.BE.Infrastructure.Common.SEND.DatiModuloCommesse.Queries;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Documenti;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Documenti.Common;
@@ -27,6 +28,169 @@ namespace PortaleFatture.BE.Api.Modules.DatiModuloCommesse;
 public partial class DatiModuloCommessaModule
 {
     #region PagoPA
+
+    [Authorize(Roles = $"{Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<bool>, NotFound>> CreateDatiModuloCommessaPrevisionalePagoPAAsync(
+    HttpContext context,
+    [FromBody] List<DatiModuloCommessaCreateRequest> req,
+    [FromQuery] string idEnte,
+    [FromQuery] int idTipoContratto,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        authInfo.IdEnte = idEnte;
+        authInfo.IdTipoContratto = idTipoContratto;
+        var idente = idEnte;
+
+        var moduliCommessa = await DatiModuloCommessaViewModelExtensions.ValidateModuloCommessaPrevisionale(handler, req, authInfo);
+
+        //verifica se ci sono obbligatori non inseriti 
+
+        //var check = true;
+        //if (moduliCommessa.IsNullNotAny() || moduliCommessa!.Where(x => x.Source!.ToLower().Contains("obbliga")).Select(x => x.Totale).Any(x => !x.HasValue))
+        //{
+        //    foreach (var sreq in req)
+        //    {
+        //        var filter = moduliCommessa!.Where(x => x.AnnoValidita == sreq.Anno && x.MeseValidita == sreq.Mese).FirstOrDefault();
+        //        if (filter == null)
+        //            check = check && false;
+        //    }
+        //}
+
+        //if (!check)
+        //    throw new DomainException(localizer["DatiModuloCommessaObbligatoriNotInserted"]);
+
+
+
+        var verify = true;
+        foreach (var sreq in req)
+        {
+
+            var command = sreq.Mapper(authInfo) ?? throw new ValidationException(localizer["DatiModuloCommessaInvalidMapping"]);
+
+            command.Anno = sreq.Anno;
+            command.Mese = sreq.Mese;
+
+            foreach (var cmd in command.DatiModuloCommessaListCommand!)
+            {
+                cmd.IdEnte = idente;
+                cmd.AnnoValidita = sreq.Anno;
+                cmd.MeseValidita = sreq.Mese;
+            }
+
+            command.ValoriRegioni = sreq.ValoriRegioni;
+
+            if (command.ValoriRegioni != null)
+            {
+                foreach (var cmd in command.ValoriRegioni)
+                {
+                    cmd.Internalistitutionid = idente;
+                    cmd.Anno = sreq.Anno;
+                    cmd.Mese = sreq.Mese;
+                }
+            }
+
+            var modulo = await handler.Send(command) ?? throw new DomainException(localizer["DatiModuloCommessaInvalidMapping"]);
+            if (modulo == null)
+                verify = verify && false;
+        }
+        if (!verify)
+            throw new DomainException(localizer["DatiModuloCommessaErrorInsertPrevisionale"]);
+
+        return Ok(true);
+    }
+
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<IResult> PagoPADatiModuloCommessaRicercaDocumentoReportAsync(
+    HttpContext context,
+    [FromBody] EnteRicercaModuloCommessaByDescrizioneRequest req,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var reports = await handler.Send(new ModuloCommessaPrevisionaleDownloadQueryGet(authInfo)
+        {
+            Anno = req.Anno,
+            Mese = req.Mese,
+            IdEnti = req.IdEnti
+        });
+
+        if (reports.IsNullNotAny())
+            return NotFound();
+
+        var mime = "application/vnd.ms-excel";
+        var filename = $"{Guid.NewGuid()}.xlsx";
+
+        var dataSet = reports.FillOneSheet();
+        var content = dataSet.ToExcel();
+
+        return Results.File(content!, mime, filename);
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<ModuloCommessaDocumentoDto>, NotFound>> GetDatiModuloCommessaDocumentoPagoPAAsync(
+    HttpContext context,
+    [FromRoute] int? anno,
+    [FromRoute] int? mese,
+    [FromQuery] string? idEnte,
+    [FromServices] IMediator handler,
+    [FromServices] IWebHostEnvironment hostingEnvironment,
+    [FromServices] IStringLocalizer<Localization> localizer)
+    {
+        var authInfo = context.GetAuthInfo();
+        authInfo.Prodotto = "prod-pn";
+        authInfo.IdEnte = idEnte;
+
+        var dati = await handler.Send(new DatiModuloCommessaDocumentoQueryGet(authInfo)
+        {
+            AnnoValidita = anno,
+            MeseValidita = mese
+        });
+        if (dati == null)
+            return NotFound();
+        return Ok(dati);
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<ModuloCommessaRegioneDto>>, NotFound>> GetDatiModuloCommessaListaObbligatoriPagoPAAsync(
+      HttpContext context,
+      [FromServices] IStringLocalizer<Localization> localizer,
+      [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var regioni = await handler.Send(new DatiRegioniModuloCommessaQueryGet(authInfo)
+        {
+
+        });
+
+        if (regioni.IsNullNotAny())
+            return NotFound();
+
+        return Ok(regioni);
+    }
+
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -39,12 +203,12 @@ public partial class DatiModuloCommessaModule
       [FromServices] IMediator handler)
     {
         var authInfo = context.GetAuthInfo();
-        authInfo.Prodotto = "prod-pn";  
+        authInfo.Prodotto = "prod-pn";
 
         var annomesi = await handler.Send(new DatiModuloCommessaGetAnniMesi(authInfo));
         if (annomesi.IsNullNotAny())
             return NotFound();
-        
+
         return Ok(annomesi);
     }
 
@@ -68,12 +232,45 @@ public partial class DatiModuloCommessaModule
         authInfo.IdEnte = idEnte;
         authInfo.IdTipoContratto = idTipoContratto;
 
-        await VerificaContratto(handler, localizer, authInfo); 
- 
+        await VerificaContratto(handler, localizer, authInfo);
+
         var modulo = await handler.Send(new DatiModuloCommessaQueryGet(authInfo));
         var response = modulo!.Mapper(authInfo);
         response!.Modifica = response.Modifica && !response.ModuliCommessa!.IsNullNotAny();
         return Ok(response);
+    }
+
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<ModuloCommessaPrevisionaleTotaleDto>, NotFound>> GetPagoPADatiModuloCommessav2Async(
+    HttpContext context,
+    [FromQuery] string? idEnte,
+    [FromQuery] string? prodotto,
+    [FromQuery] int? anno,
+    [FromQuery] int? mese,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+
+        //await VerificaContratto(handler, localizer, authInfo);
+
+        var moduli = await handler.Send(new DatiModuloCommessaQueryGetByDescrizione(authInfo)
+        {
+            AnnoValidita = anno,
+            MeseValidita = mese,
+            Prodotto = prodotto == "" ? null : prodotto,
+            IdEnti = [idEnte!]
+        });
+
+        if (moduli.IsNullNotAny())
+            return NotFound();
+        return Ok(moduli!.FirstOrDefault());
     }
 
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
@@ -94,7 +291,7 @@ public partial class DatiModuloCommessaModule
         {
             AnnoValidita = req.Anno,
             MeseValidita = req.Mese,
-            Prodotto = req.Prodotto,
+            Prodotto = req.Prodotto == "" ? null : req.Prodotto,
             IdEnti = req.IdEnti
         });
 
@@ -104,7 +301,7 @@ public partial class DatiModuloCommessaModule
         var mime = "application/vnd.ms-excel";
         var filename = $"{Guid.NewGuid()}.xlsx";
 
-        var dataSet = moduli.FillOneSheet();
+        var dataSet = moduli.Select(x => x.ToViewModel()).FillOneSheet();
         var content = dataSet.ToExcel();
         if (binary == null)
             return Ok(new DocumentDto() { Documento = Convert.ToBase64String(content.ToArray()) });
@@ -118,7 +315,7 @@ public partial class DatiModuloCommessaModule
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    private async Task<Results<Ok<IEnumerable<ModuloCommessaByRicercaDto>>, NotFound>> PagoPADatiModuloCommessaRicercaAsync(
+    private async Task<Results<Ok<IEnumerable<ModuloCommessaPrevisionaleTotaleDto>>, NotFound>> PagoPADatiModuloCommessaRicercaAsync(
     HttpContext context,
     [FromBody] EnteRicercaModuloCommessaByDescrizioneRequest req,
     [FromServices] IStringLocalizer<Localization> localizer,
@@ -129,11 +326,12 @@ public partial class DatiModuloCommessaModule
         {
             AnnoValidita = req.Anno,
             MeseValidita = req.Mese,
-            Prodotto = req.Prodotto,
-            IdEnti = req.IdEnti
+            Prodotto = req.Prodotto == "" ? null : req.Prodotto,
+            IdEnti = req.IdEnti,
+            RecuperaRegioni = false
         });
 
-        if (moduli == null || moduli.Count() == 0)
+        if (moduli.IsNullNotAny())
             return NotFound();
         return Ok(moduli);
     }
@@ -210,6 +408,58 @@ public partial class DatiModuloCommessaModule
         return Ok(response);
     }
 
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<ModuloCommessaPrevisionaleObbligatoriResponse>, NotFound>> GetPagoPADatiModuloCommessaByAnnoMesev2Async(
+       HttpContext context,
+       [FromRoute] int anno,
+       [FromRoute] int mese,
+       [FromQuery] string? idEnte,
+       [FromQuery] string? prodotto,
+       [FromQuery] long? idTipoContratto,
+       [FromServices] IStringLocalizer<Localization> localizer,
+       [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        authInfo.IdEnte = idEnte;
+        authInfo.Prodotto = prodotto;
+        authInfo.IdTipoContratto = idTipoContratto;
+
+        var moduli = await handler.Send(new DatiModuloCommessaPrevisionaleQueryGetByAnno(authInfo)
+        {
+            AnnoValidita = anno,
+            MeseValidita = mese
+        });
+
+        if (moduli.IsNullNotAny())
+            return NotFound();
+
+        var modulo = moduli!.FirstOrDefault();
+        var aderente = await handler.Send(new DatiModuloCommessaAderentiQueryGet(authInfo)
+        {
+            IdEnte = authInfo.IdEnte,
+        });
+        var totali = await handler.Send(new DatiModuloCommessaTotaleQueryGet(authInfo)
+        {
+            AnnoValidita = anno,
+            MeseValidita = mese
+        });
+
+
+        return Ok(new ModuloCommessaPrevisionaleObbligatoriResponse()
+        {
+            DescrizioneMacrocategoriaVendita = aderente.SottocategoriaVendita,
+            MacrocategoriaVendita = aderente.TipoDistribuzione,
+            Lista = [modulo],
+            Totali = totali!.ToList()
+        });
+    }
+
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -222,7 +472,7 @@ public partial class DatiModuloCommessaModule
     [FromRoute] int? mese,
     [FromQuery] string? idEnte,
     [FromQuery] string? prodotto,
-    [FromQuery] long? idTipoContratto,
+    [FromQuery] int? idTipoContratto,
     [FromServices] IMediator handler,
     [FromServices] IWebHostEnvironment hostingEnvironment,
     [FromServices] IStringLocalizer<Localization> localizer)
@@ -269,7 +519,12 @@ public partial class DatiModuloCommessaModule
 
         await VerificaContratto(handler, localizer, authInfo);
 
-        var dati = await handler.Send(new DatiModuloCommessaDocumentoPagoPAQueryGet(authInfo)
+        //var dati = await handler.Send(new DatiModuloCommessaDocumentoPagoPAQueryGet(authInfo)
+        //{
+        //    AnnoValidita = anno,
+        //    MeseValidita = mese
+        //});
+        var dati = await handler.Send(new DatiModuloCommessaDocumentoQueryGet(authInfo)
         {
             AnnoValidita = anno,
             MeseValidita = mese
@@ -400,6 +655,249 @@ public partial class DatiModuloCommessaModule
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<ModuloCommessaPrevisionaleTotaleDto>>, NotFound>> GetDatiModuloCommessaPrevisionaleByAnnoAsync(
+    HttpContext context,
+    [FromRoute] int? anno,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var modulo = await handler.Send(new DatiModuloCommessaPrevisionaleQueryGetByAnno(authInfo)
+        {
+            AnnoValidita = anno,
+        });
+        if (modulo.IsNullNotAny())
+            return NotFound();
+        return Ok(modulo);
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<bool>, NotFound>> GetDatiModuloCommessaOkObbligatoriAsync(
+    HttpContext context,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var modulo = await handler.Send(new DatiModuloCommessaPrevisionaleQueryGetByAnno(authInfo)
+        {
+            AnnoValidita = null,
+        });
+        if (modulo.IsNullNotAny())
+            return NotFound();
+        var verifica = modulo!
+            .Where(x => x.Source!.Contains("obbliga", StringComparison.CurrentCultureIgnoreCase));
+        var almenoUnoNull = verifica
+            .Any(x => !x.TotaleNotifiche.HasValue);
+        return Ok(almenoUnoNull);
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<ModuloCommessaRegioneDto>>, NotFound>> GetDatiModuloCommessaListaObbligatoriAsync(
+      HttpContext context,
+      [FromServices] IStringLocalizer<Localization> localizer,
+      [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var regioni = await handler.Send(new DatiRegioniModuloCommessaQueryGet(authInfo)
+        {
+
+        });
+
+        if (regioni.IsNullNotAny())
+            return NotFound();
+
+        return Ok(regioni);
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<ModuloCommessaPrevisionaleObbligatoriResponse>, NotFound>> GetDatiModuloCommessaByAnnoMesePrevisionaleAsync(
+    HttpContext context,
+    [FromRoute] int anno,
+    [FromRoute] int mese,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var moduli = await handler.Send(new DatiModuloCommessaPrevisionaleQueryGetByAnno(authInfo)
+        {
+            AnnoValidita = anno,
+            MeseValidita = mese
+        });
+
+        if (moduli.IsNullNotAny())
+            return NotFound();
+
+        var modulo = moduli!.FirstOrDefault();
+        var aderente = await handler.Send(new DatiModuloCommessaAderentiQueryGet(authInfo)
+        {
+            IdEnte = authInfo.IdEnte,
+        });
+        var totali = await handler.Send(new DatiModuloCommessaTotaleQueryGet(authInfo)
+        {
+            AnnoValidita = anno,
+            MeseValidita = mese
+        });
+
+
+        return Ok(new ModuloCommessaPrevisionaleObbligatoriResponse()
+        {
+            DescrizioneMacrocategoriaVendita = aderente.SottocategoriaVendita,
+            MacrocategoriaVendita = aderente.TipoDistribuzione,
+            Lista = [modulo],
+            Totali = totali!.ToList()
+        });
+    }
+
+    [Authorize(Roles = $"{Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<bool>, NotFound>> CreateDatiModuloCommessaPrevisionaleAsync(
+    HttpContext context,
+    [FromBody] List<DatiModuloCommessaCreateRequest> req,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var idente = authInfo.IdEnte;
+
+        var moduliCommessa = await DatiModuloCommessaViewModelExtensions.ValidateModuloCommessaPrevisionale(handler, req, authInfo);
+
+        // se mese di rieferimento è >19 ti blocco?
+
+        //verifica se ci sono obbligatori non inseriti 
+        //var moduliCommessaObbligatori = moduliCommessa!.Where(x => x.Source!.ToLower().Contains("obbliga")); 
+        //var filtraObbligatoriConValoriNull = moduliCommessaObbligatori.Where(x => x.TotaleNotifiche == null); 
+
+        //if (moduliCommessaObbligatori.IsNullNotAny())
+        //    throw new DomainException(localizer["DatiModuloCommessaObbligatoriNotInserted"]); 
+
+
+        ////verifica se il periodo di riferimento è corretto
+        //var (annoAttuale, meseAttuale, giornoAttuale, adesso) = Time.YearMonthDay();
+        //var calendario = await handler.Send(new DatiPrevisionaleCalendarioQuery(authInfo)
+        //{
+        //    AnnoRiferimento = annoAttuale,
+        //    MeseRiferimento = meseAttuale
+        //});
+
+        //var giornoAttualeDateOnly = new DateTime(annoAttuale, meseAttuale, giornoAttuale);
+
+        //var filteredRequests = req.Where(x =>
+        //    calendario.Any(c => 
+        //        x.Anno == c.AnnoRiferimento &&
+        //        x.Mese == c.MeseRiferimento && 
+        //        c.Datavalidita.Date <= giornoAttualeDateOnly.Date
+        //    )
+        //).ToList();
+
+        //if (filteredRequests.Count != req.Count)
+        //    throw new ValidationException(localizer["DatiModuloCommessaInvalidMapping"]);
+
+        var verify = true;
+        foreach (var sreq in req)
+        {
+
+            var command = sreq.Mapper(authInfo) ?? throw new ValidationException(localizer["DatiModuloCommessaInvalidMapping"]);
+
+            command.Anno = sreq.Anno;
+            command.Mese = sreq.Mese;
+
+            foreach (var cmd in command.DatiModuloCommessaListCommand!)
+            {
+                cmd.IdEnte = idente;
+                cmd.AnnoValidita = sreq.Anno;
+                cmd.MeseValidita = sreq.Mese;
+            }
+
+            command.ValoriRegioni = sreq.ValoriRegioni;
+
+            if (command.ValoriRegioni != null)
+            {
+                foreach (var cmd in command.ValoriRegioni)
+                {
+                    cmd.Internalistitutionid = idente;
+                    cmd.Anno = sreq.Anno;
+                    cmd.Mese = sreq.Mese;
+                }
+            }
+
+            var modulo = await handler.Send(command) ?? throw new DomainException(localizer["DatiModuloCommessaInvalidMapping"]);
+            if (modulo == null)
+                verify = verify && false;
+        }
+        if (!verify)
+            throw new DomainException(localizer["DatiModuloCommessaErrorInsertPrevisionale"]);
+
+        return Ok(true);
+    }
+
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<ModuloCommessaPrevisionaleObbligatoriResponse>, NotFound>> GetDatiModuloCommessaRegioniAsync(
+      HttpContext context,
+      [FromServices] IStringLocalizer<Localization> localizer,
+      [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var modulo = await handler.Send(new DatiModuloCommessaPrevisionaleQueryGetByAnno(authInfo)
+        {
+            AnnoValidita = null,
+        });
+        if (modulo.IsNullNotAny())
+            return NotFound();
+        var filtered = modulo!
+            .Where(x => x.Source!.Contains("obbliga", StringComparison.CurrentCultureIgnoreCase))
+            .ToList();
+
+        var lista = filtered.Any(x => !x.Totale.HasValue)
+            ? filtered
+            : [];
+
+        if (lista.IsNullNotAny())
+            return NotFound();
+
+        var aderente = await handler.Send(new DatiModuloCommessaAderentiQueryGet(authInfo)
+        {
+            IdEnte = authInfo.IdEnte,
+        });
+
+        return Ok(new ModuloCommessaPrevisionaleObbligatoriResponse()
+        {
+            DescrizioneMacrocategoriaVendita = aderente.SottocategoriaVendita,
+            MacrocategoriaVendita = aderente.TipoDistribuzione,
+            Lista = lista
+        });
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     private async Task<Results<Ok<IEnumerable<DatiModuloCommessaParzialiTotaleResponse>>, NotFound>> GetDatiModuloCommessaParzialiByAnnoAsync(
     HttpContext context,
     [FromRoute] int? anno,
@@ -429,7 +927,7 @@ public partial class DatiModuloCommessaModule
     {
         var authInfo = context.GetAuthInfo();
         var anni = await handler.Send(new DatiModuloCommessaGetAnni(authInfo));
-        if (anni == null || anni.Count() == 0)
+        if (anni.IsNullNotAny())
             return NotFound();
         return Ok(anni);
     }

@@ -80,7 +80,7 @@ public class SupportAPIServiceHttpClient(
             msg = $"Modifica Codice SDI per l'ente {ente.RagioneSociale} con id:{ente.IdEnte} e onboardingId:{ente.IdContratto} fallita: servizio non risponde";
             _logger.LogError($"{msg}"); 
         }
-        msg = "La modifica richiesta non può essere attualmente effettuata.";
+        msg = "La modifica non è andata a buon fine, ritentare l'inserimento oppure contattare l'assistenza.";
         return (false, msg);
     }
 }

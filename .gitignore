@@ -546,6 +546,8 @@ src/Presentation/PortaleFatture.BE.Function.API/PortaleFatture.BE.Function.API.s
 src/Presentation/PortaleFatture.BE.ImportFattureGrandiAderenti/data/fatture/primo saldo/FatturePagoPa_01_2025.json
 src/Presentation/PortaleFatture.BE.ImportFattureGrandiAderenti/data/fatture/primo saldo/FatturePagoPa_02_2025.json
 src/Presentation/PortaleFatture.BE.ImportFattureGrandiAderenti/data/fatture/primo saldo/FatturePagoPa_03_2025.json
+/src/Presentation/PortaleFatture.BE.ImportModuloCommessaAderenti/Documenti/categorizzazione_clienti_send_2025-07-14_08-50.json
+/src/Presentation/PortaleFatture.BE.ImportModuloCommessaAderenti/Documenti/categorizzazione_clienti.csv
 nul
 src/Presentation/PortaleFatture.BE.ImportFattureGrandiAderenti/data/fatture/primo saldo/FatturePagoPa_04_2025.json
 src/Presentation/PortaleFatture.BE.ImportFattureGrandiAderenti/data/fatture/primo saldo/FatturePagoPa_05_2025.json
@@ -553,3 +555,6 @@ src/Presentation/PortaleFatture.BE.ImportFattureGrandiAderenti/data/fatture/prim
 src/Presentation/PortaleFatture.BE.ImportFattureGrandiAderenti/data/fatture/primo saldo/FatturePagoPa_07_2025.json
 src/Presentation/PortaleFatture.BE.ImportFattureGrandiAderenti/data/fatture/primo saldo/FatturePagoPa_INPS_08_2025.json
 src/Presentation/PortaleFatture.BE.ImportFattureGrandiAderenti/data/fatture/primo saldo/FatturePagoPa_reg._Lombardia_08_2025.json
+src/Presentation/PortaleFatture.BE.ImportFattureGrandiAderenti/data/fatture/primo saldo/FatturePagoPa_reg._Lombardia_06_2025_per PF.json
+src/Presentation/PortaleFatture.BE.ImportFattureGrandiAderenti/data/fatture/primo saldo/FatturePagoPa_reg._Lombardia_07_2025_per_PF.json
+src/Presentation/PortaleFatture.BE.ImportFattureGrandiAderenti/data/fatture/primo saldo/FatturePagoPa_reg._Lombardia_08_2025 per_PF.json

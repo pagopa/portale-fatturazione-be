@@ -35,6 +35,25 @@ public class DatiModuloCommessaAnniSQLBuilder
         var builderTemplate = builder.AddTemplate($"Select DISTINCT(/**select**/) from [schema]{tableName} /**where**/ ");
         return builderTemplate.RawSql;
     }
+
+    private static string _selectAllAnniByIdEnte = $@"
+SELECT DISTINCT Anno
+FROM ( 
+    SELECT t.AnnoValidita AS Anno
+    FROM [pfw].[DatiModuloCommessa] t
+    WHERE t.FkIdEnte = @idEnte
+      AND t.FkProdotto = @prodotto 
+    UNION  
+    SELECT cf.Year
+    FROM [pfd].[vConfigurazioneDatiModuloCommessa] cf
+    WHERE cf.annoRiferimento = YEAR(GETDATE())
+	AND cf.meseRiferimento = MONTH(GETDATE())
+) AS CombinedYears
+ORDER BY Anno;";
+    public static string SelectAllAnniByIdEnte()
+    {
+        return _selectAllAnniByIdEnte;
+    }
     public static string SelectByAnnoMese()
     {
         return $@"

@@ -125,4 +125,54 @@ WHERE Anno = @Anno and Mese = @Mese";
         var fieldMeseValidita = nameof(@obj.MeseValidita);
         return $"{fieldMeseValidita}";
     }
+
+    private static string _sqlRegioni = @$"
+SELECT r.[CodiceIstat] as istatRegione
+      ,[Regione]
+	  ,p.CodiceIstat as istatProvincia
+	  ,p.Provincia
+  FROM [pfw].[Regioni] r
+  inner join pfw.Province p
+  on r.CodiceIstat= p.CodiceIstatRegione 
+  order by regione desc 
+";
+    public static string SelectRegioni()
+    {
+        return _sqlRegioni;
+    }
+
+    private static string _sqlAderenti = @$"
+SELECT   
+       [DataExport]
+      ,[Internalistitutionid]
+      ,[Segmento]
+      ,[MacrocategoriaVendita]
+      ,[SottocategoriaVendita]
+      ,[Provincia]
+      ,[Regione]
+      ,[TipoDistribuzione]
+  FROM [pfd].[vDatiModuloCommessaAderenti] 
+WHERE [Internalistitutionid] = @idEnte    
+";
+
+    public static string SelectAderenti()
+    {
+        return _sqlAderenti;
+    }
+
+    public static string VerificaChiusuraAnnoMese()
+    {
+        return $@"
+SELECT 
+    CASE 
+        WHEN EXISTS (
+            SELECT 1
+            FROM [pfw].[DatiModuloCommessa]
+            WHERE FkIdStato LIKE '%chiusa%'
+              AND AnnoValidita = @anno 
+              AND MeseValidita = @mese
+        ) THEN CAST(1 AS BIT)
+        ELSE CAST(0 AS BIT)
+    END AS Esiste";
+    }
 }

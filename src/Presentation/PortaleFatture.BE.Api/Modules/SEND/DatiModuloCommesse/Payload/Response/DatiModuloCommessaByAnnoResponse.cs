@@ -1,5 +1,11 @@
 ﻿namespace PortaleFatture.BE.Api.Modules.SEND.DatiModuloCommesse.Payload.Response;
 
+public class DatiModuloCommessaByAnnoPrevisionaleResponse: DatiModuloCommessaByAnnoResponse
+{
+    public string? Source { get; set; }
+    public string? Quarter { get; set; }
+}
+
 public class DatiModuloCommessaByAnnoResponse
 {
     public bool Modifica { get; set; }

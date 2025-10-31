@@ -269,29 +269,32 @@ public static class DocumentExtensions
         var digitale = catDigitale.Select(x => x.Descrizione).FirstOrDefault()!.Replace("[data]", data).Replace("[percent]", percentDigitale.ToString());
         var analogico = catAnalogico.Select(x => x.Descrizione).FirstOrDefault()!.Replace("[data]", data).Replace("[percent]", percentAnalogico.ToString());
 
-        totaleModulo.Totali!.TryGetValue(2, out var totaleDigitale);
-        totaleModulo.Totali!.TryGetValue(1, out var totaleAnalogico);
+        if(!(totaleModulo == null || totaleModulo.Totali.IsNullNotAny()))
+        {
+            totaleModulo.Totali!.TryGetValue(2, out var totaleDigitale);
+            totaleModulo.Totali!.TryGetValue(1, out var totaleAnalogico);
 
-        var totali = moduloDocumento.DatiModuloCommessaCosti!.ToList();
-        totali.Add(
-           new DatiModuloCommessaTotaleCostoDto()
-           {
-               Totale = totaleDigitale == null ? 0 : totaleDigitale.TotaleCategoria,
-               Descrizione = digitale
-           });
-        totali.Add(
-           new DatiModuloCommessaTotaleCostoDto()
-           {
-               Totale = totaleAnalogico == null ? 0 : totaleAnalogico.TotaleCategoria,
-               Descrizione = analogico
-           });
-        totali.Add(
-           new DatiModuloCommessaTotaleCostoDto()
-           {
-               Totale = totaleModulo!.Totale,
-               Descrizione = "TOTALE MODULO COMMESSA NETTO IVA"
-           });
-        moduloDocumento.DatiModuloCommessaCosti = totali;
+            var totali = moduloDocumento.DatiModuloCommessaCosti!.ToList();
+            totali.Add(
+               new DatiModuloCommessaTotaleCostoDto()
+               {
+                   Totale = totaleDigitale == null ? 0 : totaleDigitale.TotaleCategoria,
+                   Descrizione = digitale
+               });
+            totali.Add(
+               new DatiModuloCommessaTotaleCostoDto()
+               {
+                   Totale = totaleAnalogico == null ? 0 : totaleAnalogico.TotaleCategoria,
+                   Descrizione = analogico
+               });
+            totali.Add(
+               new DatiModuloCommessaTotaleCostoDto()
+               {
+                   Totale = totaleModulo!.Totale,
+                   Descrizione = "TOTALE MODULO COMMESSA NETTO IVA"
+               });
+            moduloDocumento.DatiModuloCommessaCosti = totali;
+        } 
         return moduloDocumento;
     }
 }
