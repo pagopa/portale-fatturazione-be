@@ -48,6 +48,7 @@ FROM (
     FROM [pfd].[vConfigurazioneDatiModuloCommessa] cf
     WHERE cf.annoRiferimento = YEAR(GETDATE())
 	AND cf.meseRiferimento = MONTH(GETDATE())
+	AND cf.FkIdEnte=@idente
 ) AS CombinedYears
 ORDER BY Anno;";
     public static string SelectAllAnniByIdEnte()
