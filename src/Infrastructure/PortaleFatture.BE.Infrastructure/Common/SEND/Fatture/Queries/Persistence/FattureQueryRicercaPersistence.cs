@@ -38,6 +38,7 @@ public class FattureQueryRicercaPersistence(FattureQueryRicerca command) : Dappe
             AnnoRiferimento = anno,
             MeseRiferimento = mese,
             TipologiaFattura = tipoFattura,
+            FkIdTipoContratto = _command.FkIdTipoContratto
         };
 
         using var values = await ((IDatabase)this).QueryMultipleAsync<FattureListaDto>(

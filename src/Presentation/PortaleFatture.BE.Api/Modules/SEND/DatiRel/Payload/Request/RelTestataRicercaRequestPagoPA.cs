@@ -15,5 +15,6 @@ public class RelTestataRicercaRequestPagoPA
     {
         get { return _idEnti; }
         set { _idEnti = value!.IsNullNotAny() ? null : value; }
-    }
+    } 
+    public int? IdTipoContratto { get; set; } 
 }

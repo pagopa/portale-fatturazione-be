@@ -49,7 +49,7 @@ public partial class FattureModule
         if (dateFatture == null || !dateFatture!.Any())
             return NotFound();
         return Ok(dateFatture);
-    }  
+    }
 
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
     [EnableCors(CORSLabel)]
@@ -650,6 +650,24 @@ public partial class FattureModule
         if (fatture == null || !fatture!.Any())
             return NotFound();
         return Ok(fatture);
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<TipologiaContrattoDto>>, NotFound>> GetTipologiaContratto(
+    HttpContext context,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var tipologia = await handler.Send(new TipologiaContrattoQuery(authInfo));
+        if (tipologia.IsNullNotAny())
+            return NotFound();
+        return Ok(tipologia);
     }
 
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]

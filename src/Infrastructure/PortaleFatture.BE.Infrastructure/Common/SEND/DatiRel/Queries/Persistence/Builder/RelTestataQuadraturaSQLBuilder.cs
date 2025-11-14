@@ -7,18 +7,20 @@ SELECT Count(nc.[internal_organization_id])
 FROM [pfd].[NotificheCount] as nc
   left outer join pfd.Enti as e
   ON e.InternalIstitutionId = nc.internal_organization_id
+  left outer join pfd.Contratti as cc
+  ON cc.internalistitutionid = e.InternalIstitutionId
   left outer join pfd.RelTestata as r
   ON r.internal_organization_id = nc.internal_organization_id
   AND r.contract_id = nc.contract_id
   AND r.year= nc.year
   AND r.month = nc.month
-  AND r.TipologiaFattura = @TipologiaFattura 
+  AND (@TipologiaFattura IS NULL OR r.TipologiaFattura = @TipologiaFattura)
   left outer join pfd.ContestazioniStorico as c
   ON c.internal_organization_id = nc.internal_organization_id
   AND c.contract_id = nc.contract_id
   AND c.year= nc.year
   AND c.month = nc.month
-  AND c.TipologiaFattura=@TipologiaFattura 
+  AND (@TipologiaFattura IS NULL OR c.TipologiaFattura = @TipologiaFattura)
 ";
     private static string _sqlNoTipologiaFattura = @"
 SELECT	 
@@ -33,6 +35,7 @@ SELECT
 		,nc.[TotaleNotificheDigitali]  as NotificheTotaleNotificheDigitali
 		,nc.[Totale] as NotificheTotale   
 	    ,nc.[TotaleNotificheAnalogiche] + nc.[TotaleNotificheDigitali] as NotificheTotaleNotifiche   
+		,r.TipologiaFattura as RelTipologiaFattura
 		,r.TotaleAnalogico as RelTotaleAnalogico
 		,r.TotaleDigitale  as RelTotaleDigitale
 		,r.TotaleNotificheAnalogiche as RelTotaleNotificheAnalogiche
@@ -45,6 +48,7 @@ SELECT
 		,r.AsseverazioneTotaleNotificheDigitali   as RelAsseTotaleNotificheDigitali
 		,r.AsseverazioneTotale as RelAsseTotale   
         ,ISNULL(r.AsseverazioneTotaleNotificheAnalogiche,0) + ISNULL(r.AsseverazioneTotaleNotificheDigitali,0) as RelAsseTotaleNotifiche
+		,r.TipologiaFattura as TipologiaFattura
 		,ISNULL(c.[TotaleAnalogico],0) as ContestazioniTotaleAnalogico
 		,ISNULL(c.[TotaleDigitale],0)  as ContestazioniTotaleDigitale
 		,ISNULL(c.[TotaleNotificheAnalogiche],0) as ContestazioniTotaleNotificheAnalogiche
@@ -61,12 +65,32 @@ SELECT
 FROM [pfd].[NotificheCount] as nc
 left outer join pfd.Enti as e
 ON e.InternalIstitutionId = nc.internal_organization_id
+left outer join pfd.Contratti as cc
+  ON cc.internalistitutionid = e.InternalIstitutionId
 left outer join 
 	(SELECT		
+			 rt.[internal_organization_id]  
+			,rt.[contract_id]  
+			,rt.[year] 
+			,rt.[month]
+			,rt.[TipologiaFattura]
+			,rt.[TotaleAnalogico]
+			,rt.[TotaleDigitale]
+			,rt.[TotaleNotificheAnalogiche]
+			,rt.[TotaleNotificheDigitali]
+			,rt.[Totale]
+			,rt.[AsseverazioneTotaleAnalogico]
+			,rt.[AsseverazioneTotaleDigitale]
+			,rt.[AsseverazioneTotaleNotificheAnalogiche]
+			,rt.[AsseverazioneTotaleNotificheDigitali]
+			,rt.[AsseverazioneTotale]
+	FROM (
+		SELECT
 			 [internal_organization_id]  
 			,[contract_id]  
 			,[year] 
-			,[month]  
+			,[month]
+			,[TipologiaFattura]
 			,SUM(ISNULL([TotaleAnalogico],0)) as [TotaleAnalogico]
 			,SUM(ISNULL([TotaleDigitale],0))  as [TotaleDigitale]
 			,SUM(ISNULL([TotaleNotificheAnalogiche],0)) as [TotaleNotificheAnalogiche]
@@ -77,14 +101,27 @@ left outer join
 			,SUM(ISNULL([AsseverazioneTotaleNotificheAnalogiche],0)) as [AsseverazioneTotaleNotificheAnalogiche]
 			,SUM(ISNULL([AsseverazioneTotaleNotificheDigitali],0))   as [AsseverazioneTotaleNotificheDigitali]
 			,SUM(ISNULL([AsseverazioneTotale],0)) as [AsseverazioneTotale]
-	from pfd.RelTestata  
-	group by [internal_organization_id],[contract_id],[year], [month]) r
+			, ROW_NUMBER() OVER (PARTITION BY internal_organization_id, contract_id, year, month 
+				ORDER BY  
+					(CASE 
+						WHEN TipologiaFattura = 'PRIMO SALDO' THEN 'A' 
+						WHEN TipologiaFattura = 'SECONDO SALDO' THEN 'B'  
+						WHEN TipologiaFattura = 'VAR. SEMESTRALE' THEN 'C'
+						ELSE 'Z'
+					END) DESC
+			) AS RowNum
+		FROM pfd.RelTestata
+		GROUP BY [internal_organization_id],[contract_id],[year], [month], [TipologiaFattura]
+	) rt
+	WHERE rt.RowNum = 1
+) r
   ON r.internal_organization_id = nc.internal_organization_id  AND r.contract_id = nc.contract_id and r.year = nc.year and r.month = nc.month
 left outer join 
 	(SELECT  cr.internal_organization_id
 	        ,cr.contract_id 
 			,cr.year
 			,cr.month
+			,cr.TipologiaFattura
 			,ISNULL(cr.[TotaleAnalogico],0) as [TotaleAnalogico]
 			,ISNULL(cr.[TotaleDigitale],0)  as [TotaleDigitale]
 			,ISNULL(cr.[TotaleNotificheAnalogiche],0) as [TotaleNotificheAnalogiche]
@@ -107,67 +144,74 @@ left outer join
 		  ,[TipologiaFattura]
 		  , ROW_NUMBER() OVER (PARTITION BY internal_organization_id, contract_id,year,month  ORDER BY  
 				(CASE WHEN TipologiaFattura = 'PRIMO SALDO' THEN 'A' 
-	    			  WHEN TipologiaFattura = 'SECONDO SALDO' THEN 'B' 
+	    			  WHEN TipologiaFattura = 'SECONDO SALDO' THEN 'B'  
+				      WHEN TipologiaFattura = 'VAR. SEMESTRALE' THEN 'C'
+					  ELSE 'Z'
 					  END) DESC) AS RowNum     
 			FROM  [pfd].ContestazioniStorico
 		  ) as cr
 		  WHERE RowNum = 1) c
- ON c.internal_organization_id = r.internal_organization_id and c.contract_id = r.contract_id and c.year = r.year and c.month = r.month
+ ON c.internal_organization_id = nc.internal_organization_id 
+    and c.contract_id = nc.contract_id 
+    and c.year = nc.year 
+    and c.month = nc.month 
 ";
     private static string _sql = @"
 SELECT 
-		 nc.[internal_organization_id] as IdEnte
-		,e.description as RagioneSociale
-		,nc.[contract_id] as  IdContratto
-		,r.TipologiaFattura as TipologiaFattura
-		,nc.[year] as  Anno
-		,nc.[month] as Mese
-		,ISNULL(c.[TotaleAnalogico],0) as ContestazioniTotaleAnalogico
-		,ISNULL(c.[TotaleDigitale],0)  as ContestazioniTotaleDigitale
-		,ISNULL(c.[TotaleNotificheAnalogiche],0) as ContestazioniTotaleNotificheAnalogiche
-		,ISNULL(c.[TotaleNotificheDigitali],0)  as ContestazioniTotaleNotificheDigitali
-		,ISNULL(c.[Totale],0) as ContestazioniTotale   
-		,ISNULL(c.[TotaleNotificheAnalogiche],0) + ISNULL(c.[TotaleNotificheDigitali],0) as ContestazioniNotificheTotale   
-		,ISNULL(r.[TotaleAnalogico],0) as RelTotaleAnalogico
-		,ISNULL(r.[TotaleDigitale],0)  as RelTotaleDigitale
-		,ISNULL(r.[TotaleNotificheAnalogiche],0) as RelTotaleNotificheAnalogiche
-		,ISNULL(r.[TotaleNotificheDigitali],0)  as RelTotaleNotificheDigitali
-		,ISNULL(r.[Totale],0) as RelTotale  
-        ,ISNULL(r.[TotaleNotificheAnalogiche],0) + ISNULL(r.[TotaleNotificheDigitali],0) as RelTotaleNotifiche
-	    ,ISNULL([AsseverazioneTotaleAnalogico],0) as RelAsseTotaleAnalogico
-        ,ISNULL([AsseverazioneTotaleDigitale],0)   as RelAsseTotaleDigitale
-        ,ISNULL([AsseverazioneTotaleNotificheAnalogiche],0) as RelAsseTotaleNotificheAnalogiche
-        ,ISNULL([AsseverazioneTotaleNotificheDigitali],0)   as RelAsseTotaleNotificheDigitali
-        ,ISNULL([AsseverazioneTotaleNotificheAnalogiche],0) + ISNULL([AsseverazioneTotaleNotificheDigitali],0) as RelAsseTotaleNotifiche
-        ,ISNULL([AsseverazioneTotale],0) as RelAsseTotale   
-		,nc.[TotaleAnalogico] as NotificheTotaleAnalogico
-		,nc.[TotaleDigitale]  as NotificheTotaleDigitale
-		,nc.[TotaleNotificheAnalogiche] as NotificheTotaleNotificheAnalogiche
-		,nc.[TotaleNotificheDigitali]  as NotificheTotaleNotificheDigitali
-		,nc.[Totale] as NotificheTotale   
-		,nc.[TotaleNotificheAnalogiche] + nc.[TotaleNotificheDigitali] as NotificheTotaleNotifiche   
-		,nc.[TotaleAnalogico] - ISNULL(c.[TotaleAnalogico],0) - ISNULL(r.[TotaleAnalogico],0) - ISNULL(r.[AsseverazioneTotaleAnalogico],0) as  DiffTotaleAnalogico
-		,nc.[TotaleDigitale]  - ISNULL(c.[TotaleDigitale],0) - ISNULL(r.[TotaleDigitale],0)- ISNULL(r.[AsseverazioneTotaleDigitale],0) as DiffTotaleDigitale
-		,nc.[TotaleNotificheAnalogiche]  - ISNULL(c.[TotaleNotificheAnalogiche],0) - ISNULL(r.[TotaleNotificheAnalogiche],0) - ISNULL(r.[AsseverazioneTotaleNotificheAnalogiche],0) as DiffTotaleNotificheAnalogiche
-		,nc.[TotaleNotificheDigitali]  - ISNULL(c.[TotaleNotificheDigitali],0) - ISNULL(r.[TotaleNotificheDigitali],0)  - ISNULL(r.[AsseverazioneTotaleNotificheDigitali],0) as DiffTotaleNotificheDigitali
-		,nc.[Totale]  - ISNULL(c.[Totale],0) - ISNULL(r.[Totale],0)- ISNULL(r.[AsseverazioneTotale],0)  as DiffTotale 
-		,nc.TotaleNotificheDigitali + nc.TotaleNotificheAnalogiche - ISNULL(c.TotaleNotificheDigitali,0)- ISNULL(c.TotaleNotificheAnalogiche,0) - ISNULL(r.TotaleNotificheDigitali,0)  - ISNULL(r.TotaleNotificheAnalogiche,0)  - ISNULL(r.AsseverazioneTotaleNotificheAnalogiche,0)  - ISNULL(r.AsseverazioneTotaleNotificheAnalogiche,0) as DiffTotaleNotificheZero
+     nc.[internal_organization_id] as IdEnte
+    ,e.description as RagioneSociale
+    ,nc.[contract_id] as  IdContratto
+    ,r.TipologiaFattura as TipologiaFattura
+    ,nc.[year] as  Anno
+    ,nc.[month] as Mese
+    ,ISNULL(c.[TotaleAnalogico],0) as ContestazioniTotaleAnalogico
+    ,ISNULL(c.[TotaleDigitale],0)  as ContestazioniTotaleDigitale
+    ,ISNULL(c.[TotaleNotificheAnalogiche],0) as ContestazioniTotaleNotificheAnalogiche
+    ,ISNULL(c.[TotaleNotificheDigitali],0)  as ContestazioniTotaleNotificheDigitali
+    ,ISNULL(c.[Totale],0) as ContestazioniTotale   
+    ,ISNULL(c.[TotaleNotificheAnalogiche],0) + ISNULL(c.[TotaleNotificheDigitali],0) as ContestazioniNotificheTotale   
+    ,ISNULL(r.[TotaleAnalogico],0) as RelTotaleAnalogico
+    ,ISNULL(r.[TotaleDigitale],0)  as RelTotaleDigitale
+    ,ISNULL(r.[TotaleNotificheAnalogiche],0) as RelTotaleNotificheAnalogiche
+    ,ISNULL(r.[TotaleNotificheDigitali],0)  as RelTotaleNotificheDigitali
+    ,ISNULL(r.[Totale],0) as RelTotale  
+    ,ISNULL(r.[TotaleNotificheAnalogiche],0) + ISNULL(r.[TotaleNotificheDigitali],0) as RelTotaleNotifiche
+    ,ISNULL([AsseverazioneTotaleAnalogico],0) as RelAsseTotaleAnalogico
+    ,ISNULL([AsseverazioneTotaleDigitale],0)   as RelAsseTotaleDigitale
+    ,ISNULL([AsseverazioneTotaleNotificheAnalogiche],0) as RelAsseTotaleNotificheAnalogiche
+    ,ISNULL([AsseverazioneTotaleNotificheDigitali],0)   as RelAsseTotaleNotificheDigitali
+    ,ISNULL([AsseverazioneTotaleNotificheAnalogiche],0) + ISNULL([AsseverazioneTotaleNotificheDigitali],0) as RelAsseTotaleNotifiche
+    ,ISNULL([AsseverazioneTotale],0) as RelAsseTotale   
+    ,nc.[TotaleAnalogico] as NotificheTotaleAnalogico
+    ,nc.[TotaleDigitale]  as NotificheTotaleDigitale
+    ,nc.[TotaleNotificheAnalogiche] as NotificheTotaleNotificheAnalogiche
+    ,nc.[TotaleNotificheDigitali]  as NotificheTotaleNotificheDigitali
+    ,nc.[Totale] as NotificheTotale   
+    ,nc.[TotaleNotificheAnalogiche] + nc.[TotaleNotificheDigitali] as NotificheTotaleNotifiche   
+    ,nc.[TotaleAnalogico] - ISNULL(c.[TotaleAnalogico],0) - ISNULL(r.[TotaleAnalogico],0) - ISNULL(r.[AsseverazioneTotaleAnalogico],0) as  DiffTotaleAnalogico
+    ,nc.[TotaleDigitale]  - ISNULL(c.[TotaleDigitale],0) - ISNULL(r.[TotaleDigitale],0)- ISNULL(r.[AsseverazioneTotaleDigitale],0) as DiffTotaleDigitale
+    ,nc.[TotaleNotificheAnalogiche]  - ISNULL(c.[TotaleNotificheAnalogiche],0) - ISNULL(r.[TotaleNotificheAnalogiche],0) - ISNULL(r.[AsseverazioneTotaleNotificheAnalogiche],0) as DiffTotaleNotificheAnalogiche
+    ,nc.[TotaleNotificheDigitali]  - ISNULL(c.[TotaleNotificheDigitali],0) - ISNULL(r.[TotaleNotificheDigitali],0)  - ISNULL(r.[AsseverazioneTotaleNotificheDigitali],0) as DiffTotaleNotificheDigitali
+    ,nc.[Totale]  - ISNULL(c.[Totale],0) - ISNULL(r.[Totale],0)- ISNULL(r.[AsseverazioneTotale],0)  as DiffTotale 
+    ,nc.TotaleNotificheDigitali + nc.TotaleNotificheAnalogiche - ISNULL(c.TotaleNotificheDigitali,0)- ISNULL(c.TotaleNotificheAnalogiche,0) - ISNULL(r.TotaleNotificheDigitali,0)  - ISNULL(r.TotaleNotificheAnalogiche,0)  - ISNULL(r.AsseverazioneTotaleNotificheAnalogiche,0)  - ISNULL(r.AsseverazioneTotaleNotificheAnalogiche,0) as DiffTotaleNotificheZero
  
-  FROM [pfd].[NotificheCount] as nc
-  left outer join pfd.Enti as e
-  ON e.InternalIstitutionId = nc.internal_organization_id
-  left outer join pfd.RelTestata as r
-  ON r.internal_organization_id = nc.internal_organization_id
-  AND r.contract_id = nc.contract_id
-  AND r.year= nc.year
-  AND r.month = nc.month
-  AND r.TipologiaFattura=@TipologiaFattura 
-  left outer join pfd.ContestazioniStorico as c
-  ON c.internal_organization_id = nc.internal_organization_id
-  AND c.contract_id = nc.contract_id
-  AND c.year= nc.year
-  AND c.month = nc.month
-  AND c.TipologiaFattura=@TipologiaFattura 
+FROM [pfd].[NotificheCount] as nc
+  INNER JOIN pfd.RelTestata as r
+    ON r.internal_organization_id = nc.internal_organization_id
+    AND r.contract_id = nc.contract_id
+    AND r.year = nc.year
+    AND r.month = nc.month
+    AND (@TipologiaFattura IS NULL OR r.TipologiaFattura = @TipologiaFattura)
+  LEFT OUTER JOIN pfd.Enti as e
+    ON e.InternalIstitutionId = nc.internal_organization_id
+  LEFT OUTER JOIN pfd.Contratti as cc
+    ON cc.internalistitutionid = e.InternalIstitutionId
+  LEFT OUTER JOIN pfd.ContestazioniStorico as c
+    ON c.internal_organization_id = nc.internal_organization_id
+    AND c.contract_id = nc.contract_id
+    AND c.year = nc.year
+    AND c.month = nc.month
+    AND (@TipologiaFattura IS NULL OR c.TipologiaFattura = @TipologiaFattura) 
 ";
 
     private static string _offSet = " OFFSET (@page-1)*@size ROWS FETCH NEXT @size ROWS ONLY";

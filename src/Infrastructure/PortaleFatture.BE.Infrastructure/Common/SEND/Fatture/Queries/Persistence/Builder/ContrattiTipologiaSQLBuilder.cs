@@ -50,5 +50,15 @@ FROM   [pfd].[contrattitipologia] ct
     {
         return _sqlCount;
     }
+
+    private static string _selectTipologiaContratto = @$"
+    select distinct(FkIdTipoContratto) as id, t.Descrizione as descrizione from pfd.Contratti c
+    inner join pfw.TipoContratto t
+    on t.IdTipoContratto = c.FkIdTipoContratto 
+";
+    public static string SelectTipologiaContratto()
+    {
+        return _selectTipologiaContratto;
+    } 
 }
 

@@ -109,7 +109,7 @@ try
     //        RagioneSociale = ente.RagioneSociale,
     //        TipologiaFattura = ente.TipologiaFattura
     //    });
-    //}
+    }
 }
 catch (Exception ex)
 {

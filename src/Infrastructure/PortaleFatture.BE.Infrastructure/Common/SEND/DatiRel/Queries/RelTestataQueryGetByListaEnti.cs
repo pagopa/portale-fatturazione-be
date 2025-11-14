@@ -14,5 +14,6 @@ public class RelTestataQueryGetByListaEnti(IAuthenticationInfo authenticationInf
     public int? Mese { get; set; }
     public byte? Caricata { get; set; }
     public int? Page { get; set; }
-    public int? Size { get; set; }
+    public int? Size { get; set; } 
+    public int? FkIdTipoContratto { get; set; }
 }

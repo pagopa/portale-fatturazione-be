@@ -2,7 +2,6 @@
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.SEND.DatiRel.Dto;
-using PortaleFatture.BE.Infrastructure.Common.SEND.DatiRel.Queries;
 using PortaleFatture.BE.Infrastructure.Common.SEND.DatiRel.Queries.Persistence.Builder;
 
 namespace PortaleFatture.BE.Infrastructure.Common.SEND.DatiRel.Queries.Persistence;
@@ -23,6 +22,7 @@ public class RelTestataQueryGetByListaEntiQuadraturaPersistence(RelTestataQueryG
         var size = _command.Size;
         var anno = _command.Anno;
         var mese = _command.Mese;
+        var idTipoContratto = _command.FkIdTipoContratto;
 
         if (anno.HasValue)
             where += " WHERE nc.year=@anno";
@@ -31,6 +31,10 @@ public class RelTestataQueryGetByListaEntiQuadraturaPersistence(RelTestataQueryG
 
         if (!_command.EntiIds.IsNullNotAny())
             where += $" AND nc.internal_organization_id IN @entiIds";
+
+        if (idTipoContratto.HasValue)
+            where += " AND cc.FkIdTipoContratto = @FkIdTipoContratto";
+
 
         var caricata = _command.Caricata;
 
@@ -68,8 +72,11 @@ public class RelTestataQueryGetByListaEntiQuadraturaPersistence(RelTestataQueryG
             Anno = anno,
             Mese = mese,
             Caricata = caricata,
-            EntiIds = _command.EntiIds
+            EntiIds = _command.EntiIds 
         };
+
+        if (idTipoContratto.HasValue)
+            query.FkIdTipoContratto = idTipoContratto;
 
         if (!string.IsNullOrEmpty(tipoFattura))
             query.TipologiaFattura = tipoFattura;
@@ -80,15 +87,13 @@ public class RelTestataQueryGetByListaEntiQuadraturaPersistence(RelTestataQueryG
         if (!_command.EntiIds.IsNullNotAny())
             query.EntiIds = _command.EntiIds;
 
-        using (var values = await ((IDatabase)this).QueryMultipleAsync<RelQuadraturaDto>(
+        using var values = await ((IDatabase)this).QueryMultipleAsync<RelQuadraturaDto>(
             connection!,
             sql,
             query,
-            transaction))
-        {
-            rel.Quadratura = (await values.ReadAsync<RelQuadraturaDto>()).ToList();
-            rel.Count = await values.ReadFirstAsync<int>();
-            return rel;
-        }
+            transaction);
+        rel.Quadratura = (await values.ReadAsync<RelQuadraturaDto>()).ToList();
+        rel.Count = await values.ReadFirstAsync<int>();
+        return rel;
     }
 }

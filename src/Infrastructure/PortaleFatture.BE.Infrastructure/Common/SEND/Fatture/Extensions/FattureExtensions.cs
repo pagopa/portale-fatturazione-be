@@ -32,7 +32,8 @@ public static class FattureExtensions
         {
             Anno = command.Anno,
             IdEnti = command.IdEnti,
-            Mese = command.Mese
+            Mese = command.Mese,
+            FkIdTipoContratto = command.FkIdTipoContratto
         };
     }
 

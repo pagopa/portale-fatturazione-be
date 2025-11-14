@@ -104,7 +104,8 @@ public static class FattureExtensions
         foreach (var tipologia in request.TipologiaFattura!)
         {
             var month = request.Mese.GetMonth();
-            var year = request.Anno;
+            var year = request.Anno; 
+                
             switch (tipologia)
             {
                 case TipologiaFattura.PRIMOSALDO:
@@ -241,9 +242,11 @@ public static class FattureExtensions
             Mese = req.Mese,
             IdEnti = req.IdEnti,
             TipologiaFattura = req.TipologiaFattura,
-            Cancellata = req.Cancellata == null ? false : req.Cancellata.Value
+            Cancellata = req.Cancellata == null ? false : req.Cancellata.Value,
+            FkIdTipoContratto = req.IdTipoContratto
         };
-    }
+    }  
+ 
     public static FattureRelExcelQuery Mapv2(this FatturaRicercaRequest req, AuthenticationInfo authInfo, string tipologiaFattura)
     {
         return new FattureRelExcelQuery(authInfo)
@@ -251,7 +254,8 @@ public static class FattureExtensions
             Anno = req.Anno,
             Mese = req.Mese,
             IdEnti = req.IdEnti,
-            TipologiaFattura = tipologiaFattura
+            TipologiaFattura = tipologiaFattura,
+            FkIdTipoContratto = req.IdTipoContratto
         };
     }
 
@@ -261,7 +265,8 @@ public static class FattureExtensions
         {
             Anno = req.Anno,
             Mese = req.Mese,
-            IdEnti = req.IdEnti
+            IdEnti = req.IdEnti,
+            FkIdTipoContratto = req.IdTipoContratto
         };
     }
 
@@ -271,7 +276,8 @@ public static class FattureExtensions
         {
             Anno = req.Anno,
             Mese = req.Mese,
-            IdEnti = req.IdEnti
+            IdEnti = req.IdEnti,
+            FkIdTipoContratto = req.IdTipoContratto
         };
     }
 

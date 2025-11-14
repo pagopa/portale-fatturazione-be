@@ -1,4 +1,5 @@
 ﻿using System.Data;
+using Dapper;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Dto;
@@ -20,21 +21,25 @@ public class FattureUnionRelExcelPersistence(FattureRelExcelQuery command) : Dap
         var anno = _command.Anno;
         var mese = _command.Mese;
         var tipoFattura = _command.TipologiaFattura;
-        var where = string.Empty;
+        var query = new DynamicParameters();
+        query.Add("anno", anno);
+        query.Add("mese", mese);
+        query.Add("TipologiaFattura", tipoFattura);
 
+        string where = string.Empty;
         if (!_command.IdEnti!.IsNullNotAny())
-            where = " AND t.FKIdEnte in @IdEnti ";
-
-        var sql = _sqlRel + where + " UNION " + _sqlNo + where + _order;
-
-
-        var query = new
         {
-            Anno = anno,
-            Mese = mese,
-            TipologiaFattura = tipoFattura,
-            _command.IdEnti
-        };
+            query.Add("IdEnti", _command.IdEnti);
+            where += " AND t.FKIdEnte in @IdEnti ";
+        }
+
+        if (_command.FkIdTipoContratto.HasValue)
+        {
+            query.Add("FkIdTipoContratto", _command.FkIdTipoContratto, DbType.Int32);
+            where += " AND c.FkIdTipoContratto = @FkIdTipoContratto ";
+        }
+
+        var sql = _sqlRel + where + " UNION " + _sqlNo + where + _order; 
 
         var values = await ((IDatabase)this).SelectAsync<FattureRelExcelDto>(
         connection!,

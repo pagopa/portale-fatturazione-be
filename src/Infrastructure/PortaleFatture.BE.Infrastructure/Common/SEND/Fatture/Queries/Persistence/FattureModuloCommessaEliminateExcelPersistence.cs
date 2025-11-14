@@ -1,4 +1,5 @@
 ﻿using System.Data;
+using Dapper;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Dto;
@@ -12,27 +13,31 @@ public class FattureModuloCommessaEliminateExcelPersistence(FattureCommessaElimi
     private static readonly string _sqlSelect = FattureModuloCommessaExcelBuilder.SelectCommesseEliminate();
     private static readonly string _sqlOrderby = FattureModuloCommessaExcelBuilder.OrderBy();
     public async Task<IEnumerable<FattureCommessaExcelDto>?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
-    {
+    { 
         var anno = _command.Anno;
         var mese = _command.Mese;
+        var query = new DynamicParameters();
+        query.Add("anno", anno);
+        query.Add("mese", mese);
 
-        var where = " WHERE t.AnnoValidita=@anno and t.MeseValidita=@mese ";
+
+        string where = string.Empty;  
 
         if (!_command.IdEnti!.IsNullNotAny())
-            where = where + " AND t.FKIdEnte in @IdEnti ";
-
-        var sql = _sqlSelect + where + _sqlOrderby;
-
-        var query = new
         {
-            Anno = anno,
-            Mese = mese,
-            _command.IdEnti
-        };
+            query.Add("IdEnti", _command.IdEnti);
+            where += " AND t.FKIdEnte in @IdEnti ";
+        } 
+
+        if (_command.FkIdTipoContratto.HasValue)
+        {
+            query.Add("FkIdTipoContratto", _command.FkIdTipoContratto, DbType.Int32);
+            where += " AND c.FkIdTipoContratto = @FkIdTipoContratto ";
+        }
 
         return await ((IDatabase)this).SelectAsync<FattureCommessaExcelDto>(
          connection!,
-         sql,
+         _sqlSelect + where + _sqlOrderby,
          query,
          transaction);
     }

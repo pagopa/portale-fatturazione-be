@@ -77,6 +77,12 @@ public partial class RelModule : Module, IRegistrableModule
 
         #region pagoPA
 
+       endpointRouteBuilder
+        .MapGet("api/rel/pagopa/tipologiacontratto", GetTipologiaContratto)
+        .WithName("Permette di ottenere la tipologia contratto REL")
+        .SetOpenApi(Module.DatiRelLabel)
+        .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
         endpointRouteBuilder
         .MapGet("api/rel/pagopa/nonfatturate", GetRelNonFatturateExcelAsync)
         .WithName("Permette di scaricare l'excel delle rel non fatturate")

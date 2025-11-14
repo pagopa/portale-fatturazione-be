@@ -27,10 +27,13 @@ t.MeseRiferimento as Mese,
 0 as RelTotaleIvatoDigitale, 
 0 as RelTotaleIvato, 
 NULL as Caricata, 
-NULL as RelFatturata
+NULL as RelFatturata,
+c.FkIdTipoContratto 
 FROM pfd.FattureTestata t
 LEFT OUTER join pfd.Enti e
 ON e.InternalIstitutionId = t.FkIdEnte
+LEFT JOIN pfd.Contratti c
+ON c.internalistitutionid = e.InternalIstitutionId	
 INNER JOIN pfd.FattureRighe r
 ON t.IdFattura = r.FkIdFattura 
 where 
@@ -40,7 +43,7 @@ t.FkTipologiaFattura=@tipologiafattura and
 r.CodiceMateriale like '%STORNO%'
 and t.FkIdEnte NOT IN
 (SELECT rr.internal_organization_id from pfd.RelTestata rr
-WHERE rr.month= @mese and rr.year=@anno and rr.TipologiaFattura=@tipologiafattura)
+WHERE rr.month= @mese and rr.year=@anno and rr.TipologiaFattura=@tipologiafattura) 
 ";
 
     private static string _sqlRel = @"
@@ -73,7 +76,8 @@ SELECT
 	ISNULL(rr.[TotaleDigitaleIva],0)  as RelTotaleIvatoDigitale,
 	ISNULL(rr.[TotaleIva],0)  as RelTotaleIvato,
 	rr.[Caricata] as Caricata,
-	rr.[RelFatturata]
+	rr.[RelFatturata],
+	c.FkIdTipoContratto 
 	FROM pfd.FattureTestata t
 	LEFT OUTER join pfd.Enti e
 	ON e.InternalIstitutionId = t.FkIdEnte
@@ -85,11 +89,13 @@ SELECT
 	AND rr.TipologiaFattura = t.FkTipologiaFattura
 	AND rr.internal_organization_id = t.FkIdEnte 
 	AND rr.contract_id = t.CodiceContratto 
+    LEFT JOIN pfd.Contratti c
+	ON c.internalistitutionid = e.InternalIstitutionId	
     LEFT JOIN pfd.RelTestata rt ON t.fkidente = rt.internal_organization_id 
 								and t.annoriferimento = rt.year
 								and t.meseriferimento = rt.month
                                 and t.FkTipologiaFattura = rt.TipologiaFattura
-    WHERE rr.month= @mese and rr.year=@anno and rr.TipologiaFattura=@tipologiafattura 
+    WHERE rr.month= @mese and rr.year=@anno and rr.TipologiaFattura=@tipologiafattura  
 ";
 
 

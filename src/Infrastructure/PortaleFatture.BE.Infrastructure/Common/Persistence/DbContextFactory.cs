@@ -1,4 +1,6 @@
 ﻿using System.Data;
+using Azure.Core;
+using Azure.Identity;
 using Microsoft.Data.SqlClient;
 using PortaleFatture.BE.Infrastructure.Common.Persistence.Schemas;
 
@@ -18,7 +20,7 @@ public class DbContextFactory : IDbContextFactory, IFattureDbContextFactory, ISe
         IsolationLevel isolationLevel = IsolationLevel.ReadCommitted, 
         CancellationToken ct = default)
     {
-        var conn = new SqlConnection(_connectionString);
+        var conn = new SqlConnection(_connectionString); 
         await conn.OpenAsync(ct);
         return new DbContext(conn, _schema, transactional, isolationLevel);
     }
