@@ -7,7 +7,9 @@ SELECT f.*, n.*
   FROM [pfd].[vFattureAcconto] f
 left outer join pfd.NotificheCount n
 ON n.internal_organization_id = f.IdEnte
-AND n.year = f.Anno and n.month = f.Mese
+inner join pfd.Contratti c
+on c.internalistitutionid = f.IdEnte 
+AND n.year = f.Anno and n.month = f.Mese 
 ";
 
     public static string SelectAcconto()

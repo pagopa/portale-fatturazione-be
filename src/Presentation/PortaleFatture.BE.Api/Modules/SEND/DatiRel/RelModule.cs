@@ -27,6 +27,8 @@ using PortaleFatture.BE.Infrastructure.Common.SEND.DatiRel.Queries;
 using PortaleFatture.BE.Infrastructure.Common.SEND.DatiRel.Services;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Documenti;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Documenti.Common;
+using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Dto;
+using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries;
 using PortaleFatture.BE.Infrastructure.Common.SEND.SelfCare.Queries;
 using PortaleFatture.BE.Infrastructure.Gateway.Storage;
 using static Microsoft.AspNetCore.Http.TypedResults;
@@ -36,6 +38,24 @@ namespace PortaleFatture.BE.Api.Modules.Notifiche;
 public partial class RelModule
 {
     #region pagoPA
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<TipologiaContrattoDto>>, NotFound>> GetTipologiaContratto(
+    HttpContext context,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var tipologia = await handler.Send(new TipologiaContrattoQuery(authInfo));
+        if (tipologia.IsNullNotAny())
+            return NotFound();
+        return Ok(tipologia);
+    }
 
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
     [EnableCors(CORSLabel)]

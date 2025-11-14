@@ -15,4 +15,5 @@ public class RelTestataQueryGetByListaEntiQuadratura(IAuthenticationInfo authent
     public byte? Caricata { get; set; }
     public int? Page { get; set; }
     public int? Size { get; set; }
+    public int? FkIdTipoContratto { get; set; }
 }

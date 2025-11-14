@@ -51,14 +51,16 @@ SELECT Count(internal_organization_id)
   FROM [pfd].[RelTestata] t
   inner join pfd.Enti e
   on e.InternalIstitutionId =t.internal_organization_id
+  left outer join pfd.Contratti c
+  on c.internalistitutionid = e.InternalIstitutionId
 ";
     private static string _sql = @"
 SELECT [internal_organization_id] as IdEnte
       ,[description] as RagioneSociale
       ,[contract_id] as IdContratto
       ,[TipologiaFattura]
-      ,[year] as anno
-      ,[month] as mese
+      ,t.[year] as anno
+      ,t.[month] as mese
       ,[TotaleAnalogico]
       ,[TotaleDigitale]
       ,[TotaleNotificheAnalogiche]
@@ -80,7 +82,9 @@ SELECT [internal_organization_id] as IdEnte
       ,[FlagConguaglio]
   FROM [pfd].[RelTestata] t
   inner join pfd.Enti e
-  on e.InternalIstitutionId =t.internal_organization_id
+  on e.InternalIstitutionId =internal_organization_id
+  left outer join pfd.Contratti c
+  on c.internalistitutionid = e.InternalIstitutionId
 ";
 
     private static string _sqlDettaglio = @"
@@ -125,9 +129,14 @@ SELECT [internal_organization_id] as IdEnte
         return _offSet;
     }
 
+    public static string OrderByPagoPA()
+    {
+        return " ORDER BY t.year DESC, t.month, [Totale] DESC";
+    }
+
     public static string OrderBy()
     {
-        return " ORDER BY year DESC, month, [Totale] DESC";
+        return " ORDER BY t.year DESC, t.month, [Totale] DESC";
     }
 
     public static string SelectAll()

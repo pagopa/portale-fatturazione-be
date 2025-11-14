@@ -2,7 +2,6 @@
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.SEND.DatiRel.Dto;
-using PortaleFatture.BE.Infrastructure.Common.SEND.DatiRel.Queries;
 using PortaleFatture.BE.Infrastructure.Common.SEND.DatiRel.Queries.Persistence.Builder;
 
 namespace PortaleFatture.BE.Infrastructure.Common.SEND.DatiRel.Queries.Persistence;
@@ -13,33 +12,35 @@ public class RelTestataQueryGetByListaEntiPersistence(RelTestataQueryGetByListaE
     private static readonly string _sqlSelectAll = RelTestataSQLBuilder.SelectAll();
     private static readonly string _sqlSelectAllCount = RelTestataSQLBuilder.SelectAllCount();
     private static readonly string _offSet = RelTestataSQLBuilder.OffSet();
-    private static readonly string _orderBy = RelTestataSQLBuilder.OrderBy();
+    private static readonly string _orderBy = RelTestataSQLBuilder.OrderByPagoPA();
     public async Task<RelTestataDto?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
     {
         var rel = new RelTestataDto();
         var where = string.Empty;
         var page = _command.Page;
         var size = _command.Size;
-        if (!_command.EntiIds.IsNullNotAny())
-            where += $" WHERE internal_organization_id IN @entiIds";
-        else
-        {
-            _command.EntiIds = null;
-            where += $" WHERE 1=1 ";
-        }
+
+
         var caricata = _command.Caricata;
         var anno = _command.Anno;
         var mese = _command.Mese;
         var tipoFattura = _command.TipologiaFattura != null ? _command.TipologiaFattura : null;
         var idContratto = _command.IdContratto ?? null;
+        var idTipoContratto = _command.FkIdTipoContratto;
+
+        if (anno.HasValue)
+            where += " WHERE t.year=@anno";
+        if (mese.HasValue)
+            where += " AND t.month=@mese";
+
+        if (!_command.EntiIds.IsNullNotAny())
+            where += $" AND internal_organization_id IN @entiIds";  
+
+        if (idTipoContratto.HasValue)
+            where += " AND c.FkIdTipoContratto = @FkIdTipoContratto";
 
         if (!string.IsNullOrEmpty(tipoFattura))
             where += " AND TipologiaFattura=@TipologiaFattura";
-
-        if (anno.HasValue)
-            where += " AND year=@anno";
-        if (mese.HasValue)
-            where += " AND month=@mese";
 
         if (!string.IsNullOrEmpty(idContratto))
             where += " AND contract_id=@IdContratto";
@@ -66,8 +67,11 @@ public class RelTestataQueryGetByListaEntiPersistence(RelTestataQueryGetByListaE
             Anno = anno,
             Mese = mese,
             Caricata = caricata,
-            EntiIds = _command.EntiIds
+            EntiIds = _command.EntiIds 
         };
+
+        if (idTipoContratto.HasValue)
+            query.FkIdTipoContratto = idTipoContratto;
 
         if (!string.IsNullOrEmpty(tipoFattura))
             query.TipologiaFattura = tipoFattura;
@@ -78,15 +82,13 @@ public class RelTestataQueryGetByListaEntiPersistence(RelTestataQueryGetByListaE
         if (!_command.EntiIds.IsNullNotAny())
             query.EntiIds = _command.EntiIds;
 
-        using (var values = await ((IDatabase)this).QueryMultipleAsync<SimpleRelTestata>(
+        using var values = await ((IDatabase)this).QueryMultipleAsync<SimpleRelTestata>(
             connection!,
             sql,
             query,
-            transaction))
-        {
-            rel.RelTestate = (await values.ReadAsync<SimpleRelTestata>()).ToList();
-            rel.Count = await values.ReadFirstAsync<int>();
-            return rel;
-        }
+            transaction);
+        rel.RelTestate = [.. (await values.ReadAsync<SimpleRelTestata>())];
+        rel.Count = await values.ReadFirstAsync<int>();
+        return rel;
     }
 }

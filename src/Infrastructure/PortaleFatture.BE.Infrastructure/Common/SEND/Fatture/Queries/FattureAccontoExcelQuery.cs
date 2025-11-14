@@ -10,4 +10,5 @@ public class FattureAccontoExcelQuery(IAuthenticationInfo authenticationInfo) : 
     public string[]? IdEnti { get; set; }
     public int? Anno { get; set; }
     public int? Mese { get; set; }
+    public int? FkIdTipoContratto { get; set; }
 }

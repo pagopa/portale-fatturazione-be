@@ -60,7 +60,8 @@ public static class RelExtensions
             Page = page,
             Size = pageSize,
             EntiIds = req.IdEnti,
-            Caricata = req.Caricata
+            Caricata = req.Caricata,
+            FkIdTipoContratto = req.IdTipoContratto
         };
     }
 
@@ -75,7 +76,8 @@ public static class RelExtensions
             Page = page,
             Size = pageSize,
             EntiIds = req.IdEnti,
-            Caricata = req.Caricata
+            Caricata = req.Caricata,
+            FkIdTipoContratto = req.IdTipoContratto
         };
     }
 

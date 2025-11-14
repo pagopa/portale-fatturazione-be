@@ -124,6 +124,12 @@ public partial class FattureModule : Module, IRegistrableModule
            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
         endpointRouteBuilder
+           .MapGet("api/fatture/tipologiacontratto", GetTipologiaContratto)
+           .WithName("Permette di ottenere la tipologia contratto")
+           .SetOpenApi(Module.DatiFattureLabel)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
            .MapPost("api/fatture/download", PostFattureExcelByRicercaAsync)
            .WithName("Permette di ottenere le fatture excel per ricerca")
            .SetOpenApi(Module.DatiFattureLabel)

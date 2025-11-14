@@ -1,7 +1,6 @@
 ﻿using System.Data;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.SEND.DatiRel.Dto;
-using PortaleFatture.BE.Infrastructure.Common.SEND.DatiRel.Queries;
 using PortaleFatture.BE.Infrastructure.Common.SEND.DatiRel.Queries.Persistence.Builder;
 
 namespace PortaleFatture.BE.Infrastructure.Common.SEND.DatiRel.Queries.Persistence;
@@ -35,9 +34,9 @@ public class RelTestataQueryGetByIdEntePersistence(RelTestataQueryGetByIdEnte co
             where += " AND caricata=@caricata";
 
         if (anno.HasValue)
-            where += " AND year=@anno";
+            where += " AND t.year=@anno";
         if (mese.HasValue)
-            where += " AND month=@mese";
+            where += " AND t.month=@mese";
         if (!string.IsNullOrEmpty(idContratto))
             where += " AND contract_id=@IdContratto";
 

@@ -9,5 +9,6 @@ public class FattureCommessaExcelQuery(IAuthenticationInfo authenticationInfo) :
     public IAuthenticationInfo AuthenticationInfo { get; internal set; } = authenticationInfo;
     public string[]? IdEnti { get; set; }
     public int? Anno { get; set; }
-    public int? Mese { get; set; }
+    public int? Mese { get; set; } 
+    public int? FkIdTipoContratto { get; set; }
 }
