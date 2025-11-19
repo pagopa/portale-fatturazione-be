@@ -80,11 +80,14 @@ SELECT [internal_organization_id] as IdEnte
       ,[AsseverazioneTotaleDigitaleIva]
       ,[AsseverazioneTotaleIva]
       ,[FlagConguaglio]
+	  ,tp.Descrizione as TipologiaContratto
   FROM [pfd].[RelTestata] t
   inner join pfd.Enti e
   on e.InternalIstitutionId =internal_organization_id
   left outer join pfd.Contratti c
   on c.internalistitutionid = e.InternalIstitutionId
+  inner join pfw.TipoContratto tp
+  on c.FkIdTipoContratto = tp.IdTipoContratto
 ";
 
     private static string _sqlDettaglio = @"

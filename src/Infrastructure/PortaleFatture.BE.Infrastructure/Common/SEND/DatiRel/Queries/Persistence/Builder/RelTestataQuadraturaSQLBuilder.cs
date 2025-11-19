@@ -61,12 +61,14 @@ SELECT
 		,nc.[TotaleNotificheDigitali]  - ISNULL(c.[TotaleNotificheDigitali],0) - ISNULL(r.[TotaleNotificheDigitali],0)  - ISNULL(r.[AsseverazioneTotaleNotificheDigitali],0) as DiffTotaleNotificheDigitali
 		,nc.[Totale]  - ISNULL(c.[Totale],0) - ISNULL(r.[Totale],0)- ISNULL(r.[AsseverazioneTotale],0)  as DiffTotale 
 		,nc.TotaleNotificheDigitali + nc.TotaleNotificheAnalogiche - ISNULL(c.TotaleNotificheDigitali,0)- ISNULL(c.TotaleNotificheAnalogiche,0) - ISNULL(r.TotaleNotificheDigitali,0)  - ISNULL(r.TotaleNotificheAnalogiche,0)  - ISNULL(r.AsseverazioneTotaleNotificheAnalogiche,0)  - ISNULL(r.AsseverazioneTotaleNotificheAnalogiche,0) as DiffTotaleNotificheZero
- 
+        ,tp.Descrizione as TipologiaContratto
 FROM [pfd].[NotificheCount] as nc
 left outer join pfd.Enti as e
 ON e.InternalIstitutionId = nc.internal_organization_id
 left outer join pfd.Contratti as cc
   ON cc.internalistitutionid = e.InternalIstitutionId
+inner join pfw.TipoContratto tp
+  on cc.FkIdTipoContratto = tp.IdTipoContratto
 left outer join 
 	(SELECT		
 			 rt.[internal_organization_id]  
@@ -194,7 +196,7 @@ SELECT
     ,nc.[TotaleNotificheDigitali]  - ISNULL(c.[TotaleNotificheDigitali],0) - ISNULL(r.[TotaleNotificheDigitali],0)  - ISNULL(r.[AsseverazioneTotaleNotificheDigitali],0) as DiffTotaleNotificheDigitali
     ,nc.[Totale]  - ISNULL(c.[Totale],0) - ISNULL(r.[Totale],0)- ISNULL(r.[AsseverazioneTotale],0)  as DiffTotale 
     ,nc.TotaleNotificheDigitali + nc.TotaleNotificheAnalogiche - ISNULL(c.TotaleNotificheDigitali,0)- ISNULL(c.TotaleNotificheAnalogiche,0) - ISNULL(r.TotaleNotificheDigitali,0)  - ISNULL(r.TotaleNotificheAnalogiche,0)  - ISNULL(r.AsseverazioneTotaleNotificheAnalogiche,0)  - ISNULL(r.AsseverazioneTotaleNotificheAnalogiche,0) as DiffTotaleNotificheZero
- 
+    ,tp.Descrizione as TipologiaContratto
 FROM [pfd].[NotificheCount] as nc
   INNER JOIN pfd.RelTestata as r
     ON r.internal_organization_id = nc.internal_organization_id
@@ -206,6 +208,8 @@ FROM [pfd].[NotificheCount] as nc
     ON e.InternalIstitutionId = nc.internal_organization_id
   LEFT OUTER JOIN pfd.Contratti as cc
     ON cc.internalistitutionid = e.InternalIstitutionId
+  INNER JOIN pfw.TipoContratto tp
+    ON cc.FkIdTipoContratto = tp.IdTipoContratto
   LEFT OUTER JOIN pfd.ContestazioniStorico as c
     ON c.internal_organization_id = nc.internal_organization_id
     AND c.contract_id = nc.contract_id

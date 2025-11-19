@@ -141,4 +141,9 @@ public class FattureRelExcelDto
     [Column("RigaImponibile")]
     public decimal RigaImponibile { get; set; }
     //storno fatture -end
+
+    [HeaderAttributev2(caption: "Tipo Contratto", Order = 22)]
+
+    [Column("TipologiaContratto")]
+    public string? TipologiaContratto { get; set; }
 }

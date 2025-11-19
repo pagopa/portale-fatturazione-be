@@ -28,14 +28,17 @@ t.MeseRiferimento as Mese,
 0 as RelTotaleIvato, 
 NULL as Caricata, 
 NULL as RelFatturata,
-c.FkIdTipoContratto 
+c.FkIdTipoContratto,
+tp.Descrizione as TipologiaContratto
 FROM pfd.FattureTestata t
 LEFT OUTER join pfd.Enti e
-ON e.InternalIstitutionId = t.FkIdEnte
+    ON e.InternalIstitutionId = t.FkIdEnte
 LEFT JOIN pfd.Contratti c
-ON c.internalistitutionid = e.InternalIstitutionId	
+    ON c.internalistitutionid = e.InternalIstitutionId
+inner join pfw.TipoContratto tp
+    ON c.FkIdTipoContratto = tp.IdTipoContratto
 INNER JOIN pfd.FattureRighe r
-ON t.IdFattura = r.FkIdFattura 
+    ON t.IdFattura = r.FkIdFattura 
 where 
 t.AnnoRiferimento=@anno and 
 t.MeseRiferimento=@mese and 
@@ -77,7 +80,8 @@ SELECT
 	ISNULL(rr.[TotaleIva],0)  as RelTotaleIvato,
 	rr.[Caricata] as Caricata,
 	rr.[RelFatturata],
-	c.FkIdTipoContratto 
+	c.FkIdTipoContratto,
+    tp.Descrizione as TipologiaContratto
 	FROM pfd.FattureTestata t
 	LEFT OUTER join pfd.Enti e
 	ON e.InternalIstitutionId = t.FkIdEnte
@@ -90,7 +94,9 @@ SELECT
 	AND rr.internal_organization_id = t.FkIdEnte 
 	AND rr.contract_id = t.CodiceContratto 
     LEFT JOIN pfd.Contratti c
-	ON c.internalistitutionid = e.InternalIstitutionId	
+	ON c.internalistitutionid = e.InternalIstitutionId
+    INNER JOIN pfw.TipoContratto tp
+    ON c.FkIdTipoContratto = tp.IdTipoContratto
     LEFT JOIN pfd.RelTestata rt ON t.fkidente = rt.internal_organization_id 
 								and t.annoriferimento = rt.year
 								and t.meseriferimento = rt.month

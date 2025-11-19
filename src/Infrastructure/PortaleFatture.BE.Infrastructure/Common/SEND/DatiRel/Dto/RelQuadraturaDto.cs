@@ -166,4 +166,9 @@ public class RelQuadraturaDto
     [HeaderAttributev2(caption: "Check Notifiche", Order = 35)]
     [Column("DiffTotaleNotificheZero")]
     public int DiffTotaleNotificheZero { get; set; }
+
+    [HeaderAttributev2(caption: "Tipo Contratto", Order = 36)]
+
+    [Column("TipologiaContratto")]
+    public string? TipologiaContratto { get; set; }
 }

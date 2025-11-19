@@ -200,4 +200,9 @@ public class SimpleRelTestata
 
     [Column("FlagConguaglio")]
     public string? FlagConguaglio { get; set; }
+
+    [HeaderAttributev2(caption: "Tipo Contratto", Order = 28)]
+
+    [Column("TipologiaContratto")]
+    public string? TipologiaContratto { get; set; }
 }
