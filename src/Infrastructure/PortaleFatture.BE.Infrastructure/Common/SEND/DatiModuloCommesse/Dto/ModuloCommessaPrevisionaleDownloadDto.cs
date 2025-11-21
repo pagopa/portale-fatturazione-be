@@ -26,7 +26,7 @@ public class ModuloCommessaPrevisionaleDownloadDto
     public int? AR { get; set; }
 
     [Header(caption: "890", Order = 8)]
-    public int? _890 { get; set; }
+    public int? A890 { get; set; }
 
     [Header(caption: "Totale Regioni", Order = 9)]
     public int? TotaleRegioni { get; set; }

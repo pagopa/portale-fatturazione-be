@@ -25,7 +25,7 @@ SELECT [Anno]
       ,[TipoReport]
       ,[TotaleModuloCommessa]
       ,[AR]
-      ,[890]
+      ,[890] as A890
       ,[TotaleRegioni]
       ,[Regione]
       ,[Calcolato]
