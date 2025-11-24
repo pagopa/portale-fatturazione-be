@@ -168,12 +168,7 @@ DatiTotali AS (
       AND t.AnnoValidita = @annofiltro    -- OBBLIGATORIO
       AND t.MeseValidita = @mese          -- OBBLIGATORIO
       AND t.FkIdEnte IS NOT NULL          -- SCARTA I RECORD CON ENTE NULL
-      -- FILTRO OPZIONALE PER ENTE SPECIFICO
-      AND (
-          (@idente IS NULL OR LEN(@idente) = 0)    -- Se @idente è NULL o vuoto, prendi tutti gli enti
-          OR 
-          (t.FkIdEnte IN @idente)                  
-      )
+      [whereIdenti] 
       -- CONDIZIONE PER ELIMINARE RIGHE VUOTE: almeno un valore deve essere popolato
       AND (
           t.NumeroNotificheInternazionali IS NOT NULL 
