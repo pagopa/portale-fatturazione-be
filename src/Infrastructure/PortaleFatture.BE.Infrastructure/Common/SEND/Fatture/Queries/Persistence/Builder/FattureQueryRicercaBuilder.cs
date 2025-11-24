@@ -320,6 +320,7 @@ SELECT
     FROM
         [pfd].[FattureTestata] FT 
 	INNER JOIN pfd.Contratti c ON c.onboardingtokenid = FT.CodiceContratto
+    AND c.internalistitutionid  = ft.FkIdEnte
 	INNER JOIN pfw.FatturaTestataConfig ftc ON ftc.FkTipologiaFattura = FT.FkTipologiaFattura AND ftc.FKIdTipoContratto = c.FkIdTipoContratto
     where FT.AnnoRiferimento = @AnnoRiferimento
 	and FT.MeseRiferimento = @MeseRiferimento
