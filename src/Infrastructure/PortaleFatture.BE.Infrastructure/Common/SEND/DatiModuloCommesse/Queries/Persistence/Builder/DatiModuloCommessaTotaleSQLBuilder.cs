@@ -177,8 +177,7 @@ DatiTotali AS (
           OR t.ValoreNazionali IS NOT NULL
           OR t.FkIdTipoContratto IS NOT NULL
           OR t.FkIdStato IS NOT NULL
-      )
-      -- [annoMeseValiditaCondition] - inserire qui eventuali altre condizioni
+      ) 
 ),
 
 -- Quarter lookup table per performance
@@ -252,13 +251,17 @@ SELECT
         WHEN dc.CurrentDay > dc.GiornoFine THEN CAST(0 AS BIT)
         ELSE CAST(1 AS BIT)
     END AS modifica,
-    e.description AS RagioneSociale
+    e.description AS RagioneSociale,
+	t.Descrizione AS TipologiaContratto
 
 FROM DatiTotali dt
 CROSS APPLY DateConstants dc
 LEFT JOIN ConfigFuture cf ON dt.AnnoValidita = cf.Year AND dt.MeseValidita = cf.Month AND dt.FkIdEnte = cf.fkidente
 LEFT JOIN QuarterLookup ql ON dt.MeseValidita = ql.Month
 LEFT JOIN [pfd].[Enti] e ON dt.FkIdEnte = e.InternalIstitutionId
+INNER JOIN [pfd].[Contratti] c ON e.InternalIstitutionId = c.InternalIstitutionId
+INNER JOIN [pfw].TipoContratto t ON t.IdTipoContratto = c.FkIdTipoContratto
+WHERE (@idTipoContratto IS NULL OR c.FkIdTipoContratto = @idTipoContratto)
 
 ORDER BY Year, Month, FkIdEnte, FkIdTipoSpedizione
 ";

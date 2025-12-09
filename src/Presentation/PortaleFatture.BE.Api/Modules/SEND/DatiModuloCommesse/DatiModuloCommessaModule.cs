@@ -20,6 +20,8 @@ using PortaleFatture.BE.Infrastructure.Common.SEND.DatiModuloCommesse.Extensions
 using PortaleFatture.BE.Infrastructure.Common.SEND.DatiModuloCommesse.Queries;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Documenti;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Documenti.Common;
+using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Dto;
+using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries;
 using PortaleFatture.BE.Infrastructure.Common.SEND.SelfCare.Queries;
 using static Microsoft.AspNetCore.Http.TypedResults;
 
@@ -28,6 +30,94 @@ namespace PortaleFatture.BE.Api.Modules.DatiModuloCommesse;
 public partial class DatiModuloCommessaModule
 {
     #region PagoPA
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<IResult> PagoPADatiModuloCommessaRicercaDocumentoReportByDateAsync(
+    HttpContext context,
+    [FromBody] RicercaModuloCommessaByDateRequest req,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var modulo = await handler.Send(new RicercaModuloCommessaByDateQuery(authInfo)
+        {
+            DataFineContratto = req.DataFineContratto,
+            DataInizioContratto = req.DataInizioContratto,
+            DataFineModulo = req.DataFineModulo,
+            DataInizioModulo = req.DataInizioModulo,
+            IdEnti = req.IdEnti,
+            IdTipoContratto = req.IdTipoContratto,
+            PageNumber = null,
+            PageSize = null
+        });
+
+        if (modulo.Count == 0)
+            return NotFound();
+
+        var mime = "application/vnd.ms-excel";
+        var filename = $"{Guid.NewGuid()}.xlsx";
+
+        var dataSet = modulo.ModuliCommessa!.Select(x => x.Map()).FillOneSheetWithName("Modulo Commessa");
+        var content = dataSet.ToExcel();
+
+        content.Seek(0, SeekOrigin.Begin);
+        return Results.Stream(content!, mime, filename);
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<ModuloCommessaPrevisionaleTotaliDateDto>, NotFound>> PagoPADatiModuloCommessaRicercaByDateAsync(
+    HttpContext context,
+    [FromBody] RicercaModuloCommessaByDateRequest req,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var modulo = await handler.Send(new RicercaModuloCommessaByDateQuery(authInfo)
+        {
+            DataFineContratto = req.DataFineContratto,
+            DataInizioContratto = req.DataInizioContratto,
+            DataFineModulo = req.DataFineModulo,
+            DataInizioModulo = req.DataInizioModulo,
+            IdEnti = req.IdEnti,
+            IdTipoContratto = req.IdTipoContratto,
+            PageNumber = req.Page,
+            PageSize = req.Size
+        });
+
+        if (modulo.Count == 0)
+            return NotFound();
+        return Ok(modulo);
+    }
+
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<TipologiaContrattoDto>>, NotFound>> GetTipologiaContratto(
+    HttpContext context,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var tipologia = await handler.Send(new TipologiaContrattoQuery(authInfo));
+        if (tipologia.IsNullNotAny())
+            return NotFound();
+        return Ok(tipologia);
+    }
+
 
     [Authorize(Roles = $"{Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
     [EnableCors(CORSLabel)]
@@ -124,7 +214,9 @@ public partial class DatiModuloCommessaModule
         {
             Anno = req.Anno,
             Mese = req.Mese,
-            IdEnti = req.IdEnti
+            IdEnti = req.IdEnti,
+            IdTipoContratto = req.IdTipoContratto,
+            RecuperaRegioni = false
         });
 
         if (reports.IsNullNotAny())
@@ -133,7 +225,7 @@ public partial class DatiModuloCommessaModule
         var mime = "application/vnd.ms-excel";
         var filename = $"{Guid.NewGuid()}.xlsx";
 
-        var dataSet = reports.FillOneSheet();
+        var dataSet = reports.FillOneSheetWithName("Modulo Commessa");
         var content = dataSet.ToExcel();
 
         return Results.File(content!, mime, filename);
@@ -292,7 +384,9 @@ public partial class DatiModuloCommessaModule
             AnnoValidita = req.Anno,
             MeseValidita = req.Mese,
             Prodotto = req.Prodotto == "" ? null : req.Prodotto,
-            IdEnti = req.IdEnti
+            IdEnti = req.IdEnti,
+            IdTipoContratto = req.IdTipoContratto,
+            RecuperaRegioni = false
         });
 
         if (moduli == null || moduli.Count() == 0)
@@ -301,7 +395,7 @@ public partial class DatiModuloCommessaModule
         var mime = "application/vnd.ms-excel";
         var filename = $"{Guid.NewGuid()}.xlsx";
 
-        var dataSet = moduli.Select(x => x.ToViewModel()).FillOneSheet();
+        var dataSet = moduli.Select(x => x.ToViewModel()).FillOneSheetWithName("Modulo Commessa");
         var content = dataSet.ToExcel();
         if (binary == null)
             return Ok(new DocumentDto() { Documento = Convert.ToBase64String(content.ToArray()) });
@@ -328,7 +422,8 @@ public partial class DatiModuloCommessaModule
             MeseValidita = req.Mese,
             Prodotto = req.Prodotto == "" ? null : req.Prodotto,
             IdEnti = req.IdEnti,
-            RecuperaRegioni = false
+            RecuperaRegioni = false,
+            IdTipoContratto = req.IdTipoContratto
         });
 
         if (moduli.IsNullNotAny())
@@ -519,11 +614,6 @@ public partial class DatiModuloCommessaModule
 
         await VerificaContratto(handler, localizer, authInfo);
 
-        //var dati = await handler.Send(new DatiModuloCommessaDocumentoPagoPAQueryGet(authInfo)
-        //{
-        //    AnnoValidita = anno,
-        //    MeseValidita = mese
-        //});
         var dati = await handler.Send(new DatiModuloCommessaDocumentoQueryGet(authInfo)
         {
             AnnoValidita = anno,

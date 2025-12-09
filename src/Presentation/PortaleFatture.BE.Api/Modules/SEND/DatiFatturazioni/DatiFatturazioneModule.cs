@@ -14,7 +14,6 @@ using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Core.Resources;
 using PortaleFatture.BE.Infrastructure.Common.Identity;
-using PortaleFatture.BE.Infrastructure.Common.SEND.DatiFatturazioni.Dto;
 using PortaleFatture.BE.Infrastructure.Common.SEND.DatiFatturazioni.Queries;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Documenti.Common;
 using PortaleFatture.BE.Infrastructure.Common.SEND.SelfCare.Queries;

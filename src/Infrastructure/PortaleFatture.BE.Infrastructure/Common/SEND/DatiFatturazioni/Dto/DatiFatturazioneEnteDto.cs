@@ -1,8 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
-using PortaleFatture.BE.Infrastructure.Common.SEND.Documenti.Common;
-
-namespace PortaleFatture.BE.Infrastructure.Common.SEND.DatiFatturazioni.Dto;
+using PortaleFatture.BE.Infrastructure.Common.SEND.Documenti.Common; 
 
 [Table("DatiFatturazione")]
 public class DatiFatturazioneEnteDto

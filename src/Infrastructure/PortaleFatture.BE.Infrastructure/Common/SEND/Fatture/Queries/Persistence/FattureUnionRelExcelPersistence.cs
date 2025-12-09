@@ -21,10 +21,13 @@ public class FattureUnionRelExcelPersistence(FattureRelExcelQuery command) : Dap
         var anno = _command.Anno;
         var mese = _command.Mese;
         var tipoFattura = _command.TipologiaFattura;
+        var fatturaInviata = _command.FatturaInviata;
+
         var query = new DynamicParameters();
         query.Add("anno", anno);
         query.Add("mese", mese);
         query.Add("TipologiaFattura", tipoFattura);
+        query.Add("FatturaInviata", fatturaInviata);
 
         string where = string.Empty;
         if (!_command.IdEnti!.IsNullNotAny())

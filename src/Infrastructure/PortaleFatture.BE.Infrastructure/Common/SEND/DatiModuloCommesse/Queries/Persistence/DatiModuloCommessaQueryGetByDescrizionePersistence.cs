@@ -7,12 +7,13 @@ using PortaleFatture.BE.Infrastructure.Common.SEND.DatiModuloCommesse.Queries.Pe
 
 namespace PortaleFatture.BE.Infrastructure.Common.SEND.DatiModuloCommesse.Queries.Persistence;
 
-public class DatiModuloCommessaQueryGetByDescrizionePersistence(string[]? idEnti, int annoValidita, int meseValidita, string? prodotto) : DapperBase, IQuery<IEnumerable<ModuloCommessaPrevisionaleByAnnoDto>?>
+public class DatiModuloCommessaQueryGetByDescrizionePersistence(string[]? idEnti, int annoValidita, int meseValidita, string? prodotto, int? IdTipoContratto) : DapperBase, IQuery<IEnumerable<ModuloCommessaPrevisionaleByAnnoDto>?>
 {
     private readonly string? _prodotto = prodotto;
     private readonly int _annoValidita = annoValidita;
     private readonly long _meseValidita = meseValidita;
     private readonly string[]? _idEnti = idEnti;
+    private readonly int? _idTipoContratto = IdTipoContratto;
     private static readonly string _sqlSelect = DatiModuloCommessaTotaleSQLBuilder.SelectPrevisionaleByAnnoAndMesePagoPA();
 
     public async Task<IEnumerable<ModuloCommessaPrevisionaleByAnnoDto>?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken ct = default)
@@ -30,6 +31,7 @@ public class DatiModuloCommessaQueryGetByDescrizionePersistence(string[]? idEnti
                 mese = _meseValidita,
                 annofiltro = _annoValidita,
                 prodotto = _prodotto == null ? "prod-pn" : _prodotto,
+                idTipoContratto = _idTipoContratto
             }, transaction);
     }
 }

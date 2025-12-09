@@ -10,8 +10,7 @@ namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries.Persisten
 public class FattureRelExcelBuilderPersistence(FattureRelExcelQuery command) : DapperBase, IQuery<IEnumerable<FattureRelExcelDto>?>
 {
     private readonly FattureRelExcelQuery _command = command;
-    private static readonly string _sql = FattureRelExcelBuilder.SelectRel();
-    private static readonly string _order = FattureRelExcelBuilder.OrderByRel();
+    private static readonly string _sql = FattureRelExcelBuilder.SelectRel(); 
     public async Task<IEnumerable<FattureRelExcelDto>?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
     {
         var computedFatture = new Dictionary<string, FattureRelExcelDto>();
@@ -19,10 +18,13 @@ public class FattureRelExcelBuilderPersistence(FattureRelExcelQuery command) : D
         var anno = _command.Anno;
         var mese = _command.Mese;
         var tipoFattura = _command.TipologiaFattura;
+        var fatturaInviata = _command.FatturaInviata;
+
         var query = new DynamicParameters();
         query.Add("anno", anno);
         query.Add("mese", mese);
         query.Add("TipologiaFattura", tipoFattura);
+        query.Add("FatturaInviata", fatturaInviata.HasValue? fatturaInviata.Value: null);
 
         string where = string.Empty;
         if (!_command.IdEnti!.IsNullNotAny())

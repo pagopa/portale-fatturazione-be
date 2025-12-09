@@ -2,11 +2,13 @@
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using PortaleFatture.BE.Core.Entities.SEND.DatiModuloCommesse.Dto;
+using PortaleFatture.BE.Core.Entities.SEND.DatiRel;
 using PortaleFatture.BE.Core.Entities.SEND.Tipologie;
 using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Core.Resources;
 using PortaleFatture.BE.Infrastructure.Common.Persistence.Schemas;
+using PortaleFatture.BE.Infrastructure.Common.SEND.DatiModuloCommesse.Dto;
 using PortaleFatture.BE.Infrastructure.Common.SEND.DatiModuloCommesse.Extensions;
 using PortaleFatture.BE.Infrastructure.Common.SEND.DatiModuloCommesse.Queries;
 using PortaleFatture.BE.Infrastructure.Common.SEND.DatiModuloCommesse.Queries.Persistence;
@@ -14,30 +16,27 @@ using PortaleFatture.BE.Infrastructure.Common.SEND.Tipologie.Queries.Persistence
 
 namespace PortaleFatture.BE.Infrastructure.Common.SEND.DatiModuloCommesse.QueryHandlers;
 
-public class DatiModuloCommessaQueryByDescrizioneHandler(
+public class RicercaModuloCommessaByDateQueryHandler(
  IFattureDbContextFactory factory,
  IStringLocalizer<Localization> localizer,
- ILogger<DatiModuloCommessaQueryByDescrizioneHandler> logger) : IRequestHandler<DatiModuloCommessaQueryGetByDescrizione, IEnumerable<ModuloCommessaPrevisionaleTotaleDto>?>
+ ILogger<RicercaModuloCommessaByDateQueryHandler> logger) : IRequestHandler<RicercaModuloCommessaByDateQuery, ModuloCommessaPrevisionaleTotaliDateDto>
 {
     private readonly IFattureDbContextFactory _factory = factory;
-    private readonly ILogger<DatiModuloCommessaQueryByDescrizioneHandler> _logger = logger;
+    private readonly ILogger<RicercaModuloCommessaByDateQueryHandler> _logger = logger;
     private readonly IStringLocalizer<Localization> _localizer = localizer;
 
-    public async Task<IEnumerable<ModuloCommessaPrevisionaleTotaleDto>?> Handle(DatiModuloCommessaQueryGetByDescrizione command, CancellationToken ct)
+    public async Task<ModuloCommessaPrevisionaleTotaliDateDto> Handle(RicercaModuloCommessaByDateQuery request, CancellationToken ct)
     {
-        if (command.MeseValidita == null || command.AnnoValidita == null)
-            throw new ArgumentException("Passare un anno e un mese");
-
+        var result = new ModuloCommessaPrevisionaleTotaliDateDto();
         IEnumerable<ModuloCommessaPrevisionaleByAnnoDto>? dati;
         IEnumerable<CategoriaSpedizione>? categorie;
         List<ModuloCommessaPrevisionaleTotaleDto>? moduloCommessa = [];
+        var count = 0;
         using (var uow = await _factory.Create(true, cancellationToken: ct))
         {
-            dati = await uow.Query(new DatiModuloCommessaQueryGetByDescrizionePersistence(command.IdEnti,
-            command.AnnoValidita.Value,
-            command.MeseValidita.Value,
-            command.Prodotto,
-            command.IdTipoContratto), ct);
+            var datiWithCount = await uow.Query(new RicercaModuloCommessaByDateQueryPersistence(request), ct);
+            dati = datiWithCount.ModuliCommessa;
+            count = datiWithCount.Count;
 
             categorie = await uow.Query(new SpedizioneQueryGetAllPersistence(), ct);
         }
@@ -50,26 +49,14 @@ public class DatiModuloCommessaQueryByDescrizioneHandler(
         }
 
         if (dati!.IsNullNotAny())
-            return null;
+            return result;
 
         Dictionary<string, ModuloCommessaPrevisionaleTotaleDto> dic = [];
 
         foreach (var modulo in dati!)
         {
             IEnumerable<ValoriRegioneDto>? valoriRegioni;
-            if (command.RecuperaRegioni == true)
-            {
-                using var uow = await _factory.Create(cancellationToken: ct);
-                valoriRegioni = await uow.Query(new DatiValoriRegioneModuloCommessaQueryGetPersistence(
-                    modulo.FkIdEnte,
-                    modulo.AnnoValidita,
-                    modulo.MeseValidita), ct);
-            }
-            else
-            {
-                valoriRegioni = null;
-            }
-
+            valoriRegioni = null; 
 
             if (!dic.TryGetValue($"{modulo.AnnoValidita}_{modulo.MeseValidita}_{modulo.FkIdEnte}", out var _prev))
             {
@@ -88,7 +75,8 @@ public class DatiModuloCommessaQueryByDescrizioneHandler(
                     DataChiusura = modulo.DataChiusura,
                     DataChiusuraLegale = modulo.DataChiusuraLegale,
                     RagioneSociale = modulo.RagioneSociale,
-                    TipologiaContratto = modulo.TipologiaContratto
+                    TipologiaContratto = modulo.TipologiaContratto,
+                    DataContratto = modulo.DataContratto
                 };
                 dic.Add($"{modulo.AnnoValidita}_{modulo.MeseValidita}_{modulo.FkIdEnte}", _prev);
             }
@@ -159,6 +147,8 @@ public class DatiModuloCommessaQueryByDescrizioneHandler(
             moduloCommessa.Add(item.Value);
         }
 
-        return moduloCommessa;
+        result.ModuliCommessa = moduloCommessa;
+        result.Count = count;
+        return result;
     }
 }

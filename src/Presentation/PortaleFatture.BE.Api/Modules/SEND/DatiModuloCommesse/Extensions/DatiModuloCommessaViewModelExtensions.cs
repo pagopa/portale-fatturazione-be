@@ -6,12 +6,53 @@ using PortaleFatture.BE.Core.Entities.SEND.DatiModuloCommesse;
 using PortaleFatture.BE.Core.Entities.SEND.DatiModuloCommesse.Dto;
 using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Infrastructure.Common.SEND.DatiModuloCommesse.Commands;
+using PortaleFatture.BE.Infrastructure.Common.SEND.DatiModuloCommesse.Dto;
 using PortaleFatture.BE.Infrastructure.Common.SEND.DatiModuloCommesse.Queries;
 
 namespace PortaleFatture.BE.Api.Modules.SEND.DatiModuloCommesse.Extensions;
 
 public static class DatiModuloCommessaViewModelExtensions
 {
+    public static ModuloCommessaPrevisionaleDownloadDto? Map(this ModuloCommessaPrevisionaleTotaleDto source)
+    {
+        if (source == null)
+            return null;
+
+        return new ModuloCommessaPrevisionaleDownloadDto
+        {
+            Modifica = source.Modifica,
+            AnnoValidita = source.AnnoValidita,
+            MeseValidita = source.MeseValidita,
+            IdEnte = source.IdEnte,
+            RagioneSociale = source.RagioneSociale,
+            IdTipoContratto = source.IdTipoContratto,
+            Stato = source.Stato,
+            Prodotto = source.Prodotto,
+            Totale = source.Totale,
+            DataInserimento = source.DataInserimento,
+            DataChiusura = source.DataChiusura,
+            DataChiusuraLegale = source.DataChiusuraLegale,
+            TotaleDigitaleNaz = source.TotaleDigitaleNaz,
+            TotaleDigitaleInternaz = source.TotaleDigitaleInternaz,
+            TotaleAnalogicoARNaz = source.TotaleAnalogicoARNaz,
+            TotaleAnalogicoARInternaz = source.TotaleAnalogicoARInternaz,
+            TotaleAnalogico890Naz = source.TotaleAnalogico890Naz,
+            TotaleNotificheDigitaleNaz = source.TotaleNotificheDigitaleNaz,
+            TotaleNotificheDigitaleInternaz = source.TotaleNotificheDigitaleInternaz,
+            TotaleNotificheAnalogicoARNaz = source.TotaleNotificheAnalogicoARNaz,
+            TotaleNotificheAnalogicoARInternaz = source.TotaleNotificheAnalogicoARInternaz,
+            TotaleNotificheAnalogico890Naz = source.TotaleNotificheAnalogico890Naz,
+            TotaleNotificheDigitale = source.TotaleNotificheDigitale,
+            TotaleNotificheAnalogico = source.TotaleNotificheAnalogico,
+            TotaleNotifiche = source.TotaleNotifiche,
+            Source = source.Source,
+            Quarter = source.Quarter,
+            ValoriRegione = source.ValoriRegione,
+            TipologiaContratto = source.TipologiaContratto,
+            DataContratto = source.DataContratto
+        };
+    }
+ 
     public static async Task<IEnumerable<ModuloCommessaPrevisionaleTotaleDto>?> ValidateModuloCommessaPrevisionale(IMediator handler, List<DatiModuloCommessaCreateRequest> req, AuthenticationInfo? authInfo)
     {
         var anniMesi = req.Select(r => (r.Anno, r.Mese)).ToList();

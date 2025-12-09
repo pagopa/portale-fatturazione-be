@@ -12,13 +12,13 @@ namespace PortaleFatture.BE.Infrastructure.Common.SEND.DatiModuloCommesse.QueryH
 public class ModuloCommessaPrevisionaleDownloadQueryHandler(
  IFattureDbContextFactory factory,
  IStringLocalizer<Localization> localizer,
- ILogger<ModuloCommessaPrevisionaleDownloadQueryHandler> logger) : IRequestHandler<ModuloCommessaPrevisionaleDownloadQueryGet, IEnumerable<ModuloCommessaPrevisionaleDownloadDto>?>
+ ILogger<ModuloCommessaPrevisionaleDownloadQueryHandler> logger) : IRequestHandler<ModuloCommessaPrevisionaleDownloadQueryGet, IEnumerable<ModuloCommessaPrevisionaleDownloadDtov2>?>
 {
     private readonly IFattureDbContextFactory _factory = factory;
     private readonly ILogger<ModuloCommessaPrevisionaleDownloadQueryHandler> _logger = logger;
     private readonly IStringLocalizer<Localization> _localizer = localizer;
 
-    public async Task<IEnumerable<ModuloCommessaPrevisionaleDownloadDto>?> Handle(ModuloCommessaPrevisionaleDownloadQueryGet request, CancellationToken ct)
+    public async Task<IEnumerable<ModuloCommessaPrevisionaleDownloadDtov2>?> Handle(ModuloCommessaPrevisionaleDownloadQueryGet request, CancellationToken ct)
     {
         // valida input request
         if ((request.Anno <= 0 || request.Anno == null) || (request.Mese <= 0 || request.Mese == null))

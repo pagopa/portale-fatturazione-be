@@ -117,6 +117,13 @@ public partial class FattureModule : Module, IRegistrableModule
            .SetOpenApi(Module.DatiFattureLabel)
            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
+
+        endpointRouteBuilder
+           .MapGet("api/fatture/stato", GetStatoFattureAsync)
+           .WithName("Permette di ottenere lo statp invio fatture per ricerca")
+           .SetOpenApi(Module.DatiFattureLabel)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
         endpointRouteBuilder
            .MapPost("api/fatture", PostFattureByRicercaAsync)
            .WithName("Permette di ottenere le fatture per ricerca")

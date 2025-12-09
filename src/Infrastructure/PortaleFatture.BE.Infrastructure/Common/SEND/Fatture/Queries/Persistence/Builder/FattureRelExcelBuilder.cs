@@ -44,9 +44,14 @@ t.AnnoRiferimento=@anno and
 t.MeseRiferimento=@mese and 
 t.FkTipologiaFattura=@tipologiafattura and
 r.CodiceMateriale like '%STORNO%'
-and t.FkIdEnte NOT IN
+AND t.FkIdEnte NOT IN
 (SELECT rr.internal_organization_id from pfd.RelTestata rr
 WHERE rr.month= @mese and rr.year=@anno and rr.TipologiaFattura=@tipologiafattura) 
+AND (
+        @FatturaInviata IS NULL  -- Tutte
+        OR (@FatturaInviata = 2 AND t.FatturaInviata IS NULL)  -- In elaborazione
+        OR (t.FatturaInviata = @FatturaInviata)  -- 0 o 1
+    ) 
 ";
 
     private static string _sqlRel = @"
@@ -102,6 +107,11 @@ SELECT
 								and t.meseriferimento = rt.month
                                 and t.FkTipologiaFattura = rt.TipologiaFattura
     WHERE rr.month= @mese and rr.year=@anno and rr.TipologiaFattura=@tipologiafattura  
+    AND (
+        @FatturaInviata IS NULL  -- Tutte
+        OR (@FatturaInviata = 2 AND t.FatturaInviata IS NULL)  -- In elaborazione
+        OR (t.FatturaInviata = @FatturaInviata)  -- 0 o 1
+    ) 
 ";
 
 

@@ -63,7 +63,7 @@ public static class ReflectionExtensions
     internal static (DataTable, List<HeaderAttribute>) ToTable<T>()
     {
         var headers = GetHeaders<T>();
-        var table = new DataTable(nameof(T));
+        var table = new DataTable(typeof(T).Name);
 
         foreach (var hh in headers)
         {
@@ -80,7 +80,26 @@ public static class ReflectionExtensions
 
         return (table, headers);
     }
+    internal static (DataTable, List<HeaderAttribute>) ToTableWithName<T>(string? tableName = "")
+    {
+        var headers = GetHeaders<T>();
+        var table = new DataTable(tableName ?? nameof(T));
 
+        foreach (var hh in headers)
+        {
+            var column = new DataColumn
+            {
+                DataType = Nullable.GetUnderlyingType(hh.Type!) ?? hh.Type,
+                ColumnName = hh.Name,
+                Caption = hh.Caption,
+                ReadOnly = hh.ReadOnly
+            };
+            column.ExtendedProperties.Add("Style", hh.Style);
+            table.Columns.Add(column);
+        }
+
+        return (table, headers);
+    }
 
     public static dynamic CalculateHeaderAttribute<T>(this T model)
     {
@@ -163,6 +182,28 @@ public static class ReflectionExtensions
             table.Columns.Add(column);
         }
         return (table, headers);
+    }
+
+    public static DataSet FillOneSheetWithName<T>(this IEnumerable<T> data, string? tableName = "")
+    {
+        var ds = new DataSet();
+        var (table, headers) = ToTableWithName<T>(tableName);
+        DataRow row;
+        foreach (var d in data)
+        {
+            row = table.NewRow();
+            foreach (var hh in headers)
+            {
+                var value = d!.GetType().GetProperty(hh.Name!)!.GetValue(d, null);
+                row[hh.Name!] = (value == null || (value is string s && string.IsNullOrEmpty(s)))
+                 ? DBNull.Value
+                 : value;
+            }
+
+            table.Rows.Add(row);
+        }
+        ds.Tables.Add(table);
+        return ds;
     }
 
     public static DataSet FillOneSheet<T>(this IEnumerable<T> data)

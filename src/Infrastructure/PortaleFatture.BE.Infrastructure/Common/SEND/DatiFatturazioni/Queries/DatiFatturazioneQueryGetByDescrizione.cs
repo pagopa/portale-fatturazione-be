@@ -1,6 +1,5 @@
 ﻿using MediatR;
 using PortaleFatture.BE.Core.Auth;
-using PortaleFatture.BE.Infrastructure.Common.SEND.DatiFatturazioni.Dto;
 
 namespace PortaleFatture.BE.Infrastructure.Common.SEND.DatiFatturazioni.Queries;
 

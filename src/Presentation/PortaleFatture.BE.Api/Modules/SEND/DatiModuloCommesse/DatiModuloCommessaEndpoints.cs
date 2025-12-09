@@ -8,7 +8,12 @@ public partial class DatiModuloCommessaModule : Module, IRegistrableModule
 {
     public void RegisterEndpoints(IEndpointRouteBuilder endpointRouteBuilder)
     {
-        #region PagoPA
+        #region PagoPA 
+        endpointRouteBuilder
+         .MapGet("api/modulocommessa/pagopa/tipologiacontratto", GetTipologiaContratto)
+         .WithName("Permette di ottenere la tipologia contratto REL in modulo commessa")
+         .SetOpenApi(Module.DatiModuloCommessaLabelPagoPA)
+         .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
         endpointRouteBuilder
         .MapGet("api/modulocommessa/pagopa/periodo", GetPagoPADatiModuloCommessaAnnoMeseAsync)
@@ -38,13 +43,7 @@ public partial class DatiModuloCommessaModule : Module, IRegistrableModule
          .MapGet("api/v2/modulocommessa/pagopa/", GetPagoPADatiModuloCommessav2Async)
          .WithName("Permette di ottenere i dati relativi al modulo commessa via utente PagoPA per mese anno v2.")
          .SetOpenApi(Module.DatiModuloCommessaLabelPagoPA)
-         .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
-
-        endpointRouteBuilder
-        .MapPost("api/v2/modulocommessa/pagopa/ricerca", PagoPADatiModuloCommessaRicercaAsync)
-        .WithName("Permette di ottenere i dati relativi al modulo commessa via utente PagoPA v2.")
-        .SetOpenApi(Module.DatiModuloCommessaLabelPagoPA)
-        .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+         .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel)); 
 
         endpointRouteBuilder
           .MapGet("api/v2/modulocommessa/pagopa/regioni", GetDatiModuloCommessaListaObbligatoriPagoPAAsync)
@@ -59,12 +58,31 @@ public partial class DatiModuloCommessaModule : Module, IRegistrableModule
          .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
         endpointRouteBuilder
+        .MapPost("api/v2/modulocommessa/pagopa/ricerca", PagoPADatiModuloCommessaRicercaAsync)
+        .WithName("Permette di ottenere i dati relativi al modulo commessa via utente PagoPA v2.")
+        .SetOpenApi(Module.DatiModuloCommessaLabelPagoPA)
+        .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
         .MapPost("api/v2/modulocommessa/pagopa/report/ricerca", PagoPADatiModuloCommessaRicercaDocumentoReportAsync)
         .WithName("Permette di ottenere il file excel per il modulo commessa report per ricerca descrizione via utente PagoPA")
         .SetOpenApi(Module.DatiModuloCommessaLabelPagoPA)
         .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
+
         endpointRouteBuilder
+        .MapPost("api/v2/modulocommessa/pagopa/ricerca/date", PagoPADatiModuloCommessaRicercaByDateAsync)
+        .WithName("Permette di ottenere i dati relativi al modulo commessa via utente PagoPA v2 con date")
+        .SetOpenApi(Module.DatiModuloCommessaLabelPagoPA)
+        .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+        .MapPost("api/v2/modulocommessa/pagopa/report/ricerca/date", PagoPADatiModuloCommessaRicercaDocumentoReportByDateAsync)
+        .WithName("Permette di ottenere il file excel per il modulo commessa report per ricerca descrizione via utente PagoPA con date")
+        .SetOpenApi(Module.DatiModuloCommessaLabelPagoPA)
+        .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder 
           .MapPost("api/v2/pagopa/modulocommessa", CreateDatiModuloCommessaPrevisionalePagoPAAsync)
           .WithName("Permette di creare/aggiornare i dati relativi al modulo commessa previsionale pagoPA")
           .SetOpenApi(Module.DatiModuloCommessaLabelPagoPA)

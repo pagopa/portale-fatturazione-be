@@ -83,5 +83,8 @@ public class ModuloCommessaPrevisionaleTotaleViewModel
     public string? Source { get; set; }
 
     [Header(caption: "Trimestre", Order = 26)]
-    public string? Quarter { get; set; } 
+    public string? Quarter { get; set; }
+
+    [Header(caption: "Tipo Contratto", Order = 27)]
+    public string? TipologiaContratto { get; set; }
 }
