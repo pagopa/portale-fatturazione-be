@@ -639,6 +639,25 @@ public partial class FattureModule
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private Results<Ok<List<StatoFatturaInviata>>, NotFound> GetStatoFattureAsync()
+    {
+        var stati = new List<StatoFatturaInviata>
+            {
+                new() { Id = null, Description = "Tutte" },
+                new() { Id = 0, Description = "Non inviata" },
+                new() { Id = 1, Description = "Inviata" },
+                new() { Id = 2, Description = "In elaborazione" }
+            };
+        return Ok(stati);
+    }
+
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     private async Task<Results<Ok<FattureListaDto>, NotFound>> PostFattureByRicercaAsync(
     HttpContext context,
     [FromBody] FatturaRicercaRequest request,

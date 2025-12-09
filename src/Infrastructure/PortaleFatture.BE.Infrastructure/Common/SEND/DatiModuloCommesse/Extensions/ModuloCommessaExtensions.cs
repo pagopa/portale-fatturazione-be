@@ -49,7 +49,8 @@ public static class ModuloCommessaExtensions
             TotaleNotificheAnalogico = dto.TotaleNotificheAnalogico,
             TotaleNotifiche = dto.TotaleNotifiche,
             Source = dto.Source,
-            Quarter = dto.Quarter
+            Quarter = dto.Quarter,
+            TipologiaContratto = dto.TipologiaContratto
         };
     }
 } 

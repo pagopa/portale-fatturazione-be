@@ -20,5 +20,6 @@ public class FatturaRicercaRequest
         set { _tipologiaFattura = value!.IsNullNotAny() ? null : value; }
     }
     public bool? Cancellata { get; set; } 
-    public int? IdTipoContratto { get; set; }
+    public int? IdTipoContratto { get; set; } 
+    public int? Inviata { get; set; }
 }

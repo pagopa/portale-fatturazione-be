@@ -1,9 +1,7 @@
 ﻿using Dapper;
-using DocumentFormat.OpenXml.Spreadsheet;
 using PortaleFatture.BE.Core.Entities.SEND.DatiFatturazioni;
 using PortaleFatture.BE.Core.Entities.SEND.SelfCare;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
-using PortaleFatture.BE.Infrastructure.Common.SEND.DatiFatturazioni.Dto;
 
 namespace PortaleFatture.BE.Infrastructure.Common.SEND.DatiFatturazioni.Queries.Persistence.Builder;
 

@@ -6,7 +6,6 @@ using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Common;
 using PortaleFatture.BE.Core.Resources;
 using PortaleFatture.BE.Infrastructure.Common.Persistence.Schemas;
-using PortaleFatture.BE.Infrastructure.Common.SEND.DatiFatturazioni.Dto;
 using PortaleFatture.BE.Infrastructure.Common.SEND.DatiFatturazioni.Queries;
 using PortaleFatture.BE.Infrastructure.Common.SEND.DatiFatturazioni.Queries.Persistence;
 

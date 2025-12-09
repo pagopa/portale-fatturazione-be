@@ -2,7 +2,6 @@
 using PortaleFatture.BE.Core.Common;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
-using PortaleFatture.BE.Infrastructure.Common.SEND.DatiFatturazioni.Dto;
 using PortaleFatture.BE.Infrastructure.Common.SEND.DatiFatturazioni.Queries.Persistence.Builder;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Tipologie.Queries.Persistence.Builder;
 

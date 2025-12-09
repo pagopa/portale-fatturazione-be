@@ -33,8 +33,13 @@ SELECT [Anno]
       ,[890_REGIONI_PERC] as Regioni890Perc
       ,[TOTALE_REGIONI_PERC] as TotaleRegioniPerc
       ,[TotaleCoperturaRegionale]
-FROM [pfd].[vModuloCommessaPrevisionale_V2]
-where anno=@anno and mese=@mese
+	  ,tc.Descrizione as TipologiaContratto
+FROM [pfd].[vModuloCommessaPrevisionale_V2] v 
+left outer join pfd.enti e on e.InternalIstitutionId = v.IdEnte
+inner join pfd.Contratti c on c.internalistitutionid  = e.InternalIstitutionId
+inner join pfw.TipoContratto tc on tc.IdTipoContratto = c.FkIdTipoContratto
+WHERE (@idTipoContratto IS NULL OR c.FkIdTipoContratto = @idTipoContratto)
+AND anno=@anno AND mese=@mese 
 ";
 
     private static string _orderbyAnnoMeseIdTipoReportEnte = $@"

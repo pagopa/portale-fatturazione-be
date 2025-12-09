@@ -11,5 +11,6 @@ public class FattureRelExcelQuery(IAuthenticationInfo authenticationInfo) : IReq
     public string? TipologiaFattura { get; set; }
     public int? Anno { get; set; }
     public int? Mese { get; set; } 
-    public int? FkIdTipoContratto { get; set; }
+    public int? FkIdTipoContratto { get; set; } 
+    public int? FatturaInviata { get; set; }
 }

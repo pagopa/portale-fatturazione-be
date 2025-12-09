@@ -13,4 +13,5 @@ public class FattureQueryRicerca(IAuthenticationInfo authenticationInfo) : IRequ
     public int? Mese { get; set; }
     public bool Cancellata { get; set; }
     public int? FkIdTipoContratto { get; set; }
+    public int? FatturaInviata { get; set; }
 }

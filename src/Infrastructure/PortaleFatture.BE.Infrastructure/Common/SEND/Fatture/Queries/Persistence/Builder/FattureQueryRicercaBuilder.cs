@@ -259,6 +259,11 @@ SELECT
 	and FT.FkTipologiaFattura IN @TipologiaFattura
 	and FT.FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865' --esclusione pagopa
     AND (@FkIdTipoContratto IS NULL OR c.FkIdTipoContratto = @FkIdTipoContratto)  
+    AND (
+        @FatturaInviata IS NULL  -- Se NULL, mostra tutte
+        OR (@FatturaInviata = 2 AND FT.FatturaInviata IS NULL)  -- In elaborazione
+        OR (FT.FatturaInviata = @FatturaInviata)  -- 0 o 1
+    )
 	ORDER BY FT.FkTipologiaFattura, FT.Progressivo
     FOR JSON PATH, INCLUDE_NULL_VALUES)";
 
@@ -328,6 +333,11 @@ SELECT
 	and FT.FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865' --esclusione pagopa
 	and FT.TotaleFattura > 0
     AND (@FkIdTipoContratto IS NULL OR c.FkIdTipoContratto = @FkIdTipoContratto)  
+    AND (
+        @FatturaInviata IS NULL  -- Se NULL, mostra tutte
+        OR (@FatturaInviata = 2 AND FT.FatturaInviata IS NULL)  -- In elaborazione
+        OR (FT.FatturaInviata = @FatturaInviata)  -- 0 o 1
+    )
 	ORDER BY FT.FkTipologiaFattura, FT.Progressivo
     FOR JSON PATH, INCLUDE_NULL_VALUES )";
 

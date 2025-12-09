@@ -29,7 +29,8 @@ public class FattureAccontoFatturaExcelPersistence(FattureAccontoExcelQuery comm
             Anno = anno,
             Mese = mese,
             _command.IdEnti,
-            _command.FkIdTipoContratto
+            _command.FkIdTipoContratto,
+            _command.FatturaInviata
         };
 
         return await ((IDatabase)this).SelectAsync<FattureAccontoExcelDto>(

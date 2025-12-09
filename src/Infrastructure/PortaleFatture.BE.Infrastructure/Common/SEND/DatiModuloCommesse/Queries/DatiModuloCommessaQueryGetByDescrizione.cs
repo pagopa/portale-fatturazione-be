@@ -10,5 +10,6 @@ public class DatiModuloCommessaQueryGetByDescrizione(IAuthenticationInfo authent
     public int? MeseValidita { get; set; }
     public string? Prodotto { get; set; }
     public string[]? IdEnti { get; set; } 
-    public bool RecuperaRegioni { get; set; } = true;
+    public bool RecuperaRegioni { get; set; } = true; 
+    public int? IdTipoContratto { get; set; }
 }

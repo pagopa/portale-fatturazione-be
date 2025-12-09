@@ -34,7 +34,12 @@ LEFT OUTER JOIN pfd.vFattureAnticipo f
     AND f.Mese = t.MeseValidita
     AND f.IdEnte = t.FKIdEnte
 WHERE t.AnnoValidita = @anno 
-    AND t.MeseValidita = @mese 
+    AND t.MeseValidita = @mese
+    AND (
+            @FatturaInviata IS NULL  -- Tutte
+            OR (@FatturaInviata = 2 AND f.FatturaInviata IS NULL)  -- In elaborazione
+            OR (f.FatturaInviata = @FatturaInviata)  -- 0 o 1
+        )
 ";
 
     public static string SelectCommesse()

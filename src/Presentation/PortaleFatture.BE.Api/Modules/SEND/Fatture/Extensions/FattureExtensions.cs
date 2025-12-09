@@ -104,8 +104,8 @@ public static class FattureExtensions
         foreach (var tipologia in request.TipologiaFattura!)
         {
             var month = request.Mese.GetMonth();
-            var year = request.Anno; 
-                
+            var year = request.Anno;
+
             switch (tipologia)
             {
                 case TipologiaFattura.PRIMOSALDO:
@@ -189,7 +189,7 @@ public static class FattureExtensions
             var fatturezero = commesse[i].Where(x => x.TotaleFattura == 0);
             if (!fatturezero.IsNullNotAny())
                 dataSet.Tables.Add(fatturezero!.FillTableWithTotalsRel(0, $"Acconto a zero {month}"));
-        } 
+        }
         using var memory = dataSet!.ToExcel();
         return memory.ToArray();
     }
@@ -243,10 +243,11 @@ public static class FattureExtensions
             IdEnti = req.IdEnti,
             TipologiaFattura = req.TipologiaFattura,
             Cancellata = req.Cancellata == null ? false : req.Cancellata.Value,
-            FkIdTipoContratto = req.IdTipoContratto
+            FkIdTipoContratto = req.IdTipoContratto,
+            FatturaInviata = req.Inviata
         };
-    }  
- 
+    }
+
     public static FattureRelExcelQuery Mapv2(this FatturaRicercaRequest req, AuthenticationInfo authInfo, string tipologiaFattura)
     {
         return new FattureRelExcelQuery(authInfo)
@@ -255,7 +256,8 @@ public static class FattureExtensions
             Mese = req.Mese,
             IdEnti = req.IdEnti,
             TipologiaFattura = tipologiaFattura,
-            FkIdTipoContratto = req.IdTipoContratto
+            FkIdTipoContratto = req.IdTipoContratto,
+            FatturaInviata = req.Inviata
         };
     }
 
@@ -266,7 +268,8 @@ public static class FattureExtensions
             Anno = req.Anno,
             Mese = req.Mese,
             IdEnti = req.IdEnti,
-            FkIdTipoContratto = req.IdTipoContratto
+            FkIdTipoContratto = req.IdTipoContratto,
+            FatturaInviata = req.Inviata
         };
     }
 
@@ -277,7 +280,8 @@ public static class FattureExtensions
             Anno = req.Anno,
             Mese = req.Mese,
             IdEnti = req.IdEnti,
-            FkIdTipoContratto = req.IdTipoContratto
+            FkIdTipoContratto = req.IdTipoContratto,
+            FatturaInviata = req.Inviata
         };
     }
 

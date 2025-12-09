@@ -5,7 +5,6 @@ using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Entities.SEND.DatiFatturazioni;
 using PortaleFatture.BE.Core.Entities.SEND.Tipologie;
 using PortaleFatture.BE.Infrastructure.Common.SEND.DatiFatturazioni.Commands;
-using PortaleFatture.BE.Infrastructure.Common.SEND.DatiFatturazioni.Dto;
 
 namespace PortaleFatture.BE.Api.Modules.SEND.DatiFatturazioni.Extensions;
 public static class DatiFatturazioneExtensions

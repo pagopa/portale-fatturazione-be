@@ -29,7 +29,9 @@ public class ModuloCommessaPrevisionaleTotaleDto
     public int? TotaleNotifiche { get; set; }
     public string? Source { get; set; }
     public string? Quarter { get; set; } 
-    public List<ValoriRegioneDto>? ValoriRegione { get; set; }
+    public List<ValoriRegioneDto>? ValoriRegione { get; set; }  
+    public string? TipologiaContratto { get; set; } 
+    public DateTime? DataContratto { get; set; }
 }
 
 public class ModuloCommessaPrevisionaleByAnnoDto
@@ -51,7 +53,9 @@ public class ModuloCommessaPrevisionaleByAnnoDto
     public DateTime? DataChiusura { get; set; } 
     public DateTime? DataChiusuraLegale { get; set; }
     public string? Quarter { get; set; }
-    public bool Modifica { get; set; }
+    public bool Modifica { get; set; } 
+    public string? TipologiaContratto { get; set; } 
+    public DateTime? DataContratto { get; set; }
 }
 
 
