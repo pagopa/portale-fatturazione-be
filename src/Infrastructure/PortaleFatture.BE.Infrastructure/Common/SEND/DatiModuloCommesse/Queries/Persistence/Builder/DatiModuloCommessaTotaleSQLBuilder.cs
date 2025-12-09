@@ -309,6 +309,13 @@ DateConstants AS (
         ) AS GiornoFineLegale
 ),
 
+-- Tipo contratto dell'ente
+TipoContrattoEnte AS (
+    SELECT TOP 1 c.FkIdTipoContratto
+    FROM [pfd].[Contratti] c
+    WHERE c.internalistitutionid = @idente 
+),
+
 -- Tipi spedizione
 Categorie AS ( 
     SELECT IdTipoSpedizione AS FkIdTipoSpedizione
@@ -575,7 +582,7 @@ SELECT
     NULL AS ValoreNazionali,
     ce.Source,
     @idente AS FkIdEnte,
-    NULL AS FkIdTipoContratto,
+    (SELECT FkIdTipoContratto FROM TipoContrattoEnte) AS FkIdTipoContratto,
     @prodotto AS FkProdotto,
     NULL AS FkIdStato,
     ce.Year,
@@ -607,7 +614,7 @@ SELECT
     NULL AS ValoreNazionali,
     mm.Source,
     @idente AS FkIdEnte,
-    NULL AS FkIdTipoContratto,
+    (SELECT FkIdTipoContratto FROM TipoContrattoEnte) AS FkIdTipoContratto,
     @prodotto AS FkProdotto,
     NULL AS FkIdStato,
     mm.Year,
@@ -635,7 +642,7 @@ SELECT
     NULL AS ValoreNazionali,
     mtc.Source,
     @idente AS FkIdEnte,
-    NULL AS FkIdTipoContratto,
+    (SELECT FkIdTipoContratto FROM TipoContrattoEnte) AS FkIdTipoContratto,
     @prodotto AS FkProdotto,
     NULL AS FkIdStato,
     mtc.Year,
