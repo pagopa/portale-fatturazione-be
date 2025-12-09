@@ -20,7 +20,7 @@ public class ModuloCommessaPrevisionaleDownloadQueryGetPersistence(ModuloCommess
     {
         string? where = string.Empty;
         if (!_idEnti.IsNullNotAny())
-           where = " AND identi IN @idente";
+           where = "  AND idente IN @idente ";
 
         return await ((IDatabase)this).SelectAsync<ModuloCommessaPrevisionaleDownloadDtov2>(connection!, $"{_sqlSelect}{where}{_orderBy}",
               new
