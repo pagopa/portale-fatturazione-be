@@ -608,13 +608,15 @@ FROM (
     UNION ALL
     SELECT @anno AS AnnoRiferimento, Mese AS MeseRiferimento
     FROM Months
+    UNION ALL
+    SELECT @anno + 1 AS AnnoRiferimento, Mese AS MeseRiferimento
+    FROM Months 
 ) AS m
 LEFT JOIN ExistingData e 
     ON m.AnnoRiferimento = e.anno AND m.MeseRiferimento = e.mese
-WHERE e.mese IS NULL  -- Exclude months that already exist in both tables
+--WHERE e.mese IS NULL  -- Exclude months that already exist in both tables
 ORDER BY AnnoRiferimento DESC, MeseRiferimento
 OPTION (MAXRECURSION 12);
-
     ";
     }
 
