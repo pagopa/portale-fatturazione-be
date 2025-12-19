@@ -21,14 +21,16 @@ public class ModuloCommessaPrevisionaleTotaleViewModel
     public string? Stato { get; set; }
     [Header(caption: "Prodotto", Order = 7)]
     public string? Prodotto { get; set; }
-    [Header(caption: "Totale Euro", Order = 10)]
+    [Header(caption: "Totale Euro", Order = 11)]
     public decimal? Totale { get; set; }
     [Header(caption: "Data Inserimento", Order = 8)]
     public DateTime? DataInserimento { get; set; }
     [Header(caption: "Data Chiusura", Order = 9)]
     public DateTime? DataChiusura { get; set; }
-    [Header(caption: "Data Legale", Order = 11)]
+
+    [Header(caption: "Data Legale", Order = 10)]
     public DateTime? DataChiusuraLegale { get; set; }
+
     [Header(caption: "Totale Euro Digitale Naz", Order = 12)]
     public decimal? TotaleDigitaleNaz { get; set; }
     [Header(caption: "Totale Euro Digitale Internaz", Order = 13)]
