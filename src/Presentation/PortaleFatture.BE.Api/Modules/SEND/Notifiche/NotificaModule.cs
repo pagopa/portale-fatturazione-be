@@ -351,6 +351,24 @@ public partial class NotificaModule
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<int?>, NotFound>> GetConsolidatoriNotificheCountAsync(
+    HttpContext context,
+   [FromServices] IStringLocalizer<Localization> localizer,
+   [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var command = new ReportNotificheQueryCount(authInfo) { };
+
+        var count = await handler.Send(command);
+        return Ok(count);
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCareConsolidatorePolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     private async Task<Results<Ok<NotificaRECCONDto>, NotFound>> GetConsolidatoriNotificheByRicercaAsync(
     HttpContext context,
     [FromBody] NotificheRicercaRequestPagoPA request,
@@ -462,6 +480,25 @@ public partial class NotificaModule
             Risposta = azione!.RispostaPermessa
         };
         return Ok(response);
+    }
+
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCareRecapitistaPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<int?>, NotFound>> GetRecapitistiNotificheCountAsync(
+    HttpContext context,
+   [FromServices] IStringLocalizer<Localization> localizer,
+   [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var command = new ReportNotificheQueryCount(authInfo) { };
+
+        var count = await handler.Send(command);
+        return Ok(count);
     }
 
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCareRecapitistaPolicy)]

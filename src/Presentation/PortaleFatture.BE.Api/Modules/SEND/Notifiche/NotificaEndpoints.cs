@@ -54,6 +54,12 @@ public partial class NotificaModule : Module, IRegistrableModule
         #endregion
         #region consolidatore
         endpointRouteBuilder
+         .MapGet("api/notifiche/consolidatore/richiesta/count", GetConsolidatoriNotificheCountAsync)
+         .WithName("Permette di tornare il count delle richieste effettuate dal consolidatore relative alle notifiche.")
+         .SetOpenApi(Module.DatiNotificaLabel)
+         .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
         .MapPost("api/notifiche/consolidatore", GetConsolidatoriNotificheByRicercaAsync)
         .WithName("Permette di ottenere le notifiche del consolidatore per ricerca")
         .SetOpenApi(Module.DatiNotificaLabelConsolidatori)
@@ -78,6 +84,13 @@ public partial class NotificaModule : Module, IRegistrableModule
          .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
         #endregion
         #region recapitista
+
+        endpointRouteBuilder
+         .MapGet("api/notifiche/recapitista/richiesta/count", GetRecapitistiNotificheCountAsync)
+         .WithName("Permette di tornare il count delle richieste effettuate dal recapitista relative alle notifiche.")
+         .SetOpenApi(Module.DatiNotificaLabel)
+         .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
         endpointRouteBuilder
         .MapPost("api/notifiche/recapitista", GetRecapitistiNotificheByRicercaAsync)
         .WithName("Permette di ottenere le notifiche del recapitista per ricerca")

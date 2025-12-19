@@ -9,14 +9,20 @@ partial class DatiFatturazioneModule : Module, IRegistrableModule
     {
         #region PagoPA
         endpointRouteBuilder
+        .MapGet("api/datifatturazione/pagopa/tipologiacontratto", GetTipologiaContratto)
+        .WithName("Permette di ottenere la tipologia contratto dati fatturazione aderenti via utente PagoPA.")
+        .SetOpenApi(Module.DatiFatturazioneLabelPagoPA)
+        .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
         .MapPost("api/datifatturazione/pagopa/documento/ricerca", PagoPADatiFatturazioneByDescrizioneDocumentAsync)
-        .WithName("Permette di ottenere il file excel per la fatturazione enti per ricerca descrizione via utente PagoPA")
+        .WithName("Permette di ottenere il file excel per la fatturazione enti per ricerca descrizione via utente PagoPA.")
         .SetOpenApi(Module.DatiFatturazioneLabelPagoPA)
         .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
         endpointRouteBuilder
         .MapPost("api/datifatturazione/pagopa/ricerca", PagoPADatiFatturazioneByDescrizioneAsync)
-        .WithName("Permette di ottenere i dati fatturazione enti per ricerca descrizione via utente PagoPA")
+        .WithName("Permette di ottenere i dati fatturazione enti per ricerca descrizione via utente PagoPA.")
         .SetOpenApi(Module.DatiFatturazioneLabelPagoPA)
         .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 

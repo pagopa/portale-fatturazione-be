@@ -111,6 +111,7 @@ public partial class DatiModuloCommessaModule
     [FromServices] IStringLocalizer<Localization> localizer,
     [FromServices] IMediator handler)
     {
+        //
         var authInfo = context.GetAuthInfo();
         var tipologia = await handler.Send(new TipologiaContrattoQuery(authInfo));
         if (tipologia.IsNullNotAny())

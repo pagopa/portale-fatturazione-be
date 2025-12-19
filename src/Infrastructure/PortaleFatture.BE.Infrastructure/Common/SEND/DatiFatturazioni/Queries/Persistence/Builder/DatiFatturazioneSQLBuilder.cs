@@ -63,6 +63,56 @@ public static class DatiFatturazioneSQLBuilder
         return builderTemplate.RawSql;
     }
 
+    public static string SelectByDescrizioneCount()
+    {
+        return $@"
+SELECT COUNT(*) 
+FROM pfd.Enti e 
+INNER JOIN (
+    SELECT internalistitutionid, product, FkIdTipoContratto, 
+           ROW_NUMBER() OVER (PARTITION BY internalistitutionid ORDER BY createdat DESC) as rn 
+    FROM pfd.Contratti
+) c ON e.InternalIstitutionId = c.internalistitutionid AND c.rn = 1 
+LEFT JOIN pfw.DatiFatturazione f ON e.InternalIstitutionId = f.FkIdEnte 
+";
+    }
+    public static string SelectByDescrizionev2()
+    {
+        return $@"
+SELECT 
+    e.description as RagioneSociale,
+    ISNULL(f.FkIdEnte, e.InternalIstitutionId) AS IdEnte,
+    ISNULL(f.FkProdotto, c.product) AS Prodotto,
+    e.institutionType as Profilo,
+    f.IdDatiFatturazione as Id,
+    f.Cup,
+    f.NotaLegale,
+    f.CodCommessa,
+    f.DataDocumento,
+    f.SplitPayment,
+    f.IdDocumento,
+    f.Map,
+    f.FkTipoCommessa,
+    f.Pec,
+    f.DataCreazione,
+    f.DataModifica,
+    c.FkIdTipoContratto,
+	tc.Descrizione as TipoContratto,
+	f.CodiceSDI,
+	c.codiceSDI as ContrattoCodiceSDI
+FROM pfd.Enti e
+INNER JOIN (
+    SELECT internalistitutionid, product, FkIdTipoContratto, codiceSDI,
+           ROW_NUMBER() OVER (PARTITION BY internalistitutionid ORDER BY createdat DESC) as rn
+    FROM pfd.Contratti
+) c ON e.InternalIstitutionId = c.internalistitutionid AND c.rn = 1
+LEFT JOIN pfw.DatiFatturazione f
+    ON e.InternalIstitutionId = f.FkIdEnte
+LEFT JOIN pfw.TipoContratto tc
+    ON tc.IdTipoContratto = c.FkIdTipoContratto 
+";
+    }
+
     public static string SelectByDescrizione(bool all = true)
     {
         DatiFatturazioneEnteDto? @obj = null;
