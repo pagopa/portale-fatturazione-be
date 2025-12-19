@@ -11,7 +11,7 @@ using PortaleFatture.BE.Infrastructure.Common.SEND.DatiFatturazioni.Queries.Pers
 
 namespace PortaleFatture.BE.Infrastructure.Common.SEND.DatiFatturazioni.QueryHandlers;
 
-public class DatiFatturazioneQueryGetByDescrizioneHandler : IRequestHandler<DatiFatturazioneQueryGetByDescrizione, IEnumerable<DatiFatturazioneEnteDto>?>
+public class DatiFatturazioneQueryGetByDescrizioneHandler : IRequestHandler<DatiFatturazioneQueryGetByDescrizione, DatiFatturazioneEnteWithCountDto?>
 {
     private readonly IFattureDbContextFactory _factory;
     private readonly ILogger<DatiFatturazioneQueryGetByDescrizioneHandler> _logger;
@@ -29,16 +29,20 @@ public class DatiFatturazioneQueryGetByDescrizioneHandler : IRequestHandler<Dati
         _options = options;
     }
 
-    public async Task<IEnumerable<DatiFatturazioneEnteDto>?> Handle(DatiFatturazioneQueryGetByDescrizione command, CancellationToken ct)
+    public async Task<DatiFatturazioneEnteWithCountDto?> Handle(DatiFatturazioneQueryGetByDescrizione command, CancellationToken ct)
     {
         if (command.AuthenticationInfo!.Auth! != AuthType.PAGOPA)
-            throw new SecurityException();
-
+            throw new SecurityException(); 
+      
         using var uow = await _factory.Create(cancellationToken: ct);
-        return await uow.Query(new DatiFatturazioneQueryGetByDescrizionePersistence(_options,
+        return await uow.Query(new DatiFatturazioneQueryGetByDescrizionePersistence(
+            _options,
             command.IdEnti,
             command.Prodotto,
             command.Profilo,
-            command.Top), ct);
+            command.IdTipoContratto,
+            command.PageNumber,
+            command.PageSize), 
+            ct); 
     }
 }

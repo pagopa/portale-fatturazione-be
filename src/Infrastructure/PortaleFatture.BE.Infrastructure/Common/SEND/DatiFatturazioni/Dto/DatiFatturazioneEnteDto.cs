@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
-using PortaleFatture.BE.Infrastructure.Common.SEND.Documenti.Common; 
+using PortaleFatture.BE.Infrastructure.Common.SEND.Documenti.Common;
 
 [Table("DatiFatturazione")]
 public class DatiFatturazioneEnteDto
@@ -87,4 +87,28 @@ public class DatiFatturazioneEnteDto
     [JsonIgnore]
     public string? SDataModifica { get { return DataModifica?.ToString("d"); } }
 
+    [Header(caption: "Codice SDI Confermato", Order = 13)]
+    [JsonPropertyName("codiceSDI")]
+    public string? CodiceSDI { get; set; }
+
+    [Header(caption: "Codice SDI Contratto", Order = 14)]
+    [JsonPropertyName("contrattoCodiceSDI")]
+    public string? ContrattoCodiceSDI { get; set; }
+
+    [Header(caption: "Tipo Contratto", Order = 15)]
+    [JsonPropertyName("tipocontratto")]
+    public string? TipoContratto { get; set; }
+}
+
+
+public class DatiFatturazioneEnteWithCountDto
+{
+    [JsonPropertyOrder(-2)]
+    [JsonPropertyName("datiFatturazione")]
+    public IEnumerable<DatiFatturazioneEnteDto>? DatiFatturazioneEnte { get; set; }
+
+    [JsonPropertyOrder(-1)]
+
+    [JsonPropertyName("count")]
+    public int Count { get; set; }
 }

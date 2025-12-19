@@ -24,31 +24,31 @@ public class ModuloCommessaPrevisionaleDownloadDto
     public string? Stato { get; set; } 
     public string? Prodotto { get; set; }
 
-    [Header(caption: "Totale", Order = 9)]
+    [Header(caption: "Totale Euro", Order = 11)]
     public decimal? Totale { get; set; }
 
-    [Header(caption: "Data Inserimento", Order = 10)]
+    [Header(caption: "Data Inserimento", Order = 9)]
     public DateTime? DataInserimento { get; set; }
 
-    [Header(caption: "Data Chiusura", Order = 11)]
+    [Header(caption: "Data Chiusura", Order = 10)]
     public DateTime? DataChiusura { get; set; }
 
     //[Header(caption: "Data Chiusura Legale", Order = 12)]
     public DateTime? DataChiusuraLegale { get; set; }
 
-    [Header(caption: "Totale Digitale Naz", Order = 13)]
+    [Header(caption: "Totale Euro Digitale Naz", Order = 13)]
     public decimal? TotaleDigitaleNaz { get; set; }
 
-    [Header(caption: "Totale Digitale Internaz", Order = 14)]
+    [Header(caption: "Totale Euro Digitale Internaz", Order = 14)]
     public decimal? TotaleDigitaleInternaz { get; set; }
 
-    [Header(caption: "Totale Analogico AR Naz", Order = 15)]
+    [Header(caption: "Totale Euro Analogico AR Naz", Order = 15)]
     public decimal? TotaleAnalogicoARNaz { get; set; }
 
-    [Header(caption: "Totale Analogico AR Internaz", Order = 16)]
+    [Header(caption: "Totale Euro Analogico AR Internaz", Order = 16)]
     public decimal? TotaleAnalogicoARInternaz { get; set; }
 
-    [Header(caption: "Totale Analogico 890 Naz", Order = 17)]
+    [Header(caption: "Totale Euro Analogico 890 Naz", Order = 17)]
     public decimal? TotaleAnalogico890Naz { get; set; }
 
     [Header(caption: "Totale Notifiche Digitale Naz", Order = 18)]
@@ -75,15 +75,15 @@ public class ModuloCommessaPrevisionaleDownloadDto
     [Header(caption: "Totale Notifiche", Order = 25)]
     public int? TotaleNotifiche { get; set; }
 
-    [Header(caption: "Source", Order = 26)]
+    [Header(caption: "Stato", Order = 26)]
     public string? Source { get; set; }
 
-    [Header(caption: "Quarter", Order = 27)]
+    [Header(caption: "Trimestre", Order = 27)]
     public string? Quarter { get; set; } 
  
     public List<ValoriRegioneDto>? ValoriRegione { get; set; }
 
-    [Header(caption: "Tipologia Contratto", Order = 29)]
+    [Header(caption: "Tipo Contratto", Order = 29)]
     public string? TipologiaContratto { get; set; }
 
     [Header(caption: "Data Contratto", Order = 30)]
