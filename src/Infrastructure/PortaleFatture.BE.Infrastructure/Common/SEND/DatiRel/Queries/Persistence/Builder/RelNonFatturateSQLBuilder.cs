@@ -36,6 +36,7 @@ FROM   pfd.reltestata r
                     ON t.idtipocontratto = c.fkidtipocontratto
 WHERE  r.relfatturata = 0
        AND totale > 0
+       AND NOT (r.tipologiafattura = 'primo saldo' AND t.descrizione = 'pal')
 ORDER  BY r.year DESC,
           r.month DESC,
           r.tipologiafattura 
