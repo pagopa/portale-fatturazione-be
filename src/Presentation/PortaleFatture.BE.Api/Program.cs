@@ -9,7 +9,8 @@ var configuredBuilder = builder
     .Build()
     .UseModules();
 
- 
+// comment re-run
+
 configuredBuilder.Run();
 
 public partial class Program
