@@ -13,7 +13,7 @@ public class NotificaQueryGetByListaEntiv2(IAuthenticationInfo authenticationInf
     public string? Prodotto { get; set; }
     public string? Cap { get; set; }
     public string? Profilo { get; set; }
-    public TipoNotifica? TipoNotifica { get; set; }
+    public TipoNotifica[]? TipoNotifica { get; set; }
     public string? Iun { get; set; }
     public int? Page { get; set; }
     public int? Size { get; set; }

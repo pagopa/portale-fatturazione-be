@@ -296,13 +296,13 @@ public partial class NotificaModule
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     private async Task<IResult> GetConsolidatoriNotificheRicercaDocumentAsync(
     HttpContext context,
-    [FromBody] NotificheRicercaRequestPagoPA request,
+    [FromBody] NotificheRicercaRequest request,
     [FromQuery] bool? binary,
     [FromServices] IStringLocalizer<Localization> localizer,
     [FromServices] IMediator handler)
     {
         var authInfo = context.GetAuthInfo();
-        var notifiche = await handler.Send(request.Map2(authInfo, null, null));
+        var notifiche = await handler.Send(request.Map3(authInfo, null, null));
         if (notifiche == null || notifiche.Count == 0)
             return NotFound();
 
@@ -371,14 +371,14 @@ public partial class NotificaModule
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     private async Task<Results<Ok<NotificaRECCONDto>, NotFound>> GetConsolidatoriNotificheByRicercaAsync(
     HttpContext context,
-    [FromBody] NotificheRicercaRequestPagoPA request,
+    [FromBody] NotificheRicercaRequest request,
     [FromQuery] int page,
     [FromQuery] int pageSize,
     [FromServices] IStringLocalizer<Localization> localizer,
     [FromServices] IMediator handler)
     {
         var authInfo = context.GetAuthInfo();
-        var notifiche = await handler.Send(request.Map2(authInfo, page, pageSize));
+        var notifiche = await handler.Send(request.Map3(authInfo, page, pageSize));
         if (notifiche == null || notifiche.Count == 0)
             return NotFound();
         return Ok(notifiche);

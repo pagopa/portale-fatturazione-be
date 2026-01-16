@@ -2,6 +2,20 @@
 
 public static class NotificaExtensions
 {
+    public static string? Map(this TipoNotifica tipo)
+    {
+        return tipo switch
+        {
+            TipoNotifica.Digitali => string.Empty,
+            TipoNotifica.AnalogicoARNazionali => "AR",
+            TipoNotifica.AnalogicoARInternazionali => "RIR",
+            TipoNotifica.AnalogicoRSNazionali => "RS",
+            TipoNotifica.AnalogicoRSInternazionali => "RIS",
+            TipoNotifica.Analogico890 => "890",
+            _ => null
+        };
+    }
+
     public static string? Map(this TipoNotifica? tipo)
     {
         return tipo switch

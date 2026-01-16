@@ -38,6 +38,15 @@ public static class EnteSQLBuilder
         return $"{fieldDescription} = @{nameof(@obj.Profilo)}";
     }
 
+    private static string WhereByTipoContratto()
+    {
+        Ente? obj;
+        Contratto? contratto;
+        var fieldDescription = nameof(@obj.Profilo).GetColumn<Ente>();
+        var productField = nameof(@contratto.Prodotto).GetColumn<Contratto>();
+        return $"{fieldDescription} = @{nameof(@obj.Profilo)} AND c.{productField} = 'prod-pn'";
+    }
+
     public static string AddSearch(string? prodotto, string? profilo)
     {
         var stringBuilder = new StringBuilder();
@@ -100,7 +109,7 @@ public static class EnteSQLBuilder
         var internalIdEnte = nameof(Ente.IdEnte).GetColumn<Ente>();
         builder.InnerJoin($"{innerContrattoTable} c on e.{internalIdEnte} = c.{internalIdEnte}");
 
-        builder.Where(WhereByTipo());
+        builder.Where(WhereByTipoContratto());
 
         var builderTemplate = builder.AddTemplate($"Select TOP {_top} /**select**/ from {tableName} /**innerjoin**/ /**where**/ ");
         return builderTemplate.RawSql;

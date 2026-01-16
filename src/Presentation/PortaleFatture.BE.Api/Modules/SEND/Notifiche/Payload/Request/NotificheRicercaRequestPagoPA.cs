@@ -9,7 +9,14 @@ public class NotificheRicercaRequestPagoPA
     public string? Prodotto { get; set; }
     public string? Cap { get; set; }
     public string? Profilo { get; set; }
-    public TipoNotifica? TipoNotifica { get; set; }
+  
+    private TipoNotifica[]? _tipoNotifica;
+    public TipoNotifica[]? TipoNotifica
+    {
+        get { return _tipoNotifica; }
+        set { _tipoNotifica = value!.IsNullNotAny() ? null : value; }
+    }
+
     public int[]? StatoContestazione { get; set; }
     public string? Iun { get; set; }
     public string? RecipientId { get; set; }
