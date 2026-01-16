@@ -64,13 +64,15 @@ public class NotificaQueryGetByListEntiPersistencev2(NotificaQueryGetByListaEnti
             where += " AND zip_code=@cap";
         if (!string.IsNullOrEmpty(profilo))
             where += " AND e.institutionType=@profilo";
-        var tnot = tipoNotifica.Map();
-        if (tnot != null)
+
+        IEnumerable<string?> tnot = [];
+        if (!tipoNotifica.IsNullNotAny())
         {
-            if (string.IsNullOrEmpty(tnot))
-                where += " AND paper_product_type is NULL";
+            tnot = tipoNotifica!.Select(x => x!.Map()).Where(x => !string.IsNullOrEmpty(x));
+            if (tipoNotifica!.Where(x => x == TipoNotifica.Digitali).FirstOrDefault() == TipoNotifica.Digitali)
+                where += " AND (paper_product_type IN @tipoNotifica OR paper_product_type IS NULL)";
             else
-                where += " AND paper_product_type=@TipoNotifica";
+                where += " AND paper_product_type IN @tipoNotifica";
         }
 
         if (!contestazione.IsNullNotAny() && contestazione!.SequenceEqual([1]))
@@ -132,7 +134,7 @@ public class NotificaQueryGetByListEntiPersistencev2(NotificaQueryGetByListaEnti
         if (!string.IsNullOrEmpty(profilo))
             parameters.Profilo = profilo;
 
-        if (!string.IsNullOrEmpty(tnot))
+        if (!tipoNotifica.IsNullNotAny())
             parameters.TipoNotifica = tnot;
 
         if (contestazione != null)

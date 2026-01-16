@@ -58,7 +58,7 @@ public static class NotificaExtensions
         }
     }
 
-    public static NotificaQueryGetByConsolidatore Map2(this NotificheRicercaRequestPagoPA req, AuthenticationInfo authInfo, int? page, int? pageSize)
+    public static NotificaQueryGetByConsolidatore Map3(this NotificheRicercaRequest req, AuthenticationInfo authInfo, int? page, int? pageSize)
     {
         return new NotificaQueryGetByConsolidatore(authInfo)
         {
@@ -111,6 +111,7 @@ public static class NotificaExtensions
             RecipientId = req.RecipientId
         };
     }
+
     public static NotificaQueryGetByListaEnti Map(this NotificheRicercaRequestPagoPA req, AuthenticationInfo authInfo, int? page, int? pageSize)
     {
         return new NotificaQueryGetByListaEnti(authInfo)
