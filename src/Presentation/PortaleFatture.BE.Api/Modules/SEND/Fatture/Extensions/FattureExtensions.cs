@@ -9,7 +9,6 @@ using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Entities.Messaggi;
 using PortaleFatture.BE.Core.Entities.SEND.DatiRel;
 using PortaleFatture.BE.Core.Extensions;
-using PortaleFatture.BE.Infrastructure.Common.SEND.Documenti;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Documenti.Common;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Commands;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Dto;
@@ -161,17 +160,17 @@ public static class FattureExtensions
         for (var i = 0; i < commesse.Count; i++)
         {
             if (i == 0)
-                dataSet.Tables.Add(commesse[i]!.FillTableWithTotalsRel(0, $"Commesse {month}"));
+                dataSet.Tables.Add(commesse[i]!.FillTableWithTotalsRel(0, $"Com. {month}"));
             else if (i == 1)
-                dataSet.Tables.Add(commesse[i]!.FillTableWithTotalsRel(0, $"Commesse stimate {month}"));
+                dataSet.Tables.Add(commesse[i]!.FillTableWithTotalsRel(0, $"Com. stimate {month}"));
             else if (i == 2)
-                dataSet.Tables.Add(commesse[i]!.FillTableWithTotalsRel(0, $"Commesse stimate fatt. {month}"));
+                dataSet.Tables.Add(commesse[i]!.FillTableWithTotalsRel(0, $"Com. stimate fatt. {month}"));
             else if (i == 3)
-                dataSet.Tables.Add(commesse[i]!.FillTableWithTotalsRel(0, $"Commesse fatt. {month}"));
+                dataSet.Tables.Add(commesse[i]!.FillTableWithTotalsRel(0, $"Com. fatt. {month}"));
             else if (i == 4)
-                dataSet.Tables.Add(commesse[i]!.FillTableWithTotalsRel(0, $"Commesse non fatt. {month}"));
+                dataSet.Tables.Add(commesse[i]!.FillTableWithTotalsRel(0, $"Com. non fatt. {month}"));
             else
-                dataSet.Tables.Add(commesse[i]!.FillTableWithTotalsRel(0, $"Commesse eliminate fatt. {month}"));
+                dataSet.Tables.Add(commesse[i]!.FillTableWithTotalsRel(0, $"Com. eliminate fatt. {month}"));
         }
 
         using var memory = dataSet!.ToExcel();
@@ -204,10 +203,10 @@ public static class FattureExtensions
             else if (i == 1)
             {
                 var fattureNONzero = fatture[i].Where(x => x.TotaleFatturaImponibile != 0);
-                dataSet.Tables.Add(fattureNONzero!.FillTableWithTotalsRel(9, $"Enti Fatturabili {month}"));
+                dataSet.Tables.Add(fattureNONzero!.FillTableWithTotalsRel(9, $"Enti Fatt. {month}"));
                 var fatturezero = fatture[i].Where(x => x.TotaleFatturaImponibile == 0);
                 if (!fatturezero.IsNullNotAny())
-                    dataSet.Tables.Add(fatturezero!.FillTableWithTotalsRel(9, $"Enti Fatturabili a Zero {month}"));
+                    dataSet.Tables.Add(fatturezero!.FillTableWithTotalsRel(9, $"Enti Fatt. a Zero {month}"));
             }
             else
                 dataSet.Tables.Add(fatture[i]!.FillTableWithTotalsRel(9, $"Note di Credito {month}"));
