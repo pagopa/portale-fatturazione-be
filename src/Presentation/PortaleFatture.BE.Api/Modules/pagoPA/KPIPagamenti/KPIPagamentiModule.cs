@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Localization;
 using PortaleFatture.BE.Api.Infrastructure;
-using PortaleFatture.BE.Api.Modules.pagoPA.FinancialReports.Request;
 using PortaleFatture.BE.Api.Modules.pagoPA.KPIPagamenti.Extensions;
 using PortaleFatture.BE.Api.Modules.pagoPA.KPIPagamenti.Request;
 using PortaleFatture.BE.Core.Auth;

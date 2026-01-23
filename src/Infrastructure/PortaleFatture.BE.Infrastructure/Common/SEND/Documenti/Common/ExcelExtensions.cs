@@ -182,7 +182,7 @@ public static class ExcelExtensions
         });
         cellFormats.Append(new CellFormat   // Cell formt index 4
         {
-            NumberFormatId = DATETIME_FORMAT,        // 164 = 'dd/mm/yyyy hh:mm:ss'. Standard Datetime format;
+            NumberFormatId = 22,        // 22 = 'dd/mm/yyyy hh:mm' formato PREDEFINITO Excel
             FontId = 0,
             FillId = 0,
             BorderId = 0,
@@ -245,6 +245,7 @@ public static class ExcelExtensions
         workbookstylesheet.Append(fills);
         workbookstylesheet.Append(borders);
         workbookstylesheet.Append(cellFormats);
+        workbookstylesheet.Append(cellStyleFormats);
 
         // Finalize
         stylesheet.Stylesheet = workbookstylesheet;

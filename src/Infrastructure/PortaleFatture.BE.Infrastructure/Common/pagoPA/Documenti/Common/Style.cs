@@ -11,5 +11,5 @@ public enum XCellStyle
     Percent = 6,
     Digit4 = 7,
     Header = 8,
-    Digit14 = 9
+    Digit14 = 9 
 }
