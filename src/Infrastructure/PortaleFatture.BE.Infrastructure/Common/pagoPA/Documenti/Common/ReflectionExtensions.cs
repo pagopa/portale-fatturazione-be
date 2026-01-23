@@ -1,4 +1,5 @@
 ﻿using System.Data;
+using System.Globalization;
 using System.Reflection;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
@@ -117,9 +118,14 @@ public static class ReflectionExtensions
                         }
                         else if (type == typeof(DateTime))
                         {
-                            cellvalues = CellValues.Date;
-                            cellvalue = new CellValue(((DateTime)value).ToString("yyyy-MM-dd"));
-                            styleIndex =  Convert.ToUInt32(XCellStyle.StandardDateTime);
+                            cellvalues = CellValues.Number;
+                            DateTime dateValue = (DateTime)value;
+
+                            double excelDate = dateValue.ToOADate();
+                            // IMPORTANTE: usa InvariantCulture per il PUNTO, non la virgola!
+                            cellvalue = new CellValue(excelDate.ToString(CultureInfo.InvariantCulture));
+
+                            styleIndex = Convert.ToUInt32(XCellStyle.StandardDateTime);
                         }
                         else
                             cellvalue = new CellValue((dynamic)value);

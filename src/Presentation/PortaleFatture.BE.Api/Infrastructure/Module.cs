@@ -26,6 +26,7 @@ public abstract class Module : IModule
     public static string DatiApiKey = "Dati Api Key";
 
     // prodotto pagoPA
+    public static string PSPEmail = "Psp Email prodotto PagoPA";
     public static string KPIPagamenti = "KPI Pagamenti prodotto PagoPA";
     public static string PSP = "PSP prodotto PagoPA";
     public static string FinancialReports = "Financial Reports prodotto PagoPA";
