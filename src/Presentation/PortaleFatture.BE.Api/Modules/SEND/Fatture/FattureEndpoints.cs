@@ -203,6 +203,18 @@ public partial class FattureModule : Module, IRegistrableModule
            .WithName("Permette di ottenere le fatture excel per ricerca ente")
            .SetOpenApi(Module.DatiFattureEnti)
            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+           .MapGet("api/fatture/ente/periodo", GetFattureEntePeriodoAsync)
+           .WithName("Permette di ottenere mesi e anni delle fatture emesse lato ente")
+           .SetOpenApi(Module.DatiFattureEnti)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+           .MapGet("api/fatture/ente/periodo/sospeso", GetFattureEntePeriodoSospeseAsync)
+           .WithName("Permette di ottenere mesi e anni delle fatture sospese lato ente")
+           .SetOpenApi(Module.DatiFattureEnti)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
         #endregion
     }
 }
