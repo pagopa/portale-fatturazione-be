@@ -5,6 +5,7 @@ using MediatR;
 using PortaleFatture.BE.Api.Infrastructure.Documenti;
 using PortaleFatture.BE.Api.Modules.Fatture;
 using PortaleFatture.BE.Api.Modules.SEND.Fatture.Payload.Request;
+using PortaleFatture.BE.Api.Modules.SEND.Fatture.Payload.Response;
 using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Entities.Messaggi;
 using PortaleFatture.BE.Core.Entities.SEND.DatiRel;
@@ -19,6 +20,16 @@ namespace PortaleFatture.BE.Api.Modules.SEND.Fatture.Extensions;
 
 public static class FattureExtensions
 {
+    public static FatturePeriodoReponse Map(this FatturePeriodoDto dto)
+    {
+        return new FatturePeriodoReponse()
+        {
+            Anno = dto.Anno,
+            Mese = dto.Mese
+        };
+    }
+
+
     public static FattureDateQueryRicerca Map2(this FatturaRicercaRequest req, AuthenticationInfo authInfo)
     {
         return new FattureDateQueryRicerca(authInfo)

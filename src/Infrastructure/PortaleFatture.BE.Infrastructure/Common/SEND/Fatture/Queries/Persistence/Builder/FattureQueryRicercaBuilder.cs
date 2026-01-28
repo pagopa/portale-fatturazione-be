@@ -530,6 +530,36 @@ and FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865'
         return _sqlAnni;
     }
 
+    private static string _selectPeriodoEnte = @"
+        SELECT AnnoRiferimento AS anno,
+               MeseRiferimento AS mese
+        FROM [pfd].[FattureTestata]
+        WHERE FkIdEnte = @IdEnte
+        GROUP BY AnnoRiferimento, MeseRiferimento
+        order by anno desc, mese desc
+";
+
+    public static string SelectPeriodoEnte()
+    {
+        return _selectPeriodoEnte;
+    }
+
+    private static string _selectPeriodoSospeseEnte = @"
+		SELECT AnnoRiferimento AS anno,
+               MeseRiferimento AS mese,
+			   FkTipologiaFattura
+        FROM [pfd].[tmpFattureTestata]
+        WHERE FkIdEnte = @IdEnte
+		and FlagFatturata = 0
+        GROUP BY AnnoRiferimento, MeseRiferimento, FkTipologiaFattura
+        order by anno desc, mese desc
+";
+    public static string SelectPeriodoSospeseEnte()
+    {
+        return _selectPeriodoSospeseEnte;
+    }
+
+
     public static string SelectMesi()
     {
         return _sqlMesi;

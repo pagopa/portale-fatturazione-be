@@ -1,4 +1,5 @@
-﻿using MediatR;
+﻿using System.Collections.Generic;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -864,6 +865,45 @@ public partial class FattureModule
             FileDownloadName = filename
         };
         return Results.Stream(result.FileStream, result.ContentType, result.FileDownloadName);
+    }
+
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<FatturePeriodoReponse>>, NotFound>> GetFattureEntePeriodoAsync(
+    HttpContext context,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var anniMesi = await handler.Send(new FatturePeriodoEnteQuery(authInfo)); 
+        if (anniMesi.IsNullNotAny())
+            return NotFound();
+
+        return Ok(anniMesi.Select(x=>x.Map()));
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<FatturePeriodoReponse>>, NotFound>> GetFattureEntePeriodoSospeseAsync(
+    HttpContext context,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var anniMesi = await handler.Send(new FatturePeriodoEnteSospeseQuery(authInfo));
+        if (anniMesi.IsNullNotAny())
+            return NotFound();
+
+        return Ok(anniMesi.Select(x => x.Map()));
     }
     #endregion
 }
