@@ -20,12 +20,86 @@ namespace PortaleFatture.BE.Api.Modules.SEND.Fatture.Extensions;
 
 public static class FattureExtensions
 {
+    public static CreditoSospesoResponse Map(this FattureCreditoSospesoDtoList dto)
+    {
+        return new CreditoSospesoResponse
+        {
+            ImportoSospeso = dto.ImportoSospeso,
+            Dettagli = dto.Dettagli?.Select(x => x.ToDettaglioResponse())
+        };
+    }
+
+    private static DettaglioCreditoSospesoResponse ToDettaglioResponse(this FattureCreditoSospesoDto x)
+    {
+        return new DettaglioCreditoSospesoResponse
+        {
+            Fattura = x.ToFatturaResponse()
+        };
+    }
+
+    private static FatturaResponse ToFatturaResponse(this FattureCreditoSospesoDto x)
+    {
+        return new FatturaResponse
+        {
+            ImportoSospesoParziale = x.ImportoSospesoParziale,
+            Progressivo = x.Progressivo,
+            IdFattura = x.IdFattura,
+            DataFattura = x.DataFattura,
+            Prodotto = x.Prodotto,
+            PeriodoFatturazione = x.PeriodoFatturazione,
+            IstitutioId = x.IstitutioId,
+            OnboardingTokenId = x.OnboardingTokenId,
+            RagioneSociale = x.RagioneSociale,
+            TipoContratto = x.TipoContratto,
+            IdContratto = x.IdContratto,
+            TipoDocumento = x.TipoDocumento,
+            Divisa = x.Divisa,
+            MetodoPagamento = x.MetodoPagamento,
+            CausaleFattura = x.CausaleFattura,
+            SplitPayment = x.SplitPayment,
+            Inviata = x.Inviata,
+            Sollecito = x.Sollecito,
+            Stato = x.Stato,
+            DatiGeneraliDocumento =
+            [
+                new DatiGeneraliDocumentoResponse
+                {
+                    TipologiaFattura = x.TipologiaFattura,
+                    RiferimentoNumeroLinea = x.RiferimentoNumeroLinea,
+                    IdDocumento = x.IdDocumento,
+                    DataDocumento = x.DataDocumento.ToString("yyyy-MM-dd"),
+                    NumItem = x.NumItem,
+                    CodiceCommessaConvenzione = x.CodiceCommessaConvenzione,
+                    Cup = x.Cup,
+                    Cig = x.Cig
+                }
+            ],
+            Posizioni = x.Posizioni?.Select(z => z.ToPosizioneResponse())
+        };
+    }
+    private static CreditoSospesoPosizioniResponse ToPosizioneResponse(this FattureCreditoSospesoPosizioniDto z)
+    {
+        return new CreditoSospesoPosizioniResponse
+        {
+            NumeroLinea = z.NumeroLinea,
+            Testo = z.Testo,
+            CodiceMateriale = z.CodiceMateriale,
+            Quantita = z.Quantita,
+            PrezzoUnitario = z.PrezzoUnitario,
+            Imponibile = z.Imponibile,
+            PeriodoRiferimento = z.PeriodoRiferimento
+        };
+    }
+
+
     public static FatturePeriodoReponse Map(this FatturePeriodoDto dto)
     {
         return new FatturePeriodoReponse()
         {
             Anno = dto.Anno,
-            Mese = dto.Mese
+            Mese = dto.Mese,
+            DataFattura = dto.DataFattura.HasValue ? DateOnly.FromDateTime(dto.DataFattura.Value) : null,
+            TipologiaFattura = dto.TipologiaFattura
         };
     }
 
@@ -39,6 +113,17 @@ public static class FattureExtensions
             IdEnti = req.IdEnti,
             TipologiaFattura = req.TipologiaFattura,
             Cancellata = req.Cancellata == null ? false : req.Cancellata.Value
+        };
+    }
+
+    public static FattureCreditoSospesoQuery Map(this FattureCreditoSospesoRicercaEnteRequest req, AuthenticationInfo authInfo)
+    {
+        return new FattureCreditoSospesoQuery(authInfo)
+        {
+            Anno = req.Anno,
+            Mese = req.Mese,
+            TipologiaFattura = req.TipologiaFattura,
+            DateFattura = req.DateFatture
         };
     }
 
