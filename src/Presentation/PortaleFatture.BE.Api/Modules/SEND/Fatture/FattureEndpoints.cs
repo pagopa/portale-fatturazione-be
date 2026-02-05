@@ -215,6 +215,13 @@ public partial class FattureModule : Module, IRegistrableModule
            .WithName("Permette di ottenere mesi e anni delle fatture sospese lato ente")
            .SetOpenApi(Module.DatiFattureEnti)
            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+            .MapPost("api/fatture/ente/credito/sospeso", PostFattureCreditoSospesoRicercaAsync)
+            .WithName("Permette di ottenere il credito sospeso e dettagli per ente")
+            .SetOpenApi(Module.DatiFattureEnti)
+            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
         #endregion
     }
 }

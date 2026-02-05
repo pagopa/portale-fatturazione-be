@@ -893,6 +893,8 @@ public partial class FattureModule
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     private async Task<Results<Ok<IEnumerable<FatturePeriodoReponse>>, NotFound>> GetFattureEntePeriodoSospeseAsync(
     HttpContext context,
     [FromServices] IStringLocalizer<Localization> localizer,
@@ -905,5 +907,26 @@ public partial class FattureModule
 
         return Ok(anniMesi.Select(x => x.Map()));
     }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<CreditoSospesoResponse>, NotFound>> PostFattureCreditoSospesoRicercaAsync(
+        HttpContext context,
+        [FromBody] FattureCreditoSospesoRicercaEnteRequest request,
+        [FromServices] IStringLocalizer<Localization> localizer,
+        [FromServices] IMediator handler)
+            {
+                var authInfo = context.GetAuthInfo();
+
+                var fattureCreditoSospeso = await handler.Send(request.Map(authInfo));
+                if (fattureCreditoSospeso == null)
+                    return NotFound();
+                return Ok(fattureCreditoSospeso.Map());
+            }
+
     #endregion
 }

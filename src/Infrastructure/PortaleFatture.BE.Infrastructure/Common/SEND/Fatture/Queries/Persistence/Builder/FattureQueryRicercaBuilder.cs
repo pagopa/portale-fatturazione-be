@@ -531,11 +531,13 @@ and FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865'
     }
 
     private static string _selectPeriodoEnte = @"
-        SELECT AnnoRiferimento AS anno,
-               MeseRiferimento AS mese
+	SELECT AnnoRiferimento AS anno,
+               MeseRiferimento AS mese,
+			   FkTipologiaFattura as TipologiaFattura,
+			    CAST(DataFattura AS DATE) AS DataFattura 
         FROM [pfd].[FattureTestata]
-        WHERE FkIdEnte = @IdEnte
-        GROUP BY AnnoRiferimento, MeseRiferimento
+        WHERE FkIdEnte = @IdEnte 
+        GROUP BY AnnoRiferimento, MeseRiferimento, FkTipologiaFattura,  CAST(DataFattura AS DATE) 
         order by anno desc, mese desc
 ";
 
@@ -545,13 +547,14 @@ and FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865'
     }
 
     private static string _selectPeriodoSospeseEnte = @"
-		SELECT AnnoRiferimento AS anno,
+	SELECT AnnoRiferimento AS anno,
                MeseRiferimento AS mese,
-			   FkTipologiaFattura
+			   FkTipologiaFattura as TipologiaFattura,
+			    CAST(DataFattura AS DATE) AS DataFattura 
         FROM [pfd].[tmpFattureTestata]
         WHERE FkIdEnte = @IdEnte
 		and FlagFatturata = 0
-        GROUP BY AnnoRiferimento, MeseRiferimento, FkTipologiaFattura
+        GROUP BY AnnoRiferimento, MeseRiferimento, FkTipologiaFattura,  CAST(DataFattura AS DATE) 
         order by anno desc, mese desc
 ";
     public static string SelectPeriodoSospeseEnte()
@@ -559,6 +562,80 @@ and FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865'
         return _selectPeriodoSospeseEnte;
     }
 
+
+    private static string _sqlCreditoSospeso = @"
+            SELECT
+            tft.IdFattura,
+            tft.DataFattura,
+            tft.FkProdotto AS Prodotto,
+            tft.IdentificativoFattura,
+            cs.ImportoSospeso, 
+            css.ImportoSospeso AS ImportoSospesoParziale, 
+            tft.FkTipologiaFattura AS TipologiaFattura, 
+            '' AS RiferimentoNumeroLinea,
+            tft.IdDocumento,
+            tft.DataDocumento,
+            tft.FkIdEnte AS IstitutioId,
+            tft.TotaleFattura, 
+            tft.AnnoRiferimento, 
+            tft.MeseRiferimento, 
+            tft.NumItem,
+            tft.CodCommessa AS CodiceCommessaConvenzione,
+            tft.Cup,
+            tft.Cig,
+            e.[description] AS RagioneSociale,
+            tft.Divisa,
+            tft.MetodoPagamento,
+            tft.CausaleFattura,
+            tft.SplitPayment,
+            CASE 
+                WHEN tft.FatturaInviata IS NULL THEN 2 
+                ELSE CONVERT(INT, tft.FatturaInviata) 
+            END AS 'FatturaInviata',
+            tft.Progressivo,
+            tft.Sollecito,
+            c.onboardingtokenid AS OnboardingTokenId,
+            tp.Descrizione AS TipoContratto,
+            c.onboardingtokenid AS CodiceContratto, --ft.CodiceContratto MANCA NELLA TMP
+            c.onboardingtokenid AS IdContratto,
+            tft.FkIdTipoDocumento AS TipoDocumento,
+            0 AS Elaborazione,
+            CONCAT(FORMAT(tft.MeseRiferimento,'00'),'/',tft.AnnoRiferimento) as PeriodoFatturazione,
+	        'sospesa' as stato,
+            fr.NumeroLinea,
+            fr.Testo,
+            fr.CodiceMateriale,
+            fr.Quantita, 
+            fr.PrezzoUnitario,
+            fr.Imponibile,
+            fr.PeriodoRiferimento
+            FROM pfd.CreditoSospeso cs 
+            LEFT OUTER JOIN pfd.CreditoSospesoStorico css 
+            ON cs.FkIdEnte = css.FkIdEnte 
+            INNER JOIN pfd.Enti e
+            ON cs.FkIdEnte = e.InternalIstitutionId
+            INNER JOIN [pfd].[Contratti] c
+            ON c.internalistitutionid = cs.FkIdEnte --AND c.onboardingtokenid = ft.CodiceContratto
+            INNER JOIN [pfw].[TipoContratto] tp
+            ON c.FkIdTipoContratto = tp.IdTipoContratto 
+            LEFT OUTER JOIN pfd.tmpFattureTestata tft 
+            ON tft.IdFattura = css.FkIdFatturaTmp 
+            LEFT OUTER JOIN pfd.tmpFattureRighe fr 
+            ON fr.FkIdFattura = tft.IdFattura 
+            WHERE cs.FkIdEnte = @IdEnte
+            and tft.FlagFatturata = 0
+            AND (
+                (@FilterByTipologia = 0 OR tft.FkTipologiaFattura IN @TipologiaFattura)
+                AND (@Anno IS NULL OR tft.AnnoRiferimento = @Anno)
+                AND (@Mese IS NULL OR tft.MeseRiferimento = @Mese)
+                AND (@FilterByDateFattura = 0 OR CAST(tft.DataFattura AS DATE) IN @DateFattura)
+            );
+    ";
+
+    public static string SelectCreditoSospeso()
+    {
+        return _sqlCreditoSospeso;
+    }
 
     public static string SelectMesi()
     {
