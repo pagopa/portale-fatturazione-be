@@ -55,7 +55,7 @@ public static class ExcelExtensions
         {
             NumberFormatId = UInt32Value.FromUInt32(DIGITS14_FORMAT),
             FormatCode = StringValue.FromString("0.00000000000000")
-        }); 
+        });
         numberingFormats.Count = UInt32Value.FromUInt32((uint)numberingFormats.ChildElements.Count);
         #endregion
 
@@ -240,12 +240,14 @@ public static class ExcelExtensions
         #endregion
 
 
-        // Append FONTS, FILLS , BORDERS & CellFormats to stylesheet <Preserve the ORDER>
+        // Append to stylesheet in correct order as per Office Open XML standard
+        // Order: NumberingFormats -> Fonts -> Fills -> Borders -> CellStyleFormats -> CellFormats
+        workbookstylesheet.Append(numberingFormats);
         workbookstylesheet.Append(fonts);
         workbookstylesheet.Append(fills);
         workbookstylesheet.Append(borders);
-        workbookstylesheet.Append(cellFormats);
         workbookstylesheet.Append(cellStyleFormats);
+        workbookstylesheet.Append(cellFormats);
 
         // Finalize
         stylesheet.Stylesheet = workbookstylesheet;
@@ -402,7 +404,7 @@ public static class ExcelExtensions
                     }
                     sheetData.AppendChild(newRow);
                 }
-            } 
+            }
         }
         memoryStream.Seek(0, SeekOrigin.Begin);
         return memoryStream;
