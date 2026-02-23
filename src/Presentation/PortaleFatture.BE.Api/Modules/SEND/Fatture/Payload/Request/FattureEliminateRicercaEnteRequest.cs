@@ -1,12 +1,11 @@
-﻿using MediatR;
 using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Dto;
 
 namespace PortaleFatture.BE.Api.Modules.SEND.Fatture.Payload.Request
 {
-    public class FattureCreditoSospesoRicercaEnteRequest() : DocContabileRicercaEnteRequest
+    public class FattureEliminateRicercaEnteRequest() : DocContabileRicercaEnteRequest
     {
-        
     }
 }
+

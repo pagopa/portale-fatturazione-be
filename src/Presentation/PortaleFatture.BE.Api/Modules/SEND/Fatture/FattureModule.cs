@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
@@ -16,6 +16,7 @@ using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Core.Resources;
 using PortaleFatture.BE.Infrastructure.Common.Identity;
+using PortaleFatture.BE.Infrastructure.Common.SEND.Documenti;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Documenti.Common;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Commands;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Dto;
@@ -914,7 +915,7 @@ public partial class FattureModule
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    private async Task<Results<Ok<CreditoSospesoResponse>, NotFound>> PostFattureCreditoSospesoRicercaAsync(
+    private async Task<Results<Ok<DocContabileBaseResponse>, NotFound>> PostFattureCreditoSospesoRicercaAsync(
         HttpContext context,
         [FromBody] FattureCreditoSospesoRicercaEnteRequest request,
         [FromServices] IStringLocalizer<Localization> localizer,
@@ -925,8 +926,246 @@ public partial class FattureModule
                 var fattureCreditoSospeso = await handler.Send(request.Map(authInfo));
                 if (fattureCreditoSospeso == null)
                     return NotFound();
-                return Ok(fattureCreditoSospeso.Map());
+                return Ok(fattureCreditoSospeso.Map(DocContabileScope.Sospeso));
             }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<DocContabileBaseResponse>, NotFound>> PostFattureEmesseRicercaAsync(
+        HttpContext context,
+        [FromBody] FattureEmesseRicercaEnteRequest request,
+        [FromServices] IStringLocalizer<Localization> localizer,
+        [FromServices] IMediator handler)
+            {
+                var authInfo = context.GetAuthInfo();
+
+                var fattureEmesse = await handler.Send(request.Map(authInfo));
+                if (fattureEmesse == null)
+                    return NotFound();
+                return Ok(fattureEmesse.Map(DocContabileScope.Emesso));
+            }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<DocContabileEliminateResponse>, NotFound>> PostFattureEliminateRicercaAsync(
+        HttpContext context,
+        [FromBody] FattureEliminateRicercaEnteRequest request,
+        [FromServices] IStringLocalizer<Localization> localizer,
+        [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+
+        var fattureEliminate = await handler.Send(request.Map(authInfo));
+        if (fattureEliminate == null)
+            return NotFound();
+
+        return Ok(fattureEliminate.Map());
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<DocumentoContabileDettaglioResponse>, NotFound>> PostFattureSospeseDettaglioAsync(
+        HttpContext context,
+        [FromBody] FattureDocContabileEnteRequest request,
+        [FromServices] IStringLocalizer<Localization> localizer,
+        [FromServices] IMediator handler)
+            {
+                var authInfo = context.GetAuthInfo();
+
+                var dettaglioSospese = await handler.Send(request.Map(authInfo));
+                if (dettaglioSospese == null || !dettaglioSospese.Any())
+                    return NotFound();
+                return Ok(dettaglioSospese.FirstOrDefault()?.Map());
+            }
+
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<DocumentoContabileEmessoDettaglioResponse>, NotFound>> PostFattureEmesseDettaglioAsync(
+        HttpContext context,
+        [FromBody] FattureDocContabileEnteRequest request,
+        [FromServices] IStringLocalizer<Localization> localizer,
+        [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+
+        var dettaglioEmesse = await handler.Send(request.MapEmesso(authInfo));
+        if (dettaglioEmesse == null || !dettaglioEmesse.Any())
+            return NotFound();
+        //return Ok(dettaglioEmesse.FirstOrDefault()?.Map());
+        return Ok(dettaglioEmesse.Map());
+
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<IResult> PostFattureEmesseEnteExcelAsync(
+        HttpContext context,
+        [FromBody] FattureEmesseRicercaEnteRequest request,
+        [FromServices] IStringLocalizer<Localization> localizer,
+        [FromServices] IMediator handler)
+    {
+       
+
+        var authInfo = context.GetAuthInfo();
+        var fattureEmesseExport = await handler.Send(request.Map(authInfo));
+        if (fattureEmesseExport == null || !fattureEmesseExport!.Dettagli!.Any())
+            return NotFound();
+        var mime = "application/vnd.ms-excel";
+        var filename = $"{Guid.NewGuid()}.xlsx";
+
+        var dataSet = fattureEmesseExport.Map(DocContabileScope.Emesso).MapExport()!.FillOneSheetv2();
+        var content = dataSet.ToExcel();
+        var result = new DisposableStreamResult(content, mime)
+        {
+            FileDownloadName = filename
+        };
+        return Results.Stream(result.FileStream, result.ContentType, result.FileDownloadName);
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<IResult> PostFattureSospeseEnteExcelAsync(
+        HttpContext context,
+        [FromBody] FattureCreditoSospesoRicercaEnteRequest request,
+        [FromServices] IStringLocalizer<Localization> localizer,
+        [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var fattureSospeseExport = await handler.Send(request.Map(authInfo));
+        if (fattureSospeseExport == null || !fattureSospeseExport!.Dettagli!.Any())
+            return NotFound();
+        var mime = "application/vnd.ms-excel";
+        var filename = $"{Guid.NewGuid()}.xlsx";
+
+        var dataSet = fattureSospeseExport.Map(DocContabileScope.Sospeso).MapExport()!.FillOneSheetv2();
+        var content = dataSet.ToExcel();
+        var result = new DisposableStreamResult(content, mime)
+        {
+            FileDownloadName = filename
+        };
+        return Results.Stream(result.FileStream, result.ContentType, result.FileDownloadName);
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<IResult> FattureSospeseDettaglioDownloadAsync(
+    HttpContext context,
+    [FromRoute] long? id,
+    [FromQuery] string? tipo,
+    [FromServices] IDocumentBuilder documentBuilder,
+    [FromServices] IMediator handler,
+    [FromServices] IStringLocalizer<Localization> localizer)
+    {
+        var request = new FattureDocContabileEnteRequest()
+        {
+            IdFattura = id
+        };
+        var authInfo = context.GetAuthInfo();
+        IEnumerable<FattureDocContabiliDettaglioDto> fattureEmesseExportPdf = await handler.Send(request.Map(authInfo));
+        if (fattureEmesseExportPdf == null || !fattureEmesseExportPdf!.Any())
+            return NotFound();
+
+        if(tipo != null && tipo == "pdf")
+        {
+            var bytes = documentBuilder.CreateDettaglioFatturaSospesaPdf(fattureEmesseExportPdf.FirstOrDefault()!.MapToPdf()!);
+            var filename = $"{Guid.NewGuid()}.pdf";
+            var mime = "application/pdf";
+            return Results.File(bytes!, mime, filename);
+        }
+        else
+        {
+            var content = documentBuilder.CreateDettaglioFatturaSospesaHtml(fattureEmesseExportPdf.FirstOrDefault()!.MapToPdf()!);
+            var mime = "text/html";
+            return Results.Text(content!, mime);
+        }
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<IResult> FattureEmesseDettaglioDownloadAsync(
+    HttpContext context,
+    [FromRoute] long? id,
+    [FromQuery] string? tipo,
+    [FromServices] IDocumentBuilder documentBuilder,
+    [FromServices] IMediator handler,
+    [FromServices] IStringLocalizer<Localization> localizer
+    )
+    {
+        var request = new FattureDocContabileEnteRequest()
+        {
+            IdFattura = id
+        };
+        var authInfo = context.GetAuthInfo();
+        IEnumerable<FatturaDocContabileEmessoDettaglioDto> fattureEmesseExportPdf = await handler.Send(request.MapEmesso(authInfo));
+        if (fattureEmesseExportPdf == null || !fattureEmesseExportPdf.Any())
+            return NotFound();
+
+        if(tipo != null && tipo == "pdf")
+        {
+            byte[] bytes;
+
+            if (fattureEmesseExportPdf.Count() > 1)
+            {
+                bytes = documentBuilder.CreateDettaglioFatturaEmessaMultiplaPdf(fattureEmesseExportPdf.MapToPdfMultiplo());
+            }
+            else
+            {
+                bytes = documentBuilder.CreateDettaglioFatturaEmessaPdf(fattureEmesseExportPdf.FirstOrDefault()!.MapToPdf());
+            }
+
+            var filename = $"{Guid.NewGuid()}.pdf";
+            var mime = "application/pdf";
+            return Results.File(bytes, mime, filename);
+        }
+        else
+        {
+            if (fattureEmesseExportPdf.Count() > 1)
+            {
+                var content = documentBuilder.CreateDettaglioFatturaEmessaMultiplaHtml(fattureEmesseExportPdf.MapToPdfMultiplo());
+                var mime = "text/html";
+                return Results.Text(content, mime);
+            }
+            else
+            {
+                var content = documentBuilder.CreateDettaglioFatturaEmessaHtml(fattureEmesseExportPdf.FirstOrDefault()!.MapToPdf());
+                var mime = "text/html";
+                return Results.Text(content, mime);
+            }
+        }
+    }
 
     #endregion
 }

@@ -5,7 +5,7 @@ using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Dto;
 namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries;
 
  
-public class FattureCreditoSospesoQuery(IAuthenticationInfo authenticationInfo) : IRequest<FattureDocContabiliDtoList>
+public class FattureEmesseQuery(IAuthenticationInfo authenticationInfo) : IRequest<FattureDocContabiliDtoList>
 {
     public IAuthenticationInfo AuthenticationInfo { get; internal set; } = authenticationInfo;
 
