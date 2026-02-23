@@ -5,8 +5,8 @@ using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Dto;
 
 namespace PortaleFatture.BE.Api.Modules.SEND.Fatture.Payload.Request
 {
-    public class FattureCreditoSospesoRicercaEnteRequest() : DocContabileRicercaEnteRequest
+    public class FattureDocContabileEnteRequest()
     {
-        
+        public long? IdFattura { get; set; }
     }
 }

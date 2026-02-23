@@ -11,10 +11,10 @@ using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries.Persistence.B
 
 namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries.Persistence
 {
-    public class FattureCreditoSospesoQueryPersistence(FattureCreditoSospesoQuery command) : DapperBase, IQuery<IEnumerable<FatturaDocContabileRawDto>>
+    public class FattureEmesseQueryPersistence(FattureEmesseQuery command) : DapperBase, IQuery<IEnumerable<FatturaDocContabileRawDto>>
     {
-        private readonly FattureCreditoSospesoQuery _command = command;
-        private static readonly string _sql = FattureQueryRicercaBuilder.SelectCreditoSospeso();
+        private readonly FattureEmesseQuery _command = command;
+        private static readonly string _sql = FattureQueryRicercaBuilder.SelectEmesseEnte();
         public async Task<IEnumerable<FatturaDocContabileRawDto>> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
         {
             var anno = _command.Anno;

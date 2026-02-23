@@ -1,4 +1,4 @@
-﻿namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries.Persistence.Builder;
+namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries.Persistence.Builder;
 
 public static class FattureQueryRicercaBuilder
 {
@@ -545,6 +545,85 @@ and FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865'
     {
         return _selectPeriodoEnte;
     }
+    
+    private static string _selectEmesseEnte = @"
+    SELECT 
+    t.IdFattura,
+    t.DataFattura,
+    t.FkProdotto AS Prodotto,
+    t.IdentificativoFattura,
+    t.FkTipologiaFattura AS TipologiaFattura, '' AS RiferimentoNumeroLinea,
+    AnnoRiferimento, 
+    MeseRiferimento, 
+    FkIdEnte,
+    CASE 
+        WHEN FkIdTipoDocumento  = 'TD04' 
+        THEN TotaleFattura * -1 
+        ELSE TotaleFattura  
+    END
+    AS TotaleFatturaCalc,
+    t.IdDocumento,
+    t.DataDocumento,
+    t.FkIdEnte AS IstitutioId,
+    t.TotaleFattura, 
+    t.AnnoRiferimento, 
+    t.MeseRiferimento, 
+    t.NumItem,
+    t.CodCommessa AS CodiceCommessaConvenzione,
+    t.Cup,
+    t.Cig,
+    e.[description] AS RagioneSociale,
+    t.Divisa,
+    t.MetodoPagamento,
+    t.CausaleFattura,
+    t.SplitPayment,
+    CASE
+        WHEN t.FatturaInviata IS NULL THEN 2 -- (@FatturaInviata = 2 AND FT.FatturaInviata IS NULL)  -- IS NULL In elaborazione
+        ELSE CONVERT(INT, t.FatturaInviata) 
+    END AS 'FatturaInviata',
+    t.Progressivo,
+    t.Sollecito,
+    c.onboardingtokenid AS OnboardingTokenId,
+    tp.Descrizione AS TipoContratto, 
+    c.onboardingtokenid AS CodiceContratto,
+    c.onboardingtokenid AS IdContratto,
+    t.FkIdTipoDocumento AS TipoDocumento,
+    0 AS Elaborazione,
+    CONCAT(FORMAT(t.MeseRiferimento,'00'),'/',t.AnnoRiferimento) as PeriodoFatturazione,
+    r.NumeroLinea,
+    r.Testo,
+    NULL as stato,
+    r.CodiceMateriale,
+    r.Quantita, 
+    r.PrezzoUnitario,
+    r.Imponibile,
+    r.PeriodoRiferimento
+    FROM [pfd].[FattureTestata] t
+    LEFT OUTER JOIN pfd.FattureRighe r 
+    ON r.FkIdFattura = t.IdFattura 
+    INNER JOIN pfd.Enti e
+    ON t.FkIdEnte = e.InternalIstitutionId
+    INNER JOIN [pfd].[Contratti] c
+    ON c.internalistitutionid = t.FkIdEnte
+    INNER JOIN [pfw].[TipoContratto] tp
+    ON c.FkIdTipoContratto = tp.IdTipoContratto
+    Where 
+    t.FkIdEnte = @IdEnte
+    AND FkTipologiaFattura IN ('PRIMO SALDO', 'SECONDO SALDO', 'VAR. SEMESTRALE')
+    AND 
+    (
+        (@FilterByTipologia = 0 OR t.FkTipologiaFattura IN @TipologiaFattura)
+        AND (@Anno IS NULL OR t.AnnoRiferimento = @Anno)
+        AND (@Mese IS NULL OR t.MeseRiferimento = @Mese)
+        AND (@FilterByDateFattura = 0 OR CAST(t.DataFattura AS DATE) IN @DateFattura)
+    );
+";
+
+    public static string SelectEmesseEnte()
+    {
+        return _selectEmesseEnte;
+    }
+
 
     private static string _selectPeriodoSospeseEnte = @"
 	SELECT AnnoRiferimento AS anno,
@@ -635,6 +714,67 @@ and FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865'
     public static string SelectCreditoSospeso()
     {
         return _sqlCreditoSospeso;
+    }
+
+    private static string _selectEliminateEnte = @"
+    SELECT 
+        t.IdFattura,
+        t.DataFattura,
+        t.FkProdotto AS Prodotto,
+        CONCAT(FORMAT(t.MeseRiferimento,'00'),'/',t.AnnoRiferimento) as PeriodoFatturazione,
+        t.FkTipologiaFattura AS TipologiaFattura,
+        t.FkIdEnte AS IstitutioId,
+        c.onboardingtokenid AS OnboardingTokenId,
+        e.[description] AS RagioneSociale,
+        c.onboardingtokenid AS IdContratto,
+        t.FkIdTipoDocumento AS TipoDocumento,
+        tp.Descrizione AS TipoContratto, 
+        t.Divisa,
+        t.MetodoPagamento,
+        CONCAT(REPLACE(ftc.Causale,'[percentuale]', ISNULL(ftc.PercentualeAnticipo,'')),' ',CAST(t.MeseRiferimento as varchar(2)),'/',CAST(t.AnnoRiferimento as VARCHAR(4))) as CausaleFattura,
+        t.SplitPayment,
+        3 AS Inviata,
+        ISNULL(t.Sollecito,'') AS Sollecito,
+        'eliminata' as stato,
+        '' as RiferimentoNumeroLinea,
+        t.IdDocumento,
+        t.DataDocumento,
+        t.NumItem,
+        t.CodCommessa AS CodiceCommessaConvenzione,
+        t.Cup,
+        t.Cig,
+        CASE 
+            WHEN t.FkIdTipoDocumento  = 'TD04' 
+            THEN t.TotaleFattura * -1 
+            ELSE t.TotaleFattura  
+        END AS TotaleFatturaCalc,
+        t.TotaleFattura,
+        t.Progressivo
+    FROM [pfd].[FattureTestata_Eliminate] t
+    INNER JOIN pfd.Enti e
+        ON t.FkIdEnte = e.InternalIstitutionId
+    INNER JOIN [pfd].[Contratti] c
+        ON c.internalistitutionid = t.FkIdEnte
+        AND c.onboardingtokenid = t.CodiceContratto
+    INNER JOIN [pfw].[TipoContratto] tp
+        ON c.FkIdTipoContratto = tp.IdTipoContratto
+    INNER JOIN [pfw].[FatturaTestataConfig] ftc
+        ON ftc.FkTipologiaFattura = t.FkTipologiaFattura
+        AND ftc.FKIdTipoContratto = c.FkIdTipoContratto
+    WHERE 
+        t.FkIdEnte = @IdEnte
+        AND 
+        (
+            (@FilterByTipologia = 0 OR t.FkTipologiaFattura IN @TipologiaFattura)
+            AND (@Anno IS NULL OR t.AnnoRiferimento = @Anno)
+            AND (@Mese IS NULL OR t.MeseRiferimento = @Mese)
+            AND (@FilterByDateFattura = 0 OR CAST(t.DataFattura AS DATE) IN @DateFattura)
+        );
+    ";
+
+    public static string SelectEliminateEnte()
+    {
+        return _selectEliminateEnte;
     }
 
     public static string SelectMesi()
@@ -800,5 +940,275 @@ SELECT [AnnoRiferimento] as Anno
 	  ,[MeseRiferimento]
  order by AnnoRiferimento desc, MeseRiferimento desc
 ";
+    }
+
+
+    public static string SelectDettaglioSospesoEnte()
+    {
+        return @"
+            SELECT 
+            tft.IdFattura as IdFattura, 
+            e.description as RagioneSociale,
+            tft.FkIdTipoDocumento as TipoDocumento, 
+            tft.FkIdEnte as IdEnte, 
+            tft.DataFattura as DataFattura,
+            tft.Progressivo as Progressivo,
+            CAST(
+                CASE
+                    WHEN tft.FkIdTipoDocumento  = 'TD04'  
+                        THEN -tft.TotaleFattura
+                    ELSE tft.TotaleFattura
+                END AS decimal(18,2)
+            ) as TotaleFatturaImponibile, 
+            tft.CodiceContratto as IdContratto,
+            tft.AnnoRiferimento as Anno,
+            tft.MeseRiferimento as Mese,
+            tft.FkTipologiaFattura AS TipologiaFattura, 
+            ISNULL(trt.[TotaleAnalogico],0) as RelTotaleAnalogico,
+            ISNULL(trt.[TotaleDigitale],0) as RelTotaleDigitale,
+            ISNULL(trt.[TotaleNotificheAnalogiche],0) as RelTotaleNotificheAnalogiche,
+            ISNULL(trt.[TotaleNotificheDigitali],0) as RelTotaleNotificheDigitali,
+            ISNULL(trt.[TotaleNotificheAnalogiche],0) + ISNULL(trt.[TotaleNotificheDigitali],0) as RelTotaleNotifiche,
+            ISNULL(trt.[Totale],0) as RelTotale,
+            ISNULL(trt.[TotaleAnalogicoIva],0)  as RelTotaleIvatoAnalogico,
+            ISNULL(trt.[TotaleDigitaleIva],0)  as RelTotaleIvatoDigitale,
+            ISNULL(trt.[TotaleIva],0)  as RelTotaleIvato,
+            trt.[Caricata] as Caricata,
+            trt.[RelFatturata],
+            c.FkIdTipoContratto,
+            tp.Descrizione as TipologiaContratto,
+            -- Valori calcolati sulle righe
+            ISNULL(aggAnticipo.ImportoAnalogico, 0) AS AnticipoAnalogico,
+            ISNULL(aggAnticipo.ImportoDigitale, 0) AS AnticipoDigitale,
+            ISNULL(aggAcconto.ImportoAnalogico, 0) AS AccontoAnalogico,
+            ISNULL(aggAcconto.ImportoDigitale, 0) AS AccontoDigitale,
+            ISNULL(aggStorno.StornoAnalogico, 0) AS StornoAnalogico,
+            ISNULL(aggStorno.StornoDigitale, 0) AS StornoDigitale,
+            iva.Iva
+            -- Campi tmpFattureRighe --> TODO: togliere commento una volta gestita l'aggregazione nel mapping a BE 
+            --,tfr.NumeroLinea,
+            --tfr.Testo,
+            --tfr.CodiceMateriale,
+            --tfr.Quantita,
+            --tfr.PrezzoUnitario,
+            --tfr.Imponibile,
+            --tfr.RigaBollo,
+            --tfr.PeriodoRiferimento
+            FROM pfd.tmpFattureTestata tft
+            --LEFT OUTER JOIN pfd.tmpFattureRighe tfr --> TODO:  togliere commento una volta gestita l'aggregazione nel mapping a BE 
+            --on tft.IdFattura = tfr.FkIdFattura
+            LEFT OUTER join pfd.Enti e
+            ON e.InternalIstitutionId = tft.FkIdEnte
+            LEFT OUTER join  [pfd].[tmpRelTestata] trt
+            ON trt.year = tft.AnnoRiferimento 
+            AND trt.month = tft.MeseRiferimento 
+            AND trt.TipologiaFattura = tft.FkTipologiaFattura
+            AND trt.internal_organization_id = tft.FkIdEnte 
+            AND trt.contract_id = tft.CodiceContratto 
+            LEFT JOIN pfd.Contratti c
+            ON c.internalistitutionid = e.InternalIstitutionId
+            INNER JOIN pfw.TipoContratto tp
+            ON c.FkIdTipoContratto = tp.IdTipoContratto
+            LEFT JOIN pfd.Iva iva
+            ON iva.Anno = tft.AnnoRiferimento AND iva.Mese = tft.MeseRiferimento
+            -- OUTER APPLY per fatture ANTICIPO
+            OUTER APPLY (
+                SELECT 
+                    SUM(CASE WHEN rt.CodiceMateriale LIKE 'ANT NA%' OR rt.CodiceMateriale LIKE 'ANTICIPO NA%'
+                             THEN rt.Imponibile ELSE 0 END) AS ImportoAnalogico,
+                    SUM(CASE WHEN rt.CodiceMateriale LIKE 'ANT ND%' OR rt.CodiceMateriale LIKE 'ANTICIPO ND%'
+                             THEN rt.Imponibile ELSE 0 END) AS ImportoDigitale
+                FROM pfd.tmpFattureRighe rt
+                WHERE rt.FkIdFattura = tft.IdFattura
+                  AND tft.FkTipologiaFattura = 'ANTICIPO'  -- Filtro nella WHERE
+            ) aggAnticipo
+            -- OUTER APPLY per fatture ACCONTO
+            OUTER APPLY (
+                SELECT 
+                    SUM(CASE WHEN rt.CodiceMateriale LIKE 'ACCONTO NOT.ANL%' OR rt.CodiceMateriale LIKE 'STORNO 50% ANT.NA%'
+                             THEN rt.Imponibile ELSE 0 END) AS ImportoAnalogico,
+                    SUM(CASE WHEN rt.CodiceMateriale LIKE 'ACCONTO NOT.DIG%' OR rt.CodiceMateriale LIKE 'STORNO 50% ANT.ND%'
+                             THEN rt.Imponibile ELSE 0 END) AS ImportoDigitale
+                FROM pfd.tmpFattureRighe rt
+                WHERE rt.FkIdFattura = tft.IdFattura
+                  AND tft.FkTipologiaFattura = 'ACCONTO'  -- Filtro nella WHERE
+            ) aggAcconto
+            OUTER APPLY (
+                SELECT 
+                    SUM(CASE WHEN rt.CodiceMateriale LIKE 'STORN%' AND rt.CodiceMateriale LIKE '%NA'
+                             THEN rt.Imponibile ELSE 0 END) AS StornoAnalogico,
+                    SUM(CASE WHEN rt.CodiceMateriale LIKE 'STORNO%' AND rt.CodiceMateriale LIKE '%ND'
+                             THEN rt.Imponibile ELSE 0 END) AS StornoDigitale
+                FROM pfd.tmpFattureRighe rt
+                WHERE rt.FkIdFattura = tft.IdFattura
+                  AND tft.FkTipologiaFattura = 'PRIMO SALDO'  -- Filtro nella WHERE
+            ) aggStorno
+            WHERE tft.FkIdEnte = @IdEnte AND tft.IdFattura = @IdFattura";
+    }
+
+    /// <summary>
+    /// Query per il recupero dei dettagli della fatture emesse per un ente. 
+    /// Compresi i dettagli delle fatture sospese comprese nella fattura emessa
+    /// </summary>
+    /// <returns></returns>
+    public static string SelectDettaglioEmessoEnte()
+    {
+        return @"
+            SELECT 
+            tft.IdFattura as IdFattura, 
+            e.description as RagioneSociale,
+            tft.FkIdTipoDocumento as TipoDocumento, 
+            tft.FkIdEnte as IdEnte, 
+            tft.DataFattura as DataFattura,
+            tft.Progressivo as Progressivo,
+            CAST(
+            CASE
+            WHEN tft.FkIdTipoDocumento  = 'TD04'  
+                THEN -tft.TotaleFattura
+            ELSE tft.TotaleFattura
+                 END AS decimal(18,2)) as TotaleFatturaImponibile, 
+            tft.CodiceContratto as IdContratto,
+            tft.AnnoRiferimento as Anno,
+            tft.MeseRiferimento as Mese,
+            tft.FkTipologiaFattura AS TipologiaFattura, 
+            ISNULL(trt.[TotaleAnalogico],0) as RelTotaleAnalogico,
+            ISNULL(trt.[TotaleDigitale],0) as RelTotaleDigitale,
+            ISNULL(trt.[TotaleNotificheAnalogiche],0) as RelTotaleNotificheAnalogiche,
+            ISNULL(trt.[TotaleNotificheDigitali],0) as RelTotaleNotificheDigitali,
+            ISNULL(trt.[TotaleNotificheAnalogiche],0) + ISNULL(trt.[TotaleNotificheDigitali],0) as RelTotaleNotifiche,
+            ISNULL(trt.[Totale],0) as RelTotale,
+            ISNULL(trt.[TotaleAnalogicoIva],0)  as RelTotaleIvatoAnalogico,
+            ISNULL(trt.[TotaleDigitaleIva],0)  as RelTotaleIvatoDigitale,
+            ISNULL(trt.[TotaleIva],0)  as RelTotaleIvato,
+            trt.[Caricata] as Caricata,
+            trt.[RelFatturata],
+            c.FkIdTipoContratto,
+            tp.Descrizione as TipologiaContratto,
+            ISNULL(aggAnticipo.ImportoAnalogico, 0) AS AnticipoAnalogico,
+            ISNULL(aggAnticipo.ImportoDigitale, 0) AS AnticipoDigitale,
+            ISNULL(aggAcconto.ImportoAnalogico, 0) AS AccontoAnalogico,
+            ISNULL(aggAcconto.ImportoDigitale, 0) AS AccontoDigitale,
+            ISNULL(aggStorno.StornoAnalogico, 0) AS StornoAnalogico,
+            ISNULL(aggStorno.StornoDigitale, 0) AS StornoDigitale
+            -- Dettaglio fatture sospese compresee nella fattura emessa
+            ,mf.FkIdFatturaTmp As IdFatturaSospesa
+            ,tftt.DataFattura AS DataFatturaSospesa
+            ,tftt.Progressivo AS ProgressivoSospesa
+            ,tftt.FkIdTipoDocumento AS TipoDocumentoSospesa,
+            CAST(
+            CASE
+            WHEN tftt.FkIdTipoDocumento  = 'TD04'  
+                THEN -tftt.TotaleFattura
+            ELSE tftt.TotaleFattura
+                 END AS decimal(18,2)) as TotaleFatturaSospesaImponibile,
+            tftt.CodiceContratto as IdContrattoSospesa,
+            tftt.AnnoRiferimento as AnnoSospesa,
+            tftt.MeseRiferimento as MeseSospesa,
+            tftt.FkTipologiaFattura AS TipologiaFatturaSospesa, 
+            tftt.TotaleFattura as TotaleFatturaSospesa,
+            tftt.MetodoPagamento as MetodoPagamentoSospesa,
+            tftt.CausaleFattura as CausaleFatturaSospesa,
+            tftt.Sollecito as SollecitoSospesa,
+            tftt.SplitPayment as SplitPaymentSospesa,
+            tftt.DataDocumento as DataDocumentoSospeso,
+            tftt.CodCommessa AS CodiceCommessaSospesa,
+            tftt.NumItem AS NumItemSospesa,
+            tftt.FatturaInviata AS FatturaInviataSospesa,
+            tftt.Semestre AS SemestreSospesa,
+            tftt.FlagFatturata AS FlagFatturataSospesa,
+            ISNULL(tmprl.[TotaleAnalogico],0) as RelTotaleAnalogicoSospeso,
+            ISNULL(tmprl.[TotaleDigitale],0) as RelTotaleDigitaleSospeso,
+            ISNULL(tmprl.[TotaleNotificheAnalogiche],0) as RelTotaleNotificheAnalogicheSospeso,
+            ISNULL(tmprl.[TotaleNotificheDigitali],0) as RelTotaleNotificheDigitaliSospeso,
+            ISNULL(tmprl.[TotaleNotificheAnalogiche],0) + ISNULL(tmprl.[TotaleNotificheDigitali],0) as RelTotaleNotificheSospeso,
+            ISNULL(tmprl.[Totale],0) as RelTotaleSospeso,
+            ISNULL(tmprl.[TotaleAnalogicoIva],0)  as RelTotaleIvatoAnalogicoSospeso,
+            ISNULL(tmprl.[TotaleDigitaleIva],0)  as RelTotaleIvatoDigitaleSospeso,
+            ISNULL(tmprl.[TotaleIva],0)  as RelTotaleIvatoSospeso,
+            tmprl.[Caricata] as CaricataSospeso,
+            tmprl.[RelFatturata] as RelFatturataSospeso,
+            iva.Iva
+            FROM pfd.FattureTestata tft
+            LEFT OUTER JOIN [pfd].[MesiFatture] mf
+            ON tft.IdFattura = mf.FkIdFattura
+            LEFT OUTER JOIN pfd.Enti e
+            ON e.InternalIstitutionId = tft.FkIdEnte
+            LEFT OUTER JOIN [pfd].[RelTestata] trt
+            ON trt.year = tft.AnnoRiferimento 
+            AND trt.month = tft.MeseRiferimento 
+            AND trt.TipologiaFattura = tft.FkTipologiaFattura
+            AND trt.internal_organization_id = tft.FkIdEnte 
+            AND trt.contract_id = tft.CodiceContratto
+            LEFT JOIN pfd.Contratti c
+            ON c.internalistitutionid = e.InternalIstitutionId
+            LEFT JOIN pfw.TipoContratto tp
+            ON c.FkIdTipoContratto = tp.IdTipoContratto
+            LEFT JOIN pfd.tmpFattureTestata tftt
+            ON tftt.IdFattura = mf.FkIdFatturaTmp
+            LEFT JOIN pfd.tmpRelTestata tmprl
+            ON tftt.FkIdEnte = tmprl.internal_organization_id 
+            AND tftt.CodiceContratto = tmprl.contract_id
+            AND tftt.FkTipologiaFattura = tmprl.TipologiaFattura
+            AND tftt.AnnoRiferimento = tmprl.year
+            AND tftt.MeseRiferimento = tmprl.month
+            LEFT JOIN pfd.Iva iva
+            ON iva.Anno = tft.AnnoRiferimento AND iva.Mese = tft.MeseRiferimento
+             -- OUTER APPLY per fatture ANTICIPO
+            OUTER APPLY (
+                SELECT 
+                    SUM(CASE WHEN rt.CodiceMateriale LIKE 'ANT NA%' OR rt.CodiceMateriale LIKE 'ANTICIPO NA%'
+                             THEN rt.Imponibile ELSE 0 END) AS ImportoAnalogico,
+                    SUM(CASE WHEN rt.CodiceMateriale LIKE 'ANT ND%' OR rt.CodiceMateriale LIKE 'ANTICIPO ND%'
+                             THEN rt.Imponibile ELSE 0 END) AS ImportoDigitale
+                FROM pfd.tmpFattureRighe rt
+                WHERE rt.FkIdFattura = tft.IdFattura
+                  AND tft.FkTipologiaFattura = 'ANTICIPO'  -- Filtro nella WHERE
+            ) aggAnticipo
+            -- OUTER APPLY per fatture ACCONTO
+            OUTER APPLY (
+                SELECT 
+                    SUM(CASE WHEN rt.CodiceMateriale LIKE 'ACCONTO NOT.ANL%' OR rt.CodiceMateriale LIKE 'STORNO 50% ANT.NA%'
+                             THEN rt.Imponibile ELSE 0 END) AS ImportoAnalogico,
+                    SUM(CASE WHEN rt.CodiceMateriale LIKE 'ACCONTO NOT.DIG%' OR rt.CodiceMateriale LIKE 'STORNO 50% ANT.ND%'
+                             THEN rt.Imponibile ELSE 0 END) AS ImportoDigitale
+                FROM pfd.tmpFattureRighe rt
+                WHERE rt.FkIdFattura = tft.IdFattura
+                  AND tft.FkTipologiaFattura = 'ACCONTO'  -- Filtro nella WHERE
+            ) aggAcconto
+            -- OUTER APPLY per fatture STORNO 'PRIMO SALDO'
+            OUTER APPLY (
+                SELECT 
+                    SUM(CASE WHEN rt.CodiceMateriale LIKE 'STORN%' AND rt.CodiceMateriale LIKE '%NA'
+                             THEN rt.Imponibile ELSE 0 END) AS StornoAnalogico,
+                    SUM(CASE WHEN rt.CodiceMateriale LIKE 'STORN%' AND rt.CodiceMateriale LIKE '%ND'
+                             THEN rt.Imponibile ELSE 0 END) AS StornoDigitale
+                FROM pfd.tmpFattureRighe rt
+                WHERE rt.FkIdFattura = tft.IdFattura
+                  AND tft.FkTipologiaFattura = 'PRIMO SALDO'  -- Filtro nella WHERE
+            ) aggStorno
+            WHERE tft.FkIdEnte = @IdEnte 
+            AND tft.IdFattura = @IdFattura
+            AND NOT EXISTS (
+                SELECT 1
+                FROM pfd.tmpFattureTestata t_all
+                INNER JOIN [pfd].[MesiFatture] mf_all 
+                    ON t_all.IdFattura = mf_all.FkIdFatturaTmp
+                WHERE mf_all.FkIdFattura = tft.IdFattura
+                  AND (
+                        t_all.AnnoRiferimento * 100 + t_all.MeseRiferimento) >
+                        (tft.AnnoRiferimento * 100 + tft.MeseRiferimento)
+                      
+                )";
+            
+    }       
+
+    public static string SelectDettaglioSospeso()
+    {
+        return @"";
+    }
+
+    public static string SelectDettaglioEmesso()
+    {
+        return @"";
     }
 }

@@ -1,8 +1,9 @@
-﻿using DocumentFormat.OpenXml.Drawing.Diagrams;
+using DocumentFormat.OpenXml.Drawing.Diagrams;
 using MimeKit.Text;
 using PortaleFatture.BE.Core.Entities.SEND.DatiModuloCommesse.Dto;
 using PortaleFatture.BE.Core.Entities.SEND.DatiRel;
 using PortaleFatture.BE.Core.Entities.SEND.DatiRel.Dto;
+using PortaleFatture.BE.Core.Entities.SEND.Fatture;
 using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Core.Extensions;
 using WkHtmlToPdfDotNet;
@@ -17,6 +18,11 @@ public class DocumentBuilder : IDocumentBuilder
     private static string _fileSecondoSaldoRel = $"SECONDO_SALDO_rel.html";
     private static string _fileModuloCommessa = $"daticommessa.html";
     private static string _directory = $"Infrastructure/Documenti/";
+    private static string _fileDettaglioFatturaSospesa = $"pal_fattura_sospesa_singola.html";
+    private static string _fileDettaglioFatturaEmessaPac = $"pac_fattura_emessa_singola.html";
+    private static string _fileDettaglioFatturaEmessaPal = $"pal_fattura_emessa_singola.html";
+    private static string _fileDettaglioFatturaEmessaPacMultipla = $"pac_fatture_emesse_multiple.html";
+    private static string _fileDettaglioFatturaEmessaPalMultipla = $"pal_fatture_emesse_multiple.html";
     private readonly string _root;
     private readonly string _directoryPath;
     private static SynchronizedConverter _converter = new(new PdfTools());
@@ -92,6 +98,74 @@ public class DocumentBuilder : IDocumentBuilder
         return CreatePdf(relText!);
     }
 
+    public byte[] CreateDettaglioFatturaSospesaPdf(DocumentoContabileSospeso dati)
+    {
+        var relText = CreateDettaglioFatturaSospesaHtml(dati)!;
+        return CreatePdf(relText!);
+    }
+
+    public string? CreateDettaglioFatturaSospesaHtml(DocumentoContabileSospeso dati)
+    {
+        string? fileRel;
+        if (dati.TipologiaFattura == "PAL")
+        {
+            fileRel = _fileDettaglioFatturaSospesa;
+        }
+        else
+        {
+            throw new Exception("Tipologia fattura non valida");
+        }
+
+        var filePath = Path.Combine([_directoryPath, fileRel]);
+        var relText = ReadFromFile(filePath);
+        relText = dati.Replace(relText!);
+        return relText;
+    }
+
+    public byte[] CreateDettaglioFatturaEmessaPdf(DocumentoContabileEmesso dati)
+    {
+        string? fileRel;
+        if (dati.TipologiaFattura != null && dati.TipologiaFattura.ToUpper().Contains("PAC"))
+        {
+            fileRel = _fileDettaglioFatturaEmessaPac;
+        }
+        else if (dati.TipologiaFattura != null && dati.TipologiaFattura.ToUpper().Contains("PAL"))
+        {
+            fileRel = _fileDettaglioFatturaEmessaPal;
+        }
+        else
+        {
+            throw new Exception("Tipologia fattura non valida");
+        }
+
+        var filePath = Path.Combine([_directoryPath, fileRel]);
+        var relText = ReadFromFile(filePath);
+        relText = dati.Replace(relText!);
+        return CreatePdf(relText!);
+    }
+
+    public byte[] CreateDettaglioFatturaEmessaMultiplaPdf(DocumentoContabileEmessiMultipli dati)
+    {
+        string? fileRel;
+        if (dati.TipologiaFattura != null && dati.TipologiaFattura.ToUpper().Contains("PAC"))
+        {
+            fileRel = _fileDettaglioFatturaEmessaPacMultipla;
+        }
+        else if (dati.TipologiaFattura != null && dati.TipologiaFattura.ToUpper().Contains("PAL"))
+        {
+            fileRel = _fileDettaglioFatturaEmessaPalMultipla;
+        }
+        else
+        {
+            throw new Exception("Tipologia fattura non valida");
+        }
+
+        var filePath = Path.Combine([_directoryPath, fileRel]);
+        var relText = ReadFromFile(filePath);
+        relText = dati.Replace(relText!);
+        return CreatePdf(relText!);
+    }
+
     public byte[] CreateModuloCommessaPdf(ModuloCommessaDocumentoDto dati)
     {
         var filePath = Path.Combine([_directoryPath, _fileModuloCommessa]);
@@ -121,6 +195,50 @@ public class DocumentBuilder : IDocumentBuilder
             }
         };
         return _converter.Convert(doc);
+    }
+
+    public string? CreateDettaglioFatturaEmessaHtml(DocumentoContabileEmesso dati)
+    {
+        string? fileRel;
+        if (dati.TipologiaFattura != null && dati.TipologiaFattura.ToUpper().Contains("PAC"))
+        {
+            fileRel = _fileDettaglioFatturaEmessaPac;
+        }
+        else if (dati.TipologiaFattura != null && dati.TipologiaFattura.ToUpper().Contains("PAL"))
+        {
+            fileRel = _fileDettaglioFatturaEmessaPal;
+        }
+        else
+        {
+            throw new Exception("Tipologia fattura non valida");
+        }
+
+        var filePath = Path.Combine([_directoryPath, fileRel]);
+        var relText = ReadFromFile(filePath);
+        relText = dati.Replace(relText!);
+        return relText;
+    }
+
+    public string? CreateDettaglioFatturaEmessaMultiplaHtml(DocumentoContabileEmessiMultipli dati)
+    {
+        string? fileRel;
+        if (dati.TipologiaFattura != null && dati.TipologiaFattura.ToUpper().Contains("PAC"))
+        {
+            fileRel = _fileDettaglioFatturaEmessaPacMultipla;
+        }
+        else if (dati.TipologiaFattura != null && dati.TipologiaFattura.ToUpper().Contains("PAL"))
+        {
+            fileRel = _fileDettaglioFatturaEmessaPalMultipla;
+        }
+        else
+        {
+            throw new Exception("Tipologia fattura non valida");
+        }
+
+        var filePath = Path.Combine([_directoryPath, fileRel]);
+        var relText = ReadFromFile(filePath);
+        relText = dati.Replace(relText!);
+        return relText;
     }
 
     private string? ReadFromFile(string filePath)

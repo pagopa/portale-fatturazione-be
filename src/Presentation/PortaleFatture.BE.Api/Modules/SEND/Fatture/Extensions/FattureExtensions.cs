@@ -1,7 +1,9 @@
 ﻿using System.Data;
 using System.IO.Compression;
 using System.Reflection;
+using DocumentFormat.OpenXml.Office2013.PowerPoint.Roaming;
 using MediatR;
+using Microsoft.AspNetCore.Authentication;
 using PortaleFatture.BE.Api.Infrastructure.Documenti;
 using PortaleFatture.BE.Api.Modules.Fatture;
 using PortaleFatture.BE.Api.Modules.SEND.Fatture.Payload.Request;
@@ -9,6 +11,7 @@ using PortaleFatture.BE.Api.Modules.SEND.Fatture.Payload.Response;
 using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Entities.Messaggi;
 using PortaleFatture.BE.Core.Entities.SEND.DatiRel;
+using PortaleFatture.BE.Core.Entities.SEND.Fatture;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Documenti.Common;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Commands;
@@ -18,30 +21,58 @@ using PortaleFatture.BE.Infrastructure.Common.SEND.Messaggi.Commands;
 using PortaleFatture.BE.Infrastructure.Gateway.Storage;
 namespace PortaleFatture.BE.Api.Modules.SEND.Fatture.Extensions;
 
+/// <summary>
+/// Enum per specificare lo scope del documento contabile
+/// </summary>
+public enum DocContabileScope
+{
+    Emesso,
+    Sospeso
+}
+
+/// <summary>
+/// Estensioni per la mappatura delle fatture e dei documenti contabili
+/// </summary>
 public static class FattureExtensions
 {
-    public static CreditoSospesoResponse Map(this FattureCreditoSospesoDtoList dto)
+    /// <summary>
+    /// Mappa un oggetto FattureDocContabiliDtoList in un DocContabileBaseResponse in base allo scope specificato.
+    /// </summary>
+    /// <param name="dto"></param>
+    /// <param name="scope"></param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentException"></exception>
+    public static DocContabileBaseResponse Map(this FattureDocContabiliDtoList dto, DocContabileScope scope)
     {
-        return new CreditoSospesoResponse
+        return scope switch
         {
-            ImportoSospeso = dto.ImportoSospeso,
-            Dettagli = dto.Dettagli?.Select(x => x.ToDettaglioResponse())
+            DocContabileScope.Sospeso => new DocContabileSospesoResponse
+            {
+                ImportoSospeso = dto.ImportoSospeso,
+                Dettagli = dto.Dettagli?.Select(x => x.ToDettaglioResponse(DocContabileScope.Sospeso))
+            },
+            DocContabileScope.Emesso => new DocContabileEmessoResponse
+            {
+                Totale = dto.Importo,
+                Dettagli = dto.Dettagli?.Select(x => x.ToDettaglioResponse(DocContabileScope.Emesso))
+            },
+            _ => throw new ArgumentException($"Scope non supportato: {scope}", nameof(scope))
         };
     }
 
-    private static DettaglioCreditoSospesoResponse ToDettaglioResponse(this FattureCreditoSospesoDto x)
+    private static DocContabileDettaglioResponse ToDettaglioResponse(this FatturaDocContabileDto x, DocContabileScope scope = DocContabileScope.Emesso)
     {
-        return new DettaglioCreditoSospesoResponse
+        return new DocContabileDettaglioResponse
         {
-            Fattura = x.ToFatturaResponse()
+            Fattura = x.ToFatturaResponse(scope)
         };
     }
 
-    private static FatturaResponse ToFatturaResponse(this FattureCreditoSospesoDto x)
+    private static DocContabileFatturaResponse ToFatturaResponse(this FatturaDocContabileDto x, DocContabileScope scope)
     {
-        return new FatturaResponse
+        return new DocContabileFatturaResponse
         {
-            ImportoSospesoParziale = x.ImportoSospesoParziale,
+            Totale = scope == DocContabileScope.Emesso ? x.TotaleFattura : x.ImportoSospesoParziale,
             Progressivo = x.Progressivo,
             IdFattura = x.IdFattura,
             DataFattura = x.DataFattura,
@@ -62,7 +93,7 @@ public static class FattureExtensions
             Stato = x.Stato,
             DatiGeneraliDocumento =
             [
-                new DatiGeneraliDocumentoResponse
+                new DocContabileDatiGeneraliResponse
                 {
                     TipologiaFattura = x.TipologiaFattura,
                     RiferimentoNumeroLinea = x.RiferimentoNumeroLinea,
@@ -77,9 +108,10 @@ public static class FattureExtensions
             Posizioni = x.Posizioni?.Select(z => z.ToPosizioneResponse())
         };
     }
-    private static CreditoSospesoPosizioniResponse ToPosizioneResponse(this FattureCreditoSospesoPosizioniDto z)
+
+    private static DocContabilePosizioneResponse ToPosizioneResponse(this FatturaDocContabilePosizioniDto z)
     {
-        return new CreditoSospesoPosizioniResponse
+        return new DocContabilePosizioneResponse
         {
             NumeroLinea = z.NumeroLinea,
             Testo = z.Testo,
@@ -88,6 +120,63 @@ public static class FattureExtensions
             PrezzoUnitario = z.PrezzoUnitario,
             Imponibile = z.Imponibile,
             PeriodoRiferimento = z.PeriodoRiferimento
+        };
+    }
+
+    public static DocContabileEliminateResponse Map(this FattureDocContabiliEliminateDtoList dto)
+    {
+        return new DocContabileEliminateResponse
+        {
+            Totale = dto.Importo,
+            Dettagli = dto.Dettagli?.Select(x => x.ToEliminataDettaglioResponse())
+        };
+    }
+
+    private static DocContabileEliminataDettaglioResponse ToEliminataDettaglioResponse(this FatturaDocContabileEliminataDto x)
+    {
+        return new DocContabileEliminataDettaglioResponse
+        {
+            Fattura = x.ToEliminataFatturaResponse()
+        };
+    }
+
+    private static DocContabileEliminataFatturaResponse ToEliminataFatturaResponse(this FatturaDocContabileEliminataDto x)
+    {
+        return new DocContabileEliminataFatturaResponse
+        {
+            Totale = x.TotaleFattura,
+            Progressivo = x.Progressivo,
+            IdFattura = x.IdFattura,
+            DataFattura = x.DataFattura,
+            Prodotto = x.Prodotto,
+            PeriodoFatturazione = x.PeriodoFatturazione,
+            IstitutioId = x.IstitutioId,
+            OnboardingTokenId = x.OnboardingTokenId,
+            RagioneSociale = x.RagioneSociale,
+            IdContratto = x.IdContratto,
+            TipoDocumento = x.TipoDocumento,
+            TipoContratto = x.TipoContratto,
+            Divisa = x.Divisa,
+            MetodoPagamento = x.MetodoPagamento,
+            CausaleFattura = x.CausaleFattura,
+            SplitPayment = x.SplitPayment,
+            Inviata = x.Inviata,
+            Sollecito = x.Sollecito,
+            Stato = x.Stato,
+            DatiGeneraliDocumento =
+            [
+                new DocContabileDatiGeneraliResponse
+                {
+                    TipologiaFattura = x.TipologiaFattura,
+                    RiferimentoNumeroLinea = x.RiferimentoNumeroLinea,
+                    IdDocumento = x.IdDocumento,
+                    DataDocumento = x.DataDocumento.ToString("yyyy-MM-dd"),
+                    NumItem = x.NumItem,
+                    CodiceCommessaConvenzione = x.CodiceCommessaConvenzione,
+                    Cup = x.Cup,
+                    Cig = x.Cig
+                }
+            ]
         };
     }
 
@@ -125,6 +214,306 @@ public static class FattureExtensions
             TipologiaFattura = req.TipologiaFattura,
             DateFattura = req.DateFatture
         };
+    }
+
+    public static FattureEmesseQuery Map(this FattureEmesseRicercaEnteRequest req, AuthenticationInfo authInfo)
+    {
+        return new FattureEmesseQuery(authInfo)
+        {
+            Anno = req.Anno,
+            Mese = req.Mese,
+            TipologiaFattura = req.TipologiaFattura,
+            DateFattura = req.DateFatture
+        };
+    }
+
+    public static FattureEliminateQuery Map(this FattureEliminateRicercaEnteRequest req, AuthenticationInfo authInfo)
+    {
+        return new FattureEliminateQuery(authInfo)
+        {
+            Anno = req.Anno,
+            Mese = req.Mese,
+            TipologiaFattura = req.TipologiaFattura,
+            DateFattura = req.DateFatture
+        };
+    }
+
+    public static FattureDocContabileDettaglioQuery Map(this FattureDocContabileEnteRequest req, AuthenticationInfo authInfo)
+    {
+        return new FattureDocContabileDettaglioQuery(authInfo)
+        {
+            IdFattura = req.IdFattura
+        };
+    }
+
+    public static FattureDocContabileDettaglioEmessoQuery MapEmesso(this FattureDocContabileEnteRequest req, AuthenticationInfo authInfo)
+    {
+        return new FattureDocContabileDettaglioEmessoQuery(authInfo)
+        {
+            IdFattura = req.IdFattura
+        };
+    }
+
+    public static DocumentoContabileDettaglioResponse Map(this FattureDocContabiliDettaglioDto dto)
+    {
+        return new DocumentoContabileDettaglioResponse
+        {
+            IdTestata = dto.IdFattura.ToString() ?? string.Empty,
+            RagioneSociale = dto.RagioneSociale,
+            IdDocumento = dto.IdDocumento,
+            DataDocumento = dto.DataFattura,
+            IdEnte = dto.IdEnte,
+            Cup = dto.Cup,
+            IdContratto = dto.IdContratto,
+            Anno = dto.Anno.ToString(),
+            Mese = dto.Mese.ToString(),
+            TipologiaFattura = dto.TipologiaFattura,
+            TotaleAnalogico = dto.RelTotaleAnalogico,
+            TotaleDigitale = dto.RelTotaleDigitale,
+            TotaleNotificheAnalogiche = dto.RelTotaleNotificheAnalogiche,
+            TotaleNotificheDigitali = dto.RelTotaleNotificheDigitali,
+            Totale = dto.RelTotaleNotifiche,
+            TotaleFattura = dto.TotaleFatturaImponibile,
+            TotaleAnalogicoIva = dto.RelTotaleIvatoAnalogico,
+            TotaleDigitaleIva = dto.RelTotaleIvatoDigitale,
+            Iva = dto.Iva,
+            TotaleIva = dto.RelTotaleIvato,
+            Caricata = dto.Caricata.HasValue && dto.Caricata.Value == true ? 1 : 0,
+            TipologiaContratto = dto.TipologiaContratto,
+            AnticipoDigitale = dto.AnticipoDigitale,
+            AnticipoAnalogico = dto.AnticipoAnalogico,
+            AccontoDigitale = dto.AccontoDigitale,
+            AccontoAnalogico = dto.AccontoAnalogico,
+            StornoAnalogico = dto.StornoAnalogico,
+            StornoDigitale = dto.StornoDigitale
+        };
+    }
+
+    public static DocumentoContabileSospeso MapToPdf(this FattureDocContabiliDettaglioDto dto)
+    {
+        var anticipoAnalogico = dto.AnticipoAnalogico ?? 0;
+        var anticipoDigitale = dto.AnticipoDigitale ?? 0;
+        var totaleAnticipo = anticipoAnalogico + anticipoDigitale;
+        var stornoAnalogico = dto.StornoAnalogico ?? 0;
+        var stornoDigitale = dto.StornoDigitale ?? 0;
+        var totaleStorno = stornoAnalogico + stornoDigitale;
+        var totaleImponibile = dto.RelTotale;
+
+        return new DocumentoContabileSospeso
+        {
+            RagioneSociale = dto.RagioneSociale,
+            IdContratto = dto.IdContratto ?? string.Empty,
+            Anno = dto.Anno ?? 0,
+            Mese = dto.Mese ?? 0,
+            TotaleAnalogico = dto.RelTotaleAnalogico,
+            TipologiaFattura = dto.TipologiaContratto,
+            AnticipoAnalogico = anticipoAnalogico,
+            AnticipoDigitale = anticipoDigitale,
+            ImportoSottoSoglia = totaleImponibile - totaleAnticipo,
+            TotaleDigitale = dto.RelTotaleDigitale,
+            TotaleNotificheAnalogiche = dto.RelTotaleNotificheAnalogiche,
+            TotaleNotificheDigitali = dto.RelTotaleNotificheDigitali,
+            TotaleAnticipo = totaleAnticipo,
+            StornoAnalogico = stornoAnalogico,
+            StornoDigitale = stornoDigitale,
+            TotaleStorno = totaleStorno,
+            Totale = totaleImponibile,
+        };
+    }
+
+    public static DocumentoContabileEmesso MapToPdf(this FatturaDocContabileEmessoDettaglioDto dto)
+    {
+        var stornoAnalogico = dto.StornoAnalogico ?? 0;
+        var stornoDigitale = dto.StornoDigitale ?? 0;
+        var totaleStorno = stornoAnalogico + stornoDigitale;
+
+        return new DocumentoContabileEmesso
+        {
+            RagioneSociale = dto.RagioneSociale,
+            IdContratto = dto.IdContratto ?? string.Empty,
+            Anno = dto.Anno?.ToString() ?? string.Empty,
+            Mese = dto.Mese?.ToString() ?? string.Empty,
+            Totale = dto.RelTotale,
+            TotaleAnalogico = dto.RelTotaleAnalogico,
+            TotaleDigitale = dto.RelTotaleDigitale,
+            TotaleNotificheDigitali = dto.RelTotaleNotificheDigitali,
+            TotaleNotificheAnalogiche = dto.RelTotaleNotificheAnalogiche,
+            TotaleAnticipo = (dto.AnticipoDigitale ?? 0) + (dto.AnticipoAnalogico ?? 0),
+            AnticipoDigitale = dto.AnticipoDigitale ?? 0,
+            AnticipoAnalogico = dto.AnticipoAnalogico ?? 0,
+            TotaleStorno = totaleStorno,
+            StornoDigitale = stornoDigitale,
+            StornoAnalogico = stornoAnalogico,
+            TotaleAcconto = (dto.AccontoDigitale ?? 0) + (dto.AccontoAnalogico ?? 0),
+            AccontoDigitale = dto.AccontoDigitale ?? 0,
+            AccontoAnalogico = dto.AccontoAnalogico ?? 0,
+            Imponibile = dto.TotaleFatturaImponibile ?? 0,
+            TipologiaFattura = dto.TipologiaContratto
+        };
+    }
+
+    public static DocumentoContabileEmessoRiepilogo MapToPdfRiepilogo(this FatturaDocContabileEmessoDettaglioDto dto)
+    {
+        string mese;
+        string anno;
+
+        if (dto.MeseSospesa.HasValue && dto.AnnoSospesa.HasValue)
+        {
+            mese = dto.MeseSospesa.Value.ToString();
+            anno = dto.AnnoSospesa.Value.ToString();
+        }
+        else if (DateTime.TryParse(dto.DataFatturaSospesa, out var dataSospesa))
+        {
+            mese = dataSospesa.Month.ToString();
+            anno = dataSospesa.Year.ToString();
+        }
+        else
+        {
+            mese = dto.Mese?.ToString() ?? string.Empty;
+            anno = dto.Anno?.ToString() ?? string.Empty;
+        }
+
+        return new DocumentoContabileEmessoRiepilogo
+        {
+            Anno = anno,
+            Mese = mese,
+            Totale = dto.TotaleFatturaSospesaImponibile ?? dto.RelTotale,
+            TotaleDigitale = dto.RelTotaleDigitaleSospeso ?? dto.RelTotaleDigitale,
+            TotaleAnalogico = dto.RelTotaleAnalogicoSospeso ?? dto.RelTotaleAnalogico,
+            TotaleNotificheDigitali = dto.RelTotaleNotificheDigitaliSospeso ?? dto.RelTotaleNotificheDigitali,
+            TotaleNotificheAnalogiche = dto.RelTotaleNotificheAnalogicheSospeso ?? dto.RelTotaleNotificheAnalogiche
+        };
+    }
+
+    public static DocumentoContabileEmessiMultipli MapToPdfMultiplo(this IEnumerable<FatturaDocContabileEmessoDettaglioDto> dtos)
+{
+    var first = dtos.FirstOrDefault();
+    if (first == null) return new DocumentoContabileEmessiMultipli();
+
+    var result = new DocumentoContabileEmessiMultipli
+    {
+        RagioneSociale = first.RagioneSociale,
+        IdContratto = first.IdContratto,
+        TipologiaFattura = first.TipologiaContratto,
+        DettaglioFatture = dtos.Select(d => d.MapToPdfRiepilogo()).ToList()
+    };
+
+    result.TotaleAnalogico = dtos.Sum(d => d.RelTotaleAnalogicoSospeso ?? 0);
+    result.TotaleDigitale = dtos.Sum(d => d.RelTotaleDigitaleSospeso ?? 0);
+    result.TotaleNotificheAnalogiche = dtos.Sum(d => d.RelTotaleNotificheAnalogicheSospeso ?? 0);
+    result.TotaleNotificheDigitali = dtos.Sum(d => d.RelTotaleNotificheDigitaliSospeso ?? 0);
+    result.AnticipoAnalogico = dtos.Sum(d => d.AnticipoAnalogico ?? 0);
+    result.AnticipoDigitale = dtos.Sum(d => d.AnticipoDigitale ?? 0);
+    result.TotaleAnticipo = result.AnticipoAnalogico + result.AnticipoDigitale;
+    result.StornoAnalogico = dtos.Sum(d => d.StornoAnalogico ?? 0);
+    result.StornoDigitale = dtos.Sum(d => d.StornoDigitale ?? 0);
+    result.TotaleStorno = result.StornoAnalogico + result.StornoDigitale;
+    result.AccontoAnalogico = dtos.Sum(d => d.AccontoAnalogico ?? 0);
+    result.AccontoDigitale = dtos.Sum(d => d.AccontoDigitale ?? 0);
+    result.TotaleAcconto = result.AccontoAnalogico + result.AccontoDigitale;
+    result.Imponibile = dtos.Sum(d => d.TotaleFatturaSospesaImponibile ?? 0);
+
+    var totalAmount = dtos.Sum(d => d.TotaleFatturaSospesaImponibile ?? 0);
+    var totalSuspended = dtos.Sum(d => d.RelTotaleSospeso ?? 0);
+
+    if (totalSuspended < 10)
+    {
+        totalSuspended = 0;
+    }
+
+    result.Totale = totalAmount - totalSuspended;
+
+    return result;
+}
+
+    public static DocumentoContabileEmessoDettaglioResponse Map(this IEnumerable<FatturaDocContabileEmessoDettaglioDto> dto)
+    {
+        return new DocumentoContabileEmessoDettaglioResponse
+        {
+            IdTestata = dto.FirstOrDefault()?.IdFattura.ToString() ?? string.Empty,
+            RagioneSociale = dto.FirstOrDefault()?.RagioneSociale,
+            IdDocumento = dto.FirstOrDefault()?.IdDocumento,
+            DataDocumento = dto.FirstOrDefault()?.DataFattura,
+            IdEnte = dto.FirstOrDefault()?.IdEnte,
+            Cup = dto.FirstOrDefault()?.Cup,
+            IdContratto = dto.FirstOrDefault()?.IdContratto,
+            Anno = dto.FirstOrDefault()?.Anno.ToString(),
+            Mese = dto.FirstOrDefault()?.Mese.ToString(),
+            TipologiaFattura = dto.FirstOrDefault()?.TipologiaFattura,
+            TotaleAnalogico = dto.FirstOrDefault()?.RelTotaleAnalogico,
+            TotaleDigitale = dto.FirstOrDefault()?.RelTotaleDigitale,
+            TotaleNotificheAnalogiche = dto.FirstOrDefault()?.RelTotaleNotificheAnalogiche,
+            TotaleNotificheDigitali = dto.FirstOrDefault()?.RelTotaleNotificheDigitali,
+            Totale = dto.FirstOrDefault()?.RelTotaleNotifiche,
+            TotaleFattura = dto.FirstOrDefault()?.TotaleFatturaImponibile,
+            TotaleAnalogicoIva = dto.FirstOrDefault()?.RelTotaleIvatoAnalogico,
+            TotaleDigitaleIva = dto.FirstOrDefault()?.RelTotaleIvatoDigitale,
+            Iva = dto.FirstOrDefault()?.Iva,
+            Caricata = dto.FirstOrDefault()?.Caricata.HasValue == true && dto.FirstOrDefault()?.Caricata!.Value == true ? 1 : 0,
+            TipologiaContratto = dto.FirstOrDefault()?.TipologiaContratto,
+            FattureSospese = dto.Where(s => !string.IsNullOrEmpty(s.IdFatturaSospesa)).Select(s => new DocumentoContabileSospesoDettaglioResponse
+            {
+                IdFatturaSospesa = s.IdFatturaSospesa,
+                DataFatturaSospesa = s.DataFatturaSospesa,
+                Progressivo = s.ProgressivoSospesa,
+                TipoDocumento = s.TipoDocumentoSospesa,
+                TotaleFatturaImponibile = s.TotaleFatturaSospesaImponibile,
+                TotaleFattura = s.TotaleFatturaSospesa,
+                MetodoPagamento = s.MetodoPagamentoSospesa,
+                CausaleFattura = s.CausaleFatturaSospesa,
+                SplitPayment = s.SplitPaymentSospesa,
+                Inviata = s.InviataSospesa,
+                Sollecito = s.SollecitoSospesa
+            }),
+            AnticipoDigitale = dto.FirstOrDefault()?.AnticipoDigitale,
+            AnticipoAnalogico = dto.FirstOrDefault()?.AnticipoAnalogico,
+            AccontoDigitale = dto.FirstOrDefault()?.AccontoDigitale,
+            AccontoAnalogico = dto.FirstOrDefault()?.AccontoAnalogico,
+            StornoAnalogico = dto.FirstOrDefault()?.StornoAnalogico,
+            StornoDigitale = dto.FirstOrDefault()?.StornoDigitale
+        };
+    }
+
+    public static IEnumerable<DocContabileExcel> MapExport(this DocContabileBaseResponse model)
+    {
+        var result = new List<DocContabileExcel>();
+        foreach (var item in model.Dettagli!)
+        {
+            foreach (var pos in item.Fattura!.Posizioni!)
+            {
+                result.Add(new DocContabileExcel()
+                {
+                    Numero = pos.NumeroLinea,
+                    Posizione = pos.CodiceMateriale,
+                    Totale = pos.Imponibile.ToString("0.00"),
+                    PeriodoRiferimento = pos.PeriodoRiferimento
+                });
+            }
+            result.Add(new DocContabileExcel()
+            {
+                Causale = item.Fattura!.CausaleFattura,
+                DataFattura = item.Fattura!.DataFattura,
+                Divisa = item.Fattura!.Divisa,
+                IdContratto = item.Fattura!.IdContratto,
+                Numero = item.Fattura!.Progressivo,
+                IstitutioID = item.Fattura.IstitutioId,
+                MetodoPagamento = item.Fattura.MetodoPagamento,
+                OnboardingTokenID = item.Fattura.OnboardingTokenId,
+                Prodotto = item.Fattura.Prodotto,
+                RagioneSociale = item.Fattura.RagioneSociale,
+                TipologiaFattura = item.Fattura.DatiGeneraliDocumento!.FirstOrDefault()?.TipologiaFattura,
+                TipoContratto = item.Fattura.TipoContratto,
+                Totale = item.Fattura.Totale!.Value.ToString("0.00") ?? null,
+                Identificativo = item.Fattura.PeriodoFatturazione,
+                Sollecito = item.Fattura.Sollecito,
+                Split = item.Fattura.SplitPayment,
+                TipoDocumento = item.Fattura.TipoDocumento,
+                Posizione = "totale:",
+            });
+
+            result.Add(new DocContabileExcel());
+        }
+        return result;
     }
 
     public static FattureQueryRicercaByEnte Map(this FatturaRicercaEnteRequest req, AuthenticationInfo authInfo)
