@@ -38,10 +38,11 @@ public class RelStorageService(IPortaleFattureOptions options,
             memoryStream.Position = 0;
             await blobClient.UploadAsync(memoryStream, true);
         }
-        catch
+        catch(Exception ex)
         {
-            var msg = $"Errore nel caricare il file {fileName}!";
-            _logger.LogError(msg);
+            //var msg = $"Errore nel caricare il file {fileName}!";
+            var msg = "RelUp:  " + ex.Message;
+            _logger.LogError(msg); 
             throw new DomainException(msg);
         }
     }
@@ -58,9 +59,10 @@ public class RelStorageService(IPortaleFattureOptions options,
             BlobDownloadResult downloadResult = await blobClient.DownloadContentAsync();
             return downloadResult.Content.ToString();
         }
-        catch
+        catch(Exception ex)
         {
-            var msg = $"Errore nel legger il file {fileName}!";
+            //var msg = $"Errore nel legger il file {fileName}!";
+            var msg = "RelUp:  " + ex.Message;
             _logger.LogError(msg);
             throw new DomainException(msg);
         }
@@ -85,12 +87,12 @@ public class RelStorageService(IPortaleFattureOptions options,
             await blobClient.UploadAsync(memoryStream, true);
             blobClient.SetHttpHeaders(headers);
         }
-        catch
+        catch(Exception ex)
         {
-            var msg = $"Errore nel caricare il file {fileName}!";
-            _logger.LogError(msg);
-            throw new DomainException(msg);
-            throw;
+            //var msg = $"Errore nel caricare il file {fileName}!";
+            var msg = "RelUp:  " + ex.Message;
+            _logger.LogError(msg); 
+            throw new DomainException(msg); 
         }
     }
 
@@ -109,9 +111,10 @@ public class RelStorageService(IPortaleFattureOptions options,
             bytes = memoryStream.ToArray();
             return bytes;
         }
-        catch
+        catch(Exception ex)
         {
-            var msg = $"Errore nel legger il file {fileName}!";
+            //var msg = $"Errore nel legger il file {fileName}!";
+            var msg = "RelUp:  " + ex.Message;
             _logger.LogError(msg);
             throw new DomainException(msg);
         }

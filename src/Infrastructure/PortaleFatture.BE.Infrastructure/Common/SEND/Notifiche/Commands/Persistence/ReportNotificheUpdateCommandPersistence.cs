@@ -1,5 +1,7 @@
 ﻿using System.Data;
+using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Localization;
+using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Core.Resources;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 

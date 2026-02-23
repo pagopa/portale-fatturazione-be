@@ -1,5 +1,4 @@
-﻿using DocumentFormat.OpenXml.Spreadsheet;
-using MediatR;
+﻿using MediatR;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -9,9 +8,7 @@ using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Function.API.Extensions;
 using PortaleFatture.BE.Function.API.ModuloCommessa.Payload;
-using PortaleFatture.BE.Infrastructure.Common.Persistence.Schemas;
 using PortaleFatture.BE.Infrastructure.Common.SEND.DatiModuloCommesse.Queries;
-using PortaleFatture.BE.Infrastructure.Common.SEND.SelfCare.Queries.Persistence;
 
 namespace PortaleFatture.BE.Function.API.ModuloCommessa;
 
@@ -24,17 +21,11 @@ public class DatiConfigurazioneModuloCommessaFunction(ILoggerFactory loggerFacto
         [ActivityTrigger] DatiConfigurazioneModuloCommessaRequest req,
         FunctionContext context)
     {
-        var mediator = context.InstanceServices.GetRequiredService<IMediator>();
-        var factory = context.InstanceServices.GetRequiredService<IFattureDbContextFactory>();
+        var mediator = context.InstanceServices.GetRequiredService<IMediator>(); 
 
-        int? idTipoContratto; 
-        using var uow = await factory.Create();
-        {
-            var contratto = await uow.Query(new EnteCodiceSDIQueryGetByIdPersistence(req.Session!.FkIdEnte));
-            idTipoContratto = contratto?.IdTipoContratto;
-        }
-
-        var configurazione = await mediator.Send(new DatiConfigurazioneModuloCommessaQueryGet() { Prodotto = req.Prodotto, IdTipoContratto = idTipoContratto!.Value });
+        int? idTipoContratto = req.Session!.IdTipoContratto;
+        string? prodotto = req.Session!.Prodotto;
+        var configurazione = await mediator.Send(new DatiConfigurazioneModuloCommessaQueryGet() { Prodotto = prodotto, IdTipoContratto = idTipoContratto!.Value });
 
         var conf = configurazione.Mapper();
 

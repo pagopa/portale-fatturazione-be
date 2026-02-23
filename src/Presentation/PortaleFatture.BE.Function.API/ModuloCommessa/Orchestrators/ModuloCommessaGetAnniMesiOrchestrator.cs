@@ -8,10 +8,10 @@ namespace PortaleFatture.BE.Function.API.ModuloCommessa.Orchestrators;
 public class ModuloCommessaGetAnniMesiOrchestrator
 {
     [Function("ModuloCommessaGetAnniMesiOrchestrator")]
-    public async Task<IEnumerable<ModuloCommessaAnnoMeseDto>?> RunAsync(
+    public async Task<IEnumerable<string>?> RunAsync(
         [OrchestrationTrigger] TaskOrchestrationContext context)
     { 
         var data = context.GetInput<ModuloCommessaGetByAnnoInternalRequest>();
-        return await context.CallActivityAsync<IEnumerable<ModuloCommessaAnnoMeseDto>?>("ModuloCommessaGetAnniMesiData", data);
+        return await context.CallActivityAsync<IEnumerable<string>?>("ModuloCommessaGetAnniMesiData", data);
     }
 }

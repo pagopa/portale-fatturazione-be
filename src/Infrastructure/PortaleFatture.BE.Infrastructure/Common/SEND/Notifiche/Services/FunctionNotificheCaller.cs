@@ -1,5 +1,4 @@
-﻿using System.Reflection;
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
@@ -120,7 +119,7 @@ public class Input
 
 public class FunctionNotificheCaller(IPortaleFattureOptions options, ILogger<FunctionNotificheCaller> logger, IHttpClientFactory httpClientFactory) : IFunctionNotificheCaller
 {
- 
+
     private readonly ILogger<FunctionNotificheCaller> _logger = logger;
     private readonly IPortaleFattureOptions _options = options;
     private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
@@ -134,8 +133,7 @@ public class FunctionNotificheCaller(IPortaleFattureOptions options, ILogger<Fun
             var client = _httpClientFactory.CreateClient(nameof(FunctionNotificheCaller));
 
             client.DefaultRequestHeaders.Add("x-functions-key", functionKey);
-             string jsonData = JsonSerializer.Serialize(request);
-        
+            string jsonData = JsonSerializer.Serialize(request);
             var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
             var response = await client.PostAsync(functionUrl, content);
 
@@ -175,19 +173,19 @@ public class FunctionNotificheCaller(IPortaleFattureOptions options, ILogger<Fun
             var response = await client.GetAsync(functionUrl);
             var result = await response.Content.ReadAsStringAsync();
             if (response.IsSuccessStatusCode)
-            { 
-                return (result.Deserialize<DurableFunctionResponse>(), "ok"); 
+            {
+                return (result.Deserialize<DurableFunctionResponse>(), "ok");
             }
             else
             {
                 _logger.LogWarning("Empty response body received from Durable Task.");
-                return (null, result + "| Empty response body received from Durable Task. |" +response.StatusCode.ToString() );
+                return (null, result + "| Empty response body received from Durable Task. |" + response.StatusCode.ToString());
             }
         }
         catch (Exception ex)
         {
             _logger.LogError($"Exception occurred: {ex.Message}, StackTrace: {ex.StackTrace}");
             return (null, ex.Message);
-        } 
+        }
     }
 }

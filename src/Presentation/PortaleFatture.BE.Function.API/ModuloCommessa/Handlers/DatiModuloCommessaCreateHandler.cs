@@ -10,8 +10,7 @@ using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Function.API.Extensions;
 using PortaleFatture.BE.Function.API.ModuloCommessa.Payload;
 
-namespace PortaleFatture.BE.Function.API.ModuloCommessa.Handlers;
-
+namespace PortaleFatture.BE.Function.API.ModuloCommessa.Handlers; 
 
 public class DatiModuloCommessaCreateHandler
 {
@@ -32,7 +31,7 @@ public class DatiModuloCommessaCreateHandler
         var request = requestBody!.Deserialize<DatiModuloCommessaCreateRequest>();
         var data = new DatiModuloCommessaCreateInternalRequest()
         {
-            ModuliCommessa = request.ModuliCommessa,
+            DatiModuloCommessaCreate = request,
             Session = context.GetSession()
         };
 

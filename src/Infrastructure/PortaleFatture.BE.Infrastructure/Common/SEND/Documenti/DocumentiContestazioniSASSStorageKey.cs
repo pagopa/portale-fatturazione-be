@@ -36,4 +36,9 @@ public sealed class DocumentiContestazioniSASSStorageKey(
         var fileName = dati[4];
         return new DocumentiContestazioniSASSStorageKey(containerName, idEnte, contractId, uniqueId, fileName);
     }
+
+    public string Serialize()
+    {
+        return $"{this.ContainerName}/{this.IdEnte}/{this.ContractId}/{this.UniqueId}/{this.FileName}";
+    }
 }

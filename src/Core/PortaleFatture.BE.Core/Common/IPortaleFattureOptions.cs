@@ -24,5 +24,6 @@ public interface IPortaleFattureOptions
     public StorageREL? StorageREL { get; set; }
     public StorageContestazioni? StorageContestazioni { get; set; } 
     public StorageNotifiche? StorageNotifiche { get; set; }  
-    public AzureFunction? AzureFunction { get; set; }
+    public AzureFunction? AzureFunction { get; set; } 
+    public StorageRelDownload? StorageRelDownload { get; set; }
 }
