@@ -28,6 +28,42 @@
       <None Update="Infrastructure\Documenti\daticommessa.html">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
+      <None Update="Infrastructure\Documenti\pac_fattura_emessa_singola V2.html">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="Infrastructure\Documenti\pac_fattura_emessa_singola.html">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="Infrastructure\Documenti\pac_fattura_sospesa_singola V2.html">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="Infrastructure\Documenti\pac_fattura_sospesa_singola.html">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="Infrastructure\Documenti\pac_fatture_emesse_multiple V2.html">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="Infrastructure\Documenti\pac_fatture_emesse_multiple.html">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="Infrastructure\Documenti\pal_fattura_emessa_singola V2.html">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="Infrastructure\Documenti\pal_fattura_emessa_singola.html">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="Infrastructure\Documenti\pal_fattura_sospesa_singola V2.html">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="Infrastructure\Documenti\pal_fattura_sospesa_singola.html">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="Infrastructure\Documenti\pal_fatture_emesse_multiple V2.html">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="Infrastructure\Documenti\pal_fatture_emesse_multiple.html">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
       <None Update="Infrastructure\Documenti\PRIMO_SALDO_rel.html">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>

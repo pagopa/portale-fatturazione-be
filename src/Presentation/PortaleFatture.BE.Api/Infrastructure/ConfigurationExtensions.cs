@@ -168,6 +168,7 @@ public static class ConfigurationExtensions
 
         // rel righe storage
         services.AddSingleton<IRelRigheStorageService, RelRigheStorageService>();
+        services.AddSingleton<IRelRigheSospeseStorageService, RelRigheSospeseStorageService>();
 
         // call azure function
         services.AddSingleton<IBlobStorageNotifiche, BlobStorageNotifiche>();

@@ -1,9 +1,10 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using PortaleFatture.BE.Core.Entities.SEND.DatiFatturazioni;
 using PortaleFatture.BE.Core.Entities.SEND.DatiModuloCommesse.Dto;
 using PortaleFatture.BE.Core.Entities.SEND.DatiRel.Dto;
+using PortaleFatture.BE.Core.Entities.SEND.Fatture;
 
 namespace PortaleFatture.BE.Core.Extensions;
 
@@ -53,6 +54,95 @@ public static class DocumentExtensions
                 <td colspan='2'>[Totale] €</td> 
             </tr> 
         ";
+
+    private static string _tableDettaglioMesiHeader = @"
+        <table width='100%' style='border-collapse: collapse; font-family: Calibri, sans-serif; font-size: 12pt;'>
+            <tr style='background-color: #f2f2f2;'>
+                <th style='border: 1px solid black; padding: 6px 8px; text-align: left; vertical-align: middle;'>Mese</th>
+                <th style='border: 1px solid black; padding: 6px 8px; text-align: center; vertical-align: middle;'>Notifiche Digitali</th>
+                <th style='border: 1px solid black; padding: 6px 8px; text-align: center; vertical-align: middle; white-space: nowrap;'>Importo<br/>Notifiche Digitali</th>
+                <th style='border: 1px solid black; padding: 6px 8px; text-align: center; vertical-align: middle;'>Notifiche Analogiche</th>
+                <th style='border: 1px solid black; padding: 6px 8px; text-align: center; vertical-align: middle; white-space: nowrap;'>Importo<br/>Notifiche Analogiche</th>
+                <th style='border: 1px solid black; padding: 6px 8px; text-align: center; vertical-align: middle; white-space: nowrap;'>Importo</th>
+            </tr>
+    ";
+
+    private static string _tableDettaglioMesiRow = @"
+            <tr>
+                <td style='border: 1px solid black; padding: 6px 8px; text-align: left; vertical-align: middle;'>[Mese]/[Anno]</td>
+                <td style='border: 1px solid black; padding: 6px 8px; text-align: center; vertical-align: middle;'>[TotaleNotificheDigitali]</td>
+                <td style='border: 1px solid black; padding: 6px 8px; text-align: right; vertical-align: middle; white-space: nowrap;'>[TotaleDigitale]&nbsp;€</td>
+                <td style='border: 1px solid black; padding: 6px 8px; text-align: center; vertical-align: middle;'>[TotaleNotificheAnalogiche]</td>
+                <td style='border: 1px solid black; padding: 6px 8px; text-align: right; vertical-align: middle; white-space: nowrap;'>[TotaleAnalogico]&nbsp;€</td>
+                <td style='border: 1px solid black; padding: 6px 8px; text-align: right; vertical-align: middle; white-space: nowrap;'>[Totale]&nbsp;€</td>
+            </tr> 
+    ";
+
+    private static string _tableDettaglioMesiFooter = @"</table>";
+
+    public static string GetDettaglioMesi(this IEnumerable<DocumentoContabileEmesso>? fatture)
+    {
+        if (fatture == null || !fatture.Any()) return string.Empty;
+
+        StringBuilder builder = new();
+        builder.Append(_tableDettaglioMesiHeader);
+
+        foreach (var fattura in fatture)
+        {
+            var row = _tableDettaglioMesiRow
+                .Replace("[Mese]", fattura.Mese.PadLeft(2, '0'))
+                .Replace("[Anno]", fattura.Anno)
+                .Replace("[TotaleNotificheDigitali]", fattura.TotaleNotificheDigitali.ToString())
+                .Replace("[TotaleNotificheAnalogiche]", fattura.TotaleNotificheAnalogiche.ToString())
+                .Replace("[TotaleDigitale]", fattura.TotaleDigitale.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT")))
+                .Replace("[TotaleAnalogico]", fattura.TotaleAnalogico.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT")))
+                .Replace("[Totale]", fattura.Totale!.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT")));
+            builder.Append(row);
+        }
+
+        builder.Append(_tableDettaglioMesiFooter);
+        return builder.ToString();
+    }
+
+    public static string GetDettaglioMesi(this IEnumerable<DocumentoContabileEmessoRiepilogo>? fatture)
+    {
+        if (fatture == null || !fatture.Any()) return string.Empty;
+
+        StringBuilder builder = new();
+        builder.Append(_tableDettaglioMesiHeader);
+
+        foreach (var fattura in fatture)
+        {
+            var row = _tableDettaglioMesiRow
+                .Replace("[Mese]", fattura.Mese.PadLeft(2, '0'))
+                .Replace("[Anno]", fattura.Anno)
+                .Replace("[TotaleNotificheDigitali]", (fattura.TotaleNotificheDigitali ?? 0).ToString())
+                .Replace("[TotaleNotificheAnalogiche]", (fattura.TotaleNotificheAnalogiche ?? 0).ToString())
+                .Replace("[TotaleDigitale]", (fattura.TotaleDigitale ?? 0).ToString("N2", CultureInfo.CreateSpecificCulture("it-IT")))
+                .Replace("[TotaleAnalogico]", (fattura.TotaleAnalogico ?? 0).ToString("N2", CultureInfo.CreateSpecificCulture("it-IT")))
+                .Replace("[Totale]", (fattura.Totale ?? 0).ToString("N2", CultureInfo.CreateSpecificCulture("it-IT")));
+            builder.Append(row);
+        }
+
+        builder.Append(_tableDettaglioMesiFooter);
+        return builder.ToString();
+    }
+
+    public static string GetElencoMesi(this IEnumerable<DocumentoContabileEmesso>? fatture)
+    {
+        if (fatture == null || !fatture.Any()) return string.Empty;
+        
+        var mesi = fatture.Select(f => $"{f.Mese.PadLeft(2, '0')}/{f.Anno}").Distinct().ToList();
+        return string.Join(", ", mesi);
+    }
+
+    public static string GetElencoMesi(this IEnumerable<DocumentoContabileEmessoRiepilogo>? fatture)
+    {
+        if (fatture == null || !fatture.Any()) return string.Empty;
+        
+        var mesi = fatture.Select(f => $"{f.Mese.PadLeft(2, '0')}/{f.Anno}").Distinct().ToList();
+        return string.Join(", ", mesi);
+    }
 
     public static string GetModuloCommessa(this IEnumerable<DatiModuloCommessaTotaleDto>? commesse)
     {
@@ -154,6 +244,85 @@ public static class DocumentExtensions
             .Replace(nameof(model.TipologiaFattura).GetName<RelDocumentoDto>(), model.TipologiaFattura!)
             .Replace(nameof(model.RagioneSociale).GetName<RelDocumentoDto>(), model.RagioneSociale!)
             .Replace(nameof(model.IdContratto).GetName<RelDocumentoDto>(), model.IdContratto!)
+              ;
+
+        return template;
+    }
+
+    public static string Replace(this DocumentoContabileSospeso model, string template)
+    {
+        template = template
+            .Replace(nameof(model.Anno).GetName<DocumentoContabileSospeso>(), model.Anno.ToString())
+            .Replace(nameof(model.Mese).GetName<DocumentoContabileSospeso>(), model.Mese.ToString())
+            .Replace(nameof(model.Totale).GetName<DocumentoContabileSospeso>(), model.Totale!.ToString().Replace(".", "."))
+            .Replace(nameof(model.TotaleAnalogico).GetName<DocumentoContabileSospeso>(), model.TotaleAnalogico!.ToString().Replace(".", "."))
+            .Replace(nameof(model.AnticipoAnalogico).GetName<DocumentoContabileSospeso>(), model.AnticipoAnalogico!.ToString().Replace(".", "."))
+            .Replace(nameof(model.AnticipoDigitale).GetName<DocumentoContabileSospeso>(), model.AnticipoDigitale!.ToString().Replace(".", "."))
+            .Replace(nameof(model.TotaleStorno).GetName<DocumentoContabileSospeso>(), model.TotaleStorno!.ToString().Replace(".", "."))
+            .Replace(nameof(model.StornoDigitale).GetName<DocumentoContabileSospeso>(), model.StornoDigitale!.ToString().Replace(".", "."))
+            .Replace(nameof(model.StornoAnalogico).GetName<DocumentoContabileSospeso>(), model.StornoAnalogico!.ToString().Replace(".", "."))
+            .Replace(nameof(model.ImportoSottoSoglia).GetName<DocumentoContabileSospeso>(), model.ImportoSottoSoglia!.ToString().Replace(".", "."))
+            .Replace(nameof(model.TotaleDigitale).GetName<DocumentoContabileSospeso>(), model.TotaleDigitale!.ToString().Replace(".", "."))
+            .Replace(nameof(model.TotaleNotificheAnalogiche).GetName<DocumentoContabileSospeso>(), model.TotaleNotificheAnalogiche!.ToString())
+            .Replace(nameof(model.TotaleNotificheDigitali).GetName<DocumentoContabileSospeso>(), model.TotaleNotificheDigitali!.ToString())
+            .Replace(nameof(model.TipologiaFattura).GetName<RelDocumentoDto>(), model.TipologiaFattura!)
+            .Replace(nameof(model.RagioneSociale).GetName<RelDocumentoDto>(), model.RagioneSociale!)
+            .Replace(nameof(model.IdContratto).GetName<RelDocumentoDto>(), model.IdContratto!)
+              ;
+
+        return template;
+    }
+
+    public static string Replace(this DocumentoContabileEmesso model, string template)
+    {
+        template = template
+            .Replace(nameof(model.Anno).GetName<DocumentoContabileEmesso>(), model.Anno)
+            .Replace(nameof(model.Mese).GetName<DocumentoContabileEmesso>(), model.Mese)
+            .Replace("[ElencoMesi]", $"{model.Mese.PadLeft(2, '0')}/{model.Anno}")
+            .Replace(nameof(model.Totale).GetName<DocumentoContabileEmesso>(), model.Totale!.ToString().Replace(".", "."))
+            .Replace(nameof(model.TotaleAnalogico).GetName<DocumentoContabileEmesso>(), model.TotaleAnalogico.ToString("N2"))
+            .Replace(nameof(model.TotaleDigitale).GetName<DocumentoContabileEmesso>(), model.TotaleDigitale.ToString("N2"))
+            .Replace(nameof(model.TotaleNotificheAnalogiche).GetName<DocumentoContabileEmesso>(), model.TotaleNotificheAnalogiche.ToString())
+            .Replace(nameof(model.TotaleNotificheDigitali).GetName<DocumentoContabileEmesso>(), model.TotaleNotificheDigitali.ToString())
+            .Replace(nameof(model.TotaleAnticipo).GetName<DocumentoContabileEmesso>(), model.TotaleAnticipo.ToString("N2"))
+            .Replace(nameof(model.AnticipoDigitale).GetName<DocumentoContabileEmesso>(), model.AnticipoDigitale.ToString("N2"))
+            .Replace(nameof(model.AnticipoAnalogico).GetName<DocumentoContabileEmesso>(), model.AnticipoAnalogico.ToString("N2"))
+            .Replace(nameof(model.TotaleStorno).GetName<DocumentoContabileEmesso>(), model.TotaleStorno.ToString("N2"))
+            .Replace(nameof(model.StornoDigitale).GetName<DocumentoContabileEmesso>(), model.StornoDigitale.ToString("N2"))
+            .Replace(nameof(model.StornoAnalogico).GetName<DocumentoContabileEmesso>(), model.StornoAnalogico.ToString("N2"))
+            .Replace(nameof(model.TotaleAcconto).GetName<DocumentoContabileEmesso>(), model.TotaleAcconto.ToString("N2"))
+            .Replace(nameof(model.AccontoDigitale).GetName<DocumentoContabileEmesso>(), model.AccontoDigitale.ToString("N2"))
+            .Replace(nameof(model.AccontoAnalogico).GetName<DocumentoContabileEmesso>(), model.AccontoAnalogico.ToString("N2"))
+            .Replace(nameof(model.Imponibile).GetName<DocumentoContabileEmesso>(), model.Imponibile.ToString("N2"))
+            .Replace(nameof(model.RagioneSociale).GetName<DocumentoContabileEmesso>(), model.RagioneSociale!)
+            .Replace(nameof(model.IdContratto).GetName<DocumentoContabileEmesso>(), model.IdContratto!)
+              ;
+
+        return template;
+    }
+
+    public static string Replace(this DocumentoContabileEmessiMultipli model, string template)
+    {
+        template = template
+            .Replace(nameof(model.Totale).GetName<DocumentoContabileEmessiMultipli>(), model.Totale.ToString("N2"))
+            .Replace(nameof(model.TotaleAnalogico).GetName<DocumentoContabileEmessiMultipli>(), model.TotaleAnalogico.ToString("N2"))
+            .Replace(nameof(model.TotaleDigitale).GetName<DocumentoContabileEmessiMultipli>(), model.TotaleDigitale.ToString("N2"))
+            .Replace(nameof(model.TotaleNotificheAnalogiche).GetName<DocumentoContabileEmessiMultipli>(), model.TotaleNotificheAnalogiche.ToString())
+            .Replace(nameof(model.TotaleNotificheDigitali).GetName<DocumentoContabileEmessiMultipli>(), model.TotaleNotificheDigitali.ToString())
+            .Replace(nameof(model.TotaleAnticipo).GetName<DocumentoContabileEmessiMultipli>(), model.TotaleAnticipo.ToString("N2"))
+            .Replace(nameof(model.AnticipoDigitale).GetName<DocumentoContabileEmessiMultipli>(), model.AnticipoDigitale.ToString("N2"))
+            .Replace(nameof(model.AnticipoAnalogico).GetName<DocumentoContabileEmessiMultipli>(), model.AnticipoAnalogico.ToString("N2"))
+            .Replace(nameof(model.TotaleStorno).GetName<DocumentoContabileEmessiMultipli>(), model.TotaleStorno.ToString("N2"))
+            .Replace(nameof(model.StornoDigitale).GetName<DocumentoContabileEmessiMultipli>(), model.StornoDigitale.ToString("N2"))
+            .Replace(nameof(model.StornoAnalogico).GetName<DocumentoContabileEmessiMultipli>(), model.StornoAnalogico.ToString("N2"))
+            .Replace(nameof(model.TotaleAcconto).GetName<DocumentoContabileEmessiMultipli>(), model.TotaleAcconto.ToString("N2"))
+            .Replace(nameof(model.AccontoDigitale).GetName<DocumentoContabileEmessiMultipli>(), model.AccontoDigitale.ToString("N2"))
+            .Replace(nameof(model.AccontoAnalogico).GetName<DocumentoContabileEmessiMultipli>(), model.AccontoAnalogico.ToString("N2"))
+            .Replace(nameof(model.Imponibile).GetName<DocumentoContabileEmessiMultipli>(), model.Imponibile.ToString("N2"))
+            .Replace(nameof(model.RagioneSociale).GetName<DocumentoContabileEmessiMultipli>(), model.RagioneSociale!)
+            .Replace(nameof(model.IdContratto).GetName<DocumentoContabileEmessiMultipli>(), model.IdContratto!)
+            .Replace("[DettaglioMesi]", model.DettaglioFatture.GetDettaglioMesi())
+            .Replace("[ElencoMesi]", model.DettaglioFatture.GetElencoMesi())
               ;
 
         return template;

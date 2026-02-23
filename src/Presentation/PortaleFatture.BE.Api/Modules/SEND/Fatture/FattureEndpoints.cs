@@ -221,6 +221,57 @@ public partial class FattureModule : Module, IRegistrableModule
             .WithName("Permette di ottenere il credito sospeso e dettagli per ente")
             .SetOpenApi(Module.DatiFattureEnti)
             .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+            .MapPost("api/fatture/ente/periodo/emesse", PostFattureEmesseRicercaAsync)
+            .WithName("Permette di ottenere le fatture emesse e dettagli per ente")
+            .SetOpenApi(Module.DatiFattureEnti)
+            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+            .MapPost("api/fatture/ente/eliminate", PostFattureEliminateRicercaAsync)
+            .WithName("Permette di ottenere le fatture eliminate e dettagli per ente")
+            .SetOpenApi(Module.DatiFattureEnti)
+            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+            .MapPost("api/fatture/ente/emesse/dettaglio", PostFattureEmesseDettaglioAsync)
+            .WithName("Permette di ottenere il dettaglio di una specifica fattura emessa per ente")
+            .SetOpenApi(Module.DatiFattureEnti)
+            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+        
+
+        endpointRouteBuilder
+            .MapPost("api/fatture/ente/sospese/dettaglio", PostFattureSospeseDettaglioAsync)
+            .WithName("Permette di ottenere il dettaglio di una specifica fattura sospesa per ente")
+            .SetOpenApi(Module.DatiFattureEnti)
+            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+
+        endpointRouteBuilder
+           .MapPost("api/fatture/ente/emesse/download", PostFattureEmesseEnteExcelAsync)
+           .WithName("Permette di scaricare l'excel delle fatture emesse per specifico ente")
+           .SetOpenApi(Module.DatiFattureEnti)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+           .MapPost("api/fatture/ente/sospese/download", PostFattureSospeseEnteExcelAsync)
+           .WithName("Permette di scaricare l'excel delle fatture sospese per specifico ente")
+           .SetOpenApi(Module.DatiFattureEnti)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+         endpointRouteBuilder
+           .MapGet("api/fatture/ente/sospese/dettaglio/download/{id}", FattureSospeseDettaglioDownloadAsync)
+           .WithName("Permette di scaricare il dettaglio in pdf della fatture sospesa per specifico ente")
+           .SetOpenApi(Module.DatiFattureEnti)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+         endpointRouteBuilder
+           .MapGet("api/fatture/ente/emesse/dettaglio/download/{id}", FattureEmesseDettaglioDownloadAsync)
+           .WithName("Permette di scaricare il dettaglio in pdf della fatture emessa per specifico ente")
+           .SetOpenApi(Module.DatiFattureEnti)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
         #endregion
     }
 }

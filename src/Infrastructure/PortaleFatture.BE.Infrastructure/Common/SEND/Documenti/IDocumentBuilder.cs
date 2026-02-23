@@ -1,5 +1,6 @@
-﻿using PortaleFatture.BE.Core.Entities.SEND.DatiModuloCommesse.Dto;
+using PortaleFatture.BE.Core.Entities.SEND.DatiModuloCommesse.Dto;
 using PortaleFatture.BE.Core.Entities.SEND.DatiRel.Dto;
+using PortaleFatture.BE.Core.Entities.SEND.Fatture;
 
 namespace PortaleFatture.BE.Infrastructure.Common.SEND.Documenti
 {
@@ -10,5 +11,11 @@ namespace PortaleFatture.BE.Infrastructure.Common.SEND.Documenti
         byte[] CreateModuloCommessaPdf(ModuloCommessaDocumentoDto dati);
         string? CreateModuloRelHtml(RelDocumentoDto dati);
         byte[] CreateModuloRelPdf(RelDocumentoDto dati);
+        byte[] CreateDettaglioFatturaSospesaPdf(DocumentoContabileSospeso dati);
+        string? CreateDettaglioFatturaSospesaHtml(DocumentoContabileSospeso dati);
+        byte[] CreateDettaglioFatturaEmessaPdf(DocumentoContabileEmesso dati);
+        byte[] CreateDettaglioFatturaEmessaMultiplaPdf(DocumentoContabileEmessiMultipli dati);
+        string? CreateDettaglioFatturaEmessaHtml(DocumentoContabileEmesso dati);
+        string? CreateDettaglioFatturaEmessaMultiplaHtml(DocumentoContabileEmessiMultipli dati);
     }
 }

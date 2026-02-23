@@ -166,6 +166,12 @@ public partial class RelModule : Module, IRegistrableModule
           .WithName("Permette visualizzare mesi REL per anno - pagoPA")
           .SetOpenApi(Module.DatiRelLabelPagoPA)
           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel)); 
+
+      endpointRouteBuilder
+        .MapGet("api/rel/ente/sospese/righe/{id}", GetRelRigheSospeseDocumentAsync)
+        .WithName("Permette di ottenere le righe delle Rels Sospese dell'ente per ricerca")
+        .SetOpenApi(Module.DatiRelLabel)
+        .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
         #endregion
     }
 } 
