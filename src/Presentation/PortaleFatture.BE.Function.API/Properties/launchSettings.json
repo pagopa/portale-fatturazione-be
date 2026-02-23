@@ -2,7 +2,7 @@
   "profiles": {
     "PortaleFatture.BE.Function.Api": {
       "commandName": "Project",
-      "commandLineArgs": "--port 7274"
+      "commandLineArgs": "--port 7071"
     },
     "Container (Dockerfile)": {
       "commandName": "Docker",

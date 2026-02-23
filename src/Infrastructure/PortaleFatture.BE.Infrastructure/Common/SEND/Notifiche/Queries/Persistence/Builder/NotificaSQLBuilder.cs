@@ -126,4 +126,73 @@ SELECT
     {
         return @"SELECT  count(*) FROM [pfw].[ReportNotifiche] WHERE letto = 0 AND internal_organization_id=@idEnte AND stato IN (0,1)";
     }
+
+    private static string _checkDownloadNotifiche = @"
+SELECT
+    OverallMaxDate.MaxDate AS DataMassimaContestazione,
+    CASE
+        WHEN FilteredByGivenDate.MaxDate IS NOT NULL THEN 1
+        ELSE 0
+    END AS NotificheDaScaricare,
+    CASE
+        WHEN OverallMaxDate.MaxDate IS NULL THEN 0
+        ELSE 1
+    END AS CiSonoContestazioni
+FROM
+    ( -- Subquery 1: Get the absolute overall MAX date for the given period (ignores @date)
+        SELECT
+            MAX(CalculatedDates.date_val) AS MaxDate
+        FROM
+            [pfw].[Contestazioni] c
+        INNER JOIN
+            [pfd].[Notifiche] n ON c.[FkIdNotifica] = n.[event_id]
+        CROSS APPLY (VALUES
+            (c.[DataInserimentoEnte]),
+            (c.[DataModificaEnte]),
+            (c.[DataInserimentoSend]),
+            (c.[DataModificaSend]),
+            (c.[DataInserimentoRecapitista]),
+            (c.[DataModificaRecapitista]),
+            (c.[DataInserimentoConsolidatore]),
+            (c.[DataModificaConsolidatore]),
+            (c.[DataChiusura])
+        ) AS CalculatedDates(date_val)
+        WHERE
+            n.[internal_organization_id] = @idEnte
+            AND c.[Anno] = @anno
+            AND c.[Mese] = @mese
+            AND CalculatedDates.date_val IS NOT NULL
+    ) AS OverallMaxDate
+CROSS JOIN
+    ( -- Subquery 2: Get the MAX date specifically for entries >= @date (determines 'new' activity)
+        SELECT
+            MAX(CalculatedDates.date_val) AS MaxDate
+        FROM
+            [pfw].[Contestazioni] c
+        INNER JOIN
+            [pfd].[Notifiche] n ON c.[FkIdNotifica] = n.[event_id]
+        CROSS APPLY (VALUES
+            (c.[DataInserimentoEnte]),
+            (c.[DataModificaEnte]),
+            (c.[DataInserimentoSend]),
+            (c.[DataModificaSend]),
+            (c.[DataInserimentoRecapitista]),
+            (c.[DataModificaRecapitista]),
+            (c.[DataInserimentoConsolidatore]),
+            (c.[DataModificaConsolidatore]),
+            (c.[DataChiusura])
+        ) AS CalculatedDates(date_val)
+        WHERE
+            n.[internal_organization_id] = @idEnte
+            AND c.[Anno] = @anno
+            AND c.[Mese] = @mese
+            AND CalculatedDates.date_val IS NOT NULL
+            AND CalculatedDates.date_val >  @date  
+    ) AS FilteredByGivenDate;
+";
+
+    public static string CheckDownloadNotifiche()
+    {
+               return _checkDownloadNotifiche;
+    }
 }

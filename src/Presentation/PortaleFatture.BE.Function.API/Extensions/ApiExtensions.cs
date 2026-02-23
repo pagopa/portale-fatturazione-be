@@ -18,9 +18,9 @@ public static class ApiExtensions
 
     public static string GetUri(this FunctionContext context, string uri)
     {
-        var configuration = context.InstanceServices.GetRequiredService<IConfigurazione>(); 
-        var customDomain = configuration.CustomDomain!.Replace("/api", string.Empty); 
-        return Regex.Replace(uri!, @"^https?://[^/]+", customDomain); 
+        var configuration = context.InstanceServices.GetRequiredService<IConfigurazione>();
+        var customDomain = configuration.CustomDomain!.Replace("/api", string.Empty);
+        return Regex.Replace(uri!, @"^https?://[^/]+", customDomain);
     }
 
     public static bool SkipSwagger(this HttpRequestData? httpRequestData)
@@ -84,7 +84,7 @@ public static class ApiExtensions
         return default;
     }
 
-    public static CreateApyLogCommand  Request(this FunctionContext context)
+    public static CreateApyLogCommand Request(this FunctionContext context)
     {
         var idEnte = context.GetItem<string>("IdEnte");
         var functionName = context.GetItem<string>("FunctionName");
@@ -93,7 +93,7 @@ public static class ApiExtensions
         var stage = context.GetItem<string>("Stage");
         var method = context.GetItem<string>("Method");
         var payload = context.GetItem<string>("Payload");
-        var id = context.GetItem<string>("RequestId");
+        var id = context.GetItem<string>("RequestId") ?? Guid.NewGuid().ToString();
 
         var authenticationInfo = new AuthenticationInfo()
         {
@@ -112,14 +112,14 @@ public static class ApiExtensions
         };
     }
 
-    public static CreateApyLogCommand  Response(this FunctionContext context)
+    public static CreateApyLogCommand Response(this FunctionContext context)
     {
         var idEnte = context.GetItem<string>("IdEnte");
         var functionName = context.GetItem<string>("FunctionName");
         var ipAddress = context.GetItem<string>("IpAddress");
         var uri = context.GetItem<string>("Uri");
         var stage = ScopeType.RESPONSE;
-        var method = context.GetItem<string>("Method"); 
+        var method = context.GetItem<string>("Method");
         var id = context.GetItem<string>("RequestId");
 
         var authenticationInfo = new AuthenticationInfo()
@@ -130,19 +130,19 @@ public static class ApiExtensions
         {
             Id = id,
             FunctionName = functionName,
-            IpAddress = ipAddress, 
+            IpAddress = ipAddress,
             Stage = stage,
             Uri = uri,
             Method = method,
             Timestamp = DateTime.UtcNow.ItalianTime()
-        }; 
+        };
 
-        log.Payload = log.Serialize(); 
+        log.Payload = log.Serialize();
         return log;
     }
     public static CreateApyLogCommand Response(this FunctionContext context, Session session)
     {
-        var idEnte = session.FkIdEnte;
+        var idEnte = session.IdEnte;
         var functionName = session.FunctionName;
         var ipAddress = session.IpAddress;
         var uri = session.Uri;
@@ -165,14 +165,14 @@ public static class ApiExtensions
             Uri = uri,
             Method = method,
             Timestamp = DateTime.UtcNow.ItalianTime(),
-            Payload = payload   
+            Payload = payload
         };
 
         log.Payload = log.Serialize();
         return log;
     }
 
-    public static Session GetSession(this FunctionContext context)
+    public static Session GetSession(this FunctionContext context, string? pInstanceId =null)
     {
         var idEnte = context.GetItem<string>("IdEnte");
         var functionName = context.GetItem<string>("FunctionName");
@@ -182,11 +182,16 @@ public static class ApiExtensions
         var method = context.GetItem<string>("Method");
         var payload = context.GetItem<string>("Payload");
         var id = context.GetItem<string>("RequestId");
+        var idContratto = context.GetItem<string>("IdContratto");
+        var idTipoContratto = context.GetItem<int>("IdTipoContratto");
+        var ragioneSociale = context.GetItem<string>("RagioneSociale");
+        var prodotto = context.GetItem<string>("Prodotto");
+        var profilo = context.GetItem<string>("Profilo");
+        var instanceId = pInstanceId;
 
-   
         return new Session()
         {
-            FkIdEnte = idEnte,
+            IdEnte = idEnte,
             Id = id,
             FunctionName = functionName,
             IpAddress = ipAddress,
@@ -194,7 +199,13 @@ public static class ApiExtensions
             Stage = stage,
             Uri = uri,
             Method = method,
-            Timestamp = DateTime.UtcNow.ItalianTime()
+            Timestamp = DateTime.UtcNow.ItalianTime(),
+            IdContratto = idContratto,
+            IdTipoContratto = idTipoContratto,
+            Prodotto = prodotto,
+            RagioneSociale = ragioneSociale,
+            InstanceId = instanceId,
+            Profilo = profilo
         };
     }
 }

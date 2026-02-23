@@ -7,7 +7,6 @@ using Microsoft.Extensions.Localization;
 using PortaleFatture.BE.Api.Infrastructure;
 using PortaleFatture.BE.Api.Modules.SEND.APIKey.Payload.Request;
 using PortaleFatture.BE.Core.Auth;
-using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Core.Resources;
 using PortaleFatture.BE.Infrastructure.Common.Identity;
 using PortaleFatture.BE.Infrastructure.Common.SEND.ApiKeys.Commands;
@@ -33,7 +32,7 @@ public partial class ApiKeyModule
        [FromServices] IStringLocalizer<Localization> localizer,
        [FromServices] IMediator handler)
     {
-        var authInfo = context.GetAuthInfo(); 
+        var authInfo = context.GetAuthInfo();
 
         var result = await handler.Send(new DeleteIpsCommand(authInfo)
         {
@@ -59,9 +58,11 @@ public partial class ApiKeyModule
     {
         var authInfo = context.GetAuthInfo();
 
+        if (!req.IpAddress.VerifyIp())
+            throw new Core.Exceptions.ValidationException($"L'indirizzo IP '{req.IpAddress}' non è valido.");  
 
         if (!req.IpAddress.VerifyIp())
-            throw new ValidationException($"L'indirizzo IP '{req.IpAddress}' non è valido.");
+            throw new Core.Exceptions.ValidationException($"L'indirizzo IP '{req.IpAddress}' non è valido.");
 
         var result = await handler.Send(new CreateIpsCommand(authInfo)
         {
@@ -130,7 +131,7 @@ public partial class ApiKeyModule
         var result = await handler.Send(new CreateORModifyApiKeyCommand(authInfo)
         {
             ApiKey = req.ApiKey,
-            Attiva = req.Attiva, 
+            Attiva = req.Attiva,
             Refresh = req.Refresh
         });
 

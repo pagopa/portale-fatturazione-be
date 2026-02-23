@@ -187,16 +187,16 @@ public partial class FattureModule : Module, IRegistrableModule
 
         #region ente
         endpointRouteBuilder
-             .MapPost("api/fatture/ente/tipologia", PostTipologiaEnteFatture)
-               .WithName("Permette di visualizzare la tipologia fatture per ente")
-               .SetOpenApi(Module.DatiFattureEnti)
-               .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+        .MapPost("api/fatture/ente/tipologia", PostTipologiaEnteFatture)
+            .WithName("Permette di visualizzare la tipologia fatture per ente")
+            .SetOpenApi(Module.DatiFattureEnti)
+            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
         endpointRouteBuilder
-           .MapPost("api/fatture/ente", PostFattureEnteByRicercaAsync)
-           .WithName("Permette di ottenere le fatture per ricerca singolo ente")
-           .SetOpenApi(Module.DatiFattureEnti)
-           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+            .MapPost("api/fatture/ente", PostFattureEnteByRicercaAsync)
+            .WithName("Permette di ottenere le fatture per ricerca singolo ente")
+            .SetOpenApi(Module.DatiFattureEnti)
+            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
         endpointRouteBuilder
            .MapPost("api/fatture/ente/download", PostFattureEnteExcelByRicercaAsync)
@@ -221,7 +221,6 @@ public partial class FattureModule : Module, IRegistrableModule
             .WithName("Permette di ottenere il credito sospeso e dettagli per ente")
             .SetOpenApi(Module.DatiFattureEnti)
             .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
-
         #endregion
     }
 }

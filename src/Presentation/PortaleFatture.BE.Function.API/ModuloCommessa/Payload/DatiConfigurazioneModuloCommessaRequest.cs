@@ -4,7 +4,7 @@ namespace PortaleFatture.BE.Function.API.ModuloCommessa.Payload;
 
 public class DatiConfigurazioneModuloCommessaRequest
 {
-    public string? Prodotto { get; set; } = "prod-pn";
+    public string? Prodotto { get; set; } 
     public int? idTipoContratto { get; set; } 
     public Session? Session { get; set; } 
 } 

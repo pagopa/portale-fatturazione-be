@@ -61,7 +61,7 @@ public static class FattureQueryRicercaBuilder
     where FT.AnnoRiferimento = @AnnoRiferimento
 	and FT.MeseRiferimento = @MeseRiferimento
     and FT.FkIdEnte = @IdEnte
-	and FT.FkTipologiaFattura IN @TipologiaFattura
+	[condition_tipologiafattura]
 	and FT.FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865' --esclusione pagopa
 	and FT.TotaleFattura > 0
 	ORDER BY FT.FkTipologiaFattura, FT.Progressivo
@@ -777,5 +777,28 @@ order by FkTipologiaFattura, CONVERT(varchar(10), DataFattura, 120) desc;
     {
         return $@"
 SELECT CONVERT(varchar(10), DataFattura, 120) as DataFattura, FkTipologiaFattura as TipologiaFattura from pfd.FattureTestata_Eliminate ";
+    }
+
+    public static string SelectAnniMesiTipologia()
+    {
+        return $@"
+SELECT [AnnoRiferimento] as Anno
+      ,[MeseRiferimento] as Mese
+	  ,FkTipologiaFattura as TipologiaFattura
+  FROM [pfd].[FattureTestata]
+";
+    }
+
+    public static string GroupOrderByAnniMesiTipologia()
+    {
+        return $@"
+  group by
+       [FkProdotto] 
+      ,[FkTipologiaFattura]
+      ,[FkIdEnte] 
+	  ,[AnnoRiferimento]
+	  ,[MeseRiferimento]
+ order by AnnoRiferimento desc, MeseRiferimento desc
+";
     }
 }

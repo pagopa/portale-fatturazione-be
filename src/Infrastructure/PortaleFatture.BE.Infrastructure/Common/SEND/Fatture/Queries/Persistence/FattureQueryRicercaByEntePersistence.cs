@@ -1,5 +1,6 @@
 ﻿using System.Data;
 using PortaleFatture.BE.Core.Entities.SEND.SelfCare.Dto;
+using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Dto;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries;
@@ -22,7 +23,13 @@ public class FattureQueryRicercaByEntePersistence(FattureQueryRicercaByEnte comm
         var tipoFattura = _command.TipologiaFattura;
         var idEnte = _command.AuthenticationInfo!.IdEnte;
 
-        var sql = string.Join(";", _sqlSelectEnte, _sqlSelectAll);
+        string? sqlFatture;
+        if (!tipoFattura.IsNullNotAny())
+            sqlFatture = _sqlSelectAll.Replace("[condition_tipologiafattura]", "and FT.FkTipologiaFattura IN @TipologiaFattura");
+        else
+            sqlFatture = _sqlSelectAll.Replace("[condition_tipologiafattura]", string.Empty); 
+
+        var sql = string.Join(";", _sqlSelectEnte, sqlFatture);
 
         var query = new
         {

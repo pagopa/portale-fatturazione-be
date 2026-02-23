@@ -41,4 +41,26 @@ WHERE attiva=1
     {
         return _sqlCheck;
     }
+    public static string SelectKeyByEnte()
+    {
+        return $@"
+SELECT a.[FkIdEnte] as IdEnte
+      ,[ApiKey]
+      ,[DataCreazione]
+      ,[DataModifica] 
+      ,a.[Attiva]
+	  ,e.description as RagioneSociale 
+	  ,c.onboardingtokenid as IdContratto
+	  ,c.FkIdTipoContratto as IdTipoContratto
+	  ,c.product as Prodotto
+	  ,e.institutionType as Profilo
+  FROM [pfw].[ApiKeys] a 
+  inner join pfw.EntiAPiKeys ea
+  on a.FkIdEnte = ea.FkIdEnte and ea.Attiva = 1
+  inner join pfd.enti e
+  on e.InternalIstitutionId = a.FkIdEnte
+  inner join pfd.contratti c
+  on e.InternalIstitutionId  = c.InternalIstitutionId 
+";
+    }
 }

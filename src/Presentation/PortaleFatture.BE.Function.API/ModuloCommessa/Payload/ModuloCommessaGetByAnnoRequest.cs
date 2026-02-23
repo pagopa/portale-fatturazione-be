@@ -7,12 +7,12 @@ namespace PortaleFatture.BE.Function.API.ModuloCommessa.Payload;
 public class ModuloCommessaGetByAnnoRequest
 {
     [JsonPropertyName("anno")]
-    public int Anno { get; set; } 
+    public int? Anno { get; set; } 
 }
 
 public class ModuloCommessaGetByAnnoInternalRequest
 {
     [JsonPropertyName("anno")]
-    public int Anno { get; set; } 
+    public int? Anno { get; set; } 
     public Session? Session { get; set; }
 }

@@ -4,5 +4,6 @@ public interface IConfigurazione
 {
     string? AESKey { get; set; }
     string? ConnectionString { get; set; }
-    string? CustomDomain { get; set; }
+    string? CustomDomain { get; set; } 
+    StorageNotifiche? StorageNotifiche { get; set; }
 }

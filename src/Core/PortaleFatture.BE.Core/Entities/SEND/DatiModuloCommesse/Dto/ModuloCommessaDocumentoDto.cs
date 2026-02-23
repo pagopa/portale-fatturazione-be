@@ -1,6 +1,5 @@
 ﻿using System.Text.Json.Serialization;
 using PortaleFatture.BE.Core.Entities.SEND.DatiFatturazioni;
-using PortaleFatture.BE.Core.Entities.SEND.DatiModuloCommesse;
 using PortaleFatture.BE.Core.Entities.SEND.SelfCare;
 namespace PortaleFatture.BE.Core.Entities.SEND.DatiModuloCommesse.Dto;
 

@@ -5,6 +5,6 @@ namespace PortaleFatture.BE.Function.API.ModuloCommessa.Payload;
 
 public class DatiModuloCommessaCreateInternalRequest
 {
-    public List<DatiModuloCommessaCreateSimpleRequest>? ModuliCommessa { get; set; }
+    public  DatiModuloCommessaCreateRequest? DatiModuloCommessaCreate { get; set; }
     public Session? Session { get; set; }
 }

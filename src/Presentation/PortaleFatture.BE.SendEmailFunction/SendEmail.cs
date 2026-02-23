@@ -87,24 +87,24 @@ public class SendEmail(ILoggerFactory loggerFactory)
 
                     ente.Semestre = GetSemestre(ente.Semestre);
                     risposta.Semestre = ente.Semestre;
-                    //var s = builder.CreateEmailHtml(ente)!;
-                    //risposta.Log = s; // prendo solo l'ultimo
+                    // var s = builder.CreateEmailHtml(ente)!;
+                    // risposta.Log = s; // prendo solo l'ultimo
                     var (msg, ver) = sender.SendEmail(ente.Pec, subject, builder.CreateEmailHtml(ente)!);
                     if (!ver)
-                        _logger.LogInformation(msg);
+                       _logger.LogInformation(msg);
 
                     emailService.InsertTracciatoEmail(new RelEmailTracking()
                     {
-                        Data = data,
-                        IdContratto = ente.IdContratto,
-                        Invio = Convert.ToByte(ver == true ? 1 : 0),
-                        Anno = ente.Anno,
-                        Mese = ente.Mese,
-                        Messaggio = msg,
-                        Pec = ente.Pec,
-                        IdEnte = ente.IdEnte,
-                        RagioneSociale = ente.RagioneSociale,
-                        TipologiaFattura = ente.TipologiaFattura
+                       Data = data,
+                       IdContratto = ente.IdContratto,
+                       Invio = Convert.ToByte(ver == true ? 1 : 0),
+                       Anno = ente.Anno,
+                       Mese = ente.Mese,
+                       Messaggio = msg,
+                       Pec = ente.Pec,
+                       IdEnte = ente.IdEnte,
+                       RagioneSociale = ente.RagioneSociale,
+                       TipologiaFattura = ente.TipologiaFattura
                     });
                 }
         }

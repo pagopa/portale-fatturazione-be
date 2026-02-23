@@ -1,18 +1,18 @@
-﻿using CsvHelper;
-using MediatR;
+﻿using MediatR;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using PortaleFatture.BE.Api.Modules.SEND.DatiModuloCommesse.Extensions;
 using PortaleFatture.BE.Api.Modules.SEND.DatiModuloCommesse.Payload.Response;
 using PortaleFatture.BE.Core.Auth;
+using PortaleFatture.BE.Core.Entities.SEND.DatiModuloCommesse.Dto;
 using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Core.Extensions;
+using PortaleFatture.BE.Core.Resources;
 using PortaleFatture.BE.Function.API.Extensions;
 using PortaleFatture.BE.Function.API.ModuloCommessa.Extensions;
 using PortaleFatture.BE.Function.API.ModuloCommessa.Payload;
-using PortaleFatture.BE.Infrastructure.Common.Persistence.Schemas;
-using PortaleFatture.BE.Infrastructure.Common.SEND.SelfCare.Queries.Persistence;
 
 namespace PortaleFatture.BE.Function.API.ModuloCommessa;
 
@@ -22,32 +22,38 @@ public class DatiModuloCommessaCreateFunction(ILoggerFactory loggerFactory)
 
     [Function("DatiModuloCommessaCreate")]
     public async Task<DatiModuloCommessaResponse> RunAsync(
-        [ActivityTrigger] DatiModuloCommessaCreateInternalRequest ireq, 
+        [ActivityTrigger] DatiModuloCommessaCreateInternalRequest ireq,
         FunctionContext context)
-    { 
+    {
         var mediator = context.InstanceServices.GetRequiredService<IMediator>();
-        var factory = context.InstanceServices.GetRequiredService<IFattureDbContextFactory>();
-
-        int? idTipoContratto;
-        using var uow = await factory.Create();
-        {
-            var contratto = await uow.Query(new EnteCodiceSDIQueryGetByIdPersistence(ireq.Session!.FkIdEnte));
-            idTipoContratto = contratto?.IdTipoContratto;
-        } 
+        var localizer = context.InstanceServices.GetRequiredService<IStringLocalizer<Localization>>();
+        
+        int? idTipoContratto = ireq.Session!.IdTipoContratto;
 
         var authInfo = new AuthenticationInfo()
         {
-            IdEnte = ireq.Session!.FkIdEnte,
-            Prodotto = "prod-pn",
+            IdEnte = ireq.Session!.IdEnte,
+            Prodotto = ireq.Session!.Prodotto,
             IdTipoContratto = idTipoContratto,
         };
 
-        var req = ireq.Map();
-        var command = req.Mapper(authInfo) ?? throw new Core.Exceptions.ValidationException("");
+        var req = ireq.DatiModuloCommessaCreate;
+        var command = req!.Mapper(authInfo) ?? throw new Core.Exceptions.ValidationException("Errore nella validazione");
         foreach (var cmd in command.DatiModuloCommessaListCommand!)
-            cmd.IdEnte = ireq.Session!.FkIdEnte;
+            cmd.IdEnte = ireq.Session!.IdEnte;
 
-        var modulo = await mediator.Send(command) ?? throw new DomainException("");
+        ModuloCommessaDto? modulo;
+        try
+        {
+            modulo = await mediator.Send(command);
+        }
+        catch (Exception ex)
+        {
+            if (ex.Message == "DataScadenziarioValidationError")
+                throw new DomainException(localizer["DataScadenziarioValidationError", "1-19"]);
+            else throw;
+        }
+
         var response = modulo!.Mapper(authInfo);
 
         var sse = ireq.Session;
@@ -58,11 +64,11 @@ public class DatiModuloCommessaCreateFunction(ILoggerFactory loggerFactory)
             await mediator.Send(logResponse);
         }
         catch (Exception ex)
-        { 
+        {
             _logger.LogInformation($"{LoggerHelper.PREFIX}{MessageHelper.BadRequestLogging}{LoggerHelper.PIPE}{ex.Serialize()}");
             throw new DomainException(MessageHelper.BadRequestLogging, ex);
-        } 
+        }
 
-        return response!; 
+        return response!;
     }
 }

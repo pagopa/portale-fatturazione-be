@@ -4,7 +4,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.DurableTask.Client;
-using PortaleFatture.BE.Core.Entities.SEND.DatiModuloCommesse.Dto;
+using PortaleFatture.BE.Api.Modules.SEND.DatiModuloCommesse.Payload.Response;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Function.API.Extensions;
 using PortaleFatture.BE.Function.API.ModuloCommessa.Payload;
@@ -16,7 +16,7 @@ public class ModuloCommessaGetByAnnoMeseDettaglioHandler
 {
     [OpenApiOperation(operationId: "ModuloCommessaGetByAnnoMeseDettaglioHandler", tags: ["Modulo Commessa"], Summary = "Permette di tornare il dettaglio modulo commessa per anno e mese.", Description = "Permette di tornare il dettaglio modulo commessa per anno e mese.")]
     [OpenApiRequestBody(contentType: "application/json", bodyType: typeof(ModuloCommessaGetByAnnoMeseDettaglioRequest), Description = "Modulo Commessa Dettaglio request")]
-    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ModuloCommessaDocumentoDto), Description = "Modulo Commessa per Anno e Mese")]
+    [OpenApiResponseWithBody(statusCode: HttpStatusCode.OK, contentType: "application/json", bodyType: typeof(ModuloCommessaPrevisionaleObbligatoriResponse), Description = "Modulo Commessa per Anno e Mese")]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Unauthorized, Description = MessageHelper.Unauthorized)]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.Forbidden, Description = MessageHelper.Forbidden)]
     [OpenApiResponseWithoutBody(statusCode: HttpStatusCode.BadRequest, Description = MessageHelper.BadRequestLogging)]

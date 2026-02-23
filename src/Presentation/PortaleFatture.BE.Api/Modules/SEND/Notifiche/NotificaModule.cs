@@ -674,66 +674,72 @@ public partial class NotificaModule
     [FromServices] IStringLocalizer<Localization> localizer,
     [FromServices] IMediator handler,
     [FromServices] IPortaleFattureOptions options,
+    [FromServices] IFunctionNotificheCaller fn,
     [FromQuery] bool? binary = null)
     {
         var authInfo = context.GetAuthInfo();
-        var tempAnno = 2025;
-        int[] tempMese = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-        var tempIdEnte = "53b40136-65f2-424b-acfb-7fae17e35c60";
-        var tempName = "inps";
+ 
+        var ente = await handler.Send(new EnteQueryCodiceSDIGetById(authInfo));
+        if (ente == null)
+            return NotFound();
 
+        request.IdEnte = ente.IdEnte;
+        request.RagioneSociale = ente.RagioneSociale;
+        request.IdContratto = ente.IdContratto;
 
-        if (request.Anno == tempAnno && tempMese.Contains(request.Mese!.Value) && authInfo.IdEnte == tempIdEnte)
+        // evita richieste duplicate se già c'è una richiesta in corso
+        var istanza = new ReportNotificheByIdHashQueryCommand(authInfo)
         {
-            var ente = await handler.Send(new EnteQueryGetById(authInfo));
-            if (ente == null) return NotFound();
-            if (!ente.Descrizione!.ToLower()!.Contains(tempName, StringComparison.CurrentCultureIgnoreCase))
+            Json = request.Serialize(),
+        };
+
+        var report = await handler.Send(istanza);
+        if (report != null) 
+            return Results.Json(new
             {
-                return NotFound();
-            }
-            var pmese = request.Mese!.Value.ToString().Length == 1 ? $"0{request.Mese!.Value}" : request.Mese!.Value.ToString();
-            var blobNameDetailed = $"Notifiche _Istituto Nazionale Previdenza Sociale - INPS_{pmese} _2025.csv";
-            var storageSharedKeyCredential = new StorageSharedKeyCredential(options.StoragePagoPAFinancial!.AccountName, options.StoragePagoPAFinancial!.AccountKey);
-            var blobContainerName = "temp";
+                message = "Attendi l'esecuzione della richiesta precedente.",
+            }, statusCode: 300);
+ 
 
-            BlobSasBuilder sasBuilderDetailed = new()
-            {
-                BlobContainerName = blobContainerName,
-                BlobName = blobNameDetailed,
-                Resource = "b",
-                StartsOn = DateTimeOffset.UtcNow.AddMinutes(-5),
-                ExpiresOn = DateTimeOffset.UtcNow.AddMinutes(30)
-            };
+        var command = new ReportNotificheCreateCommand(authInfo)
+        {
+            UniqueId = Guid.NewGuid().ToString(),
+            Json = request.Serialize(),
+            Anno = request.Anno!.Value,
+            Mese = request.Mese!.Value,
+            ContractId = ente.IdContratto,
+            Storage = options.StorageNotifiche!.AccountName,
+            NomeDocumento = null,
+            Link = null
+        };
 
-            sasBuilderDetailed.SetPermissions(BlobSasPermissions.Read);
-            var sasTokenDetailed = sasBuilderDetailed.ToSasQueryParameters(storageSharedKeyCredential).ToString();
-            var blobUrlDetailed = $"https://{options.StoragePagoPAFinancial!.AccountName}.blob.core.windows.net/{blobContainerName}/{blobNameDetailed}";
+        var idReport = await handler.Send(command);
+        if (!idReport.HasValue)
+            return BadRequest();
 
-            var uri = $"{blobUrlDetailed}?{sasTokenDetailed}";
-            var blobUri = new Uri(uri);
-            var blobClient = new BlobClient(blobUri);
+        request.IdReport = idReport;
 
-            BlobDownloadInfo download = await blobClient.DownloadAsync();
-            var stream = new MemoryStream();
-            await download.Content.CopyToAsync(stream);
-            var mimeCsv = "text/csv";
-            stream.Position = 0;
-            return Results.Stream(stream, mimeCsv, blobNameDetailed);
-        }
+        var resultCallFunction = await fn.CallAzureFunction(request);
+        if (resultCallFunction == null)
+            return BadRequest();
+
+        var uniqueId = resultCallFunction.InstanceId;
+        if (string.IsNullOrEmpty(uniqueId))
+            return BadRequest();
+
         else
         {
-            var notifiche = await handler.Send(request.Map(authInfo, null, null));
-            if (notifiche == null || notifiche.Count == 0)
-                return NotFound();
+            var updateCommand = new ReportNotificheUpdateByIdCommand(authInfo)
+            {
+                UniqueId = uniqueId,
+                IdReport = idReport.Value,
+                LinkDocumento = $"{options.StorageNotifiche.BlobContainerName}/{ente.IdEnte}/{ente.IdContratto}/{uniqueId}"
+            };
 
-            var stream = await notifiche.Notifiche!.ToStream<SimpleNotificaDto, SimpleNotificaEnteDtoMap>();
-            if (stream.Length == 0)
+            var guid = await handler.Send(updateCommand);
+            if (string.IsNullOrEmpty(guid))
                 return NotFound();
-
-            var filename = $"{Guid.NewGuid()}.csv";
-            var mimeCsv = "text/csv";
-            stream.Position = 0;
-            return Results.Stream(stream, mimeCsv, filename);
+            return Ok(resultCallFunction);
         }
     }
 

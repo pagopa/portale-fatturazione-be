@@ -18,5 +18,5 @@ public static class AutenticazioneExtensions
             IpAddress = command.IpAddress,
             Id = command.Id
         };
-    }
+    } 
 } 
