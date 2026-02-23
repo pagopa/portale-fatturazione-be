@@ -1,7 +1,5 @@
-﻿using System.Net;
-using MediatR;
+﻿using MediatR;
 using Microsoft.Azure.Functions.Worker;
-using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using PortaleFatture.BE.Core.Auth;
@@ -9,7 +7,6 @@ using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Function.API.Extensions;
 using PortaleFatture.BE.Function.API.ModuloCommessa.Payload;
-using PortaleFatture.BE.Infrastructure.Common.SEND.DatiModuloCommesse.Dto;
 using PortaleFatture.BE.Infrastructure.Common.SEND.DatiModuloCommesse.Queries;
 
 namespace PortaleFatture.BE.Function.API.ModuloCommessa;
@@ -19,7 +16,7 @@ public class ModuloCommessaGetAnniMesiDataFunction(ILoggerFactory loggerFactory)
     private readonly ILogger _logger = loggerFactory.CreateLogger<ModuloCommessaGetAnniMesiDataFunction>();
 
     [Function("ModuloCommessaGetAnniMesiData")]
-    public async Task<IEnumerable<ModuloCommessaAnnoMeseDto>?> RunAsync(
+    public async Task<IEnumerable<string>?> RunAsync(
         [ActivityTrigger] ModuloCommessaGetAnniMesiRequest req, 
         FunctionContext context)
     { 
@@ -27,15 +24,14 @@ public class ModuloCommessaGetAnniMesiDataFunction(ILoggerFactory loggerFactory)
 
         var authentication = new AuthenticationInfo()
         {
-            IdEnte = req.Session!.FkIdEnte,
-            Prodotto = req.Prodotto,
+            IdEnte = req.Session!.IdEnte,
+            Prodotto = req.Session!.Prodotto,
         };
 
-        var queryCommand = new DatiModuloCommessaGetAnniMesi(authentication) { };
-        var values = await mediator.Send(queryCommand); 
+        var anni = await mediator.Send(new DatiModuloCommessaGetAnni(authentication)); 
 
         var sse = req.Session;
-        sse.Payload = values.Serialize();
+        sse.Payload = anni.Serialize();
         var logResponse = context.Response(sse);
         try
         {
@@ -46,6 +42,6 @@ public class ModuloCommessaGetAnniMesiDataFunction(ILoggerFactory loggerFactory)
             _logger.LogInformation($"{LoggerHelper.PREFIX}{MessageHelper.BadRequestLogging}{LoggerHelper.PIPE}{ex.Serialize()}");
             throw new DomainException(MessageHelper.BadRequestLogging, ex);
         } 
-        return values; 
+        return anni; 
     }
 }

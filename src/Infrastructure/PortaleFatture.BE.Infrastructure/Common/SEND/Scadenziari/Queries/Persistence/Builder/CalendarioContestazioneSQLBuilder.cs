@@ -43,8 +43,8 @@ SELECT [MeseContestazione]
       ,[AnnoContestazione]
       ,[DataInizio]
       ,[DataFine]
-      ,DATEADD(day, 30, [DataFine]) AS ChiusuraContestazioni
-      ,DATEADD(day, 45, [DataFine]) AS TempoRisposta
+      ,DataChiusuraContestazioni AS ChiusuraContestazioni
+      ,DataFineRisposteContestazioni AS TempoRisposta
       ,[DataVerifica]
       ,[DataCalcoloPrimoSecondo]
 FROM [pfw].[ContestazioniCalendario] 

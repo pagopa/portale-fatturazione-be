@@ -3,7 +3,7 @@ namespace PortaleFatture.BE.Function.API.Models;
 
 public sealed class Session
 {
-    public string? FkIdEnte { get; set; }  
+    public string? IdEnte { get; set; }  
     public DateTime Timestamp { get; set; }  
     public string? FunctionName { get; set; }
     public string? Stage { get; set; }
@@ -11,5 +11,11 @@ public sealed class Session
     public string? Payload { get; set; }
     public string? Uri { get; set; }
     public string? IpAddress { get; set; }
-    public string? Id { get; set; }
+    public string? Id { get; set; } 
+    public string? RagioneSociale { get; set; }
+    public string? IdContratto { get; set; }
+    public int IdTipoContratto { get; set; }
+    public string? Prodotto { get; set; } 
+    public string? InstanceId { get; set; } 
+    public string? Profilo { get; set; }
 } 

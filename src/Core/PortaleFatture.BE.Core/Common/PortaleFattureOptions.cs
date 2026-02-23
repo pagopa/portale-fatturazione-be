@@ -26,7 +26,16 @@ public sealed class PortaleFattureOptions : IPortaleFattureOptions
     public StorageREL? StorageREL { get; set; } 
     public StorageContestazioni? StorageContestazioni { get; set; }
     public StorageNotifiche? StorageNotifiche { get; set; } 
-    public AzureFunction? AzureFunction { get; set; }
+    public AzureFunction? AzureFunction { get; set; } 
+    public StorageRelDownload? StorageRelDownload { get; set; }  
+}
+
+public class StorageRelDownload()
+{
+    public string? AccountName { get; set; }
+    public string? AccountKey { get; set; }
+    public string? BlobContainerName { get; set; }
+    public string? CustomDNS { get; set; }
 }
 
 public class StorageREL()

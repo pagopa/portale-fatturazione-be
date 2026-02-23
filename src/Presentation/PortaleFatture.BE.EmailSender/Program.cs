@@ -27,7 +27,7 @@ try
 
     // params
     var anno = 2025;
-    var mese = 7;
+    var mese = 10;
     var tipologiafattura = "PRIMO SALDO";
     var data = DateTime.UtcNow.ItalianTime().ToString("yyyy-MM-dd HH:mm:ss");
     var ricalcola = 0;
@@ -92,23 +92,23 @@ try
     {
         //var dummy = builder.CreateEmailHtml(ente)!;
 
-    //    var (msg, ver) = sender.SendEmail(ente.Pec!, subject, builder.CreateEmailHtml(ente)!);
-    //    if (!ver)
-    //        Console.WriteLine(msg);
+        var (msg, ver) = sender.SendEmail(ente.Pec!, subject, builder.CreateEmailHtml(ente)!);
+        if (!ver)
+            Console.WriteLine(msg);
 
-    //    emailService.InsertTracciatoEmail(new RelEmailTracking()
-    //    {
-    //        Data = data,
-    //        IdContratto = ente.IdContratto,
-    //        Invio = Convert.ToByte(ver == true ? 1 : 0),
-    //        Anno = ente.Anno,
-    //        Mese = ente.Mese,
-    //        Messaggio = msg,
-    //        Pec = ente.Pec,
-    //        IdEnte = ente.IdEnte,
-    //        RagioneSociale = ente.RagioneSociale,
-    //        TipologiaFattura = ente.TipologiaFattura
-    //    });
+        emailService.InsertTracciatoEmail(new RelEmailTracking()
+        {
+            Data = data,
+            IdContratto = ente.IdContratto,
+            Invio = Convert.ToByte(ver == true ? 1 : 0),
+            Anno = ente.Anno,
+            Mese = ente.Mese,
+            Messaggio = msg,
+            Pec = ente.Pec,
+            IdEnte = ente.IdEnte,
+            RagioneSociale = ente.RagioneSociale,
+            TipologiaFattura = ente.TipologiaFattura
+        });
     }
 }
 catch (Exception ex)

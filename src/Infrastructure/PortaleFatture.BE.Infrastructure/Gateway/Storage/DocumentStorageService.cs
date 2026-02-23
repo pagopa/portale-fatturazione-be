@@ -42,10 +42,11 @@ public class DocumentStorageService(IPortaleFattureOptions options,
             memoryStream.Dispose();
             return true;
         }
-        catch
+        catch(Exception ex)
         {
-            var msg = $"Errore nel caricare il file {fileName}!";
-            _logger.LogError(msg);
+            //var msg = $"Errore nel caricare il file {fileName}!";
+            var msg = "RelUp:  " + ex.Message;
+            _logger.LogError(msg); 
         }
 
         return false;
@@ -102,7 +103,8 @@ public class DocumentStorageService(IPortaleFattureOptions options,
         catch
         {
             var msg = $"Errore nel caricare il file {fileName}!";
-            _logger.LogError(msg);
+            //var msg = "RelUp:  " + ex.Message;
+            _logger.LogError(msg); 
         }
 
         return false;
