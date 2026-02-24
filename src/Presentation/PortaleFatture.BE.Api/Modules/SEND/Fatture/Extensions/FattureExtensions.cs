@@ -448,6 +448,7 @@ public static class FattureExtensions
             TotaleFattura = dto.FirstOrDefault()?.TotaleFatturaImponibile,
             TotaleAnalogicoIva = dto.FirstOrDefault()?.RelTotaleIvatoAnalogico,
             TotaleDigitaleIva = dto.FirstOrDefault()?.RelTotaleIvatoDigitale,
+            TotaleIva = dto.FirstOrDefault()?.RelTotaleIvato,
             Iva = dto.FirstOrDefault()?.Iva,
             Caricata = dto.FirstOrDefault()?.Caricata.HasValue == true && dto.FirstOrDefault()?.Caricata!.Value == true ? 1 : 0,
             TipologiaContratto = dto.FirstOrDefault()?.TipologiaContratto,
