@@ -1160,7 +1160,7 @@ SELECT [AnnoRiferimento] as Anno
                              THEN rt.Imponibile ELSE 0 END) AS ImportoAnalogico,
                     SUM(CASE WHEN rt.CodiceMateriale LIKE 'ANT ND%' OR rt.CodiceMateriale LIKE 'ANTICIPO ND%'
                              THEN rt.Imponibile ELSE 0 END) AS ImportoDigitale
-                FROM pfd.tmpFattureRighe rt
+                FROM pfd.FattureRighe rt
                 WHERE rt.FkIdFattura = tft.IdFattura
                   AND tft.FkTipologiaFattura = 'ANTICIPO'  -- Filtro nella WHERE
             ) aggAnticipo
@@ -1171,7 +1171,7 @@ SELECT [AnnoRiferimento] as Anno
                              THEN rt.Imponibile ELSE 0 END) AS ImportoAnalogico,
                     SUM(CASE WHEN rt.CodiceMateriale LIKE 'ACCONTO NOT.DIG%' OR rt.CodiceMateriale LIKE 'STORNO 50% ANT.ND%'
                              THEN rt.Imponibile ELSE 0 END) AS ImportoDigitale
-                FROM pfd.tmpFattureRighe rt
+                FROM pfd.FattureRighe rt
                 WHERE rt.FkIdFattura = tft.IdFattura
                   AND tft.FkTipologiaFattura = 'ACCONTO'  -- Filtro nella WHERE
             ) aggAcconto
@@ -1182,7 +1182,7 @@ SELECT [AnnoRiferimento] as Anno
                              THEN rt.Imponibile ELSE 0 END) AS StornoAnalogico,
                     SUM(CASE WHEN rt.CodiceMateriale LIKE 'STORN%' AND rt.CodiceMateriale LIKE '%ND'
                              THEN rt.Imponibile ELSE 0 END) AS StornoDigitale
-                FROM pfd.tmpFattureRighe rt
+                FROM pfd.FattureRighe rt
                 WHERE rt.FkIdFattura = tft.IdFattura
                   AND tft.FkTipologiaFattura = 'PRIMO SALDO'  -- Filtro nella WHERE
             ) aggStorno
