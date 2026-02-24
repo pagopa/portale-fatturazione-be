@@ -953,6 +953,7 @@ SELECT [AnnoRiferimento] as Anno
             tft.FkIdEnte as IdEnte, 
             tft.DataFattura as DataFattura,
             tft.Progressivo as Progressivo,
+            tft.IdDocumento,
             CAST(
                 CASE
                     WHEN tft.FkIdTipoDocumento  = 'TD04'  
@@ -1061,6 +1062,7 @@ SELECT [AnnoRiferimento] as Anno
             tft.FkIdEnte as IdEnte, 
             tft.DataFattura as DataFattura,
             tft.Progressivo as Progressivo,
+            tft.IdDocumento,
             CAST(
             CASE
             WHEN tft.FkIdTipoDocumento  = 'TD04'  
