@@ -609,7 +609,6 @@ and FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865'
     ON c.FkIdTipoContratto = tp.IdTipoContratto
     Where 
     t.FkIdEnte = @IdEnte
-    AND FkTipologiaFattura IN ('PRIMO SALDO', 'SECONDO SALDO', 'VAR. SEMESTRALE')
     AND 
     (
         (@FilterByTipologia = 0 OR t.FkTipologiaFattura IN @TipologiaFattura)
