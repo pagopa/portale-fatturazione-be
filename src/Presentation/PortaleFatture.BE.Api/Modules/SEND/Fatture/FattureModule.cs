@@ -817,7 +817,7 @@ public partial class FattureModule
         var authInfo = context.GetAuthInfo();
         var fatture = await handler.Send(request.MapToExcel(authInfo));
 
-        if (fatture == null || fatture.Dettagli == null || !fatture.Dettagli.Any())
+        if (fatture == null || !fatture.Any())
             return Results.NotFound();
 
         var mime = "application/vnd.ms-excel";
