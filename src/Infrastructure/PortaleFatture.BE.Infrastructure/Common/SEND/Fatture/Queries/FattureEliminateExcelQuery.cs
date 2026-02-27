@@ -4,7 +4,7 @@ using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Dto;
 
 namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries;
 
-public class FattureEliminateExcelQuery(IAuthenticationInfo authenticationInfo) : IRequest<FattureDocContabiliEliminateDtoList>
+public class FattureEliminateExcelQuery(IAuthenticationInfo authenticationInfo) : IRequest<IEnumerable<FattureEliminateExcelDto>>
 {
     public IAuthenticationInfo AuthenticationInfo { get; internal set; } = authenticationInfo;
 
