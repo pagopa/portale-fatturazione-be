@@ -1,4 +1,4 @@
-﻿using System.Data;
+using System.Data;
 using System.IO.Compression;
 using System.Reflection;
 using DocumentFormat.OpenXml.Office2013.PowerPoint.Roaming;
@@ -176,7 +176,8 @@ public static class FattureExtensions
                     Cup = x.Cup,
                     Cig = x.Cig
                 }
-            ]
+            ],
+            Posizioni = x.Posizioni?.Select(z => z.ToPosizioneResponse())
         };
     }
 
@@ -230,6 +231,17 @@ public static class FattureExtensions
     public static FattureEliminateQuery Map(this FattureEliminateRicercaEnteRequest req, AuthenticationInfo authInfo)
     {
         return new FattureEliminateQuery(authInfo)
+        {
+            Anno = req.Anno,
+            Mese = req.Mese,
+            TipologiaFattura = req.TipologiaFattura,
+            DateFattura = req.DateFatture
+        };
+    }
+
+    public static FattureEliminateExcelQuery MapToExcel(this FattureEliminateRicercaEnteRequest req, AuthenticationInfo authInfo)
+    {
+        return new FattureEliminateExcelQuery(authInfo)
         {
             Anno = req.Anno,
             Mese = req.Mese,
@@ -473,6 +485,39 @@ public static class FattureExtensions
             StornoAnalogico = dto.FirstOrDefault()?.StornoAnalogico,
             StornoDigitale = dto.FirstOrDefault()?.StornoDigitale
         };
+    }
+
+    public static IEnumerable<DocContabileExcel> MapExport(this DocContabileEliminateResponse model)
+    {
+        var result = new List<DocContabileExcel>();
+        if (model.Dettagli == null) return result;
+        foreach (var item in model.Dettagli!)
+        {
+            result.Add(new DocContabileExcel()
+            {
+                Causale = item.Fattura!.CausaleFattura,
+                DataFattura = item.Fattura!.DataFattura,
+                Divisa = item.Fattura!.Divisa,
+                IdContratto = item.Fattura!.IdContratto,
+                Numero = item.Fattura!.Progressivo,
+                IstitutioID = item.Fattura.IstitutioId,
+                MetodoPagamento = item.Fattura.MetodoPagamento,
+                OnboardingTokenID = item.Fattura.OnboardingTokenId,
+                Prodotto = item.Fattura.Prodotto,
+                RagioneSociale = item.Fattura.RagioneSociale,
+                TipologiaFattura = item.Fattura.DatiGeneraliDocumento!.FirstOrDefault()?.TipologiaFattura,
+                TipoContratto = item.Fattura.TipoContratto,
+                Totale = item.Fattura.Totale!.Value.ToString("0.00") ?? null,
+                Identificativo = item.Fattura.PeriodoFatturazione,
+                Sollecito = item.Fattura.Sollecito,
+                Split = item.Fattura.SplitPayment,
+                TipoDocumento = item.Fattura.TipoDocumento,
+                Posizione = "totale:",
+            });
+
+            result.Add(new DocContabileExcel());
+        }
+        return result;
     }
 
     public static IEnumerable<DocContabileExcel> MapExport(this DocContabileBaseResponse model)

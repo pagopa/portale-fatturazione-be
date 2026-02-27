@@ -81,5 +81,8 @@ public class DocContabileEliminataFatturaResponse
 
     [JsonPropertyName("datiGeneraliDocumento")]
     public IEnumerable<DocContabileDatiGeneraliResponse>? DatiGeneraliDocumento { get; set; }
+
+    [JsonPropertyName("posizioni")]
+    public IEnumerable<DocContabilePosizioneResponse>? Posizioni { get; set; }
 }
 

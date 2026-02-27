@@ -808,6 +808,37 @@ public partial class FattureModule
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<IResult> PostFattureEliminateEnteExcelAsync(
+        HttpContext context,
+        [FromBody] FattureEliminateRicercaEnteRequest request,
+        [FromServices] IStringLocalizer<Localization> localizer,
+        [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var fatture = await handler.Send(request.MapToExcel(authInfo));
+
+        if (fatture == null || fatture.Dettagli == null || !fatture.Dettagli.Any())
+            return Results.NotFound();
+
+        var mime = "application/vnd.ms-excel";
+        var filename = $"{Guid.NewGuid()}.xlsx";
+
+        var dataSet = fatture.FillOneSheetv2();
+        var content = dataSet.ToExcel();
+
+        var result = new DisposableStreamResult(content, mime)
+        {
+            FileDownloadName = filename
+        };
+        return Results.Stream(result.FileStream, result.ContentType, result.FileDownloadName);
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.SelfCarePolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     private async Task<Results<Ok<IEnumerable<string>>, NotFound>> PostTipologiaEnteFatture(
     HttpContext context,
     [FromBody] TipologiaFattureRequest request,
