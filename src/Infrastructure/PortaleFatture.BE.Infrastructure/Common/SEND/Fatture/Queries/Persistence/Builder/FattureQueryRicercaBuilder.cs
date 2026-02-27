@@ -734,7 +734,7 @@ and FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865'
         t.SplitPayment,
         3 AS Inviata,
         ISNULL(t.Sollecito,'') AS Sollecito,
-        'eliminata' as stato,
+        'Contestata' as stato,
         '' as RiferimentoNumeroLinea,
         t.IdDocumento,
         t.DataDocumento,
