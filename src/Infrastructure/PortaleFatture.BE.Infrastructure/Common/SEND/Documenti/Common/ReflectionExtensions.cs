@@ -1,4 +1,4 @@
-﻿using System.Data;
+using System.Data;
 using System.Reflection;
 
 namespace PortaleFatture.BE.Infrastructure.Common.SEND.Documenti.Common;

@@ -64,6 +64,7 @@ namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Dto;
     public sealed class FatturaDocContabileEliminataDto : FatturaDocContabileBaseDto
     {
         public string? DataFattura { get; set; }
+        public IEnumerable<FatturaDocContabilePosizioniDto>? Posizioni { get; set; }
     }
 
     /// <summary>
@@ -131,7 +132,7 @@ namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Dto;
         {
             var grouped = rawData
                 .GroupBy(r => r.IdFattura)
-                .Select(g => g.First().ToEliminataDto())
+                .Select(g => g.First().ToEliminataDto(g.Select(p => p.ToPosizioneDto())))
                 .ToList();
 
             return new FattureDocContabiliEliminateDtoList
@@ -188,7 +189,7 @@ namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Dto;
             PeriodoRiferimento = raw.PeriodoRiferimento
         };
 
-        private static FatturaDocContabileEliminataDto ToEliminataDto(this FatturaDocContabileRawDto raw) => new()
+        private static FatturaDocContabileEliminataDto ToEliminataDto(this FatturaDocContabileRawDto raw, IEnumerable<FatturaDocContabilePosizioniDto> posizioni) => new()
         {
             IdFattura = raw.IdFattura,
             TotaleFatturaCalc = raw.TotaleFatturaCalc,
@@ -218,6 +219,7 @@ namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Dto;
             CodiceCommessaConvenzione = raw.CodiceCommessaConvenzione,
             Cup = raw.Cup,
             Cig = raw.Cig,
-            DataFattura = raw.DataFattura.ToString("yyyy-MM-dd")
+            DataFattura = raw.DataFattura.ToString("yyyy-MM-dd"),
+            Posizioni = posizioni
         };
     }

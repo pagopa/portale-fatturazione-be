@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Cors;
+using Microsoft.AspNetCore.Cors;
 using PortaleFatture.BE.Api.Infrastructure;
 
 namespace PortaleFatture.BE.Api.Modules.Fatture;
@@ -231,6 +231,12 @@ public partial class FattureModule : Module, IRegistrableModule
         endpointRouteBuilder
             .MapPost("api/fatture/ente/eliminate", PostFattureEliminateRicercaAsync)
             .WithName("Permette di ottenere le fatture eliminate e dettagli per ente")
+            .SetOpenApi(Module.DatiFattureEnti)
+            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+            .MapPost("api/fatture/ente/eliminate/download", PostFattureEliminateEnteExcelAsync)
+            .WithName("Permette di scaricare l'excel delle fatture eliminate per specifico ente")
             .SetOpenApi(Module.DatiFattureEnti)
             .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
