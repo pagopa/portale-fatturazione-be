@@ -778,6 +778,16 @@ public static class FattureExtensions
         };
     }
 
+    public static FattureRiepilogoQueryRicerca Map(this FatturaRiepilogoRicercaRequest req, AuthenticationInfo authInfo)
+    {
+        return new FattureRiepilogoQueryRicerca(authInfo)
+        {
+            Anno = req.Anno,
+            Mese = req.Mese,
+            IdEnti = req.IdEnti
+        };
+    }
+
     public static FattureRelExcelQuery Mapv2(this FatturaRicercaRequest req, AuthenticationInfo authInfo, string tipologiaFattura)
     {
         return new FattureRelExcelQuery(authInfo)
