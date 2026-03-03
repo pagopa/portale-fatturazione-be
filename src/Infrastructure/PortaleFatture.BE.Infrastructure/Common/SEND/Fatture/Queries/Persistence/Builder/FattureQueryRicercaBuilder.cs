@@ -1201,7 +1201,44 @@ SELECT [AnnoRiferimento] as Anno
                       
                 )";
             
-    }       
+    }
+
+    private static string _sqlRiepilogo =
+        @"
+        SELECT
+        ri.[FkIdEnte] AS IdEnte
+        ,enti.description as RagioneSociale
+        ,ri.[AnnoRiferimento]
+        ,ri.[MeseRiferimento]
+        ,ri.[TipologiaContratto] AS IdTipologiaContratto
+        --,cont.FkIdTipoContratto AS TipologiaContratto
+        ,tc.Descrizione AS TipologiaContratto
+        ,ri.[Anticipo]
+        ,ri.[AnticipoSospeso]
+        ,ri.[Acconto]
+        ,ri.[AccontoSospeso]
+        ,ri.[PrimoSaldo]
+        ,ri.[PrimoSaldoSospeso]
+        ,ri.[SecondoSaldo]
+        ,ri.[SecondoSaldoSospeso]
+        FROM [pfd].[RiepilogoFatturazione_NPF] ri
+        left outer join pfd.Enti enti 
+        on ri.FkIdEnte = enti.InternalIstitutionId
+        --left outer join pfd.Contratti cont 
+        --ON cont.onboardingtokenid = ri.[TipologiaContratto]
+        -- AND cont.internalistitutionid  = ri.FkIdEnte
+        left outer join pfw.TipoContratto tc
+        on tc.IdTipoContratto = ri.[TipologiaContratto]
+        where
+        (@FilterByEnte = 0 OR ri.FkIdEnte IN @IdEnti)
+        AND (@Anno IS NULL OR ri.AnnoRiferimento = @Anno)
+        AND (@Mese IS NULL OR ri.MeseRiferimento = @Mese)
+        ";
+
+
+    public static string SelectAllRiepilogo() { 
+        return _sqlRiepilogo; 
+    }
 
     public static string SelectDettaglioSospeso()
     {
