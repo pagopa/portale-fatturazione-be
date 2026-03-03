@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Cors;
+﻿using Microsoft.AspNetCore.Cors;
 using PortaleFatture.BE.Api.Infrastructure;
 
 namespace PortaleFatture.BE.Api.Modules.Fatture;
@@ -127,6 +127,12 @@ public partial class FattureModule : Module, IRegistrableModule
         endpointRouteBuilder
            .MapPost("api/fatture", PostFattureByRicercaAsync)
            .WithName("Permette di ottenere le fatture per ricerca")
+           .SetOpenApi(Module.DatiFattureLabel)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+       endpointRouteBuilder
+           .MapPost("api/fatture/riepilogo", PostFattureRiepilogoRicercaAsync)
+           .WithName("Permette di ottenere il riepilogo delle fatture per ricerca")
            .SetOpenApi(Module.DatiFattureLabel)
            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
