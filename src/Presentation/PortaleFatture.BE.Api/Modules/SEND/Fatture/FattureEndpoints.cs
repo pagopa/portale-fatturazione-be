@@ -155,6 +155,12 @@ public partial class FattureModule : Module, IRegistrableModule
            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
         endpointRouteBuilder
+           .MapPost("api/fatture/sospese/download", PostFattureSospeseExcelByRicercaAsync)
+           .WithName("Permette di ottenere le fatture sospese in formato excel per ricerca")
+           .SetOpenApi(Module.DatiFattureLabel)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
            .MapPost("api/fatture/report/prenotazione", PostFatturePrenotazioneReportByRicercaAsync)
            .WithName("Permette di ottenere la prenotazione fatture excel-report per ricerca")
            .SetOpenApi(Module.DatiFattureLabel)
