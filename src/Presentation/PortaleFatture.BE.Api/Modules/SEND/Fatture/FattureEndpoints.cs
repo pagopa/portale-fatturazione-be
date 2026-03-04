@@ -130,6 +130,12 @@ public partial class FattureModule : Module, IRegistrableModule
            .SetOpenApi(Module.DatiFattureLabel)
            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
+        endpointRouteBuilder
+           .MapPost("api/fatture/sospese", PostFattureSospeseByRicercaAsync)
+           .WithName("Permette di ottenere le fatture sospese per ricerca")
+           .SetOpenApi(Module.DatiFattureLabel)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
        endpointRouteBuilder
            .MapPost("api/fatture/riepilogo", PostFattureRiepilogoRicercaAsync)
            .WithName("Permette di ottenere il riepilogo delle fatture per ricerca")

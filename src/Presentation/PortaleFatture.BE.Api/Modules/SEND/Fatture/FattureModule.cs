@@ -679,6 +679,25 @@ public partial class FattureModule
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<FattureListaDto>, NotFound>> PostFattureSospeseByRicercaAsync(
+    HttpContext context,
+    [FromBody] FatturaSospeseRicercaRequest request,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var fatture = await handler.Send(request.Map(authInfo));
+        if (fatture == null || !fatture!.Any())
+            return NotFound();
+        return Ok(fatture);
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     private async Task<Results<Ok<IEnumerable<FatturaRiepilogoDto>>, NotFound>> PostFattureRiepilogoRicercaAsync(
     HttpContext context,
     [FromBody] FatturaRiepilogoRicercaRequest request,
