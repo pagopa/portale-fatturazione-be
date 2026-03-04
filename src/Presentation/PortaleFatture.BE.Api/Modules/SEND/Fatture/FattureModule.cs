@@ -59,6 +59,25 @@ public partial class FattureModule
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<FattureDateDto>>, NotFound>> PostFattureSospeseDateByRicercaAsync(
+    HttpContext context,
+    [FromBody] FatturaRicercaRequest request,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var dateFatture = await handler.Send(request.MapSospese(authInfo));
+        if (dateFatture == null || !dateFatture!.Any())
+            return NotFound();
+        return Ok(dateFatture);
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     private async Task<Results<Ok<bool>, NotFound>> PutFattureInvioSapMultiploPipelinePeriodoAsync(
     HttpContext context,
     [FromBody] List<FatturaPipelineSapRequest> request,
@@ -485,6 +504,25 @@ public partial class FattureModule
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<string>>, NotFound>> GetAnniFattureSospeseAsync(
+    HttpContext context,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+
+        var anni = await handler.Send(new FattureSospeseAnniQuery(authInfo));
+        if (anni.IsNullNotAny())
+            return NotFound();
+        return Ok(anni);
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     private async Task<Results<Ok<IEnumerable<FattureMeseResponse>>, NotFound>> PostMesiFattureAsync(
     HttpContext context,
     [FromBody] FattureMesiRequest request,
@@ -495,7 +533,36 @@ public partial class FattureModule
 
         var mesi = await handler.Send(new FattureMesiQuery(authInfo)
         {
-            Anno = request.Anno
+            Anno = request.Anno?.ToString()
+        });
+
+        if (mesi.IsNullNotAny())
+            return NotFound();
+
+        return Ok(mesi!.Select(x => new FattureMeseResponse()
+        {
+            Mese = x,
+            Descrizione = Convert.ToInt32(x).GetMonth()
+        }));
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<FattureMeseResponse>>, NotFound>> PostMesiFattureSospeseAsync(
+    HttpContext context,
+    [FromBody] FattureMesiRequest request,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+
+        var mesi = await handler.Send(new FattureSospeseMesiQuery(authInfo)
+        {
+            Anno = request.Anno?.ToString()
         });
 
         if (mesi.IsNullNotAny())
@@ -641,6 +708,25 @@ public partial class FattureModule
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<string>>, NotFound>> PostTipologiaFattureSospese(
+    HttpContext context,
+    [FromBody] TipologiaFattureRequest request,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var tipoFattura = await handler.Send(new TipoFatturaSospeseQueryGetAll(authInfo, request.Anno, request.Mese, request.Cancellata == null ? false : request.Cancellata.Value));
+        if (tipoFattura.IsNullNotAny())
+            return NotFound();
+        return Ok(tipoFattura);
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     private Results<Ok<List<StatoFatturaInviata>>, NotFound> GetStatoFattureAsync()
     {
         var stati = new List<StatoFatturaInviata>
@@ -724,6 +810,24 @@ public partial class FattureModule
     {
         var authInfo = context.GetAuthInfo();
         var tipologia = await handler.Send(new TipologiaContrattoQuery(authInfo));
+        if (tipologia.IsNullNotAny())
+            return NotFound();
+        return Ok(tipologia);
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<TipologiaContrattoDto>>, NotFound>> GetTipologiaContrattoSospeseAsync(
+    HttpContext context,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var tipologia = await handler.Send(new TipologiaContrattoSospeseQuery(authInfo));
         if (tipologia.IsNullNotAny())
             return NotFound();
         return Ok(tipologia);
