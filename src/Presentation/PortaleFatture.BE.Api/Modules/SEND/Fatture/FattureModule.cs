@@ -763,6 +763,34 @@ public partial class FattureModule
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<IResult> PostFattureSospeseExcelByRicercaAsync(
+    HttpContext context,
+    [FromBody] FatturaSospeseRicercaRequest request,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var fatture = await handler.Send(request.Map(authInfo));
+        if (fatture == null || !fatture!.Any())
+            return NotFound();
+        var mime = "application/vnd.ms-excel";
+        var filename = $"{Guid.NewGuid()}.xlsx";
+
+        var dataSet = fatture.Map()!.FillOneSheetv2();
+        var content = dataSet.ToExcel();
+        var result = new DisposableStreamResult(content, mime)
+        {
+            FileDownloadName = filename
+        };
+        return Results.Stream(result.FileStream, result.ContentType, result.FileDownloadName);
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     private async Task<IResult> PostFattureReportByRicercaAsync(
     HttpContext context,
     [FromBody] FatturaRicercaRequest request,
