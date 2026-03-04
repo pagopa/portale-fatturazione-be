@@ -149,6 +149,12 @@ public partial class FattureModule : Module, IRegistrableModule
            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
         endpointRouteBuilder
+           .MapGet("api/fatture/sospese/tipologiacontratto", GetTipologiaContrattoSospeseAsync)
+           .WithName("Permette di ottenere la tipologia contratto per fatture sospese")
+           .SetOpenApi(Module.DatiFattureLabel)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
            .MapPost("api/fatture/download", PostFattureExcelByRicercaAsync)
            .WithName("Permette di ottenere le fatture excel per ricerca")
            .SetOpenApi(Module.DatiFattureLabel)
@@ -179,6 +185,12 @@ public partial class FattureModule : Module, IRegistrableModule
            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
         endpointRouteBuilder
+           .MapPost("api/fatture/sospese/tipologia", PostTipologiaFattureSospese)
+           .WithName("Permette di visualizzare la tipologia fatture sospese")
+           .SetOpenApi(Module.DatiFattureLabel)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
            .MapPost("api/fatture/cancellazione", PostCancellazioneFatture)
            .WithName("Permette di cancellare o ripristinare le fatture non inviate")
            .SetOpenApi(Module.DatiFattureLabel)
@@ -191,14 +203,32 @@ public partial class FattureModule : Module, IRegistrableModule
           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
         endpointRouteBuilder
+          .MapGet("api/fatture/sospese/anni", GetAnniFattureSospeseAsync)
+          .WithName("Permette visualizzare anni fatture sospese conta - pagoPA")
+          .SetOpenApi(Module.DatiFattureLabel)
+          .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
           .MapPost("api/fatture/mesi", PostMesiFattureAsync)
           .WithName("Permette visualizzare mesi fatture conta per anno - pagoPA")
           .SetOpenApi(Module.DatiFattureLabel)
           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
         endpointRouteBuilder
+          .MapPost("api/fatture/sospese/mesi", PostMesiFattureSospeseAsync)
+          .WithName("Permette visualizzare mesi fatture sospese conta per anno - pagoPA")
+          .SetOpenApi(Module.DatiFattureLabel)
+          .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
            .MapPost("api/fatture/date", PostFattureDateByRicercaAsync)
            .WithName("Permette di ottenere le fatture date per ricerca")
+           .SetOpenApi(Module.DatiFattureLabel)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+           .MapPost("api/fatture/sospese/date", PostFattureSospeseDateByRicercaAsync)
+           .WithName("Permette di ottenere le fatture sospese date per ricerca")
            .SetOpenApi(Module.DatiFattureLabel)
            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
         #endregion

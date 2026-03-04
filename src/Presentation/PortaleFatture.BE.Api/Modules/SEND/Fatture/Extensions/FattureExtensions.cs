@@ -206,6 +206,18 @@ public static class FattureExtensions
         };
     }
 
+    public static FattureSospeseDateQueryRicerca MapSospese(this FatturaRicercaRequest req, AuthenticationInfo authInfo)
+    {
+        return new FattureSospeseDateQueryRicerca(authInfo)
+        {
+            Anno = req.Anno,
+            Mese = req.Mese,
+            IdEnti = req.IdEnti,
+            TipologiaFattura = req.TipologiaFattura,
+            Cancellata = req.Cancellata == null ? false : req.Cancellata.Value
+        };
+    }
+
     public static FattureCreditoSospesoQuery Map(this FattureCreditoSospesoRicercaEnteRequest req, AuthenticationInfo authInfo)
     {
         return new FattureCreditoSospesoQuery(authInfo)

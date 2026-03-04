@@ -347,6 +347,12 @@ SELECT
    FROM [pfd].[FattureTestata]
 ";
 
+    private static string _sqlAnniSospese = @"
+SELECT  
+      distinct AnnoRiferimento
+   FROM [pfd].[tmpFattureTestata]
+";
+
     private static string _sqlMesi = @"
 SELECT  
       distinct MeseRiferimento
@@ -528,6 +534,21 @@ and FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865'
     public static string SelectAnni()
     {
         return _sqlAnni;
+    }
+    public static string SelectAnniSospese()
+    {
+        return _sqlAnniSospese;
+    }
+
+    private static string _sqlMesiSospese = @"
+    SELECT  
+      distinct MeseRiferimento
+    FROM [pfd].[tmpFattureTestata]
+";
+
+    public static string SelectMesiSospese()
+    {
+        return _sqlMesiSospese;
     }
 
     private static string _selectPeriodoEnte = @"
@@ -903,6 +924,12 @@ OPTION (MAXRECURSION 12);
     {
         return $@"
 SELECT CONVERT(varchar(10), DataFattura, 120) as DataFattura, FkTipologiaFattura as TipologiaFattura from pfd.FattureTestata ";
+    }
+
+    public static string SelectFattureSospeseDate()
+    {
+        return $@"
+SELECT CONVERT(varchar(10), DataFattura, 120) as DataFattura, FkTipologiaFattura as TipologiaFattura from pfd.tmpFattureTestata ";
     }
 
     public static string OrderByFattureDate()

@@ -56,9 +56,23 @@ FROM   [pfd].[contrattitipologia] ct
     inner join pfw.TipoContratto t
     on t.IdTipoContratto = c.FkIdTipoContratto 
 ";
+
+    private static string _selectTipologiaContrattoSospese = @$"
+    select distinct(FkIdTipoContratto) as id, t.Descrizione as descrizione 
+    from pfd.tmpFattureTestata ft
+    inner join pfd.Contratti c ON c.onboardingtokenid = ft.CodiceContratto AND c.internalistitutionid  = ft.FkIdEnte
+    inner join pfw.TipoContratto t
+    on t.IdTipoContratto = c.FkIdTipoContratto 
+";
+
     public static string SelectTipologiaContratto()
     {
         return _selectTipologiaContratto;
+    } 
+
+    public static string SelectTipologiaContrattoSospese()
+    {
+        return _selectTipologiaContrattoSospese;
     } 
 }
 
