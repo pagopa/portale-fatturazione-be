@@ -969,6 +969,55 @@ public partial class FattureModule
         }
         return Ok();
     }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<string>>, NotFound>> GetAnniRiepilogoFattureAsync(
+    HttpContext context,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+
+        var anni = await handler.Send(new FattureRiepilogoAnniQuery(authInfo));
+        if (anni.IsNullNotAny())
+            return NotFound();
+        return Ok(anni);
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<FattureMeseResponse>>, NotFound>> PostMesiRiepilogoFattureAsync(
+    HttpContext context,
+    [FromBody] FattureMesiRequest request,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+
+        var mesi = await handler.Send(new FattureRiepilogoMesiQuery(authInfo)
+        {
+            Anno = request.Anno?.ToString()
+        });
+
+        if (mesi.IsNullNotAny())
+            return NotFound();
+
+        return Ok(mesi!.Select(x => new FattureMeseResponse()
+        {
+            Mese = x,
+            Descrizione = Convert.ToInt32(x).GetMonth()
+        }));
+    }
+
     #endregion
 
     #region ente

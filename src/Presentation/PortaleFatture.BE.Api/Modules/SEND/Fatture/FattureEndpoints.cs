@@ -231,6 +231,19 @@ public partial class FattureModule : Module, IRegistrableModule
            .WithName("Permette di ottenere le fatture sospese date per ricerca")
            .SetOpenApi(Module.DatiFattureLabel)
            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+          .MapGet("api/fatture/riepilogo/anni", GetAnniRiepilogoFattureAsync)
+          .WithName("Permette visualizzare gli anni per riepilogo fatture - pagoPA")
+          .SetOpenApi(Module.DatiFattureLabel)
+          .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+          .MapPost("api/fatture/riepilogo/mesi", PostMesiRiepilogoFattureAsync)
+          .WithName("Permette visualizzare i mesi per riepilogo fatture - pagoPA")
+          .SetOpenApi(Module.DatiFattureLabel)
+          .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
         #endregion
 
         #region ente
