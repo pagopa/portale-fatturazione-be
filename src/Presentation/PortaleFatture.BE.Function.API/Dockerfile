@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/azure-functions/dotnet-isolated:4-dotnet-isolated8.0 AS base
+FROM mcr.microsoft.com/azure-functions/dotnet-isolated:4-dotnet-isolated8.0@sha256:7b8007c5f211ece964eb602231d1aef44f676d221004a04dd989b953cc1593d1 AS base
 
 RUN apt-get update && apt-get install -y \
     libjpeg62 \
@@ -21,7 +21,7 @@ ENV PATH="/usr/local/bin:${PATH}"
 WORKDIR /home/site/wwwroot
 EXPOSE 8080 
 
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:8.0@sha256:bfb6ed602caa605141700aea7dc7d42574b74b704368e67d683c71a002123808 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["src/Presentation/PortaleFatture.BE.Function.API/PortaleFatture.BE.Function.API.csproj", "src/Presentation/PortaleFatture.BE.Function.API/"]
