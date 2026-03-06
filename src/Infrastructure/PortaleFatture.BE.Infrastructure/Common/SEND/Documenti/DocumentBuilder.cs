@@ -23,6 +23,12 @@ public class DocumentBuilder : IDocumentBuilder
     private static string _fileDettaglioFatturaEmessaPal = $"pal_fattura_emessa_singola.html";
     private static string _fileDettaglioFatturaEmessaPacMultipla = $"pac_fatture_emesse_multiple.html";
     private static string _fileDettaglioFatturaEmessaPalMultipla = $"pal_fatture_emesse_multiple.html";
+    private static string _fileEmailPacPecSospesa = "pac_pec_sospesa.html";
+    private static string _fileEmailPacPecEmessaSingola = "pac_pec_emessa_singola.html";
+    private static string _fileEmailPacPecEmesseMultiple = "pac_pec_emesse_multiple.html";
+    private static string _fileEmailPalPecSospesa = "pal_pec_sospesa.html";
+    private static string _fileEmailPalPecEmessaSingola = "pal_pec_emessa_singola.html";
+    private static string _fileEmailPalPecEmesseMultiple = "pal_pec_emesse_multiple.html";
     private readonly string _root;
     private readonly string _directoryPath;
     private static SynchronizedConverter _converter = new(new PdfTools());
@@ -34,13 +40,39 @@ public class DocumentBuilder : IDocumentBuilder
 
     public string? CreateEmailHtml(RelEmail dati)
     {
-        string? _fileEmail;
-        if (dati.TipologiaFattura!.ToLower().Contains("primo"))
-            _fileEmail = _fileEmailPrimoSaldo;
-        else if (dati.TipologiaFattura!.ToLower().Contains("secondo"))
-            _fileEmail = _fileEmailSecondoSaldo;
-        else
-            _fileEmail = _fileVarSemestrale;
+        string? _fileEmail = null;
+
+        if (!string.IsNullOrEmpty(dati.TipoContratto))
+        {
+            if (dati.TipoContratto.ToUpper() == "PAC")
+            {
+                if (dati.FlagFatturata == false)
+                    _fileEmail = _fileEmailPacPecSospesa;
+                else if (dati.FlagFatturata == true && dati.NumeroRighe == 1)
+                    _fileEmail = _fileEmailPacPecEmessaSingola;
+                else if (dati.FlagFatturata == true && dati.NumeroRighe > 1)
+                    _fileEmail = _fileEmailPacPecEmesseMultiple;
+            }
+            else if (dati.TipoContratto.ToUpper() == "PAL")
+            {
+                if (dati.FlagFatturata == false)
+                    _fileEmail = _fileEmailPalPecSospesa;
+                else if (dati.FlagFatturata == true && dati.NumeroRighe == 1)
+                    _fileEmail = _fileEmailPalPecEmessaSingola;
+                else if (dati.FlagFatturata == true && dati.NumeroRighe > 1)
+                    _fileEmail = _fileEmailPalPecEmesseMultiple;
+            }
+        }
+
+        if (_fileEmail == null)
+        {
+            if (dati.TipologiaFattura!.ToLower().Contains("primo"))
+                _fileEmail = _fileEmailPrimoSaldo;
+            else if (dati.TipologiaFattura!.ToLower().Contains("secondo"))
+                _fileEmail = _fileEmailSecondoSaldo;
+            else
+                _fileEmail = _fileVarSemestrale;
+        }
 
         var filePath = Path.Combine([_directoryPath, _fileEmail]);
         var text = ReadFromFile(filePath);

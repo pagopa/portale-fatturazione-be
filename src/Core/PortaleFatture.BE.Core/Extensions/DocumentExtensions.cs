@@ -340,6 +340,7 @@ public static class DocumentExtensions
             .Replace(nameof(model.Pec).GetName<RelEmail>(), model.Pec)
             .Replace(nameof(model.RagioneSociale).GetName<RelEmail>(), model.RagioneSociale)
             .Replace(nameof(model.Semestre).GetName<RelEmail>(), model.Semestre)
+            .Replace("[ElencoMesi]", model.ElencoMesi ?? string.Empty)
             ;
 
         return template;

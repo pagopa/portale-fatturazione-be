@@ -10,6 +10,11 @@ public class RelEmail
     public string? Pec { get; set; }
     public string? RagioneSociale { get; set; } 
     public string? Semestre { get; set; }
+    public string? TipoContratto { get; set; }
+    public bool? FlagFatturata { get; set; }
+    public int? NumeroRighe { get; set; }
+    public string? ElencoMesi { get; set; }
+    public int? FatturaInviata { get; set; }
 }
 
 public sealed class RelEmailTracking : RelEmail
