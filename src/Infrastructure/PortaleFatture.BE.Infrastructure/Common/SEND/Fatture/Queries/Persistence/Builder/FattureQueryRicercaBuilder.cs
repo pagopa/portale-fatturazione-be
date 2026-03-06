@@ -1237,7 +1237,7 @@ SELECT [AnnoRiferimento] as Anno
         ,enti.description as RagioneSociale
         ,ri.[AnnoRiferimento]
         ,ri.[MeseRiferimento]
-        ,ri.[TipologiaContratto] AS IdTipologiaContratto
+        ,tc.IdTipoContratto AS IdTipologiaContratto
         --,cont.FkIdTipoContratto AS TipologiaContratto
         ,tc.Descrizione AS TipologiaContratto
         ,ri.[Anticipo]
@@ -1255,7 +1255,7 @@ SELECT [AnnoRiferimento] as Anno
         --ON cont.onboardingtokenid = ri.[TipologiaContratto]
         -- AND cont.internalistitutionid  = ri.FkIdEnte
         left outer join pfw.TipoContratto tc
-        on tc.IdTipoContratto = ri.[TipologiaContratto]
+        on tc.Descrizione = ri.[TipologiaContratto]
         where
         (@FilterByEnte = 0 OR ri.FkIdEnte IN @IdEnti)
         AND (@Anno IS NULL OR ri.AnnoRiferimento = @Anno)
