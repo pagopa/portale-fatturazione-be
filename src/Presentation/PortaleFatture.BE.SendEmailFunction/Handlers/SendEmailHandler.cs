@@ -19,6 +19,7 @@ internal class SendEmailHandler
         var anno = queryParams["anno"];
         var mese = queryParams["mese"];
         var tipologiafattura = queryParams["tipologiafattura"];
+        var tipoComunicazione = queryParams["tipoComunicazione"];
 
 
         if (string.IsNullOrEmpty(anno) || string.IsNullOrEmpty(mese) || string.IsNullOrEmpty(tipologiafattura))
@@ -26,7 +27,7 @@ internal class SendEmailHandler
             return req.CreateResponse(HttpStatusCode.BadRequest);
         }
 
-        var data = new EmailRelDataRequest { Anno = anno, Mese = mese, TipologiaFattura = tipologiafattura };
+        var data = new EmailRelDataRequest { Anno = anno, Mese = mese, TipologiaFattura = tipologiafattura, TipoComunicazione = tipoComunicazione };
 
         var instanceId = await client.ScheduleNewOrchestrationInstanceAsync("SendEmailOrchestrator", data);
         var payload = new

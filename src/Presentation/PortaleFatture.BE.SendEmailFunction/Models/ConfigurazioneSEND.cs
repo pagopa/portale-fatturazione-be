@@ -11,5 +11,6 @@ public static class ConfigurazioneSEND
     public static string? StorageRELAccountName { get; set; }
     public static string? StorageRELAccountKey { get; set; }
     public static string? StorageRELBlobContainerName { get; set; }
+    public static string? Environment { get; set; }
 }
  
