@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Runtime.ConstrainedExecution;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using PortaleFatture.BE.Core.Entities.SEND.DatiRel.Dto;
@@ -20,27 +21,47 @@ public class SendEmail(ILoggerFactory loggerFactory)
         var risposta = new Risposta();
         try
         {
-            // config
-            ConfigurazioneSEND.ConnectionString = GetEnvironmentVariable("PortaleFattureOptions:ConnectionString");
-            ConfigurazioneSEND.From = GetEnvironmentVariable("PortaleFattureOptions:FROM");
-            ConfigurazioneSEND.Smtp = GetEnvironmentVariable("PortaleFattureOptions:SMTP");
-            ConfigurazioneSEND.SmtpPort = Convert.ToInt32(GetEnvironmentVariable("PortaleFattureOptions:SMTP_PORT"));
-            ConfigurazioneSEND.SmtpAuth = GetEnvironmentVariable("PortaleFattureOptions:SMTP_AUTH");
-            ConfigurazioneSEND.SmtpPassword = GetEnvironmentVariable("PortaleFattureOptions:SMTP_PASSWORD");
-            if (String.IsNullOrEmpty(ConfigurazioneSEND.ConnectionString) ||
-                String.IsNullOrEmpty(ConfigurazioneSEND.From) ||
-                String.IsNullOrEmpty(ConfigurazioneSEND.Smtp) ||
-                String.IsNullOrEmpty(ConfigurazioneSEND.SmtpAuth) ||
-                String.IsNullOrEmpty(ConfigurazioneSEND.SmtpPassword))
+            string[] environments = new string[] { "fat-d-api-func", "fat-u-api-func", "DEBUG" };
+
+            ConfigurazioneSEND.Environment = GetEnvironmentVariable("PortaleFattureOptions:WEBSITE_SITE_NAME");
+
+            if(String.IsNullOrEmpty(ConfigurazioneSEND.Environment))
             {
-                ConfigurazioneSEND.ConnectionString = GetEnvironmentVariable("CONNECTION_STRING");
-                ConfigurazioneSEND.From = "send-fatturazione@pec.pagopa.it";
-                ConfigurazioneSEND.Smtp = GetEnvironmentVariable("SMTP");
-                ConfigurazioneSEND.SmtpPort = Convert.ToInt32(GetEnvironmentVariable("SMTP_PORT"));
-                ConfigurazioneSEND.SmtpAuth = GetEnvironmentVariable("SMTP_AUTH");
-                ConfigurazioneSEND.SmtpPassword = GetEnvironmentVariable("SMTP_PASSWORD");
+                ConfigurazioneSEND.Environment = GetEnvironmentVariable("WEBSITE_SITE_NAME");
             }
-            ;
+
+            var production = !environments.Contains(ConfigurazioneSEND.Environment!);
+
+            ConfigurazioneSEND.ConnectionString = GetEnvironmentVariable("PortaleFattureOptions:ConnectionString");
+
+            if (String.IsNullOrEmpty(ConfigurazioneSEND.ConnectionString)){
+                ConfigurazioneSEND.ConnectionString = GetEnvironmentVariable("CONNECTION_STRING");
+            }
+
+            if (production)
+            {
+                // config
+                ConfigurazioneSEND.ConnectionString = GetEnvironmentVariable("PortaleFattureOptions:ConnectionString");
+                ConfigurazioneSEND.From = GetEnvironmentVariable("PortaleFattureOptions:FROM");
+                ConfigurazioneSEND.Smtp = GetEnvironmentVariable("PortaleFattureOptions:SMTP");
+                ConfigurazioneSEND.SmtpPort = Convert.ToInt32(GetEnvironmentVariable("PortaleFattureOptions:SMTP_PORT"));
+                ConfigurazioneSEND.SmtpAuth = GetEnvironmentVariable("PortaleFattureOptions:SMTP_AUTH");
+                ConfigurazioneSEND.SmtpPassword = GetEnvironmentVariable("PortaleFattureOptions:SMTP_PASSWORD");
+
+                if (String.IsNullOrEmpty(ConfigurazioneSEND.ConnectionString) ||
+                    String.IsNullOrEmpty(ConfigurazioneSEND.From) ||
+                    String.IsNullOrEmpty(ConfigurazioneSEND.Smtp) ||
+                    String.IsNullOrEmpty(ConfigurazioneSEND.SmtpAuth) ||
+                    String.IsNullOrEmpty(ConfigurazioneSEND.SmtpPassword))
+                {
+                    ConfigurazioneSEND.ConnectionString = GetEnvironmentVariable("CONNECTION_STRING");
+                    ConfigurazioneSEND.From = "send-fatturazione@pec.pagopa.it";
+                    ConfigurazioneSEND.Smtp = GetEnvironmentVariable("SMTP");
+                    ConfigurazioneSEND.SmtpPort = Convert.ToInt32(GetEnvironmentVariable("SMTP_PORT"));
+                    ConfigurazioneSEND.SmtpAuth = GetEnvironmentVariable("SMTP_AUTH");
+                    ConfigurazioneSEND.SmtpPassword = GetEnvironmentVariable("SMTP_PASSWORD");
+                }
+            }
 
             var fileInfo = new FileInfo(Assembly.GetExecutingAssembly().Location);
             string path = fileInfo.Directory!.FullName;
@@ -50,6 +71,7 @@ public class SendEmail(ILoggerFactory loggerFactory)
             var mese = Convert.ToInt32(req.Mese);
             var tipologiafattura = req.TipologiaFattura;
             var data = req.Data;
+            var tipoComunicazione = req.TipoComunicazione;
 
             var ricalcola = Convert.ToInt32(String.IsNullOrEmpty(req.Ricalcola) ? "0" : req.Ricalcola);
 
@@ -79,7 +101,7 @@ public class SendEmail(ILoggerFactory loggerFactory)
                 smtpPassword: ConfigurazioneSEND.SmtpPassword!,
                 from: ConfigurazioneSEND.From!);
             var emailService = new EmailRelService(ConfigurazioneSEND.ConnectionString!);
-            var enti = emailService.GetSenderEmail(risposta.Anno, risposta.Mese, risposta.TipologiaFattura!);
+            var enti = emailService.GetSenderEmail(risposta.Anno, risposta.Mese, risposta.TipologiaFattura!, tipoComunicazione);
 
             foreach (var ente in enti!)
                 if (ente.Pec != null)
@@ -89,23 +111,46 @@ public class SendEmail(ILoggerFactory loggerFactory)
                     risposta.Semestre = ente.Semestre;
                     // var s = builder.CreateEmailHtml(ente)!;
                     // risposta.Log = s; // prendo solo l'ultimo
-                    var (msg, ver) = sender.SendEmail(ente.Pec, subject, builder.CreateEmailHtml(ente)!);
-                    if (!ver)
-                       _logger.LogInformation(msg);
 
-                    emailService.InsertTracciatoEmail(new RelEmailTracking()
+                    if (production)
                     {
-                       Data = data,
-                       IdContratto = ente.IdContratto,
-                       Invio = Convert.ToByte(ver == true ? 1 : 0),
-                       Anno = ente.Anno,
-                       Mese = ente.Mese,
-                       Messaggio = msg,
-                       Pec = ente.Pec,
-                       IdEnte = ente.IdEnte,
-                       RagioneSociale = ente.RagioneSociale,
-                       TipologiaFattura = ente.TipologiaFattura
-                    });
+                        var (msg, ver) = sender.SendEmail(ente.Pec, subject, builder.CreateEmailHtml(ente)!);
+                        if (!ver)
+                            _logger.LogInformation(msg);
+
+                        emailService.InsertTracciatoEmail(new RelEmailTracking()
+                        {
+                            Data = data,
+                            IdContratto = ente.IdContratto,
+                            Invio = Convert.ToByte(ver == true ? 1 : 0),
+                            Anno = ente.Anno,
+                            Mese = ente.Mese,
+                            Messaggio = msg,
+                            Pec = ente.Pec,
+                            IdEnte = ente.IdEnte,
+                            RagioneSociale = ente.RagioneSociale,
+                            TipologiaFattura = ente.TipologiaFattura
+                        });
+                    }
+                    else
+                    {
+                        _logger.LogInformation($"Ambiente di test: email NON inviata a {ente.Pec} con oggetto {subject}");
+
+                        emailService.InsertTracciatoEmail(new RelEmailTracking()
+                        {
+                            Data = data,
+                            IdContratto = ente.IdContratto,
+                            Invio = 0,
+                            Anno = ente.Anno,
+                            Mese = ente.Mese,
+                            Messaggio = builder.CreateEmailHtml(ente)!,
+                            Pec = ente.Pec,
+                            IdEnte = ente.IdEnte,
+                            RagioneSociale = ente.RagioneSociale,
+                            TipologiaFattura = ente.TipologiaFattura
+                        });
+                    }
+
                 }
         }
         catch (Exception ex)

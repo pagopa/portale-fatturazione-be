@@ -2,6 +2,7 @@
 using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.Data.SqlClient;
 using PortaleFatture.BE.Core.Entities.SEND.DatiRel.Dto;
+using PortaleFatture.BE.Core.Extensions;
 
 namespace PortaleFatture.BE.Infrastructure.Common.SEND.DatiRel.Services;
 
@@ -48,8 +49,65 @@ public class EmailRelService(string cn) : IEmailRelService
             ,@RagioneSociale
             ,@Invio);";
 
-    public IEnumerable<RelEmail>? GetSenderEmail(int? anno, int? mese, string tipologiaFattura)
+    private readonly string _sqlSelectFatture = @"
+with cte_emesse as (
+
+select 
+     IdFattura
+    , FkIdEnte
+    , CodiceContratto
+    , FkTipologiaFattura
+    , AnnoRiferimento
+    , MeseRiferimento
+FROM [pfd].[FattureTestata] ft
+        WHERE ft.AnnoRiferimento = @year
+        AND ft.MeseRiferimento = @month
+        AND ft.TotaleFattura > 0
+        AND ft.FkTipologiaFattura IN ('PRIMO SALDO', 'SECONDO SALDO')
+)
+, cte_mesifatture as (
+    select 
+        mf.FkIdFattura
+        , mf.FkIdFatturaTmp
+        , ft.FkIdEnte
+        , ft.CodiceContratto
+        , ft.FkTipologiaFattura
+        , ft.AnnoRiferimento
+        , ft.MeseRiferimento
+        , count(FkIdFattura) over (partition by FkIdFattura) as NumeroRighe
+        , tft.annoriferimento as tmpAnno
+        , tft.MeseRiferimento as tmpMese
+        , tft.FlagFatturata
+    from pfd.mesifatture mf
+        inner join cte_emesse ft 
+            on ft.IdFattura = mf.FkIdFattura
+        inner join pfd.tmpFattureTestata tft
+            on tft.IdFattura = mf.FkIdFatturaTmp
+)
+
+select 
+    mf.FkIdEnte as idEnte
+    , mf.CodiceContratto as idContratto
+    , mf.FkTipologiaFattura as TipologiaFattura
+    , mf.AnnoRiferimento as anno
+    , mf.MeseRiferimento as mese
+    , e.digitalAddress as pec
+    , e.description as ragionesociale
+    , tc.Descrizione as TipoContratto
+    , mf.NumeroRighe
+    , mf.tmpAnno
+    , mf.tmpMese
+    , mf.FlagFatturata
+from cte_mesifatture mf
+    INNER JOIN [pfd].[Enti] e ON e.InternalIstitutionId = mf.FkIdEnte
+    INNER JOIN [pfd].[Contratti] c ON c.internalistitutionid = mf.FkIdEnte AND c.onboardingtokenid = mf.CodiceContratto
+    INNER JOIN [pfw].[TipoContratto] tc ON tc.IdTipoContratto = c.FkIdTipoContratto";
+
+    public IEnumerable<RelEmail>? GetSenderEmail(int? anno, int? mese, string tipologiaFattura, string? tipoComunicazione)
     {
+        if (string.IsNullOrEmpty(tipoComunicazione))
+            throw new ArgumentException("Tipo Comunicazione obbligatorio");
+
         List<RelEmail> emails = [];
         try
         {
@@ -59,32 +117,83 @@ public class EmailRelService(string cn) : IEmailRelService
             cmd.Connection = conn;
             cmd.Parameters.Add("@year", SqlDbType.Int).Value = anno;
             cmd.Parameters.Add("@month", SqlDbType.Int).Value = mese;
-            cmd.Parameters.Add("@tipologiaFattura", SqlDbType.NVarChar).Value = tipologiaFattura;
-            cmd.CommandText = _sqlSelect;
-            var reader = cmd.ExecuteReader();
-            if (reader.HasRows)
+            if(tipoComunicazione == "REL")
             {
-                while (reader.Read())
+                cmd.Parameters.Add("@tipologiaFattura", SqlDbType.NVarChar).Value = tipologiaFattura;
+                cmd.CommandText = _sqlSelect;
+                var reader = cmd.ExecuteReader();
+                if (reader.HasRows)
                 {
+                    while (reader.Read())
+                    {
+                        emails.Add(new RelEmail()
+                        {
+                            IdEnte = reader.GetString(0),
+                            IdContratto = reader.GetString(1),
+                            TipologiaFattura = reader.GetString(2),
+                            Anno = reader.GetInt32(3),
+                            Mese = reader.GetInt32(4),
+                            Pec = reader.IsDBNull(5) ? string.Empty : reader.GetString(5),
+                            RagioneSociale = reader.GetString(6),
+                            Semestre = reader.IsDBNull(7) ? null : reader.GetString(7)
+                        });
+                    }
+                }
+                reader.Close();
+            }
+            else if(tipoComunicazione == "FATTURA")
+            {
+                cmd.CommandText = _sqlSelectFatture;
+                var reader = cmd.ExecuteReader();
+                var rawEmails = new List<dynamic>();
+                if (reader.HasRows)
+                {
+                    while (reader.Read())
+                    {
+                        rawEmails.Add(new 
+                        {
+                            IdEnte = reader.GetString(0),
+                            IdContratto = reader.GetString(1),
+                            TipologiaFattura = reader.GetString(2),
+                            Anno = reader.GetInt32(3),
+                            Mese = reader.GetInt32(4),
+                            Pec = reader.IsDBNull(5) ? string.Empty : reader.GetString(5),
+                            RagioneSociale = reader.GetString(6),
+                            TipoContratto = reader.GetString(7),
+                            NumeroRighe = reader.GetInt32(8),
+                            TmpAnno = reader.GetInt32(9),
+                            TmpMese = reader.GetInt32(10),
+                            FlagFatturata = reader.GetBoolean(11)
+                        });
+                    }
+                }
+                reader.Close();
+
+                var grouped = rawEmails.GroupBy(x => new { x.IdEnte, x.IdContratto, x.TipologiaFattura, x.Anno, x.Mese });
+                foreach(var g in grouped)
+                {
+                    var first = g.First();
+                    var elencoMesi = string.Join(", ", g.Select(x => $"{((int)x.TmpMese).ToString("00")}/{x.TmpAnno}").Distinct());
                     emails.Add(new RelEmail()
                     {
-                        IdEnte = reader.GetString(0),
-                        IdContratto = reader.GetString(1),
-                        TipologiaFattura = reader.GetString(2),
-                        Anno = reader.GetInt32(3),
-                        Mese = reader.GetInt32(4),
-                        Pec = reader.IsDBNull(5) ? string.Empty : reader.GetString(5),
-                        RagioneSociale = reader.GetString(6),
-                        Semestre = reader.IsDBNull(7) ? null : reader.GetString(7)
+                        IdEnte = first.IdEnte,
+                        IdContratto = first.IdContratto,
+                        TipologiaFattura = first.TipologiaFattura,
+                        Anno = first.Anno,
+                        Mese = first.Mese,
+                        Pec = first.Pec,
+                        RagioneSociale = first.RagioneSociale,
+                        TipoContratto = first.TipoContratto,
+                        NumeroRighe = first.NumeroRighe,
+                        FlagFatturata = first.FlagFatturata,
+                        ElencoMesi = elencoMesi
                     });
                 }
             }
-            reader.Close();
         }
-        catch
+        catch(Exception ex)
         {
-
-
+            throw new Exception($"Error in EmailRelService: {ex.Message}", ex);
         }
         return emails;
     }
