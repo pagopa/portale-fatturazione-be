@@ -63,7 +63,7 @@ FROM [pfd].[FattureTestata] ft
         WHERE ft.AnnoRiferimento = @year
         AND ft.MeseRiferimento = @month
         AND ft.TotaleFattura > 0
-        AND ft.FkTipologiaFattura IN ('PRIMO SALDO', 'SECONDO SALDO')
+        AND ft.FkTipologiaFattura IN ('PRIMO SALDO', 'SECONDO SALDO','VAR. SEMESTRALE')
 )
 , cte_mesifatture as (
     select 
