@@ -38,7 +38,7 @@ public class DocContabileEliminataFatturaResponse
     public string? Prodotto { get; set; }
 
     [JsonPropertyName("identificativo")]
-    public string? PeriodoFatturazione { get; set; }
+    public string? Identificativo { get; set; }
 
     [JsonPropertyName("istitutioId")]
     public string? IstitutioId { get; set; }

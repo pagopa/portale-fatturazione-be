@@ -37,7 +37,7 @@ namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Dto;
         public decimal? ImportoSospesoParziale { get; set; }
         public long Progressivo { get; set; }
         public string? Prodotto { get; set; }
-        public string? PeriodoFatturazione { get; set; }
+        public string? Identificativo { get; set; }
         public string? TipologiaFattura { get; set; }
         public string? IstitutioId { get; set; }
         public string? OnboardingTokenId { get; set; }
@@ -83,6 +83,7 @@ namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Dto;
         public decimal PrezzoUnitario { get; set; }
         public decimal Imponibile { get; set; }
         public string? PeriodoRiferimento { get; set; }
+        public string? PeriodoFatturazione { get; set; }
     }
 
     /// <summary>
@@ -106,6 +107,7 @@ namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Dto;
         public decimal PrezzoUnitario { get; set; }
         public decimal Imponibile { get; set; }
         public string? PeriodoRiferimento { get; set; }
+        public string? PeriodoFatturazione { get; set; }
     }
 
     /// <summary>
@@ -151,7 +153,7 @@ namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Dto;
             ImportoSospesoParziale = raw.ImportoSospesoParziale,
             Progressivo = raw.Progressivo,
             Prodotto = raw.Prodotto,
-            PeriodoFatturazione = raw.PeriodoFatturazione,
+            Identificativo = raw.Identificativo,
             TipologiaFattura = raw.TipologiaFattura,
             IstitutioId = raw.IstitutioId,
             OnboardingTokenId = raw.OnboardingTokenId,
@@ -186,7 +188,8 @@ namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Dto;
             Quantita = raw.Quantita,
             PrezzoUnitario = raw.PrezzoUnitario,
             Imponibile = raw.Imponibile,
-            PeriodoRiferimento = raw.PeriodoRiferimento
+            PeriodoRiferimento = raw.PeriodoRiferimento,
+            PeriodoFatturazione = raw.PeriodoFatturazione
         };
 
         private static FatturaDocContabileEliminataDto ToEliminataDto(this FatturaDocContabileRawDto raw, IEnumerable<FatturaDocContabilePosizioniDto> posizioni) => new()
@@ -197,7 +200,7 @@ namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Dto;
             ImportoSospesoParziale = raw.ImportoSospesoParziale,
             Progressivo = raw.Progressivo,
             Prodotto = raw.Prodotto,
-            PeriodoFatturazione = raw.PeriodoFatturazione,
+            Identificativo = raw.Identificativo,
             TipologiaFattura = raw.TipologiaFattura,
             IstitutioId = raw.IstitutioId,
             OnboardingTokenId = raw.OnboardingTokenId,
