@@ -610,7 +610,7 @@ and FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865'
     c.onboardingtokenid AS IdContratto,
     t.FkIdTipoDocumento AS TipoDocumento,
     0 AS Elaborazione,
-    CONCAT(FORMAT(t.MeseRiferimento,'00'),'/',t.AnnoRiferimento) as PeriodoFatturazione,
+    CONCAT(FORMAT(t.MeseRiferimento,'00'),'/',t.AnnoRiferimento) as Identificativo,
     r.NumeroLinea,
     r.Testo,
     NULL as stato,
@@ -618,7 +618,8 @@ and FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865'
     r.Quantita, 
     r.PrezzoUnitario,
     r.Imponibile,
-    r.PeriodoRiferimento
+    r.PeriodoRiferimento,
+    r.PeriodoFatturazione
     FROM [pfd].[FattureTestata] t
     LEFT OUTER JOIN pfd.FattureRighe r 
     ON r.FkIdFattura = t.IdFattura 
@@ -699,7 +700,7 @@ and FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865'
             c.onboardingtokenid AS IdContratto,
             tft.FkIdTipoDocumento AS TipoDocumento,
             0 AS Elaborazione,
-            CONCAT(FORMAT(tft.MeseRiferimento,'00'),'/',tft.AnnoRiferimento) as PeriodoFatturazione,
+            CONCAT(FORMAT(tft.MeseRiferimento,'00'),'/',tft.AnnoRiferimento) as Identificativo,
 	        'sospesa' as stato,
             fr.NumeroLinea,
             fr.Testo,
@@ -708,6 +709,7 @@ and FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865'
             fr.PrezzoUnitario,
             fr.Imponibile,
             fr.PeriodoRiferimento
+            --fr.PeriodoFatturazione
             FROM pfd.CreditoSospeso cs 
             LEFT OUTER JOIN pfd.CreditoSospesoStorico css 
             ON cs.FkIdEnte = css.FkIdEnte 
@@ -741,7 +743,7 @@ and FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865'
         t.IdFattura,
         t.DataFattura,
         t.FkProdotto AS Prodotto,
-        CONCAT(FORMAT(t.MeseRiferimento,'00'),'/',t.AnnoRiferimento) as PeriodoFatturazione,
+        CONCAT(FORMAT(t.MeseRiferimento,'00'),'/',t.AnnoRiferimento) as Identificativo,
         t.FkTipologiaFattura AS TipologiaFattura,
         t.FkIdEnte AS IstitutioId,
         c.onboardingtokenid AS OnboardingTokenId,

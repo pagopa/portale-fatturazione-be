@@ -24,4 +24,7 @@ public class DocContabilePosizioneResponse
 
     [JsonPropertyName("periodoRiferimento")]
     public string? PeriodoRiferimento { get; set; }
+
+    [JsonPropertyName("periodoFatturazione")]
+    public string? PeriodoFatturazione { get; set; }
 }

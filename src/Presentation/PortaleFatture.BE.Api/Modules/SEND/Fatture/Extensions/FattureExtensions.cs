@@ -77,7 +77,7 @@ public static class FattureExtensions
             IdFattura = x.IdFattura,
             DataFattura = x.DataFattura,
             Prodotto = x.Prodotto,
-            PeriodoFatturazione = x.PeriodoFatturazione,
+            Identificativo = x.Identificativo,
             IstitutioId = x.IstitutioId,
             OnboardingTokenId = x.OnboardingTokenId,
             RagioneSociale = x.RagioneSociale,
@@ -119,7 +119,8 @@ public static class FattureExtensions
             Quantita = z.Quantita,
             PrezzoUnitario = z.PrezzoUnitario,
             Imponibile = z.Imponibile,
-            PeriodoRiferimento = z.PeriodoRiferimento
+            PeriodoRiferimento = z.PeriodoRiferimento,
+            PeriodoFatturazione = z.PeriodoFatturazione
         };
     }
 
@@ -149,7 +150,7 @@ public static class FattureExtensions
             IdFattura = x.IdFattura,
             DataFattura = x.DataFattura,
             Prodotto = x.Prodotto,
-            PeriodoFatturazione = x.PeriodoFatturazione,
+            Identificativo = x.Identificativo,
             IstitutioId = x.IstitutioId,
             OnboardingTokenId = x.OnboardingTokenId,
             RagioneSociale = x.RagioneSociale,
@@ -531,7 +532,7 @@ public static class FattureExtensions
                 TipologiaFattura = item.Fattura.DatiGeneraliDocumento!.FirstOrDefault()?.TipologiaFattura,
                 TipoContratto = item.Fattura.TipoContratto,
                 Totale = item.Fattura.Totale!.Value.ToString("0.00") ?? null,
-                Identificativo = item.Fattura.PeriodoFatturazione,
+                Identificativo = item.Fattura.Identificativo,
                 Sollecito = item.Fattura.Sollecito,
                 Split = item.Fattura.SplitPayment,
                 TipoDocumento = item.Fattura.TipoDocumento,
@@ -573,7 +574,7 @@ public static class FattureExtensions
                 TipologiaFattura = item.Fattura.DatiGeneraliDocumento!.FirstOrDefault()?.TipologiaFattura,
                 TipoContratto = item.Fattura.TipoContratto,
                 Totale = item.Fattura.Totale!.Value.ToString("0.00") ?? null,
-                Identificativo = item.Fattura.PeriodoFatturazione,
+                Identificativo = item.Fattura.Identificativo,
                 Sollecito = item.Fattura.Sollecito,
                 Split = item.Fattura.SplitPayment,
                 TipoDocumento = item.Fattura.TipoDocumento,
