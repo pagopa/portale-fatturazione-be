@@ -11,5 +11,17 @@ namespace PortaleFatture.BE.Core.Entities.SEND.Fatture
         public decimal? TotaleAnalogico { get; set; }
         public int? TotaleNotificheDigitali { get; set; }
         public int? TotaleNotificheAnalogiche { get; set; }
+
+        public decimal TotaleAnticipo { get; set; } = 0;
+        public decimal AnticipoDigitale { get; set; } = 0;
+        public decimal AnticipoAnalogico { get; set; } = 0;
+        public decimal TotaleStorno { get; set; } = 0;
+        public decimal StornoDigitale { get; set; } = 0;
+        public decimal StornoAnalogico { get; set; } = 0;
+        public decimal TotaleAcconto { get; set; } = 0;
+        public decimal AccontoDigitale { get; set; } = 0;
+        public decimal AccontoAnalogico { get; set; } = 0;
+
+        public string? TipologiaContratto { get; set; }
     }
 }

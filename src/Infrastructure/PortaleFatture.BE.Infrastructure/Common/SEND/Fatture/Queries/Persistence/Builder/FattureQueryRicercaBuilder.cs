@@ -1225,6 +1225,7 @@ SELECT [AnnoRiferimento] as Anno
                   AND (
                         t_all.AnnoRiferimento * 100 + t_all.MeseRiferimento) >
                         (tft.AnnoRiferimento * 100 + tft.MeseRiferimento)
+                  AND tftt.FkTipologiaFattura = tft.FkTipologiaFattura
                       
                 )";
             

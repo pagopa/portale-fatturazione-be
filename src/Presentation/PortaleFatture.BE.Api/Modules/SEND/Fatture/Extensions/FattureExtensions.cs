@@ -405,7 +405,18 @@ public static class FattureExtensions
             TotaleDigitale = dto.RelTotaleDigitaleSospeso ?? dto.RelTotaleDigitale,
             TotaleAnalogico = dto.RelTotaleAnalogicoSospeso ?? dto.RelTotaleAnalogico,
             TotaleNotificheDigitali = dto.RelTotaleNotificheDigitaliSospeso ?? dto.RelTotaleNotificheDigitali,
-            TotaleNotificheAnalogiche = dto.RelTotaleNotificheAnalogicheSospeso ?? dto.RelTotaleNotificheAnalogiche
+            TotaleNotificheAnalogiche = dto.RelTotaleNotificheAnalogicheSospeso ?? dto.RelTotaleNotificheAnalogiche,
+
+            TipologiaContratto = dto.TipologiaContratto,
+            TotaleAnticipo = (dto.AnticipoDigitale ?? 0) + (dto.AnticipoAnalogico ?? 0),
+            AnticipoDigitale = dto.AnticipoDigitale ?? 0,
+            AnticipoAnalogico = dto.AnticipoAnalogico ?? 0,
+            TotaleStorno = (dto.StornoDigitale ?? 0) + (dto.StornoAnalogico ?? 0),
+            StornoDigitale = dto.StornoDigitale ?? 0,
+            StornoAnalogico = dto.StornoAnalogico ?? 0,
+            TotaleAcconto = (dto.AccontoDigitale ?? 0) + (dto.AccontoAnalogico ?? 0),
+            AccontoDigitale = dto.AccontoDigitale ?? 0,
+            AccontoAnalogico = dto.AccontoAnalogico ?? 0
         };
     }
 

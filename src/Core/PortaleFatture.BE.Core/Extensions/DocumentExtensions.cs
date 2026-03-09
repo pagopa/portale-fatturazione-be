@@ -104,7 +104,7 @@ public static class DocumentExtensions
         return builder.ToString();
     }
 
-    public static string GetDettaglioMesi(this IEnumerable<DocumentoContabileEmessoRiepilogo>? fatture)
+    public static string GetDettaglioMesi(this IEnumerable<DocumentoContabileEmessoRiepilogo>? fatture, bool showDetails = false)
     {
         if (fatture == null || !fatture.Any()) return string.Empty;
 
@@ -113,18 +113,54 @@ public static class DocumentExtensions
 
         foreach (var fattura in fatture)
         {
-            var row = _tableDettaglioMesiRow
-                .Replace("[Mese]", fattura.Mese.PadLeft(2, '0'))
-                .Replace("[Anno]", fattura.Anno)
-                .Replace("[TotaleNotificheDigitali]", (fattura.TotaleNotificheDigitali ?? 0).ToString())
-                .Replace("[TotaleNotificheAnalogiche]", (fattura.TotaleNotificheAnalogiche ?? 0).ToString())
-                .Replace("[TotaleDigitale]", (fattura.TotaleDigitale ?? 0).ToString("N2", CultureInfo.CreateSpecificCulture("it-IT")))
-                .Replace("[TotaleAnalogico]", (fattura.TotaleAnalogico ?? 0).ToString("N2", CultureInfo.CreateSpecificCulture("it-IT")))
-                .Replace("[Totale]", (fattura.Totale ?? 0).ToString("N2", CultureInfo.CreateSpecificCulture("it-IT")));
-            builder.Append(row);
+            var isPac = fattura.TipologiaContratto != null && 
+                        fattura.TipologiaContratto.Contains("PAC", StringComparison.InvariantCultureIgnoreCase);
+
+            var meseStr = int.Parse(fattura.Mese).GetMonth();
+            
+            builder.Append($"<p>MESE DI {meseStr} {fattura.Anno}<br/>");
+
+            builder.Append($"- € {(fattura.Totale ?? 0).ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} oltre IVA, così determinato: ");
+            builder.Append($"- € {(fattura.TotaleDigitale ?? 0).ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} per n. {fattura.TotaleNotificheDigitali ?? 0} notifiche digitali e ");
+            builder.Append($"€ {(fattura.TotaleAnalogico ?? 0).ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} per n. {fattura.TotaleNotificheAnalogiche ?? 0} notifiche analogiche espletate.<br/>");
+
+            if (showDetails)
+            {
+                if (isPac)
+                {
+                    builder.Append("agli importi sopra indicati per l’emissione di regolare fattura sono stornati i seguenti importi già versati in anticipo e/o acconto:<br/>");
+                }
+                else
+                {
+                    builder.Append("agli importi sopra indicati per l’emissione di regolare fattura sono stornati i seguenti importi già versati in anticipo:<br/>");
+                }
+
+                builder.Append($"- € {fattura.TotaleAnticipo.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} oltre IVA, così determinato: ");
+                builder.Append($"- € {fattura.AnticipoDigitale.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} per l’anticipazione delle notifiche digitali e ");
+                builder.Append($"€ {fattura.AnticipoAnalogico.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} per l’anticipazione delle notifiche analogiche.<br/>");
+
+                if (isPac)
+                {
+                     builder.Append($"- € {fattura.TotaleAcconto.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} oltre IVA, così determinato: ");
+                     builder.Append($"- € {fattura.AccontoDigitale.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} per l’acconto delle notifiche digitali e ");
+                     builder.Append($"€ {fattura.AccontoAnalogico.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} per l’anticipazione delle notifiche analogiche.<br/>");
+                }
+            }
+            else
+            {
+                if (isPac)
+                {
+                    builder.Append("agli importi sopra indicati per l’emissione di regolare fattura sono stornati gli importi già versati in anticipo e/o acconto.<br/>");
+                }
+                else
+                {
+                    builder.Append("agli importi sopra indicati per l’emissione di regolare fattura sono stornati gli importi già versati in anticipo.<br/>");
+                }
+            }
+            
+            builder.Append("</p>");
         }
 
-        builder.Append(_tableDettaglioMesiFooter);
         return builder.ToString();
     }
 
@@ -321,7 +357,8 @@ public static class DocumentExtensions
             .Replace(nameof(model.Imponibile).GetName<DocumentoContabileEmessiMultipli>(), model.Imponibile.ToString("N2"))
             .Replace(nameof(model.RagioneSociale).GetName<DocumentoContabileEmessiMultipli>(), model.RagioneSociale!)
             .Replace(nameof(model.IdContratto).GetName<DocumentoContabileEmessiMultipli>(), model.IdContratto!)
-            .Replace("[DettaglioMesi]", model.DettaglioFatture.GetDettaglioMesi())
+            .Replace("[DettaglioMesi]", model.DettaglioFatture.GetDettaglioMesi(false))
+            .Replace("[DettaglioMesiV2]", model.DettaglioFatture.GetDettaglioMesi(true))
             .Replace("[ElencoMesi]", model.DettaglioFatture.GetElencoMesi())
               ;
 
