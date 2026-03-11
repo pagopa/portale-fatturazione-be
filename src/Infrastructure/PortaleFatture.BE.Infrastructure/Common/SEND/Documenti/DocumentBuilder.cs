@@ -150,7 +150,7 @@ public class DocumentBuilder : IDocumentBuilder
         }
         else
         {
-            throw new Exception("Tipologia fattura non valida");
+            throw new Exception($"Tipologia Contratto non valida {dati.TipologiaContratto ?? string.Empty}");
         }
 
         dati.TipologiaFattura = BuildTipologiaFattura(dati.TipologiaFattura);
@@ -174,7 +174,7 @@ public class DocumentBuilder : IDocumentBuilder
         }
         else
         {
-            throw new Exception("Tipologia fattura non valida");
+            throw new Exception($"Tipologia Contratto non valida {dati.TipologiaContratto ?? string.Empty}");
         }
 
         // ? TODO: verificare se necessario anche per le singole
@@ -199,7 +199,7 @@ public class DocumentBuilder : IDocumentBuilder
         }
         else
         {
-            throw new Exception("Tipologia fattura non valida");
+            throw new Exception($"Tipologia Contratto non valida {dati.TipologiaContratto ?? string.Empty}");
         }
 
         var filePath = Path.Combine([_directoryPath, fileRel]);
@@ -269,7 +269,7 @@ public class DocumentBuilder : IDocumentBuilder
         }
         else
         {
-            throw new Exception("Tipologia fattura non valida");
+            throw new Exception($"Tipologia Contratto non valida {dati.TipologiaContratto ?? string.Empty}");
         }
 
         dati.TipologiaFattura = BuildTipologiaFattura(dati.TipologiaFattura);
@@ -293,7 +293,7 @@ public class DocumentBuilder : IDocumentBuilder
         }
         else
         {
-            throw new Exception("Tipologia fattura non valida");
+            throw new Exception($"Tipologia Contratto non valida {dati.TipologiaContratto ?? string.Empty}");
         }
 
         var filePath = Path.Combine([_directoryPath, fileRel]);
