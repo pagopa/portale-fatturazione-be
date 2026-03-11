@@ -657,6 +657,10 @@ and FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865'
         ON cs.FkIdEnte = css.FkIdEnte 
         INNER JOIN [pfd].[tmpFattureTestata] tft
         ON tft.IdFattura = css.FkIdFatturaTmp 
+        WHERE tft.FkIdEnte = @IdEnte
+		and FlagFatturata = 0
+        GROUP BY AnnoRiferimento, MeseRiferimento, FkTipologiaFattura,  CAST(DataFattura AS DATE) 
+        order by anno desc, mese desc
 ";
     public static string SelectPeriodoSospeseEnte()
     {
