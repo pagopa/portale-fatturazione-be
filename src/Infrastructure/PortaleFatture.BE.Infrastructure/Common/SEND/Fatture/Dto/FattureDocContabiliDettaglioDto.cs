@@ -29,6 +29,8 @@ public class FattureDocContabiliDettaglioDto
 
     public string? TipologiaFattura { get; set; }
 
+    public string? TipologiaFatturaSospesa { get; set; }
+
     public decimal RelTotaleAnalogico { get; set; }
 
     public decimal RelTotaleDigitale { get; set; }

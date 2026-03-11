@@ -85,7 +85,6 @@ public static class DocumentExtensions
         if (fatture == null || !fatture.Any()) return string.Empty;
 
         StringBuilder builder = new();
-        builder.Append(_tableDettaglioMesiHeader);
 
         foreach (var fattura in fatture)
         {
@@ -109,56 +108,46 @@ public static class DocumentExtensions
         if (fatture == null || !fatture.Any()) return string.Empty;
 
         StringBuilder builder = new();
-        builder.Append(_tableDettaglioMesiHeader);
-
         foreach (var fattura in fatture)
         {
             var isPac = fattura.TipologiaContratto != null && 
                         fattura.TipologiaContratto.Contains("PAC", StringComparison.InvariantCultureIgnoreCase);
 
-            var meseStr = int.Parse(fattura.Mese).GetMonth();
-            
-            builder.Append($"<p>MESE DI {meseStr} {fattura.Anno}<br/>");
+            // ? TODO: va bene gestirlo solo per le emesse ?
+            var tipologiaFattura = fattura.TipologiaFatturaSospesa ?? fattura.TipologiaFattura;
+            if (tipologiaFattura == "SECONDO SALDO")
+            {
+                tipologiaFattura = $"{tipologiaFattura} Contestazioni risolte";
+            }
+            else if (tipologiaFattura == "PRIMO SALDO")
+            {
+                tipologiaFattura = string.Empty;
+            }
 
-            builder.Append($"- € {(fattura.Totale ?? 0).ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} oltre IVA, così determinato: ");
-            builder.Append($"- € {(fattura.TotaleDigitale ?? 0).ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} per n. {fattura.TotaleNotificheDigitali ?? 0} notifiche digitali e ");
-            builder.Append($"€ {(fattura.TotaleAnalogico ?? 0).ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} per n. {fattura.TotaleNotificheAnalogiche ?? 0} notifiche analogiche espletate.<br/>");
+            const string baseStyle = "font-family: Calibri, sans-serif;font-style: normal;font-weight: normal;text-decoration: none;font-size: 16pt;padding-top: 9pt; text-indent: 0pt; line-height: 114%; text-align: justify;";
+            const string bulletStyle = "font-family: Calibri, sans-serif;font-style: normal;font-weight: normal;text-decoration: none;font-size: 16pt;padding-top: 9pt; padding-left: 16pt; text-indent: 0pt; line-height: 114%; text-align: justify;";
+
+            var tipologiaSuffix = string.IsNullOrWhiteSpace(tipologiaFattura) ? string.Empty : $" {tipologiaFattura}";
+
+            builder.Append($"<p style=\"{baseStyle}\">MESE DI {fattura.Mese.PadLeft(2, '0')}/{fattura.Anno}{tipologiaSuffix}</p>");
+            builder.Append($"<p style=\"{bulletStyle}\">- € {(fattura.Totale ?? 0).ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} oltre IVA, così determinato: - € {(fattura.TotaleDigitale ?? 0).ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} per n.&nbsp;{fattura.TotaleNotificheDigitali ?? 0} notifiche digitali e € {(fattura.TotaleAnalogico ?? 0).ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} per n.&nbsp;{fattura.TotaleNotificheAnalogiche ?? 0} notifiche analogiche espletate.</p>");
 
             if (showDetails)
             {
-                if (isPac)
-                {
-                    builder.Append("agli importi sopra indicati per l’emissione di regolare fattura sono stornati i seguenti importi già versati in anticipo e/o acconto:<br/>");
-                }
-                else
-                {
-                    builder.Append("agli importi sopra indicati per l’emissione di regolare fattura sono stornati i seguenti importi già versati in anticipo:<br/>");
-                }
-
-                builder.Append($"- € {fattura.TotaleAnticipo.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} oltre IVA, così determinato: ");
-                builder.Append($"- € {fattura.AnticipoDigitale.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} per l’anticipazione delle notifiche digitali e ");
-                builder.Append($"€ {fattura.AnticipoAnalogico.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} per l’anticipazione delle notifiche analogiche.<br/>");
+                builder.Append($"<p style=\"{baseStyle}\">{(isPac ? "Agli importi sopra indicati per l’emissione di regolare fattura sono stornati i seguenti importi già versati in anticipo e/o acconto:" : "Agli importi sopra indicati per l’emissione di regolare fattura sono stornati i seguenti importi già versati in anticipo:")}</p>");
+                builder.Append($"<p style=\"{bulletStyle}\">- € {fattura.TotaleAnticipo.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} oltre IVA, così determinato: - € {fattura.AnticipoDigitale.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} per l’anticipazione delle notifiche digitali e € {fattura.AnticipoAnalogico.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} per l’anticipazione delle notifiche analogiche.</p>");
 
                 if (isPac)
                 {
-                     builder.Append($"- € {fattura.TotaleAcconto.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} oltre IVA, così determinato: ");
-                     builder.Append($"- € {fattura.AccontoDigitale.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} per l’acconto delle notifiche digitali e ");
-                     builder.Append($"€ {fattura.AccontoAnalogico.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} per l’anticipazione delle notifiche analogiche.<br/>");
+                    builder.Append($"<p style=\"{bulletStyle}\">- € {fattura.TotaleAcconto.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} oltre IVA, così determinato: - € {fattura.AccontoDigitale.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} per l’acconto delle notifiche digitali e € {fattura.AccontoAnalogico.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} per l’anticipazione delle notifiche analogiche.</p>");
                 }
             }
             else
             {
-                if (isPac)
-                {
-                    builder.Append("agli importi sopra indicati per l’emissione di regolare fattura sono stornati gli importi già versati in anticipo e/o acconto.<br/>");
-                }
-                else
-                {
-                    builder.Append("agli importi sopra indicati per l’emissione di regolare fattura sono stornati gli importi già versati in anticipo.<br/>");
-                }
+                builder.Append($"<p style=\"{baseStyle}\">{(isPac ? "Agli importi sopra indicati per l’emissione di regolare fattura sono stornati gli importi già versati in anticipo e/o acconto." : "Agli importi sopra indicati per l’emissione di regolare fattura sono stornati gli importi già versati in anticipo.")}</p>");
             }
-            
-            builder.Append("</p>");
+
+            builder.Append("<p style=\"text-indent: 0pt;text-align: left;\"><br /></p>");
         }
 
         return builder.ToString();
@@ -290,6 +279,7 @@ public static class DocumentExtensions
         template = template
             .Replace(nameof(model.Anno).GetName<DocumentoContabileSospeso>(), model.Anno.ToString())
             .Replace(nameof(model.Mese).GetName<DocumentoContabileSospeso>(), model.Mese.ToString())
+            .Replace("[ElencoMesi]", $"{model.Mese.ToString().PadLeft(2, '0')}/{model.Anno}")
             .Replace(nameof(model.Totale).GetName<DocumentoContabileSospeso>(), model.Totale.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT")))
             .Replace(nameof(model.TotaleAnalogico).GetName<DocumentoContabileSospeso>(), model.TotaleAnalogico.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT")))
             .Replace(nameof(model.AnticipoAnalogico).GetName<DocumentoContabileSospeso>(), model.AnticipoAnalogico.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT")))
@@ -299,11 +289,11 @@ public static class DocumentExtensions
             .Replace(nameof(model.StornoAnalogico).GetName<DocumentoContabileSospeso>(), model.StornoAnalogico.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT")))
             .Replace(nameof(model.ImportoSottoSoglia).GetName<DocumentoContabileSospeso>(), model.ImportoSottoSoglia.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT")))
             .Replace(nameof(model.TotaleDigitale).GetName<DocumentoContabileSospeso>(), model.TotaleDigitale.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT")))
-            .Replace(nameof(model.TotaleNotificheAnalogiche).GetName<DocumentoContabileSospeso>(), model.TotaleNotificheAnalogiche!.ToString())
-            .Replace(nameof(model.TotaleNotificheDigitali).GetName<DocumentoContabileSospeso>(), model.TotaleNotificheDigitali!.ToString())
-            .Replace(nameof(model.TipologiaFattura).GetName<RelDocumentoDto>(), model.TipologiaFattura!)
-            .Replace(nameof(model.RagioneSociale).GetName<RelDocumentoDto>(), model.RagioneSociale!)
-            .Replace(nameof(model.IdContratto).GetName<RelDocumentoDto>(), model.IdContratto!)
+            .Replace(nameof(model.TotaleNotificheAnalogiche).GetName<DocumentoContabileSospeso>(), model.TotaleNotificheAnalogiche.ToString())
+            .Replace(nameof(model.TotaleNotificheDigitali).GetName<DocumentoContabileSospeso>(), model.TotaleNotificheDigitali.ToString())
+            .Replace(nameof(model.TipologiaFattura).GetName<DocumentoContabileSospeso>(), model.TipologiaFattura ?? string.Empty)
+            .Replace(nameof(model.RagioneSociale).GetName<DocumentoContabileSospeso>(), model.RagioneSociale ?? string.Empty)
+            .Replace(nameof(model.IdContratto).GetName<DocumentoContabileSospeso>(), model.IdContratto ?? string.Empty)
               ;
 
         return template;
@@ -315,6 +305,7 @@ public static class DocumentExtensions
             .Replace(nameof(model.Anno).GetName<DocumentoContabileEmesso>(), model.Anno)
             .Replace(nameof(model.Mese).GetName<DocumentoContabileEmesso>(), model.Mese)
             .Replace("[ElencoMesi]", $"{model.Mese.PadLeft(2, '0')}/{model.Anno}")
+            .Replace("[TipologiaFattura]", model.TipologiaFattura ?? string.Empty)
             .Replace(nameof(model.Totale).GetName<DocumentoContabileEmesso>(), model.Totale.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT")))
             .Replace(nameof(model.TotaleAnalogico).GetName<DocumentoContabileEmesso>(), model.TotaleAnalogico.ToString("N2"))
             .Replace(nameof(model.TotaleDigitale).GetName<DocumentoContabileEmesso>(), model.TotaleDigitale.ToString("N2"))
