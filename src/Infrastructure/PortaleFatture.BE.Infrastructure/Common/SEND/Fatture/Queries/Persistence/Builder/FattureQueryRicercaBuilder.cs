@@ -647,15 +647,16 @@ and FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865'
 
 
     private static string _selectPeriodoSospeseEnte = @"
-	SELECT AnnoRiferimento AS anno,
-               MeseRiferimento AS mese,
-			   FkTipologiaFattura as TipologiaFattura,
-			    CAST(DataFattura AS DATE) AS DataFattura 
-        FROM [pfd].[tmpFattureTestata]
-        WHERE FkIdEnte = @IdEnte
-		and FlagFatturata = 0
-        GROUP BY AnnoRiferimento, MeseRiferimento, FkTipologiaFattura,  CAST(DataFattura AS DATE) 
-        order by anno desc, mese desc
+        SELECT 
+            tft.AnnoRiferimento AS anno,
+            tft.MeseRiferimento AS mese,
+            tft.FkTipologiaFattura as TipologiaFattura,
+            CAST(tft.DataFattura AS DATE) AS DataFattura 
+        FROM pfd.CreditoSospeso cs 
+        LEFT OUTER JOIN pfd.CreditoSospesoStorico css 
+        ON cs.FkIdEnte = css.FkIdEnte 
+        INNER JOIN [pfd].[tmpFattureTestata] tft
+        ON tft.IdFattura = css.FkIdFatturaTmp 
 ";
     public static string SelectPeriodoSospeseEnte()
     {
