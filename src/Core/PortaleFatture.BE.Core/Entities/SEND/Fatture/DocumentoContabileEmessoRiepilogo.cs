@@ -23,5 +23,7 @@ namespace PortaleFatture.BE.Core.Entities.SEND.Fatture
         public decimal AccontoAnalogico { get; set; } = 0;
 
         public string? TipologiaContratto { get; set; }
+        public string? TipologiaFattura { get; set; }
+        public string? TipologiaFatturaSospesa { get; set; }
     }
 }

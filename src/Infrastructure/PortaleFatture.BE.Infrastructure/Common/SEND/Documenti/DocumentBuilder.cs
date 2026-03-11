@@ -18,7 +18,8 @@ public class DocumentBuilder : IDocumentBuilder
     private static string _fileSecondoSaldoRel = $"SECONDO_SALDO_rel.html";
     private static string _fileModuloCommessa = $"daticommessa.html";
     private static string _directory = $"Infrastructure/Documenti/";
-    private static string _fileDettaglioFatturaSospesa = $"pal_fattura_sospesa_singola.html";
+    private static string _fileDettaglioFatturaSospesaPac = $"pac_fattura_sospesa_singola.html";
+    private static string _fileDettaglioFatturaSospesaPal = $"pal_fattura_sospesa_singola.html";
     private static string _fileDettaglioFatturaEmessaPac = $"pac_fattura_emessa_singola.html";
     private static string _fileDettaglioFatturaEmessaPal = $"pal_fattura_emessa_singola.html";
     private static string _fileDettaglioFatturaEmessaPacMultipla = $"pac_fatture_emesse_multiple.html";
@@ -139,14 +140,20 @@ public class DocumentBuilder : IDocumentBuilder
     public string? CreateDettaglioFatturaSospesaHtml(DocumentoContabileSospeso dati)
     {
         string? fileRel;
-        if (dati.TipologiaFattura == "PAL")
+        if (dati.TipologiaContratto != null && dati.TipologiaContratto.ToUpper().Contains("PAC"))
         {
-            fileRel = _fileDettaglioFatturaSospesa;
+            fileRel = _fileDettaglioFatturaSospesaPac;
+        }
+        else if (dati.TipologiaContratto != null && dati.TipologiaContratto.ToUpper().Contains("PAL"))
+        {
+            fileRel = _fileDettaglioFatturaSospesaPal;
         }
         else
         {
             throw new Exception("Tipologia fattura non valida");
         }
+
+        dati.TipologiaFattura = BuildTipologiaFattura(dati.TipologiaFattura);
 
         var filePath = Path.Combine([_directoryPath, fileRel]);
         var relText = ReadFromFile(filePath);
@@ -157,11 +164,11 @@ public class DocumentBuilder : IDocumentBuilder
     public byte[] CreateDettaglioFatturaEmessaPdf(DocumentoContabileEmesso dati)
     {
         string? fileRel;
-        if (dati.TipologiaFattura != null && dati.TipologiaFattura.ToUpper().Contains("PAC"))
+        if (dati.TipologiaContratto != null && dati.TipologiaContratto.ToUpper().Contains("PAC"))
         {
             fileRel = _fileDettaglioFatturaEmessaPac;
         }
-        else if (dati.TipologiaFattura != null && dati.TipologiaFattura.ToUpper().Contains("PAL"))
+        else if (dati.TipologiaContratto != null && dati.TipologiaContratto.ToUpper().Contains("PAL"))
         {
             fileRel = _fileDettaglioFatturaEmessaPal;
         }
@@ -169,6 +176,9 @@ public class DocumentBuilder : IDocumentBuilder
         {
             throw new Exception("Tipologia fattura non valida");
         }
+
+        // ? TODO: verificare se necessario anche per le singole
+        dati.TipologiaFattura = BuildTipologiaFattura(dati.TipologiaFattura);
 
         var filePath = Path.Combine([_directoryPath, fileRel]);
         var relText = ReadFromFile(filePath);
@@ -179,11 +189,11 @@ public class DocumentBuilder : IDocumentBuilder
     public byte[] CreateDettaglioFatturaEmessaMultiplaPdf(DocumentoContabileEmessiMultipli dati)
     {
         string? fileRel;
-        if (dati.TipologiaFattura != null && dati.TipologiaFattura.ToUpper().Contains("PAC"))
+        if (dati.TipologiaContratto != null && dati.TipologiaContratto.ToUpper().Contains("PAC"))
         {
             fileRel = _fileDettaglioFatturaEmessaPacMultipla;
         }
-        else if (dati.TipologiaFattura != null && dati.TipologiaFattura.ToUpper().Contains("PAL"))
+        else if (dati.TipologiaContratto != null && dati.TipologiaContratto.ToUpper().Contains("PAL"))
         {
             fileRel = _fileDettaglioFatturaEmessaPalMultipla;
         }
@@ -204,6 +214,23 @@ public class DocumentBuilder : IDocumentBuilder
         var moduloCommessaText = ReadFromFile(filePath);
         moduloCommessaText = dati.Replace(moduloCommessaText!);
         return CreatePdf(moduloCommessaText!);
+    }
+
+    private static string BuildTipologiaFattura(string? tipologiaFattura)
+    {
+        if (string.IsNullOrWhiteSpace(tipologiaFattura)) return string.Empty;
+
+        if (tipologiaFattura == "PRIMO SALDO")
+        {
+            return string.Empty;
+        }
+
+        if (tipologiaFattura == "SECONDO SALDO")
+        {
+            return $" {tipologiaFattura} Contestazioni risolte";
+        }
+
+        return $" {tipologiaFattura}";
     }
 
     private readonly static GlobalSettings _globalSettings = new()
@@ -232,11 +259,11 @@ public class DocumentBuilder : IDocumentBuilder
     public string? CreateDettaglioFatturaEmessaHtml(DocumentoContabileEmesso dati)
     {
         string? fileRel;
-        if (dati.TipologiaFattura != null && dati.TipologiaFattura.ToUpper().Contains("PAC"))
+        if (dati.TipologiaContratto != null && dati.TipologiaContratto.ToUpper().Contains("PAC"))
         {
             fileRel = _fileDettaglioFatturaEmessaPac;
         }
-        else if (dati.TipologiaFattura != null && dati.TipologiaFattura.ToUpper().Contains("PAL"))
+        else if (dati.TipologiaContratto != null && dati.TipologiaContratto.ToUpper().Contains("PAL"))
         {
             fileRel = _fileDettaglioFatturaEmessaPal;
         }
@@ -244,6 +271,8 @@ public class DocumentBuilder : IDocumentBuilder
         {
             throw new Exception("Tipologia fattura non valida");
         }
+
+        dati.TipologiaFattura = BuildTipologiaFattura(dati.TipologiaFattura);
 
         var filePath = Path.Combine([_directoryPath, fileRel]);
         var relText = ReadFromFile(filePath);
@@ -254,11 +283,11 @@ public class DocumentBuilder : IDocumentBuilder
     public string? CreateDettaglioFatturaEmessaMultiplaHtml(DocumentoContabileEmessiMultipli dati)
     {
         string? fileRel;
-        if (dati.TipologiaFattura != null && dati.TipologiaFattura.ToUpper().Contains("PAC"))
+        if (dati.TipologiaContratto != null && dati.TipologiaContratto.ToUpper().Contains("PAC"))
         {
             fileRel = _fileDettaglioFatturaEmessaPacMultipla;
         }
-        else if (dati.TipologiaFattura != null && dati.TipologiaFattura.ToUpper().Contains("PAL"))
+        else if (dati.TipologiaContratto != null && dati.TipologiaContratto.ToUpper().Contains("PAL"))
         {
             fileRel = _fileDettaglioFatturaEmessaPalMultipla;
         }
