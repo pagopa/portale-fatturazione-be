@@ -331,7 +331,8 @@ public static class FattureExtensions
             Anno = dto.Anno ?? 0,
             Mese = dto.Mese ?? 0,
             TotaleAnalogico = dto.RelTotaleAnalogico,
-            TipologiaFattura = dto.TipologiaContratto,
+            TipologiaFattura = dto.TipologiaFatturaSospesa ?? dto.TipologiaFattura,
+            TipologiaContratto = dto.TipologiaContratto,
             AnticipoAnalogico = anticipoAnalogico,
             AnticipoDigitale = anticipoDigitale,
             ImportoSottoSoglia = totaleImponibile - totaleAnticipo,
@@ -373,7 +374,8 @@ public static class FattureExtensions
             AccontoDigitale = dto.AccontoDigitale ?? 0,
             AccontoAnalogico = dto.AccontoAnalogico ?? 0,
             Imponibile = dto.TotaleFatturaImponibile ?? 0,
-            TipologiaFattura = dto.TipologiaContratto
+            TipologiaFattura = dto.TipologiaFattura,
+            TipologiaContratto = dto.TipologiaContratto
         };
     }
 
@@ -409,6 +411,8 @@ public static class FattureExtensions
             TotaleNotificheAnalogiche = dto.RelTotaleNotificheAnalogicheSospeso ?? dto.RelTotaleNotificheAnalogiche,
 
             TipologiaContratto = dto.TipologiaContratto,
+            TipologiaFattura = dto.TipologiaFattura,
+            TipologiaFatturaSospesa = dto.TipologiaFatturaSospesa,
             TotaleAnticipo = (dto.AnticipoDigitale ?? 0) + (dto.AnticipoAnalogico ?? 0),
             AnticipoDigitale = dto.AnticipoDigitale ?? 0,
             AnticipoAnalogico = dto.AnticipoAnalogico ?? 0,
@@ -430,7 +434,8 @@ public static class FattureExtensions
     {
         RagioneSociale = first.RagioneSociale,
         IdContratto = first.IdContratto,
-        TipologiaFattura = first.TipologiaContratto,
+        TipologiaFattura = first.TipologiaFattura,
+        TipologiaContratto = first.TipologiaContratto,
         DettaglioFatture = dtos.Select(d => d.MapToPdfRiepilogo()).ToList()
     };
 
