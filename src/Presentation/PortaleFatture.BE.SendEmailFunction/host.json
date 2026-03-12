@@ -13,5 +13,6 @@
     "durableTask": {
       "hubName": "fatapifunc"
     }
-  }
+  },
+  "functionTimeout": "03:00:00"
 }
