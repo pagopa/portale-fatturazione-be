@@ -1172,7 +1172,7 @@ SELECT [AnnoRiferimento] as Anno
             LEFT OUTER JOIN [pfd].[RelTestata] trt
             ON trt.year = tft.AnnoRiferimento 
             AND trt.month = tft.MeseRiferimento 
-            AND trt.TipologiaFattura = tft.FkTipologiaFattura
+            --AND trt.TipologiaFattura = tft.FkTipologiaFattura
             AND trt.internal_organization_id = tft.FkIdEnte 
             AND trt.contract_id = tft.CodiceContratto
             LEFT JOIN pfd.Contratti c
@@ -1184,7 +1184,7 @@ SELECT [AnnoRiferimento] as Anno
             LEFT JOIN pfd.tmpRelTestata tmprl
             ON tftt.FkIdEnte = tmprl.internal_organization_id 
             AND tftt.CodiceContratto = tmprl.contract_id
-            AND tftt.FkTipologiaFattura = tmprl.TipologiaFattura
+            --AND tftt.FkTipologiaFattura = tmprl.TipologiaFattura
             AND tftt.AnnoRiferimento = tmprl.year
             AND tftt.MeseRiferimento = tmprl.month
             LEFT JOIN pfd.Iva iva
