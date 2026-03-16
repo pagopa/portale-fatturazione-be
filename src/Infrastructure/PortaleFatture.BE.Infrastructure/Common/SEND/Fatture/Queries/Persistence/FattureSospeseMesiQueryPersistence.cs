@@ -16,7 +16,7 @@ public class FattureSospeseMesiQueryPersistence(FattureSospeseMesiQuery command)
         var where = string.Empty;
         if (!string.IsNullOrEmpty(_command.Anno))
         {
-            where += " WHERE annoriferimento=@anno ";
+            where += " AND annoriferimento=@anno ";
             parameters.Anno = _command.Anno;
         }
 
