@@ -347,11 +347,12 @@ SELECT
    FROM [pfd].[FattureTestata]
 ";
 
-    private static string _sqlAnniSospese = @"
-SELECT  
-      distinct AnnoRiferimento
-   FROM [pfd].[tmpFattureTestata]
-";
+    private static string _sqlAnniSospese = 
+     @"
+        SELECT distinct AnnoRiferimento
+        FROM [pfd].[tmpFattureTestata]
+        where FlagFatturata = 0
+    ";
 
     private static string _sqlMesi = @"
 SELECT  
@@ -540,11 +541,12 @@ and FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865'
         return _sqlAnniSospese;
     }
 
-    private static string _sqlMesiSospese = @"
-    SELECT  
-      distinct MeseRiferimento
-    FROM [pfd].[tmpFattureTestata]
-";
+    private static string _sqlMesiSospese = 
+        @"
+            SELECT distinct MeseRiferimento
+            FROM [pfd].[tmpFattureTestata]
+            where FlagFatturata = 0
+    ";
 
     public static string SelectMesiSospese()
     {
@@ -936,7 +938,8 @@ SELECT CONVERT(varchar(10), DataFattura, 120) as DataFattura, FkTipologiaFattura
     public static string SelectFattureSospeseDate()
     {
         return $@"
-SELECT CONVERT(varchar(10), DataFattura, 120) as DataFattura, FkTipologiaFattura as TipologiaFattura from pfd.tmpFattureTestata ";
+            SELECT CONVERT(varchar(10), DataFattura, 120) as DataFattura, FkTipologiaFattura as TipologiaFattura from pfd.tmpFattureTestata 
+            Where FlagFatturata = 0";
     }
 
     public static string OrderByFattureDate()
@@ -1343,11 +1346,12 @@ SELECT [AnnoRiferimento] as Anno
                 and FT.FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865' --esclusione pagopa
                 and FT.TotaleFattura > 0
                 AND (@FkIdTipoContratto IS NULL OR c.FkIdTipoContratto = @FkIdTipoContratto)  
-                AND (
-                    @FatturaInviata IS NULL  -- Se NULL, mostra tutte
-                    OR (@FatturaInviata = 2 AND FT.FatturaInviata IS NULL)  -- In elaborazione
-                    OR (FT.FatturaInviata = @FatturaInviata)  -- 0 o 1
-                )
+                AND FlagFatturata = 0                 
+                --AND (
+                --    @FatturaInviata IS NULL  -- Se NULL, mostra tutte
+                --    OR (@FatturaInviata = 2 AND FT.FatturaInviata IS NULL)  -- In elaborazione
+                --    OR (FT.FatturaInviata = @FatturaInviata)  -- 0 o 1
+                --)
                 ORDER BY FT.FkTipologiaFattura, FT.Progressivo
                 FOR JSON PATH, INCLUDE_NULL_VALUES )
         ";

@@ -50,21 +50,23 @@ WHERE [AnnoRiferimento]=@anno AND [MeseRiferimento]=@mese
 ORDER BY ordine, [FkTipologiaFattura] 
 ";
 
-    private static string _sqlSospese = @"
-SELECT distinct
-      [FkTipologiaFattura] ,
-	    CASE
-			WHEN [FkTipologiaFattura] = 'ANTICIPO' THEN 1
-			WHEN [FkTipologiaFattura] = 'ACCONTO' THEN 2
-			WHEN [FkTipologiaFattura] = 'PRIMO SALDO' THEN 3
-			WHEN [FkTipologiaFattura] = 'SECONDO SALDO' THEN 4
-			WHEN [FkTipologiaFattura] = 'VAR. SEMESTRALE' THEN 5
-			ELSE 6
-		END AS ordine
-      FROM [pfd].[tmpFattureTestata]
-WHERE [AnnoRiferimento]=@anno AND [MeseRiferimento]=@mese
-ORDER BY ordine, [FkTipologiaFattura] 
-";
+    private static string _sqlSospese = 
+        @"
+        SELECT distinct
+              [FkTipologiaFattura] ,
+	            CASE
+			        WHEN [FkTipologiaFattura] = 'ANTICIPO' THEN 1
+			        WHEN [FkTipologiaFattura] = 'ACCONTO' THEN 2
+			        WHEN [FkTipologiaFattura] = 'PRIMO SALDO' THEN 3
+			        WHEN [FkTipologiaFattura] = 'SECONDO SALDO' THEN 4
+			        WHEN [FkTipologiaFattura] = 'VAR. SEMESTRALE' THEN 5
+			        ELSE 6
+		        END AS ordine
+              FROM [pfd].[tmpFattureTestata]
+        WHERE [AnnoRiferimento]=@anno AND [MeseRiferimento]=@mese
+        AND FlagFatturata = 0
+        ORDER BY ordine, [FkTipologiaFattura] 
+    ";
 
     public static string SelectAll()
     {
