@@ -1336,24 +1336,27 @@ SELECT [AnnoRiferimento] as Anno
                     FOR JSON PATH
                 ) AS 'fattura.posizioni'
             FROM
-                [pfd].[tmpFattureTestata] FT 
+            [pfd].[tmpFattureTestata] FT 
+            INNER JOIN pfd.RiepilogoFatturazione_NPF npf 
+            ON ft.FkIdEnte = npf.FkIdEnte AND ft.AnnoRiferimento = npf.AnnoRiferimento AND ft.MeseRiferimento = npf.MeseRiferimento
             INNER JOIN pfd.Contratti c ON c.onboardingtokenid = FT.CodiceContratto
             AND c.internalistitutionid  = ft.FkIdEnte
             INNER JOIN pfw.FatturaTestataConfig ftc ON ftc.FkTipologiaFattura = FT.FkTipologiaFattura AND ftc.FKIdTipoContratto = c.FkIdTipoContratto
-                where FT.AnnoRiferimento = @AnnoRiferimento
-                and FT.MeseRiferimento = @MeseRiferimento
-                [condition_tipologiafattura]
-                and FT.FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865' --esclusione pagopa
-                and FT.TotaleFattura > 0
-                AND (@FkIdTipoContratto IS NULL OR c.FkIdTipoContratto = @FkIdTipoContratto)  
-                AND FlagFatturata = 0                 
-                --AND (
-                --    @FatturaInviata IS NULL  -- Se NULL, mostra tutte
-                --    OR (@FatturaInviata = 2 AND FT.FatturaInviata IS NULL)  -- In elaborazione
-                --    OR (FT.FatturaInviata = @FatturaInviata)  -- 0 o 1
-                --)
-                ORDER BY FT.FkTipologiaFattura, FT.Progressivo
-                FOR JSON PATH, INCLUDE_NULL_VALUES )
+            where (PrimoSaldoSospeso = 1) AND 
+            FT.AnnoRiferimento = @AnnoRiferimento
+            and FT.MeseRiferimento = @MeseRiferimento
+            [condition_tipologiafattura]
+            and FT.FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865' --esclusione pagopa
+            and FT.TotaleFattura > 0
+            AND (@FkIdTipoContratto IS NULL OR c.FkIdTipoContratto = @FkIdTipoContratto)  
+            AND FlagFatturata = 0                 
+            --AND (
+            --    @FatturaInviata IS NULL  -- Se NULL, mostra tutte
+            --    OR (@FatturaInviata = 2 AND FT.FatturaInviata IS NULL)  -- In elaborazione
+            --    OR (FT.FatturaInviata = @FatturaInviata)  -- 0 o 1
+            --)
+            ORDER BY FT.FkTipologiaFattura, FT.Progressivo
+            FOR JSON PATH, INCLUDE_NULL_VALUES )
         ";
 
     public static string SelectSospeseAll() { 
