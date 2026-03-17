@@ -47,47 +47,51 @@ FROM (
 ";
 
     private static string _sqlCount = @"
-SELECT Count(internal_organization_id) 
-  FROM [pfd].[tmpRelTestata] t
-  inner join pfd.Enti e
-  on e.InternalIstitutionId =t.internal_organization_id
-  left outer join pfd.Contratti c
-  on c.internalistitutionid = e.InternalIstitutionId
-";
+            SELECT Count(internal_organization_id) 
+            FROM pfd.RiepilogoFatturazione_NPF rf
+            inner join pfd.tmpRelTestata rt on rf.FkIdEnte = rt.internal_organization_id
+            and rf.AnnoRiferimento = rt.year and rf.MeseRiferimento = rt.month
+            WHERE rf.PrimoSaldoSospeso = 1
+    ";
+
     private static string _sql = @"
-SELECT [internal_organization_id] as IdEnte
-      ,[description] as RagioneSociale
-      ,[contract_id] as IdContratto
-      ,[TipologiaFattura]
-      ,t.[year] as anno
-      ,t.[month] as mese
-      ,[TotaleAnalogico]
-      ,[TotaleDigitale]
-      ,[TotaleNotificheAnalogiche]
-      ,[TotaleNotificheDigitali]
-      ,[Totale]      
-      ,[Iva]
-      ,[TotaleAnalogicoIva]
-      ,[TotaleDigitaleIva]
-      ,[TotaleIva] 
-      ,[Caricata]
-      ,[AsseverazioneTotaleAnalogico]
-      ,[AsseverazioneTotaleDigitale]
-      ,[AsseverazioneTotaleNotificheAnalogiche]
-      ,[AsseverazioneTotaleNotificheDigitali]
-      ,[AsseverazioneTotale]
-      ,[AsseverazioneTotaleAnalogicoIva]
-      ,[AsseverazioneTotaleDigitaleIva]
-      ,[AsseverazioneTotaleIva]
-      ,[FlagConguaglio]
-	  ,tp.Descrizione as TipologiaContratto
-  FROM [pfd].[tmpRelTestata] t
-  inner join pfd.Enti e
-  on e.InternalIstitutionId =internal_organization_id
-  left outer join pfd.Contratti c
-  on c.internalistitutionid = e.InternalIstitutionId
-  inner join pfw.TipoContratto tp
-  on c.FkIdTipoContratto = tp.IdTipoContratto
+        SELECT 
+        [internal_organization_id] as IdEnte
+        ,[description] as RagioneSociale
+        ,[contract_id] as IdContratto
+        ,[TipologiaFattura]
+        ,t.[year] as anno
+        ,t.[month] as mese
+        ,[TotaleAnalogico]
+        ,[TotaleDigitale]
+        ,[TotaleNotificheAnalogiche]
+        ,[TotaleNotificheDigitali]
+        ,[Totale]      
+        ,[Iva]
+        ,[TotaleAnalogicoIva]
+        ,[TotaleDigitaleIva]
+        ,[TotaleIva] 
+        ,[Caricata]
+        ,[AsseverazioneTotaleAnalogico]
+        ,[AsseverazioneTotaleDigitale]
+        ,[AsseverazioneTotaleNotificheAnalogiche]
+        ,[AsseverazioneTotaleNotificheDigitali]
+        ,[AsseverazioneTotale]
+        ,[AsseverazioneTotaleAnalogicoIva]
+        ,[AsseverazioneTotaleDigitaleIva]
+        ,[AsseverazioneTotaleIva]
+        ,[FlagConguaglio]
+        ,tp.Descrizione as TipologiaContratto
+        FROM  pfd.RiepilogoFatturazione_NPF rf
+        inner join pfd.tmpRelTestata t on rf.FkIdEnte = t.internal_organization_id
+        and rf.AnnoRiferimento = t.year and rf.MeseRiferimento = t.month
+        inner join pfd.Enti e
+        on e.InternalIstitutionId =internal_organization_id
+        left outer join pfd.Contratti c
+        on c.internalistitutionid = e.InternalIstitutionId
+        inner join pfw.TipoContratto tp
+        on c.FkIdTipoContratto = tp.IdTipoContratto
+        WHERE rf.PrimoSaldoSospeso = 1
 ";
 
     private static string _sqlDettaglio = @"

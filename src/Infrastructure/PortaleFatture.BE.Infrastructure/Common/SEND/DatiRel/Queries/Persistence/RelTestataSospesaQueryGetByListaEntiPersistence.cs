@@ -29,7 +29,7 @@ public class RelTestataSospesaQueryGetByListaEntiPersistence(RelTestataSospesaQu
         var idTipoContratto = _command.FkIdTipoContratto;
 
         if (anno.HasValue)
-            where += " WHERE t.year=@anno";
+            where += " AND t.year=@anno";
         if (mese.HasValue)
             where += " AND t.month=@mese";
 
