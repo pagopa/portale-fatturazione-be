@@ -244,6 +244,24 @@ public partial class FattureModule : Module, IRegistrableModule
           .SetOpenApi(Module.DatiFattureLabel)
           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
+        endpointRouteBuilder
+        .MapPost("api/fatture/emesse/dettaglio", PostFattureEmesseAdminDettaglioAsync)
+        .WithName("Permette di ottenere il dettaglio di una specifica fattura emessa per Amministrazione")
+        .SetOpenApi(Module.DatiFattureLabel)
+        .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+        .MapGet("api/fatture/emesse/dettaglio/download/{id}", FattureEmesseAdminDettaglioDownloadAsync)
+        .WithName("Permette di scaricare il dettaglio in pdf della fatture emessa per Amministrazione")
+        .SetOpenApi(Module.DatiFattureLabel)
+        .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+        .MapPost("api/fatture/emesse/download", PostFattureEmesseAdminExcelAsync)
+        .WithName("Permette di scaricare l'excel delle fatture emesse per Amministrazione")
+        .SetOpenApi(Module.DatiFattureLabel)
+        .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
         #endregion
 
         #region ente

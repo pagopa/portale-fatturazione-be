@@ -1018,6 +1018,64 @@ public partial class FattureModule
         }));
     }
 
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<DocumentoContabileEmessoDettaglioResponse>, NotFound>> PostFattureEmesseAdminDettaglioAsync(
+    HttpContext context,
+    [FromBody] FattureDocContabileEnteAdminRequest request,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+
+        var dettaglioEmesse = await handler.Send(request.MapEmessoAdmin());
+        if (dettaglioEmesse == null || !dettaglioEmesse.Any())
+            return NotFound();
+        //return Ok(dettaglioEmesse.FirstOrDefault()?.Map());
+        return Ok(dettaglioEmesse.Map());
+
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<IResult> PostFattureEmesseAdminExcelAsync(
+        HttpContext context,
+        [FromQuery] string? idEnte,
+        [FromBody] FattureEmesseRicercaEnteRequest request,
+        [FromServices] IStringLocalizer<Localization> localizer,
+        [FromServices] IMediator handler)
+    {
+        if (string.IsNullOrWhiteSpace(idEnte))
+            return Results.BadRequest();
+
+        var authInfo = context.GetAuthInfo();
+        authInfo.IdEnte = idEnte;
+
+        var fattureEmesseExport = await handler.Send(request.Map(authInfo));
+        if (fattureEmesseExport == null || !fattureEmesseExport!.Dettagli!.Any())
+            return NotFound();
+
+        var mime = "application/vnd.ms-excel";
+        var filename = $"{Guid.NewGuid()}.xlsx";
+
+        var dataSet = fattureEmesseExport.Map(DocContabileScope.Emesso).MapExport()!.FillOneSheetv2();
+        var content = dataSet.ToExcel();
+        var result = new DisposableStreamResult(content, mime)
+        {
+            FileDownloadName = filename
+        };
+
+        return Results.Stream(result.FileStream, result.ContentType, result.FileDownloadName);
+    }
+
     #endregion
 
     #region ente
@@ -1414,6 +1472,66 @@ public partial class FattureModule
                 var mime = "text/html";
                 return Results.Text(content, mime);
             }
+        }
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<IResult> FattureEmesseAdminDettaglioDownloadAsync(
+        HttpContext context,
+        [FromRoute] long? id,
+        [FromQuery] string? idEnte,
+        [FromQuery] string? tipo,
+        [FromServices] IDocumentBuilder documentBuilder,
+        [FromServices] IMediator handler,
+        [FromServices] IStringLocalizer<Localization> localizer)
+    {
+        if (string.IsNullOrWhiteSpace(idEnte))
+            return Results.BadRequest();
+
+        var request = new FattureDocContabileEnteAdminRequest()
+        {
+            IdFattura = id,
+            IdEnte = idEnte
+        };
+
+        var fattureEmesseExportPdf = await handler.Send(request.MapEmessoAdmin());
+        if (fattureEmesseExportPdf == null || !fattureEmesseExportPdf.Any())
+            return NotFound();
+
+        if (tipo != null && tipo == "pdf")
+        {
+            byte[] bytes;
+
+            if (fattureEmesseExportPdf.Count() > 1)
+            {
+                bytes = documentBuilder.CreateDettaglioFatturaEmessaMultiplaPdf(fattureEmesseExportPdf.MapToPdfMultiplo());
+            }
+            else
+            {
+                bytes = documentBuilder.CreateDettaglioFatturaEmessaPdf(fattureEmesseExportPdf.FirstOrDefault()!.MapToPdf());
+            }
+
+            var filename = $"{Guid.NewGuid()}.pdf";
+            var mime = "application/pdf";
+            return Results.File(bytes, mime, filename);
+        }
+
+        if (fattureEmesseExportPdf.Count() > 1)
+        {
+            var content = documentBuilder.CreateDettaglioFatturaEmessaMultiplaHtml(fattureEmesseExportPdf.MapToPdfMultiplo());
+            var mime = "text/html";
+            return Results.Text(content, mime);
+        }
+
+        {
+            var content = documentBuilder.CreateDettaglioFatturaEmessaHtml(fattureEmesseExportPdf.FirstOrDefault()!.MapToPdf());
+            var mime = "text/html";
+            return Results.Text(content, mime);
         }
     }
 
