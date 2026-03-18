@@ -14,14 +14,20 @@ public class EmailRelService(string cn) : IEmailRelService
          [internal_organization_id] as idEnte
         ,[contract_id] as idContratto
         ,[TipologiaFattura]
-        ,[year] as anno
-        ,[month] as mese
+        ,er.[year] as anno
+        ,er.[month] as mese
         ,[PEC] as pec
         ,[RagioneSociale] as ragionesociale
         ,[FlagConguaglio] as semestre
-        FROM [pfd].[EmailRel]
-        WHERE [year] = @year
-        AND [month] = @month
+        ,tp.IdTipoContratto
+        ,tp.Descrizione as TipoContratto
+        FROM [pfd].[EmailRel] er
+        LEFT JOIN pfd.Contratti c
+        ON c.internalistitutionid = er.[internal_organization_id]
+        INNER JOIN pfw.TipoContratto tp
+        ON c.FkIdTipoContratto = tp.IdTipoContratto
+        WHERE tp.Descrizione = 'PAC' AND er.[year] = @year
+        AND er.[month] = @month
         AND [TipologiaFattura] = @tipologiaFattura
         AND Totale >0;";
 
@@ -135,7 +141,8 @@ from cte_mesifatture mf
                             Mese = reader.GetInt32(4),
                             Pec = reader.IsDBNull(5) ? string.Empty : reader.GetString(5),
                             RagioneSociale = reader.GetString(6),
-                            Semestre = reader.IsDBNull(7) ? null : reader.GetString(7)
+                            Semestre = reader.IsDBNull(7) ? null : reader.GetString(7),
+                            TipoContratto = reader.GetString(9)
                         });
                     }
                 }
