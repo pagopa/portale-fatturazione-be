@@ -314,7 +314,8 @@ SELECT
                 FR.Quantita AS 'quantita',
                 CAST(FR.PrezzoUnitario AS DECIMAL(10, 2))  AS 'prezzoUnitario',
                 CAST(FR.Imponibile AS DECIMAL(10, 2))  AS 'imponibile',
-				FR.PeriodoRiferimento as 'periodoRiferimento'
+				FR.PeriodoRiferimento as 'periodoRiferimento',
+                FR.PeriodoFatturazione as 'periodoFatturazione'
             FROM [pfd].[FattureRighe] FR
 			LEFT JOIN [pfw].[CodiciMateriali] CM
 			ON FR.CodiceMateriale = CM.CodiceMateriale
