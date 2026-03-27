@@ -1,4 +1,4 @@
-﻿using MediatR;
+using MediatR;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using PortaleFatture.BE.Core.Resources;
@@ -20,5 +20,20 @@ public class FattureTipologiaAnniMeseQueryHandler(
     {
         using var rs = await _factory.Create(cancellationToken: ct);
         return await rs.Query(new FattureTipologiaAnniMeseQueryPersistence(request), ct);
+    }
+}
+
+public class FattureSospeseTipologiaAnniMeseQueryHandler(
+ IFattureDbContextFactory factory,
+ IStringLocalizer<Localization> localizer,
+ ILogger<FattureSospeseTipologiaAnniMeseQueryHandler> logger) : IRequestHandler<FattureSospeseTipologiaAnniMeseQuery, IEnumerable<string>?>
+{
+    private readonly IFattureDbContextFactory _factory = factory;
+    private readonly ILogger<FattureSospeseTipologiaAnniMeseQueryHandler> _logger = logger;
+    private readonly IStringLocalizer<Localization> _localizer = localizer;
+    public async Task<IEnumerable<string>?> Handle(FattureSospeseTipologiaAnniMeseQuery request, CancellationToken ct)
+    {
+        using var rs = await _factory.Create(cancellationToken: ct);
+        return await rs.Query(new FattureSospeseTipologiaAnniMeseQueryPersistence(request), ct);
     }
 }

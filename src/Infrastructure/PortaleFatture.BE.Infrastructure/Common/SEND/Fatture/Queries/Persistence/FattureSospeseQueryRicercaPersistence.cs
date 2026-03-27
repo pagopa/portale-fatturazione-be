@@ -1,4 +1,4 @@
-﻿using System.Data;
+using System.Data;
 using PortaleFatture.BE.Core.Entities.SEND.SelfCare.Dto;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
@@ -22,6 +22,8 @@ public class FattureSospeseQueryRicercaPersistence(FattureSospeseQueryRicerca co
         var anno = _command.Anno;
         var mese = _command.Mese;
         var tipoFattura = _command.TipologiaFattura;
+        var filterByDateFattura = _command.DateFattura?.Any() == true ? 1 : 0;
+        var dateFattura = _command.DateFattura;
 
         var sqlFatture = _command.Cancellata ? _sqlSelectAllCancellate : _sqlSelectAll;
         var sqlEnti = _sqlSelectEnti.Add(schema); 
@@ -38,6 +40,8 @@ public class FattureSospeseQueryRicercaPersistence(FattureSospeseQueryRicerca co
             AnnoRiferimento = anno,
             MeseRiferimento = mese,
             TipologiaFattura = tipoFattura,
+            FilterByDateFattura = filterByDateFattura,
+            DateFattura = dateFattura,
             FkIdTipoContratto = _command.FkIdTipoContratto,
             FatturaInviata = _command.FatturaInviata
         };

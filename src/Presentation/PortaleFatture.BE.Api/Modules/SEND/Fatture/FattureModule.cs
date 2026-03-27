@@ -922,6 +922,33 @@ public partial class FattureModule
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<IResult> PostFattureSospeseReportByRicercaAsync(
+    HttpContext context,
+    [FromBody] FatturaSospeseRicercaRequest request,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] ILogger<FattureModule> logger,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+
+        var reports = await request.ReportFattureSospese(handler, authInfo);
+
+        if (reports.Count > 0)
+        {
+            var fileBytes = reports.CreateZip(logger);
+            var filename = $"{Guid.NewGuid()}.zip";
+            return Results.File(fileBytes!, MimeMapping.ZIP, filename);
+        }
+
+        return NotFound();
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     private async Task<IResult> PostFatturePrenotazioneReportByRicercaAsync(
         HttpContext context,
         [FromBody] FatturaRicercaRequest request,
@@ -1031,6 +1058,7 @@ public partial class FattureModule
     [FromServices] IMediator handler)
     {
         var authInfo = context.GetAuthInfo();
+        authInfo.IdEnte = request.IdEnte;
 
         var dettaglioEmesse = await handler.Send(request.MapEmessoAdmin());
         if (dettaglioEmesse == null || !dettaglioEmesse.Any())
@@ -1038,6 +1066,28 @@ public partial class FattureModule
         //return Ok(dettaglioEmesse.FirstOrDefault()?.Map());
         return Ok(dettaglioEmesse.Map());
 
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<DocumentoContabileDettaglioResponse>, NotFound>> PostFattureSospeseAdminDettaglioAsync(
+        HttpContext context,
+        [FromBody] FattureDocContabileEnteAdminRequest request,
+        [FromServices] IStringLocalizer<Localization> localizer,
+        [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        authInfo.IdEnte = request.IdEnte;
+
+        var dettaglioSospese = await handler.Send(request.Map(authInfo));
+        if (dettaglioSospese == null || !dettaglioSospese.Any())
+            return NotFound();
+
+        return Ok(dettaglioSospese.FirstOrDefault()!.Map());
     }
 
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
@@ -1532,6 +1582,51 @@ public partial class FattureModule
             var content = documentBuilder.CreateDettaglioFatturaEmessaHtml(fattureEmesseExportPdf.FirstOrDefault()!.MapToPdf());
             var mime = "text/html";
             return Results.Text(content, mime);
+        }
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<IResult> FattureSospeseAdminDettaglioDownloadAsync(
+        HttpContext context,
+        [FromRoute] long? id,
+        [FromQuery] string? idEnte,
+        [FromQuery] string? tipo,
+        [FromServices] IDocumentBuilder documentBuilder,
+        [FromServices] IMediator handler,
+        [FromServices] IStringLocalizer<Localization> localizer)
+    {
+        if (string.IsNullOrWhiteSpace(idEnte))
+            return Results.BadRequest();
+
+        var request = new FattureDocContabileEnteAdminRequest()
+        {
+            IdFattura = id,
+            IdEnte = idEnte
+        };
+
+        var authInfo = context.GetAuthInfo();
+        authInfo.IdEnte = idEnte;
+        IEnumerable<FattureDocContabiliDettaglioDto> fattureSospese = await handler.Send(request.Map(authInfo));
+        if (fattureSospese == null || !fattureSospese.Any())
+            return NotFound();
+
+        if (tipo != null && tipo == "pdf")
+        {
+            var bytes = documentBuilder.CreateDettaglioFatturaSospesaPdf(fattureSospese.FirstOrDefault()!.MapToPdf()!);
+            var filename = $"{Guid.NewGuid()}.pdf";
+            var mime = "application/pdf";
+            return Results.File(bytes!, mime, filename);
+        }
+        else
+        {
+            var content = documentBuilder.CreateDettaglioFatturaSospesaHtml(fattureSospese.FirstOrDefault()!.MapToPdf()!);
+            var mime = "text/html";
+            return Results.Text(content!, mime);
         }
     }
 
