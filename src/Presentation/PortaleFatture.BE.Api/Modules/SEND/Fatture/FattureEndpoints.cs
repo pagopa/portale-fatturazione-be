@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Cors;
+using Microsoft.AspNetCore.Cors;
 using PortaleFatture.BE.Api.Infrastructure;
 
 namespace PortaleFatture.BE.Api.Modules.Fatture;
@@ -179,6 +179,12 @@ public partial class FattureModule : Module, IRegistrableModule
            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
         endpointRouteBuilder
+           .MapPost("api/fatture/sospese/report", PostFattureSospeseReportByRicercaAsync)
+           .WithName("Permette di ottenere le fatture sospese excel-report per ricerca")
+           .SetOpenApi(Module.DatiFattureLabel)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
            .MapPost("api/fatture/tipologia", PostTipologiaFatture)
            .WithName("Permette di visualizzare la tipologia fatture")
            .SetOpenApi(Module.DatiFattureLabel)
@@ -251,8 +257,20 @@ public partial class FattureModule : Module, IRegistrableModule
         .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
         endpointRouteBuilder
+        .MapPost("api/fatture/sospese/dettaglio", PostFattureSospeseAdminDettaglioAsync)
+        .WithName("Permette di ottenere il dettaglio di una specifica fattura sospesa per Amministrazione")
+        .SetOpenApi(Module.DatiFattureLabel)
+        .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
         .MapGet("api/fatture/emesse/dettaglio/download/{id}", FattureEmesseAdminDettaglioDownloadAsync)
         .WithName("Permette di scaricare il dettaglio in pdf della fatture emessa per Amministrazione")
+        .SetOpenApi(Module.DatiFattureLabel)
+        .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+        .MapGet("api/fatture/sospese/dettaglio/download/{id}", FattureSospeseAdminDettaglioDownloadAsync)
+        .WithName("Permette di scaricare il dettaglio in pdf della fatture sospesa per Amministrazione")
         .SetOpenApi(Module.DatiFattureLabel)
         .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 

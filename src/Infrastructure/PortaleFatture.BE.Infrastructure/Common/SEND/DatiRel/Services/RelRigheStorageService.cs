@@ -1,4 +1,4 @@
-﻿using Azure.Storage.Sas;
+using Azure.Storage.Sas;
 using Azure.Storage;
 using PortaleFatture.BE.Core.Entities.SEND.DatiRel;
 using Microsoft.Extensions.Localization;

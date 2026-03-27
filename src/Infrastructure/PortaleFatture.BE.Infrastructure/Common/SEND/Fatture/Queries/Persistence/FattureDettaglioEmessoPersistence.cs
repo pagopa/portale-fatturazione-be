@@ -14,7 +14,7 @@ namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries.Persisten
     public class FattureDettaglioEmessoPersistence(FattureDocContabileDettaglioEmessoQuery command) : DapperBase, IQuery<IEnumerable<FatturaDocContabileEmessoDettaglioDto>>
     {
         private readonly FattureDocContabileDettaglioEmessoQuery _command = command;
-        private static readonly string _sql = FattureQueryRicercaBuilder.SelectDettaglioEmessoEnte();
+        private static readonly string _sql = FattureQueryRicercaBuilder.SelectDettaglioEmesso();
         public async Task<IEnumerable<FatturaDocContabileEmessoDettaglioDto>> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
         {
             return await ((IDatabase)this).SelectAsync<FatturaDocContabileEmessoDettaglioDto>(

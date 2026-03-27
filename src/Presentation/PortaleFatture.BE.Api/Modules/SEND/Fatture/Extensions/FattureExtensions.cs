@@ -679,17 +679,26 @@ public static class FattureExtensions
                 case TipologiaFattura.PRIMOSALDO:
                     var fatture = await handler.Send(request.Mapv2(authInfo, tipologia));
                     if (fatture.IsNotEmpty())
-                        reports.Add($"Lista {tipologia} {year} {month}", fatture!.ReportFattureRel(month, tipologia));
+                    {
+                        var fattureSospese = await handler.Send(request.MapSospesev2(authInfo, tipologia));
+                        reports.Add($"Lista {tipologia} {year} {month}", fatture!.ReportFattureRel(fattureSospese, month, tipologia));
+                    }
                     break;
                 case TipologiaFattura.SECONDOSALDO:
                     fatture = await handler.Send(request.Mapv2(authInfo, tipologia));
                     if (fatture.IsNotEmpty())
-                        reports.Add($"Lista {tipologia} {year} {month}", fatture!.ReportFattureRel(request.Mese.GetMonth(), tipologia));
+                    {
+                        var fattureSospese = await handler.Send(request.MapSospesev2(authInfo, tipologia));
+                        reports.Add($"Lista {tipologia} {year} {month}", fatture!.ReportFattureRel(fattureSospese, request.Mese.GetMonth(), tipologia));
+                    }
                     break;
                 case TipologiaFattura.VAR_SEMESTRALE:
                     fatture = await handler.Send(request.Mapv2(authInfo, tipologia));
                     if (fatture.IsNotEmpty())
-                        reports.Add($"Lista {tipologia} {year} {month}", fatture!.ReportFattureRel(request.Mese.GetMonth(), tipologia));
+                    {
+                        var fattureSospese = await handler.Send(request.MapSospesev2(authInfo, tipologia));
+                        reports.Add($"Lista {tipologia} {year} {month}", fatture!.ReportFattureRel(fattureSospese, request.Mese.GetMonth(), tipologia));
+                    }
                     break;
                 case TipologiaFattura.ANTICIPO:
                     var commesse = await handler.Send(request.Mapv3(authInfo));
@@ -705,6 +714,59 @@ public static class FattureExtensions
                     break;
             }
         }
+        return reports;
+    }
+
+    public static async Task<Dictionary<string, byte[]>> ReportFattureSospese(this FatturaSospeseRicercaRequest request, IMediator handler, AuthenticationInfo authInfo)
+    {
+        Dictionary<string, byte[]> reports = [];
+
+        if (request.TipologiaFattura!.IsNullNotAny())
+        {
+            request.TipologiaFattura = (await handler.Send(new FattureSospeseTipologiaAnniMeseQuery(authInfo)
+            {
+                Anno = request.Anno!,
+                Mese = request.Mese!
+            }))!.ToArray();
+        }
+
+        foreach (var tipologia in request.TipologiaFattura!)
+        {
+            var month = request.Mese.GetMonth();
+            var year = request.Anno;
+
+            switch (tipologia)
+            {
+                case TipologiaFattura.PRIMOSALDO:
+                    var fatture = await handler.Send(request.MapSospesev2(authInfo, tipologia));
+                    if (fatture.IsNotEmpty())
+                        reports.Add($"Lista Sospese {tipologia} {year} {month}", fatture!.ReportFattureSospeseRel(month, tipologia));
+                    break;
+                case TipologiaFattura.SECONDOSALDO:
+                    fatture = await handler.Send(request.MapSospesev2(authInfo, tipologia));
+                    if (fatture.IsNotEmpty())
+                        reports.Add($"Lista Sospese {tipologia} {year} {month}", fatture!.ReportFattureSospeseRel(request.Mese.GetMonth(), tipologia));
+                    break;
+                case TipologiaFattura.VAR_SEMESTRALE:
+                    fatture = await handler.Send(request.MapSospesev2(authInfo, tipologia));
+                    if (fatture.IsNotEmpty())
+                        reports.Add($"Lista Sospese {tipologia} {year} {month}", fatture!.ReportFattureSospeseRel(request.Mese.GetMonth(), tipologia));
+                    break;
+                case TipologiaFattura.ANTICIPO:
+                    var commesse = await handler.Send(request.Mapv3(authInfo));
+                    if (commesse.IsNotEmpty())
+                        reports.Add($"Lista Sospese ANTICIPO {year} {month}", commesse!.ReportFattureSospeseModuloCommessa(request.Mese.GetMonth()));
+                    break;
+                case TipologiaFattura.ACCONTO:
+                    var acconto = await handler.Send(request.Mapv4(authInfo));
+                    if (acconto.IsNotEmpty())
+                        reports.Add($"Lista Sospese ACCONTO {year} {month}", acconto!.ReportFattureSospeseAcconto(request.Mese.GetMonth()));
+                    break;
+                default:
+                    break;
+            }
+        }
+
         return reports;
     }
 
@@ -746,6 +808,29 @@ public static class FattureExtensions
         return memory.ToArray();
     }
 
+public static byte[] ReportFattureSospeseModuloCommessa(this List<IEnumerable<FattureCommessaExcelDto>> commesse, string month)
+    {
+        DataSet? dataSet = new();
+        for (var i = 0; i < commesse.Count; i++)
+        {
+            if (i == 0)
+                dataSet.Tables.Add(commesse[i]!.FillTableWithTotalsRel(0, $"Com. Sospese {month}"));
+            else if (i == 1)
+                dataSet.Tables.Add(commesse[i]!.FillTableWithTotalsRel(0, $"Com. stimate Sospese {month}"));
+            else if (i == 2)
+                dataSet.Tables.Add(commesse[i]!.FillTableWithTotalsRel(0, $"Com. stim. fatt Sosp. {month}"));
+            else if (i == 3)
+                dataSet.Tables.Add(commesse[i]!.FillTableWithTotalsRel(0, $"Com. fatt. Sospese {month}"));
+            else if (i == 4)
+                dataSet.Tables.Add(commesse[i]!.FillTableWithTotalsRel(0, $"Com. non fatt. Sosp. {month}"));
+            else
+                dataSet.Tables.Add(commesse[i]!.FillTableWithTotalsRel(0, $"Com. elim. fatt Sosp. {month}"));
+        }
+
+        using var memory = dataSet!.ToExcel();
+        return memory.ToArray();
+    }
+
     public static byte[] ReportFattureAcconto(this List<IEnumerable<FattureAccontoExcelDto>> commesse, string month)
     {
         DataSet? dataSet = new();
@@ -762,13 +847,37 @@ public static class FattureExtensions
         return memory.ToArray();
     }
 
-    public static byte[] ReportFattureRel(this List<IEnumerable<FattureRelExcelDto>> fatture, string month, string tipologia)
+    public static byte[] ReportFattureSospeseAcconto(this List<IEnumerable<FattureAccontoExcelDto>> commesse, string month)
+    {
+        DataSet? dataSet = new();
+        for (var i = 0; i < commesse.Count; i++)
+        {
+            var fattureNONzero = commesse[i].Where(x => x.TotaleFattura != 0);
+            if (!fattureNONzero.IsNullNotAny())
+                dataSet.Tables.Add(fattureNONzero!.FillTableWithTotalsRel(0, $"Acconto Sospesi {month}"));
+            var fatturezero = commesse[i].Where(x => x.TotaleFattura == 0);
+            if (!fatturezero.IsNullNotAny())
+                dataSet.Tables.Add(fatturezero!.FillTableWithTotalsRel(0, $"Acconto a zero Sosp. {month}"));
+        }
+        using var memory = dataSet!.ToExcel();
+        return memory.ToArray();
+    }
+
+    public static byte[] ReportFattureRel(this List<IEnumerable<FattureRelExcelDto>> fatture, List<IEnumerable<FattureRelExcelDto>>? fattureSospese, string month, string tipologia)
     {
         DataSet? dataSet = new();
         for (var i = 0; i < fatture.Count; i++)
         {
             if (i == 0)
+            {
                 dataSet.Tables.Add(fatture[i]!.FillTableWithTotalsRel(9, $"Regolari Esecuzioni {month}"));
+                var pacNonFirmate = fatture[i]
+                    .Where(x => x.TipologiaContratto != null
+                             && x.TipologiaContratto.Contains("PAC", StringComparison.InvariantCultureIgnoreCase)
+                             && x.Caricata != 1);
+                if (!pacNonFirmate.IsNullNotAny())
+                    dataSet.Tables.Add(pacNonFirmate!.FillTableWithTotalsRel(9, $"Reg. Esec. PAC non firmate"));
+            }
             else if (i == 1)
             {
                 var fattureNONzero = fatture[i].Where(x => x.TotaleFatturaImponibile != 0);
@@ -776,9 +885,40 @@ public static class FattureExtensions
                 var fatturezero = fatture[i].Where(x => x.TotaleFatturaImponibile == 0);
                 if (!fatturezero.IsNullNotAny())
                     dataSet.Tables.Add(fatturezero!.FillTableWithTotalsRel(9, $"Enti Fatt. a Zero {month}"));
+
+                var entiFattSospesi = fattureSospese != null && fattureSospese.Count > 1 ? fattureSospese[1] : null;
+                if (entiFattSospesi != null)
+                {
+                    var entiFattSospesiNonZero = entiFattSospesi.Where(x => x.TotaleFatturaImponibile != 0);
+                    if (!entiFattSospesiNonZero.IsNullNotAny())
+                        dataSet.Tables.Add(entiFattSospesiNonZero!.FillTableWithTotalsRel(9, $"Enti Fatt. {month} Sospesi"));
+                }
             }
             else
                 dataSet.Tables.Add(fatture[i]!.FillTableWithTotalsRel(9, $"Note di Credito {month}"));
+        }
+
+        using var memory = dataSet!.ToExcel();
+        return memory.ToArray();
+    }
+
+        public static byte[] ReportFattureSospeseRel(this List<IEnumerable<FattureRelExcelDto>> fatture, string month, string tipologia)
+    {
+        DataSet? dataSet = new();
+        for (var i = 0; i < fatture.Count; i++)
+        {
+            if (i == 0)
+                dataSet.Tables.Add(fatture[i]!.FillTableWithTotalsRel(9, $"Reg. Esec. Sospese {month}"));
+            else if (i == 1)
+            {
+                var fattureNONzero = fatture[i].Where(x => x.TotaleFatturaImponibile != 0);
+                dataSet.Tables.Add(fattureNONzero!.FillTableWithTotalsRel(9, $"Enti Fatt. Sospese {month}"));
+                var fatturezero = fatture[i].Where(x => x.TotaleFatturaImponibile == 0);
+                if (!fatturezero.IsNullNotAny())
+                    dataSet.Tables.Add(fatturezero!.FillTableWithTotalsRel(9, $"Fatt. a Zero Sosp. {month}"));
+            }
+            else
+                dataSet.Tables.Add(fatture[i]!.FillTableWithTotalsRel(9, $"Note di Credito Sosp. {month}"));
         }
 
         using var memory = dataSet!.ToExcel();
@@ -824,6 +964,7 @@ public static class FattureExtensions
             Mese = req.Mese,
             IdEnti = req.IdEnti,
             TipologiaFattura = req.TipologiaFattura,
+            DateFattura = req.DateFatture,
             Cancellata = req.Cancellata == null ? false : req.Cancellata.Value,
             FkIdTipoContratto = req.IdTipoContratto,
             FatturaInviata = req.Inviata
@@ -843,6 +984,19 @@ public static class FattureExtensions
     public static FattureRelExcelQuery Mapv2(this FatturaRicercaRequest req, AuthenticationInfo authInfo, string tipologiaFattura)
     {
         return new FattureRelExcelQuery(authInfo)
+        {
+            Anno = req.Anno,
+            Mese = req.Mese,
+            IdEnti = req.IdEnti,
+            TipologiaFattura = tipologiaFattura,
+            FkIdTipoContratto = req.IdTipoContratto,
+            FatturaInviata = req.Inviata
+        };
+    }
+
+    public static FattureSospeseRelExcelQuery MapSospesev2(this FatturaRicercaRequest req, AuthenticationInfo authInfo, string tipologiaFattura)
+    {
+        return new FattureSospeseRelExcelQuery(authInfo)
         {
             Anno = req.Anno,
             Mese = req.Mese,
