@@ -19,6 +19,13 @@ public class FatturaRicercaRequest
         get { return _tipologiaFattura; }
         set { _tipologiaFattura = value!.IsNullNotAny() ? null : value; }
     }
+
+    private DateTime[]? _dateFatture;
+    public DateTime[]? DateFatture
+    {
+        get { return _dateFatture; }
+        set { _dateFatture = value!.IsNullNotAny() ? null : value; }
+    }
     public bool? Cancellata { get; set; } 
     public int? IdTipoContratto { get; set; } 
     public int? Inviata { get; set; }

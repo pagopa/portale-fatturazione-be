@@ -24,6 +24,8 @@ public class FattureSospeseDateQueryRicercaPersistence(FattureSospeseDateQueryRi
         var sql = sqlFatture;
         var where = new List<string>();
 
+        where.Add("FlagFatturata = 0");
+
         if (anno.HasValue)
             where.Add("AnnoRiferimento=@AnnoRiferimento");
         if (mese.HasValue)

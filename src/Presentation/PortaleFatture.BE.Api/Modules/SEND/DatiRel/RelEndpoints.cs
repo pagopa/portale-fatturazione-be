@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Cors;
+using Microsoft.AspNetCore.Cors;
 using PortaleFatture.BE.Api.Infrastructure;
 
 namespace PortaleFatture.BE.Api.Modules.Notifiche;
@@ -134,6 +134,12 @@ public partial class RelModule : Module, IRegistrableModule
         endpointRouteBuilder
         .MapGet("api/rel/pagopa/righe/{id}", GetPagoPARelRigheDocumentAsync)
         .WithName("Permette di ottenere le righe delle Rels dell'ente per ricerca pagoPA")
+        .SetOpenApi(Module.DatiRelLabelPagoPA)
+        .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+        .MapGet("api/rel/sospese/righe/{id}", GetPagoPARelRigheSospeseDocumentAsync)
+        .WithName("Permette di ottenere le righe delle Rels Sospese per ricerca - pagoPA")
         .SetOpenApi(Module.DatiRelLabelPagoPA)
         .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 

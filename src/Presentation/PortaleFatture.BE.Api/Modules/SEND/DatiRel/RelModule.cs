@@ -428,6 +428,37 @@ public partial class RelModule
     }
 
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [Authorize()]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<IResult> GetPagoPARelRigheSospeseDocumentAsync(
+    HttpContext context,
+    [FromRoute] string? id,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] IMediator handler,
+    [FromServices] IRelRigheSospeseStorageService storageSospeseService,
+    [FromQuery] bool? binary = null)
+    {
+        var authInfo = context.GetAuthInfo();
+        var idEnte = id!.Split("_")[0];
+        authInfo.IdEnte = idEnte;
+
+        var ente = await handler.Send(new EnteQueryGetById(authInfo) { });
+        if (ente == null)
+            return NotFound();
+
+        var url = storageSospeseService.GetSASToken(id, ente.Descrizione!);
+        url = url!.FileExistsAsync();
+        if (string.IsNullOrEmpty(url))
+            return NotFound();
+
+        return Ok(url);
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
