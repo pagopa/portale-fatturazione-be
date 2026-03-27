@@ -42,6 +42,7 @@ public class EmailRelService(string cn) : IEmailRelService
             ,[Pec]
             ,[Messaggio]
             ,[RagioneSociale]
+            ,[TipoComunicazione]
             ,[Invio])
         VALUES
             (@idEnte
@@ -53,6 +54,7 @@ public class EmailRelService(string cn) : IEmailRelService
             ,@pec
             ,@messaggio
             ,@RagioneSociale
+            ,@TipoComunicazione
             ,@Invio);";
 
     private readonly string _sqlSelectFatture = @"
@@ -222,6 +224,7 @@ from cte_mesifatture mf
             cmd.Parameters.Add("@pec", SqlDbType.NVarChar).Value = email.Pec;
             cmd.Parameters.Add("@messaggio", SqlDbType.NVarChar).Value = email.Messaggio;
             cmd.Parameters.Add("@RagioneSociale", SqlDbType.NVarChar).Value = email.RagioneSociale;
+            cmd.Parameters.Add("@TipoComunicazione", SqlDbType.NVarChar).Value = (object?)email.TipoComunicazione ?? DBNull.Value;
             cmd.Parameters.Add("@Invio", SqlDbType.Bit).Value = email.Invio;
             cmd.CommandText = _sqlInsert;
             var rows = cmd.ExecuteNonQuery();

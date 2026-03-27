@@ -129,7 +129,8 @@ public class SendEmail(ILoggerFactory loggerFactory)
                             Pec = ente.Pec,
                             IdEnte = ente.IdEnte,
                             RagioneSociale = ente.RagioneSociale,
-                            TipologiaFattura = ente.TipologiaFattura
+                            TipologiaFattura = ente.TipologiaFattura,
+                            TipoComunicazione = tipoComunicazione
                         });
                     }
                     else
@@ -147,7 +148,8 @@ public class SendEmail(ILoggerFactory loggerFactory)
                             Pec = ente.Pec,
                             IdEnte = ente.IdEnte,
                             RagioneSociale = ente.RagioneSociale,
-                            TipologiaFattura = ente.TipologiaFattura
+                            TipologiaFattura = ente.TipologiaFattura,
+                            TipoComunicazione = tipoComunicazione
                         });
                     }
 
