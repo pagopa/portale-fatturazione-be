@@ -126,9 +126,11 @@ public static class DocumentExtensions
 
             const string baseStyle = "font-family: Calibri, sans-serif;font-style: normal;font-weight: normal;text-decoration: none;font-size: 16pt;padding-top: 9pt; text-indent: 0pt; line-height: 114%; text-align: justify;";
             const string bulletStyle = "font-family: Calibri, sans-serif;font-style: normal;font-weight: normal;text-decoration: none;font-size: 16pt;padding-top: 9pt; padding-left: 16pt; text-indent: 0pt; line-height: 114%; text-align: justify;";
+            const string avoidBreakStyle = "page-break-inside: avoid; break-inside: avoid; -webkit-column-break-inside: avoid;";
 
             var tipologiaSuffix = string.IsNullOrWhiteSpace(tipologiaFattura) ? string.Empty : $" {tipologiaFattura}";
 
+            builder.Append($"<div style=\"{avoidBreakStyle}\">");
             builder.Append($"<p style=\"{baseStyle}\">MESE DI {fattura.Mese.PadLeft(2, '0')}/{fattura.Anno}{tipologiaSuffix}</p>");
             builder.Append($"<p style=\"{bulletStyle}\">- € {(fattura.Totale ?? 0).ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} oltre IVA, così determinato: - € {(fattura.TotaleDigitale ?? 0).ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} per n.&nbsp;{fattura.TotaleNotificheDigitali ?? 0} notifiche digitali e € {(fattura.TotaleAnalogico ?? 0).ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} per n.&nbsp;{fattura.TotaleNotificheAnalogiche ?? 0} notifiche analogiche espletate.</p>");
 
@@ -147,6 +149,7 @@ public static class DocumentExtensions
                 builder.Append($"<p style=\"{baseStyle}\">{(isPac ? "Agli importi sopra indicati per l’emissione di regolare fattura sono stornati gli importi già versati in anticipo e/o acconto." : "Agli importi sopra indicati per l’emissione di regolare fattura sono stornati gli importi già versati in anticipo.")}</p>");
             }
 
+            builder.Append("</div>");
             builder.Append("<p style=\"text-indent: 0pt;text-align: left;\"><br /></p>");
         }
 
