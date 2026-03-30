@@ -350,9 +350,21 @@ SELECT
 
     private static string _sqlAnniSospese = 
      @"
-        SELECT distinct AnnoRiferimento
-        FROM [pfd].[tmpFattureTestata]
-        where FlagFatturata = 0
+        SELECT tmp.AnnoRiferimento
+        FROM [pfd].[tmpFattureTestata] tmp
+        LEFT JOIN [pfd].[FattureTestata] ft 
+            ON tmp.FkIdEnte = ft.FkIdEnte
+            AND tmp.AnnoRiferimento = ft.AnnoRiferimento
+            AND tmp.MeseRiferimento = ft.MeseRiferimento
+            AND tmp.FkTipologiaFattura = ft.FkTipologiaFattura
+        LEFT JOIN [pfd].[MesiFatture] mf 
+            ON tmp.IdFattura = mf.FkIdFatturaTmp
+        WHERE 
+            tmp.FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865'
+            AND ft.IdFattura IS NULL
+            AND tmp.FlagFatturata = 0
+            AND mf.FkIdFatturaTmp IS NULL
+        GROUP BY tmp.AnnoRiferimento
     ";
 
     private static string _sqlMesi = @"
@@ -559,9 +571,22 @@ and FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865'
 
     private static string _sqlMesiSospese = 
         @"
-            SELECT distinct MeseRiferimento
-            FROM [pfd].[tmpFattureTestata]
-            where FlagFatturata = 0
+            SELECT tmp.MeseRiferimento
+            FROM [pfd].[tmpFattureTestata] tmp
+            LEFT JOIN [pfd].[FattureTestata] ft 
+                ON tmp.FkIdEnte = ft.FkIdEnte
+                AND tmp.AnnoRiferimento = ft.AnnoRiferimento
+                AND tmp.MeseRiferimento = ft.MeseRiferimento
+                AND tmp.FkTipologiaFattura = ft.FkTipologiaFattura
+            LEFT JOIN [pfd].[MesiFatture] mf 
+                ON tmp.IdFattura = mf.FkIdFatturaTmp
+            WHERE 
+                tmp.FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865'
+                AND ft.IdFattura IS NULL
+                AND tmp.FlagFatturata = 0
+                AND mf.FkIdFatturaTmp IS NULL
+                AND (@Anno IS NULL OR tmp.AnnoRiferimento = @Anno)
+            GROUP BY tmp.MeseRiferimento
     ";
 
     public static string SelectMesiSospese()
