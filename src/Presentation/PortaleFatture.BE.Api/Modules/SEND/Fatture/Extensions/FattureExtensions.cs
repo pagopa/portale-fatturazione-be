@@ -319,7 +319,8 @@ public static class FattureExtensions
             AccontoDigitale = dto.AccontoDigitale,
             AccontoAnalogico = dto.AccontoAnalogico,
             StornoAnalogico = dto.StornoAnalogico,
-            StornoDigitale = dto.StornoDigitale
+            StornoDigitale = dto.StornoDigitale,
+            TotaleStorni = dto.TotaleStorni
         };
     }
 

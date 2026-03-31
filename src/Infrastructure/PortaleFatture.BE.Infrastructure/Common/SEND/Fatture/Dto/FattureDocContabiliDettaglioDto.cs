@@ -1,4 +1,6 @@
 
+using PortaleFatture.BE.Core.Entities.SEND.DatiRel;
+
 namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Dto;
 
 public class FattureDocContabiliDettaglioDto
@@ -67,6 +69,14 @@ public class FattureDocContabiliDettaglioDto
 
     public decimal? StornoAnalogico { get; set; }
     public decimal? StornoDigitale { get; set; }
+
+    public decimal? TotaleStorni
+    {
+        get
+        {
+            return StornoAnalogico + StornoDigitale;
+        }
+    }
     public decimal Iva { get; set; }
 }
 
