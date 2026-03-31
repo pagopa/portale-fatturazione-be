@@ -24,18 +24,21 @@ public class FattureSospeseDateQueryRicercaPersistence(FattureSospeseDateQueryRi
         var sql = sqlFatture;
         var where = new List<string>();
 
-        where.Add("FlagFatturata = 0");
+        where.Add("FT.FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865'");
+        where.Add("FT_EMESSA.IdFattura IS NULL");
+        where.Add("MF.FkIdFatturaTmp IS NULL");
+        where.Add("FT.FlagFatturata = 0");
 
         if (anno.HasValue)
-            where.Add("AnnoRiferimento=@AnnoRiferimento");
+            where.Add("FT.AnnoRiferimento=@AnnoRiferimento");
         if (mese.HasValue)
-            where.Add("MeseRiferimento=@MeseRiferimento");
+            where.Add("FT.MeseRiferimento=@MeseRiferimento");
 
         if (!tipoFattura.IsNullNotAny())
-            where.Add("FkTipologiaFattura IN @TipologiaFattura");
+            where.Add("FT.FkTipologiaFattura IN @TipologiaFattura");
 
         if (!_command.IdEnti.IsNullNotAny())
-            where.Add("FkIdEnte IN @IdEnti");
+            where.Add("FT.FkIdEnte IN @IdEnti");
 
         if (where.Any())
             sql += " WHERE " + string.Join(" AND ", where);
