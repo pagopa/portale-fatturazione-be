@@ -1079,7 +1079,14 @@ SELECT [AnnoRiferimento] as Anno
             ISNULL(trt.[Totale],0) as RelTotale,
             ISNULL(trt.[TotaleAnalogicoIva],0)  as RelTotaleIvatoAnalogico,
             ISNULL(trt.[TotaleDigitaleIva],0)  as RelTotaleIvatoDigitale,
-            ISNULL(trt.[TotaleIva],0)  as RelTotaleIvato,
+            --ISNULL(trt.[TotaleIva],0)  as RelTotaleIvato,
+             CAST(
+                CASE
+                    WHEN tft.FkIdTipoDocumento  = 'TD04'  
+                        THEN (tft.TotaleFattura + (tft.TotaleFattura * (iva.Iva/100)))*-1
+                    ELSE tft.TotaleFattura + (tft.TotaleFattura * (iva.Iva/100))
+                END AS decimal(18,2)
+            ) as RelTotaleIvato,
             trt.[Caricata] as Caricata,
             trt.[RelFatturata],
             c.FkIdTipoContratto,
@@ -1142,9 +1149,9 @@ SELECT [AnnoRiferimento] as Anno
             ) aggAcconto
             OUTER APPLY (
                 SELECT 
-                    SUM(CASE WHEN rt.CodiceMateriale LIKE 'STORN%' AND rt.CodiceMateriale LIKE '%NA'
+                    SUM(CASE WHEN rt.CodiceMateriale LIKE 'STORN%' AND rt.CodiceMateriale LIKE '%NA%'
                              THEN rt.Imponibile ELSE 0 END) AS StornoAnalogico,
-                    SUM(CASE WHEN rt.CodiceMateriale LIKE 'STORNO%' AND rt.CodiceMateriale LIKE '%ND'
+                    SUM(CASE WHEN rt.CodiceMateriale LIKE 'STORNO%' AND rt.CodiceMateriale LIKE '%ND%'
                              THEN rt.Imponibile ELSE 0 END) AS StornoDigitale
                 FROM pfd.tmpFattureRighe rt
                 WHERE rt.FkIdFattura = tft.IdFattura

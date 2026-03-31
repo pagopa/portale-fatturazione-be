@@ -95,6 +95,9 @@ public class DocumentoContabileDettaglioResponse
 
         [JsonPropertyName("stornoAnalogico")]
         public decimal? StornoAnalogico { get; set; }
+
+        [JsonPropertyName("totaleStorni")]
+        public decimal? TotaleStorni { get; set; }
 }
 
 public class DocumentoContabileEmessoDettaglioResponse : DocumentoContabileDettaglioResponse
