@@ -390,17 +390,30 @@ SELECT
 
     private static string _sqlSelectTipologiaFatturaAnnoMeseSospese = @"
 SELECT  
-      distinct FkTipologiaFattura,
+      distinct tmp.FkTipologiaFattura,
      CASE
-        WHEN [FkTipologiaFattura] = 'ANTICIPO' THEN 1
-        WHEN [FkTipologiaFattura] = 'ACCONTO' THEN 2
-        WHEN [FkTipologiaFattura] = 'PRIMO SALDO' THEN 3
-        WHEN [FkTipologiaFattura] = 'SECONDO SALDO' THEN 4
-        WHEN [FkTipologiaFattura] = 'VAR. SEMESTRALE' THEN 5
+        WHEN tmp.FkTipologiaFattura = 'ANTICIPO' THEN 1
+        WHEN tmp.FkTipologiaFattura = 'ACCONTO' THEN 2
+        WHEN tmp.FkTipologiaFattura = 'PRIMO SALDO' THEN 3
+        WHEN tmp.FkTipologiaFattura = 'SECONDO SALDO' THEN 4
+        WHEN tmp.FkTipologiaFattura = 'VAR. SEMESTRALE' THEN 5
         ELSE 6 
   END AS ordine
-  		   FROM [pfd].[tmpFattureTestata]
-     where FlagFatturata = 0 AND AnnoRiferimento=@anno and MeseRiferimento=@mese
+  		   FROM [pfd].[tmpFattureTestata] tmp
+        LEFT JOIN [pfd].[FattureTestata] ft 
+            ON tmp.FkIdEnte = ft.FkIdEnte
+            AND tmp.AnnoRiferimento = ft.AnnoRiferimento
+            AND tmp.MeseRiferimento = ft.MeseRiferimento
+            AND tmp.FkTipologiaFattura = ft.FkTipologiaFattura
+        LEFT JOIN [pfd].[MesiFatture] mf 
+            ON tmp.IdFattura = mf.FkIdFatturaTmp
+     WHERE 
+        tmp.FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865'
+        AND ft.IdFattura IS NULL
+        AND tmp.FlagFatturata = 0
+        AND mf.FkIdFatturaTmp IS NULL
+        AND tmp.AnnoRiferimento=@anno 
+        AND tmp.MeseRiferimento=@mese
 ";
 
     private static string _sqlWhiteList = @"
@@ -984,7 +997,17 @@ SELECT CONVERT(varchar(10), DataFattura, 120) as DataFattura, FkTipologiaFattura
     public static string SelectFattureSospeseDate()
     {
         return $@"
-            SELECT CONVERT(varchar(10), DataFattura, 120) as DataFattura, FkTipologiaFattura as TipologiaFattura from pfd.tmpFattureTestata 
+            SELECT 
+                CONVERT(varchar(10), FT.DataFattura, 120) as DataFattura, 
+                FT.FkTipologiaFattura as TipologiaFattura 
+            FROM pfd.tmpFattureTestata FT
+            LEFT JOIN pfd.FattureTestata FT_EMESSA
+                ON FT.FkIdEnte = FT_EMESSA.FkIdEnte
+                AND FT.AnnoRiferimento = FT_EMESSA.AnnoRiferimento
+                AND FT.MeseRiferimento = FT_EMESSA.MeseRiferimento
+                AND FT.FkTipologiaFattura = FT_EMESSA.FkTipologiaFattura
+            LEFT JOIN pfd.MesiFatture MF
+                ON FT.IdFattura = MF.FkIdFatturaTmp
 ";
     }
 
@@ -1422,26 +1445,31 @@ SELECT [AnnoRiferimento] as Anno
                     FOR JSON PATH
                 ) AS 'fattura.posizioni'
             FROM
-            [pfd].[tmpFattureTestata] FT 
-            INNER JOIN pfd.RiepilogoFatturazione_NPF npf 
-            ON ft.FkIdEnte = npf.FkIdEnte AND ft.AnnoRiferimento = npf.AnnoRiferimento AND ft.MeseRiferimento = npf.MeseRiferimento
-            INNER JOIN pfd.Contratti c ON c.onboardingtokenid = FT.CodiceContratto
-            AND c.internalistitutionid  = ft.FkIdEnte
-            INNER JOIN pfw.FatturaTestataConfig ftc ON ftc.FkTipologiaFattura = FT.FkTipologiaFattura AND ftc.FKIdTipoContratto = c.FkIdTipoContratto
-            where (PrimoSaldoSospeso = 1) AND 
-            FT.AnnoRiferimento = @AnnoRiferimento
-            and FT.MeseRiferimento = @MeseRiferimento
-            AND (@FilterByDateFattura = 0 OR CAST(FT.DataFattura AS DATE) IN @DateFattura)
-            [condition_tipologiafattura]
-            and FT.FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865' --esclusione pagopa
-            and FT.TotaleFattura > 0
-            AND (@FkIdTipoContratto IS NULL OR c.FkIdTipoContratto = @FkIdTipoContratto)  
-            AND FlagFatturata = 0                 
-            --AND (
-            --    @FatturaInviata IS NULL  -- Se NULL, mostra tutte
-            --    OR (@FatturaInviata = 2 AND FT.FatturaInviata IS NULL)  -- In elaborazione
-            --    OR (FT.FatturaInviata = @FatturaInviata)  -- 0 o 1
-            --)
+            [pfd].[tmpFattureTestata] FT
+            LEFT JOIN [pfd].[FattureTestata] FT_EMESSA 
+                ON FT.FkIdEnte = FT_EMESSA.FkIdEnte
+                AND FT.AnnoRiferimento = FT_EMESSA.AnnoRiferimento
+                AND FT.MeseRiferimento = FT_EMESSA.MeseRiferimento
+                AND FT.FkTipologiaFattura = FT_EMESSA.FkTipologiaFattura
+            LEFT JOIN [pfd].[MesiFatture] MF 
+                ON FT.IdFattura = MF.FkIdFatturaTmp
+            INNER JOIN pfd.Contratti c 
+                ON c.onboardingtokenid = FT.CodiceContratto
+                AND c.internalistitutionid = FT.FkIdEnte
+            INNER JOIN pfw.FatturaTestataConfig ftc 
+                ON ftc.FkTipologiaFattura = FT.FkTipologiaFattura 
+                AND ftc.FKIdTipoContratto = c.FkIdTipoContratto
+            WHERE 
+                FT.FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865'
+                AND FT_EMESSA.IdFattura IS NULL
+                AND FT.FlagFatturata = 0
+                AND MF.FkIdFatturaTmp IS NULL
+                AND FT.AnnoRiferimento = @AnnoRiferimento
+                AND FT.MeseRiferimento = @MeseRiferimento
+                AND (@FilterByDateFattura = 0 OR CAST(FT.DataFattura AS DATE) IN @DateFattura)
+                [condition_tipologiafattura]
+                AND FT.TotaleFattura > 0
+                AND (@FkIdTipoContratto IS NULL OR c.FkIdTipoContratto = @FkIdTipoContratto)
             ORDER BY FT.FkTipologiaFattura, FT.Progressivo
             FOR JSON PATH, INCLUDE_NULL_VALUES )
         ";
