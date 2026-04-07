@@ -22,7 +22,7 @@ internal class SendEmailHandler
         var tipoComunicazione = queryParams["tipoComunicazione"];
 
 
-        if (string.IsNullOrEmpty(anno) || string.IsNullOrEmpty(mese) || string.IsNullOrEmpty(tipologiafattura))
+        if (string.IsNullOrEmpty(anno) || string.IsNullOrEmpty(mese) || string.IsNullOrEmpty(tipologiafattura) || string.IsNullOrEmpty(tipoComunicazione))
         {
             return req.CreateResponse(HttpStatusCode.BadRequest);
         }
