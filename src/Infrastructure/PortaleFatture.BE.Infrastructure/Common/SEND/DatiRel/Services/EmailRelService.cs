@@ -109,7 +109,8 @@ select
 from cte_mesifatture mf
     INNER JOIN [pfd].[Enti] e ON e.InternalIstitutionId = mf.FkIdEnte
     INNER JOIN [pfd].[Contratti] c ON c.internalistitutionid = mf.FkIdEnte AND c.onboardingtokenid = mf.CodiceContratto
-    INNER JOIN [pfw].[TipoContratto] tc ON tc.IdTipoContratto = c.FkIdTipoContratto";
+    INNER JOIN [pfw].[TipoContratto] tc ON tc.IdTipoContratto = c.FkIdTipoContratto
+    where mf.FkTipologiaFattura = @tipologiaFattura";
 
     public IEnumerable<RelEmail>? GetSenderEmail(int? anno, int? mese, string tipologiaFattura, string? tipoComunicazione)
     {
@@ -152,6 +153,7 @@ from cte_mesifatture mf
             }
             else if(tipoComunicazione == "FATTURA")
             {
+                cmd.Parameters.Add("@tipologiaFattura", SqlDbType.NVarChar).Value = tipologiaFattura;
                 cmd.CommandText = _sqlSelectFatture;
                 var reader = cmd.ExecuteReader();
                 var rawEmails = new List<dynamic>();

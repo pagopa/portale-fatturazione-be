@@ -103,6 +103,8 @@ public class SendEmail(ILoggerFactory loggerFactory)
             var emailService = new EmailRelService(ConfigurazioneSEND.ConnectionString!);
             var enti = emailService.GetSenderEmail(risposta.Anno, risposta.Mese, risposta.TipologiaFattura!, tipoComunicazione);
 
+            enti = enti!.Where(w => w.TipologiaFattura == risposta.TipologiaFattura!).ToList();
+
             foreach (var ente in enti!)
                 if (ente.Pec != null)
                 {
