@@ -345,7 +345,7 @@ public static class FattureExtensions
             TipologiaContratto = dto.TipologiaContratto,
             AnticipoAnalogico = anticipoAnalogico,
             AnticipoDigitale = anticipoDigitale,
-            ImportoSottoSoglia = totaleImponibile - totaleAnticipo,
+            ImportoSottoSoglia = dto.TotaleFatturaImponibile ?? 0,
             TotaleDigitale = dto.RelTotaleDigitale,
             TotaleNotificheAnalogiche = dto.RelTotaleNotificheAnalogiche,
             TotaleNotificheDigitali = dto.RelTotaleNotificheDigitali,
