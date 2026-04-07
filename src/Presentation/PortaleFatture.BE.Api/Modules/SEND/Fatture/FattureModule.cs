@@ -1452,7 +1452,11 @@ public partial class FattureModule
         if (fattureEmesseExportPdf == null || !fattureEmesseExportPdf!.Any())
             return NotFound();
 
-        if(tipo != null && tipo == "pdf")
+        var tipologiaFattura = fattureEmesseExportPdf.FirstOrDefault()?.TipologiaFatturaSospesa ?? fattureEmesseExportPdf.FirstOrDefault()?.TipologiaFattura;
+        if (IsAnticipoOrAcconto(tipologiaFattura))
+            return NotFound();
+
+        if (tipo != null && tipo == "pdf")
         {
             var bytes = documentBuilder.CreateDettaglioFatturaSospesaPdf(fattureEmesseExportPdf.FirstOrDefault()!.MapToPdf()!);
             var filename = $"{Guid.NewGuid()}.pdf";
@@ -1491,7 +1495,10 @@ public partial class FattureModule
         if (fattureEmesseExportPdf == null || !fattureEmesseExportPdf.Any())
             return NotFound();
 
-        if(tipo != null && tipo == "pdf")
+        if (fattureEmesseExportPdf.Any(x => IsAnticipoOrAcconto(x.TipologiaFattura)))
+            return NotFound();
+
+        if (tipo != null && tipo == "pdf")
         {
             byte[] bytes;
 
@@ -1551,6 +1558,9 @@ public partial class FattureModule
 
         var fattureEmesseExportPdf = await handler.Send(request.MapEmessoAdmin());
         if (fattureEmesseExportPdf == null || !fattureEmesseExportPdf.Any())
+            return NotFound();
+
+        if (fattureEmesseExportPdf.Any(x => IsAnticipoOrAcconto(x.TipologiaFattura)))
             return NotFound();
 
         if (tipo != null && tipo == "pdf")
@@ -1615,6 +1625,10 @@ public partial class FattureModule
         if (fattureSospese == null || !fattureSospese.Any())
             return NotFound();
 
+        var tipologiaFattura = fattureSospese.FirstOrDefault()?.TipologiaFatturaSospesa ?? fattureSospese.FirstOrDefault()?.TipologiaFattura;
+        if (IsAnticipoOrAcconto(tipologiaFattura))
+            return NotFound();
+
         if (tipo != null && tipo == "pdf")
         {
             var bytes = documentBuilder.CreateDettaglioFatturaSospesaPdf(fattureSospese.FirstOrDefault()!.MapToPdf()!);
@@ -1628,6 +1642,12 @@ public partial class FattureModule
             var mime = "text/html";
             return Results.Text(content!, mime);
         }
+    }
+
+    private static bool IsAnticipoOrAcconto(string? tipologiaFattura)
+    {
+        return string.Equals(tipologiaFattura, "ANTICIPO", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(tipologiaFattura, "ACCONTO", StringComparison.OrdinalIgnoreCase);
     }
 
     #endregion
