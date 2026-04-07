@@ -1202,11 +1202,11 @@ SELECT [AnnoRiferimento] as Anno
             ISNULL(trt.[Totale],0) as RelTotale,
             ISNULL(trt.[TotaleAnalogicoIva],0)  as RelTotaleIvatoAnalogico,
             ISNULL(trt.[TotaleDigitaleIva],0)  as RelTotaleIvatoDigitale,
-            CASE WHEN tft.FkTipologiaFattura = 'ANTICIPO' THEN ISNULL(aggAnticipo.ImponibileTotaleAnticipo,0) 
-                 WHEN tft.FkTipologiaFattura = 'ACCONTO' THEN ISNULL(aggAcconto.ImponibileTotaleAcconto,0)
-                 WHEN tft.FkTipologiaFattura = 'PRIMO SALDO' THEN ISNULL(aggPrimoSaldo.ImponibilePrimoSaldo,0)
-                 WHEN tft.FkTipologiaFattura = 'SECONDO SALDO' THEN ISNULL(aggSecondoSaldo.ImponibileSecondoSaldo,0)
-                 WHEN tft.FkTipologiaFattura = 'VAR. SEMESTRALE' THEN ISNULL(aggVarSemestrale.ImponibileVarSemestrale,0)
+            CASE WHEN tft.FkTipologiaFattura = 'ANTICIPO' THEN ISNULL(aggAnticipo.ImponibileTotaleAnticipo,0) + (ISNULL(aggAnticipo.ImponibileTotaleAnticipo,0) * (iva.Iva/100))
+                 WHEN tft.FkTipologiaFattura = 'ACCONTO' THEN ISNULL(aggAcconto.ImponibileTotaleAcconto,0) + (ISNULL(aggAcconto.ImponibileTotaleAcconto,0) * (iva.Iva/100))
+                 WHEN tft.FkTipologiaFattura = 'PRIMO SALDO' THEN ISNULL(aggPrimoSaldo.ImponibilePrimoSaldo,0) + (ISNULL(aggPrimoSaldo.ImponibilePrimoSaldo,0) * (iva.Iva/100))
+                 WHEN tft.FkTipologiaFattura = 'SECONDO SALDO' THEN ISNULL(aggSecondoSaldo.ImponibileSecondoSaldo,0) + (ISNULL(aggSecondoSaldo.ImponibileSecondoSaldo,0) * (iva.Iva/100))
+                 WHEN tft.FkTipologiaFattura = 'VAR. SEMESTRALE' THEN ISNULL(aggVarSemestrale.ImponibileVarSemestrale,0) + (ISNULL(aggVarSemestrale.ImponibileVarSemestrale,0) * (iva.Iva/100))
                  ELSE ISNULL(trt.[TotaleIva],0)  
                  END 
             AS RelTotaleIvato,
