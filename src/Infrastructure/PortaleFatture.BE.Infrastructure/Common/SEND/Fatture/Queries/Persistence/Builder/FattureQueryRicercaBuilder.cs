@@ -1096,8 +1096,8 @@ SELECT [AnnoRiferimento] as Anno
             ISNULL(aggAnticipo.ImportoDigitale, 0) AS AnticipoDigitale,
             ISNULL(aggAcconto.ImportoAnalogico, 0) AS AccontoAnalogico,
             ISNULL(aggAcconto.ImportoDigitale, 0) AS AccontoDigitale,
-            ISNULL(aggStorno.StornoAnalogico, 0) AS StornoAnalogico,
-            ISNULL(aggStorno.StornoDigitale, 0) AS StornoDigitale,
+            ISNULL(aggStorno.StornoAnalogico*-1, 0) AS StornoAnalogico,
+            ISNULL(aggStorno.StornoDigitale*-1, 0) AS StornoDigitale,
             iva.Iva
             -- Campi tmpFattureRighe --> TODO: togliere commento una volta gestita l'aggregazione nel mapping a BE 
             --,tfr.NumeroLinea,
@@ -1214,15 +1214,15 @@ SELECT [AnnoRiferimento] as Anno
             ISNULL(aggAnticipo.ImportoDigitale, 0) AS AnticipoDigitale,
             ISNULL(aggAcconto.ImportoAnalogico, 0) AS AccontoAnalogico,
             ISNULL(aggAcconto.ImportoDigitale, 0) AS AccontoDigitale,
-            CASE WHEN tft.FkTipologiaFattura = 'PRIMO SALDO' THEN ISNULL(aggPrimoSaldo.StornoAnalogico,0)
-                 WHEN tft.FkTipologiaFattura = 'SECONDO SALDO' THEN ISNULL(aggSecondoSaldo.StornoAnalogico,0)
-                 WHEN tft.FkTipologiaFattura = 'VAR. SEMESTRALE' THEN ISNULL(aggVarSemestrale.StornoAnalogico,0)
+            CASE WHEN tft.FkTipologiaFattura = 'PRIMO SALDO' THEN ISNULL(aggPrimoSaldo.StornoAnalogico*-1,0)
+                 WHEN tft.FkTipologiaFattura = 'SECONDO SALDO' THEN ISNULL(aggSecondoSaldo.StornoAnalogico*-1,0)
+                 WHEN tft.FkTipologiaFattura = 'VAR. SEMESTRALE' THEN ISNULL(aggVarSemestrale.StornoAnalogico*-1,0)
                  ELSE 0 
              END 
             AS StornoAnalogico,
-            CASE WHEN tft.FkTipologiaFattura = 'PRIMO SALDO' THEN ISNULL(aggPrimoSaldo.StornoDigitale,0)
-                 WHEN tft.FkTipologiaFattura = 'SECONDO SALDO' THEN ISNULL(aggSecondoSaldo.StornoDigitale,0)
-                 WHEN tft.FkTipologiaFattura = 'VAR. SEMESTRALE' THEN ISNULL(aggVarSemestrale.StornoDigitale,0)
+            CASE WHEN tft.FkTipologiaFattura = 'PRIMO SALDO' THEN ISNULL(aggPrimoSaldo.StornoDigitale*-1,0)
+                 WHEN tft.FkTipologiaFattura = 'SECONDO SALDO' THEN ISNULL(aggSecondoSaldo.StornoDigitale*-1,0)
+                 WHEN tft.FkTipologiaFattura = 'VAR. SEMESTRALE' THEN ISNULL(aggVarSemestrale.StornoDigitale*-1,0)
                  ELSE 0 
              END 
             AS StornoDigitale,
