@@ -34,7 +34,7 @@ FROM   pfd.reltestata r
                     ON e.internalistitutionid = c.internalistitutionid
        LEFT OUTER JOIN pfw.tipocontratto t
                     ON t.idtipocontratto = c.fkidtipocontratto
-WHERE  r.relfatturata = 0
+WHERE  r.relfatturata = 0 AND ((Azione = 'UP' AND Caricata = 1) OR (Azione IS NULL AND Caricata = 0))
        AND totale > 0
        AND NOT (r.tipologiafattura = 'primo saldo' AND t.descrizione = 'pal')
 ORDER  BY r.year DESC,
