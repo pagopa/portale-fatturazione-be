@@ -313,7 +313,13 @@ SELECT
                 FR.CodiceMateriale AS 'codiceMateriale',
                 FR.Quantita AS 'quantita',
                 CAST(FR.PrezzoUnitario AS DECIMAL(10, 2))  AS 'prezzoUnitario',
-                CAST(FR.Imponibile AS DECIMAL(10, 2))  AS 'imponibile',
+                --CAST(FR.Imponibile AS DECIMAL(10, 2))  AS 'imponibile',
+                CASE 
+                    WHEN (FR.CodiceMateriale LIKE 'STORN%' AND FR.CodiceMateriale LIKE '%NA') 
+                    OR (FR.CodiceMateriale LIKE 'STORN%' AND FR.CodiceMateriale LIKE '%ND' ) 
+                    THEN CAST(FR.Imponibile AS DECIMAL(10, 2))*-1 
+                    ELSE CAST(FR.Imponibile AS DECIMAL(10, 2)) END 
+                AS 'imponibile',
 				FR.PeriodoRiferimento as 'periodoRiferimento',
                 FR.PeriodoFatturazione as 'periodoFatturazione'
             FROM [pfd].[FattureRighe] FR
@@ -673,7 +679,13 @@ and FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865'
     r.CodiceMateriale,
     r.Quantita, 
     r.PrezzoUnitario,
-    r.Imponibile,
+    --r.Imponibile,
+        CASE 
+        WHEN (r.CodiceMateriale LIKE 'STORN%' AND r.CodiceMateriale LIKE '%NA') 
+        OR (r.CodiceMateriale LIKE 'STORN%' AND r.CodiceMateriale LIKE '%ND' ) 
+        THEN CAST(r.Imponibile AS DECIMAL(10, 2))*-1 
+        ELSE CAST(r.Imponibile AS DECIMAL(10, 2)) END 
+    AS Imponibile,
     r.PeriodoRiferimento,
     r.PeriodoFatturazione
     FROM [pfd].[FattureTestata] t
@@ -768,7 +780,13 @@ and FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865'
             fr.CodiceMateriale,
             fr.Quantita, 
             fr.PrezzoUnitario,
-            fr.Imponibile,
+            --fr.Imponibile,
+            CASE 
+                WHEN (fr.CodiceMateriale LIKE 'STORN%' AND fr.CodiceMateriale LIKE '%NA%') 
+                OR (fr.CodiceMateriale LIKE 'STORN%' AND fr.CodiceMateriale LIKE '%ND%' ) 
+                THEN CAST(fr.Imponibile AS DECIMAL(10, 2))*-1 
+                ELSE CAST(fr.Imponibile AS DECIMAL(10, 2)) END 
+            AS Imponibile,
             fr.PeriodoRiferimento
             --fr.PeriodoFatturazione
             FROM pfd.CreditoSospeso cs 
@@ -1442,7 +1460,13 @@ SELECT [AnnoRiferimento] as Anno
                         FR.CodiceMateriale AS 'codiceMateriale',
                         FR.Quantita AS 'quantita',
                         CAST(FR.PrezzoUnitario AS DECIMAL(10, 2))  AS 'prezzoUnitario',
-                        CAST(FR.Imponibile AS DECIMAL(10, 2))  AS 'imponibile',
+                        --CAST(FR.Imponibile AS DECIMAL(10, 2))  AS 'imponibile',
+                        CASE 
+                            WHEN (FR.CodiceMateriale LIKE 'STORN%' AND FR.CodiceMateriale LIKE '%NA%') 
+                            OR (FR.CodiceMateriale LIKE 'STORN%' AND FR.CodiceMateriale LIKE '%ND%' ) 
+                            THEN CAST(FR.Imponibile AS DECIMAL(10, 2))*-1 
+                            ELSE CAST(FR.Imponibile AS DECIMAL(10, 2)) END 
+                        AS 'imponibile',
                         FR.PeriodoRiferimento as 'periodoRiferimento'
                     FROM [pfd].[tmpFattureRighe] FR
                     LEFT JOIN [pfw].[CodiciMateriali] CM
