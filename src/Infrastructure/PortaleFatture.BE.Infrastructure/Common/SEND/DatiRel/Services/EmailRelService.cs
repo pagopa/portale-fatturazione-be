@@ -59,7 +59,7 @@ public class EmailRelService(string cn) : IEmailRelService
 
     private readonly string _sqlSelectFatture = @"
 with cte_emesse as (
-
+ 
 select 
      IdFattura
     , FkIdEnte
@@ -91,8 +91,33 @@ FROM [pfd].[FattureTestata] ft
             on ft.IdFattura = mf.FkIdFattura
         inner join pfd.tmpFattureTestata tft
             on tft.IdFattura = mf.FkIdFatturaTmp
+),
+ 
+cte_sospese as (
+select 
+      ft.IdFattura
+    , NULL as FkIdFatturaTmp
+    , ft.FkIdEnte
+    , ft.CodiceContratto
+    , ft.FkTipologiaFattura
+    , ft.AnnoRiferimento
+    , ft.MeseRiferimento
+    , 0 as NumeroRighe
+    , NULL as tmpAnno
+    , NULL as tmpMese
+    , 0 as FlagFatturata
+    ,'sospese' as StatoFattura
+FROM [pfd].[tmpFattureTestata] ft
+left join pfd.mesifatture mf
+    on mf.FkIdFatturaTmp = ft.IdFattura
+        WHERE ft.AnnoRiferimento = @year
+        AND ft.MeseRiferimento = @month
+        AND ft.TotaleFattura > 0
+        AND ft.FlagFatturata = 0
+        AND mf.FkIdFatturatmp is null
+        AND ft.FkTipologiaFattura IN ('PRIMO SALDO', 'SECONDO SALDO','VAR. SEMESTRALE')
 )
-
+ 
 select 
     mf.FkIdEnte as idEnte
     , mf.CodiceContratto as idContratto
@@ -106,11 +131,35 @@ select
     , mf.tmpAnno
     , mf.tmpMese
     , mf.FlagFatturata
+    , 'emesse' as StatoFattura
 from cte_mesifatture mf
     INNER JOIN [pfd].[Enti] e ON e.InternalIstitutionId = mf.FkIdEnte
     INNER JOIN [pfd].[Contratti] c ON c.internalistitutionid = mf.FkIdEnte AND c.onboardingtokenid = mf.CodiceContratto
     INNER JOIN [pfw].[TipoContratto] tc ON tc.IdTipoContratto = c.FkIdTipoContratto
-    where mf.FkTipologiaFattura = @tipologiaFattura";
+    WHERE FkTipologiaFattura = @tipologiaFattura
+
+union all
+
+select 
+    cs.FkIdEnte as idEnte
+    , cs.CodiceContratto as idContratto
+    , cs.FkTipologiaFattura as TipologiaFattura
+    , cs.AnnoRiferimento as anno
+    , cs.MeseRiferimento as mese
+    , e.digitalAddress as pec
+    , e.description as ragionesociale
+    , tc.Descrizione as TipoContratto
+    , cs.NumeroRighe
+    , cs.tmpAnno
+    , cs.tmpMese
+    , cs.FlagFatturata
+    , cs.StatoFattura
+from cte_sospese cs
+    INNER JOIN [pfd].[Enti] e ON e.InternalIstitutionId = cs.FkIdEnte
+    INNER JOIN [pfd].[Contratti] c ON c.internalistitutionid = cs.FkIdEnte AND c.onboardingtokenid = cs.CodiceContratto
+    INNER JOIN [pfw].[TipoContratto] tc ON tc.IdTipoContratto = c.FkIdTipoContratto
+    WHERE FkTipologiaFattura = @tipologiaFattura
+ ";
 
     public IEnumerable<RelEmail>? GetSenderEmail(int? anno, int? mese, string tipologiaFattura, string? tipoComunicazione)
     {
