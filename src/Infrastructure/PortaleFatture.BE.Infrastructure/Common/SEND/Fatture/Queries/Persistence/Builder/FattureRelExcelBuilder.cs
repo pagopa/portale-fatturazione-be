@@ -12,7 +12,14 @@ t.DataFattura as DataFattura,
 t.Progressivo as Progressivo,
 -t.TotaleFattura as TotaleFatturaImponibile,
 r.CodiceMateriale as CodiceMateriale,
-r.Imponibile as RigaImponibile, 
+--r.Imponibile as RigaImponibile, 
+CASE 
+    WHEN (r.CodiceMateriale LIKE 'STORN%' AND r.CodiceMateriale LIKE '%NA') 
+    OR (r.CodiceMateriale LIKE 'STORN%' AND r.CodiceMateriale LIKE '%ND' ) 
+    THEN CAST(r.Imponibile AS DECIMAL(10, 2))*-1 
+    ELSE CAST(r.Imponibile AS DECIMAL(10, 2))
+END 
+AS RigaImponibile,
 t.CodiceContratto as IdContratto,
 t.AnnoRiferimento as Anno,
 t.MeseRiferimento as Mese, 
@@ -64,7 +71,14 @@ t.DataFattura as DataFattura,
 t.Progressivo as Progressivo,
 -t.TotaleFattura as TotaleFatturaImponibile,
 r.CodiceMateriale as CodiceMateriale,
-r.Imponibile as RigaImponibile, 
+--r.Imponibile as RigaImponibile, 
+CASE 
+    WHEN (r.CodiceMateriale LIKE 'STORN%' AND r.CodiceMateriale LIKE '%NA%') 
+    OR (r.CodiceMateriale LIKE 'STORN%' AND r.CodiceMateriale LIKE '%ND%' ) 
+    THEN CAST(r.Imponibile AS DECIMAL(10, 2))*-1 
+    ELSE CAST(r.Imponibile AS DECIMAL(10, 2))
+END 
+AS RigaImponibile,
 t.CodiceContratto as IdContratto,
 t.AnnoRiferimento as Anno,
 t.MeseRiferimento as Mese, 
@@ -122,7 +136,14 @@ SELECT
 		ELSE t.TotaleFattura
 				 END AS decimal(18,2)) as TotaleFatturaImponibile, 
 	r.CodiceMateriale as CodiceMateriale,
-	r.Imponibile as RigaImponibile, 
+	--r.Imponibile as RigaImponibile, 
+	CASE 
+		WHEN (r.CodiceMateriale LIKE 'STORN%' AND r.CodiceMateriale LIKE '%NA') 
+		OR (r.CodiceMateriale LIKE 'STORN%' AND r.CodiceMateriale LIKE '%ND' ) 
+		THEN CAST(r.Imponibile AS DECIMAL(10, 2))*-1 
+		ELSE CAST(r.Imponibile AS DECIMAL(10, 2))
+	END 
+	AS RigaImponibile,
 	t.CodiceContratto as IdContratto,
 	t.AnnoRiferimento as Anno,
 	t.MeseRiferimento as Mese,
@@ -182,7 +203,13 @@ SELECT
 		ELSE t.TotaleFattura
 				 END AS decimal(18,2)) as TotaleFatturaImponibile, 
 	r.CodiceMateriale as CodiceMateriale,
-	r.Imponibile as RigaImponibile, 
+	--r.Imponibile as RigaImponibile, 
+	CASE 
+        WHEN (r.CodiceMateriale LIKE 'STORN%' AND r.CodiceMateriale LIKE '%NA%') 
+        OR (r.CodiceMateriale LIKE 'STORN%' AND r.CodiceMateriale LIKE '%ND%' ) 
+        THEN CAST(r.Imponibile AS DECIMAL(10, 2))*-1 
+        ELSE CAST(r.Imponibile AS DECIMAL(10, 2))
+	END AS RigaImponibile,
 	t.CodiceContratto as IdContratto,
 	t.AnnoRiferimento as Anno,
 	t.MeseRiferimento as Mese,
