@@ -105,7 +105,7 @@ select
     , 0 as NumeroRighe
     , NULL as tmpAnno
     , NULL as tmpMese
-    , 0 as FlagFatturata
+    , ft.FlagFatturata as FlagFatturata
     ,'sospese' as StatoFattura
 FROM [pfd].[tmpFattureTestata] ft
 left join pfd.mesifatture mf
@@ -221,8 +221,8 @@ from cte_sospese cs
                             RagioneSociale = reader.GetString(6),
                             TipoContratto = reader.GetString(7),
                             NumeroRighe = reader.GetInt32(8),
-                            TmpAnno = reader.GetInt32(9),
-                            TmpMese = reader.GetInt32(10),
+                            TmpAnno = reader.IsDBNull(9) ? (int?)null : reader.GetInt32(9),
+                            TmpMese = reader.IsDBNull(10) ? (int?)null : reader.GetInt32(10),
                             FlagFatturata = reader.GetBoolean(11)
                         });
                     }
@@ -233,7 +233,9 @@ from cte_sospese cs
                 foreach(var g in grouped)
                 {
                     var first = g.First();
-                    var elencoMesi = string.Join(", ", g.Select(x => $"{((int)x.TmpMese).ToString("00")}/{x.TmpAnno}").Distinct());
+                    var elencoMesi = string.Join(", ", g.Where(x => x.TmpMese != null && x.TmpAnno != null)
+                        .Select(x => $"{((int)x.TmpMese).ToString("00")}/{(int)x.TmpAnno}")
+                        .Distinct());
                     emails.Add(new RelEmail()
                     {
                         IdEnte = first.IdEnte,
