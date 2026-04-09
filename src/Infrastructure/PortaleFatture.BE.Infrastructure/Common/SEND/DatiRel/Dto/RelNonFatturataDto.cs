@@ -75,7 +75,7 @@ public class RelNonFatturataDto
     [Header(caption: "Data Caricamento", Order = 12)]
     [HeaderAttributev2(caption: "Data Caricamento", Order = 12)]
     [Column("Data")]
-    public DateTime Data { get; set; }
+    public DateTime? Data { get; set; }
 
 
     [Header(caption: "Tipo Contratto", Order = 4)]
