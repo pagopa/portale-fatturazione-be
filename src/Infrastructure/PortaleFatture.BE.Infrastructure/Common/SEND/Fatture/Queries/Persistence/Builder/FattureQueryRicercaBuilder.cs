@@ -1032,9 +1032,9 @@ SELECT CONVERT(varchar(10), DataFattura, 120) as DataFattura, FkTipologiaFattura
     public static string OrderByFattureDate()
     {
         return @"
-group by CONVERT(varchar(10), DataFattura, 120), FkTipologiaFattura 
-order by FkTipologiaFattura, CONVERT(varchar(10), DataFattura, 120) desc; 
-"; 
+            group by CONVERT(varchar(10), DataFattura, 120), FkTipologiaFattura 
+            order by FkTipologiaFattura, CONVERT(varchar(10), DataFattura, 120) desc; 
+        "; 
     }
     public static string SelectFattureDateCancellate()
     {
