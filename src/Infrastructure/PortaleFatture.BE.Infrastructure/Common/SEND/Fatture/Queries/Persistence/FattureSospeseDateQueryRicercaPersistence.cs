@@ -12,7 +12,7 @@ public class FattureSospeseDateQueryRicercaPersistence(FattureSospeseDateQueryRi
 {
     private readonly FattureSospeseDateQueryRicerca _command = command;
     private static readonly string _sqlSelectAll = FattureQueryRicercaBuilder.SelectFattureSospeseDate();
-    private static readonly string _sqlGroupBy = FattureQueryRicercaBuilder.OrderByFattureDate();
+    private static readonly string _sqlGroupBy = FattureQueryRicercaBuilder.OrderByFattureSospeseDate();
     public async Task<IEnumerable<FattureDateDto>?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
     {
         var anno = _command.Anno;
