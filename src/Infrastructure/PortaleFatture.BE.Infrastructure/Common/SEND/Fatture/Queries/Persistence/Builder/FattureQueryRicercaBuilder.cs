@@ -1036,14 +1036,6 @@ group by CONVERT(varchar(10), DataFattura, 120), FkTipologiaFattura
 order by FkTipologiaFattura, CONVERT(varchar(10), DataFattura, 120) desc; 
 "; 
     }
-
-    public static string OrderByFattureSospeseDate()
-    {
-        return @"
-            group by CONVERT(varchar(10), FT.DataFattura, 120), FT.FkTipologiaFattura 
-            order by FT.FkTipologiaFattura, CONVERT(varchar(10), FT.DataFattura, 120) desc; 
-        ";
-    }
     public static string SelectFattureDateCancellate()
     {
         return $@"
