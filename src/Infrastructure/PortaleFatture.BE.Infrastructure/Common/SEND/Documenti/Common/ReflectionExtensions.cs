@@ -326,6 +326,21 @@ public static class ReflectionExtensions
         return ds;
     }
 
+    public static DataTable FillOneTable<T>(this IEnumerable<T> data, string? dataTableName = null)
+    {
+        var (table, headers) = ToTablev2<T>(dataTableName);
+        DataRow row;
+        foreach (var d in data)
+        {
+            row = table.NewRow();
+            foreach (var hh in headers)
+                row[hh.Name!] = d!.GetType().GetProperty(hh.Name!)!.GetValue(d, null) ?? DBNull.Value;
+
+            table.Rows.Add(row);
+        }
+        return table;
+    }
+
     public static DataSet FillOneSheetRECCON<T>(this IEnumerable<T> data)
     {
         var ds = new DataSet();
