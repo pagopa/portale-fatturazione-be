@@ -102,9 +102,9 @@ select
     , ft.FkTipologiaFattura
     , ft.AnnoRiferimento
     , ft.MeseRiferimento
-    , 0 as NumeroRighe
-    , NULL as tmpAnno
-    , NULL as tmpMese
+    , count(ft.IdFattura) over (partition by ft.IdFattura) as NumeroRighe
+    , ft.AnnoRiferimento as tmpAnno
+    , ft.MeseRiferimento as tmpMese
     , ft.FlagFatturata as FlagFatturata
     ,'sospese' as StatoFattura
 FROM [pfd].[tmpFattureTestata] ft

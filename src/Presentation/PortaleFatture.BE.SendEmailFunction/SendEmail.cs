@@ -94,7 +94,7 @@ public class SendEmail(ILoggerFactory loggerFactory)
                 data = DateTime.UtcNow.ItalianTime().ToString("yyyy-MM-dd HH:mm:ss");
             }
 
-            var subject = $"Notifica Regolare Esecuzione {tipologiafattura} Mese di {mese.GetMonth()}";
+            var subjectDefault = $"Notifica Regolare Esecuzione {tipologiafattura} Mese di {mese.GetMonth()}";
             var sender = new EmailSender(smtpSource: ConfigurazioneSEND.Smtp!,
                 smtpPort: ConfigurazioneSEND.SmtpPort!,
                 smtpUser: ConfigurazioneSEND.SmtpAuth!,
@@ -114,6 +114,24 @@ public class SendEmail(ILoggerFactory loggerFactory)
                     // var s = builder.CreateEmailHtml(ente)!;
                     // risposta.Log = s; // prendo solo l'ultimo
 
+                    var subject = subjectDefault;
+                    if (tipoComunicazione == "REL")
+                    {
+                        subject = $"Notifica Regolare Esecuzione {ente.TipologiaFattura} Mese di {ente.Mese.GetMonth()}";
+                    }
+                    else if (tipoComunicazione == "FATTURA")
+                    {
+                        if (ente.FlagFatturata == false)
+                        {
+                            subject = $"SEND - Pubblicazione documento contabile di SOSPENSIONE - {ente.Mese.ToString("00")}/{ente.Anno}";
+                        }
+                        else
+                        {
+                            var elenco = string.IsNullOrWhiteSpace(ente.ElencoMesi) ? $"{ente.Mese.ToString("00")}/{ente.Anno}" : ente.ElencoMesi;
+                            subject = $"SEND - Pubblicazione documento contabile di EMISSIONE fattura - {elenco}";
+                        }
+                    }
+
                     if (production)
                     {
                         var (msg, ver) = sender.SendEmail(ente.Pec, subject, builder.CreateEmailHtml(ente)!);
@@ -127,7 +145,7 @@ public class SendEmail(ILoggerFactory loggerFactory)
                             Invio = Convert.ToByte(ver == true ? 1 : 0),
                             Anno = ente.Anno,
                             Mese = ente.Mese,
-                            Messaggio = msg,
+                            Messaggio = $"{msg}\n\nOGGETTO: {subject}\n\nCORPO:\n{builder.CreateEmailHtml(ente)!}",
                             Pec = ente.Pec,
                             IdEnte = ente.IdEnte,
                             RagioneSociale = ente.RagioneSociale,
@@ -146,7 +164,7 @@ public class SendEmail(ILoggerFactory loggerFactory)
                             Invio = 0,
                             Anno = ente.Anno,
                             Mese = ente.Mese,
-                            Messaggio = builder.CreateEmailHtml(ente)!,
+                            Messaggio = $"OGGETTO: {subject}\n\nCORPO:\n{builder.CreateEmailHtml(ente)!}",
                             Pec = ente.Pec,
                             IdEnte = ente.IdEnte,
                             RagioneSociale = ente.RagioneSociale,
