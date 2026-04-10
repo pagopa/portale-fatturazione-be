@@ -234,8 +234,11 @@ from cte_sospese cs
                 {
                     var first = g.First();
                     var elencoMesi = string.Join(", ", g.Where(x => x.TmpMese != null && x.TmpAnno != null)
-                        .Select(x => $"{((int)x.TmpMese).ToString("00")}/{(int)x.TmpAnno}")
-                        .Distinct());
+                        .Select(x => new { Anno = (int)x.TmpAnno, Mese = (int)x.TmpMese })
+                        .Distinct()
+                        .OrderByDescending(x => x.Anno)
+                        .ThenByDescending(x => x.Mese)
+                        .Select(x => $"{x.Mese:00}/{x.Anno}"));
                     emails.Add(new RelEmail()
                     {
                         IdEnte = first.IdEnte,
