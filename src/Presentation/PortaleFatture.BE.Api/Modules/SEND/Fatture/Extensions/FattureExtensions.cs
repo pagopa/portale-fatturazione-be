@@ -884,7 +884,7 @@ public static byte[] ReportFattureSospeseModuloCommessa(this List<IEnumerable<Fa
                     .Where(x => x.TipoContratto != null
                              && x.TipoContratto.Contains("PAC", StringComparison.InvariantCultureIgnoreCase)
                              && x.Caricata != 1);
-                if (!pacNonFirmate.IsNullNotAny())
+                //if (!pacNonFirmate.IsNullNotAny())
                     dataSet.Tables.Add(pacNonFirmate!.FillOneTable($"Reg. Esec. PAC non firmate"));
             }
             else if (i == 1)
