@@ -11,8 +11,8 @@ public class DocContabileExcel
     [HeaderAttributev2(caption: "Posizione", Order = 17)]
     public string? Posizione { get; set; }
 
-    [HeaderAttributev2(caption: "Totale €", Order = 19)]
-    public string? Totale { get; set; }
+    [HeaderAttributev2(caption: "Totale €", Order = 19, Style = XCellStyle.StandardNumberDecimal)]
+    public decimal? Totale { get; set; }
 
     [HeaderAttributev2(caption: "Numero", Order = 7)]
 

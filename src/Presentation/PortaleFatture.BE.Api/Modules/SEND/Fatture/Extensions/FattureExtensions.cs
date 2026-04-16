@@ -548,7 +548,7 @@ public static class FattureExtensions
                 RagioneSociale = item.Fattura.RagioneSociale,
                 TipologiaFattura = item.Fattura.DatiGeneraliDocumento!.FirstOrDefault()?.TipologiaFattura,
                 TipoContratto = item.Fattura.TipoContratto,
-                Totale = item.Fattura.Totale!.Value.ToString("0.00") ?? null,
+                Totale = item.Fattura.Totale!,
                 Identificativo = item.Fattura.Identificativo,
                 Sollecito = item.Fattura.Sollecito,
                 Split = item.Fattura.SplitPayment,
@@ -572,7 +572,7 @@ public static class FattureExtensions
                 {
                     Numero = pos.NumeroLinea,
                     Posizione = pos.CodiceMateriale,
-                    Totale = pos.Imponibile.ToString("0.00"),
+                    Totale = (decimal?)pos.Imponibile,
                     PeriodoRiferimento = pos.PeriodoRiferimento
                 });
             }
@@ -590,7 +590,7 @@ public static class FattureExtensions
                 RagioneSociale = item.Fattura.RagioneSociale,
                 TipologiaFattura = item.Fattura.DatiGeneraliDocumento!.FirstOrDefault()?.TipologiaFattura,
                 TipoContratto = item.Fattura.TipoContratto,
-                Totale = item.Fattura.Totale!.Value.ToString("0.00") ?? null,
+                Totale = item.Fattura.Totale!,
                 Identificativo = item.Fattura.Identificativo,
                 Sollecito = item.Fattura.Sollecito,
                 Split = item.Fattura.SplitPayment,
@@ -1051,7 +1051,7 @@ public static byte[] ReportFattureSospeseModuloCommessa(this List<IEnumerable<Fa
                 {
                     Numero = item.fattura!.Numero,
                     Posizione = pos.CodiceMateriale,
-                    Totale = pos.Imponibile.ToString("0.00"),
+                    Totale =  (decimal?)pos.Imponibile,
                     PeriodoRiferimento = pos.PeriodoRiferimento
                 });
             }
@@ -1069,7 +1069,7 @@ public static byte[] ReportFattureSospeseModuloCommessa(this List<IEnumerable<Fa
                 RagioneSociale = item.fattura.RagioneSociale,
                 TipologiaFattura = item.fattura.TipologiaFattura,
                 TipoContratto = item.fattura.TipoContratto,
-                Totale = item.fattura.Totale.ToString("0.00"),
+                Totale = item.fattura.Totale,
                 Identificativo = item.fattura.Identificativo,
                 Sollecito = item.fattura.Sollecito,
                 Split = item.fattura.Split,
