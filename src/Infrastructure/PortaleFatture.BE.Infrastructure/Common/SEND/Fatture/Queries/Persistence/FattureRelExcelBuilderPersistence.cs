@@ -54,6 +54,11 @@ public class FattureRelExcelBuilderPersistence(FattureRelExcelQuery command) : D
             computedFatture.TryAdd(key, r);
             var item = computedFatture[key];
 
+            if (r.CodiceMateriale is null)
+            {
+                throw new DataException($"CodiceMateriale NULL per {key!} {item.IdFattura}");
+            }
+
             if (r.CodiceMateriale!.Contains("STORNO"))
             {
                 if (r.CodiceMateriale!.Contains("ANT.") || r.CodiceMateriale!.Contains("ANTICIPO"))
