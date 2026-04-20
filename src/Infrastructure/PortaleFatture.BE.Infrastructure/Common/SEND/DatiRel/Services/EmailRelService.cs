@@ -43,7 +43,8 @@ public class EmailRelService(string cn) : IEmailRelService
             ,[Messaggio]
             ,[RagioneSociale]
             ,[TipoComunicazione]
-            ,[Invio])
+            ,[Invio]
+            ,[Fase])
         VALUES
             (@idEnte
             ,@idContratto
@@ -55,7 +56,8 @@ public class EmailRelService(string cn) : IEmailRelService
             ,@messaggio
             ,@RagioneSociale
             ,@TipoComunicazione
-            ,@Invio);";
+            ,@Invio
+            ,@Fase);";
 
     private readonly string _sqlSelectFatture = @"
 with cte_emesse as (
@@ -72,6 +74,7 @@ FROM [pfd].[FattureTestata] ft
         AND ft.MeseRiferimento = @month
         AND ft.TotaleFattura > 0
         AND ft.FkTipologiaFattura IN ('PRIMO SALDO', 'SECONDO SALDO','VAR. SEMESTRALE')
+        AND (ft.FaseFatturazione IS NULL OR ft.FaseFatturazione = @faseFatturazione)
 )
 , cte_mesifatture as (
     select 
@@ -116,6 +119,7 @@ left join pfd.mesifatture mf
         AND ft.FlagFatturata = 0
         AND mf.FkIdFatturatmp is null
         AND ft.FkTipologiaFattura IN ('PRIMO SALDO', 'SECONDO SALDO','VAR. SEMESTRALE')
+        AND @faseFatturazione = 1
 )
  
 select 
@@ -161,7 +165,7 @@ from cte_sospese cs
     WHERE FkTipologiaFattura = @tipologiaFattura
  ";
 
-    public IEnumerable<RelEmail>? GetSenderEmail(int? anno, int? mese, string tipologiaFattura, string? tipoComunicazione)
+    public IEnumerable<RelEmail>? GetSenderEmail(int? anno, int? mese, string tipologiaFattura, string? tipoComunicazione, int? fase = null)
     {
         if (string.IsNullOrEmpty(tipoComunicazione))
             throw new ArgumentException("Tipo Comunicazione obbligatorio");
@@ -203,6 +207,7 @@ from cte_sospese cs
             else if(tipoComunicazione == "FATTURA")
             {
                 cmd.Parameters.Add("@tipologiaFattura", SqlDbType.NVarChar).Value = tipologiaFattura;
+                cmd.Parameters.Add("@faseFatturazione", SqlDbType.Int).Value = fase;
                 cmd.CommandText = _sqlSelectFatture;
                 var reader = cmd.ExecuteReader();
                 var rawEmails = new List<dynamic>();
@@ -282,6 +287,14 @@ from cte_sospese cs
             cmd.Parameters.Add("@RagioneSociale", SqlDbType.NVarChar).Value = email.RagioneSociale;
             cmd.Parameters.Add("@TipoComunicazione", SqlDbType.NVarChar).Value = email.TipoComunicazione;
             cmd.Parameters.Add("@Invio", SqlDbType.Bit).Value = email.Invio;
+            if(email.Fase != null)
+            {
+                cmd.Parameters.Add("@Fase", SqlDbType.Int).Value = email.Fase;
+            }
+            else
+            {
+                cmd.Parameters.Add("@Fase", SqlDbType.Int).Value = DBNull.Value;
+            }
             cmd.CommandText = _sqlInsert;
             var rows = cmd.ExecuteNonQuery();
             return rows == 1;
