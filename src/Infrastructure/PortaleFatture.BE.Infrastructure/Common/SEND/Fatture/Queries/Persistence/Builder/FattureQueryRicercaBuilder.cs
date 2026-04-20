@@ -256,7 +256,7 @@ SELECT
 	INNER JOIN pfw.FatturaTestataConfig ftc ON ftc.FkTipologiaFattura = FT.FkTipologiaFattura AND ftc.FKIdTipoContratto = c.FkIdTipoContratto
     where FT.AnnoRiferimento = @AnnoRiferimento
 	and FT.MeseRiferimento = @MeseRiferimento
-	and FT.FkTipologiaFattura IN @TipologiaFattura
+	[condition_tipologiafattura]
 	and FT.FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865' --esclusione pagopa
     AND (@FkIdTipoContratto IS NULL OR c.FkIdTipoContratto = @FkIdTipoContratto)  
     AND (
