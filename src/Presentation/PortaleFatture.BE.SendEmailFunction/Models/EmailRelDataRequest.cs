@@ -8,4 +8,5 @@ public class EmailRelDataRequest
     public string? TipoComunicazione { get; set; }
     public string? Ricalcola { get; set; } 
     public string? Data { get; set; }  
+    public int? Fase { get; set; }
 }

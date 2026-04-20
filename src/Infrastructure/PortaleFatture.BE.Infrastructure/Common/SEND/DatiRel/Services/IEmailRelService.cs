@@ -4,7 +4,7 @@ namespace PortaleFatture.BE.Infrastructure.Common.SEND.DatiRel.Services
 {
     public interface IEmailRelService
     {
-        IEnumerable<RelEmail>? GetSenderEmail(int? anno, int? mese, string tipologiaFattura, string? tipoComunicazione);
+        IEnumerable<RelEmail>? GetSenderEmail(int? anno, int? mese, string tipologiaFattura, string? tipoComunicazione, int? fase = null);
         bool InsertTracciatoEmail(RelEmailTracking email);
     }
 }
