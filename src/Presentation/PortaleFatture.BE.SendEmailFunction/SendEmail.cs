@@ -72,6 +72,7 @@ public class SendEmail(ILoggerFactory loggerFactory)
             var tipologiafattura = req.TipologiaFattura;
             var data = req.Data;
             var tipoComunicazione = req.TipoComunicazione;
+            var fase = req.Fase;
 
             var ricalcola = Convert.ToInt32(String.IsNullOrEmpty(req.Ricalcola) ? "0" : req.Ricalcola);
 
@@ -84,6 +85,7 @@ public class SendEmail(ILoggerFactory loggerFactory)
                 Mese = mese,
                 TipologiaFattura = tipologiafattura,
                 Data = data,
+                Fase = fase,
                 Ricalcola = ricalcola
             };
 
@@ -150,7 +152,8 @@ public class SendEmail(ILoggerFactory loggerFactory)
                             IdEnte = ente.IdEnte,
                             RagioneSociale = ente.RagioneSociale,
                             TipologiaFattura = ente.TipologiaFattura,
-                            TipoComunicazione = tipoComunicazione
+                            TipoComunicazione = tipoComunicazione,
+                            Fase = fase
                         });
                     }
                     else
@@ -169,7 +172,8 @@ public class SendEmail(ILoggerFactory loggerFactory)
                             IdEnte = ente.IdEnte,
                             RagioneSociale = ente.RagioneSociale,
                             TipologiaFattura = ente.TipologiaFattura,
-                            TipoComunicazione = tipoComunicazione
+                            TipoComunicazione = tipoComunicazione,
+                            Fase = fase
                         });
                     }
 
