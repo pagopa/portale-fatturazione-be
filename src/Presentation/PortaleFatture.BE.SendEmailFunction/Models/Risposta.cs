@@ -11,7 +11,6 @@ public sealed class Risposta
     public string? Error { get; set; } 
     public string? Semestre { get; set; } 
     public string? Log { get; set; }
-    public int? Fase { get; set; }
 }
 
 public sealed class RispostaRelRighe
