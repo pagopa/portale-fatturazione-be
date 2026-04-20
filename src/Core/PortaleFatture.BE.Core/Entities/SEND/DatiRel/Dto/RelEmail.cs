@@ -23,5 +23,4 @@ public sealed class RelEmailTracking : RelEmail
     public string? Data { get; set; }
     public byte Invio { get; set; }
     public string? TipoComunicazione { get; set; }
-    public int? Fase { get; set; }
 }
