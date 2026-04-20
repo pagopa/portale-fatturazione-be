@@ -43,7 +43,8 @@ public class EmailRelService(string cn) : IEmailRelService
             ,[Messaggio]
             ,[RagioneSociale]
             ,[TipoComunicazione]
-            ,[Invio])
+            ,[Invio]
+            ,[Fase])
         VALUES
             (@idEnte
             ,@idContratto
@@ -55,7 +56,8 @@ public class EmailRelService(string cn) : IEmailRelService
             ,@messaggio
             ,@RagioneSociale
             ,@TipoComunicazione
-            ,@Invio);";
+            ,@Invio
+            ,@Fase);";
 
     private readonly string _sqlSelectFatture = @"
 with cte_emesse as (
@@ -282,6 +284,7 @@ from cte_sospese cs
             cmd.Parameters.Add("@RagioneSociale", SqlDbType.NVarChar).Value = email.RagioneSociale;
             cmd.Parameters.Add("@TipoComunicazione", SqlDbType.NVarChar).Value = email.TipoComunicazione;
             cmd.Parameters.Add("@Invio", SqlDbType.Bit).Value = email.Invio;
+            cmd.Parameters.Add("@Fase", SqlDbType.Int).Value = email.Fase;
             cmd.CommandText = _sqlInsert;
             var rows = cmd.ExecuteNonQuery();
             return rows == 1;
