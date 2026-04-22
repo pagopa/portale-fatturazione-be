@@ -58,67 +58,52 @@ AND (
         @FatturaInviata IS NULL  -- Tutte
         OR (@FatturaInviata = 2 AND t.FatturaInviata IS NULL)  -- In elaborazione
         OR (t.FatturaInviata = @FatturaInviata)  -- 0 o 1
-    ) 
+    )
 ";
 
     private static string _sqlNoteSenzaRelSospese = @"
-SELECT 
-t.IdFattura as IdFattura, 
-e.description as RagioneSociale,
-t.FkIdTipoDocumento as TipoDocumento, 
-t.FkIdEnte as IdEnte, 
-t.DataFattura as DataFattura,  
-t.Progressivo as Progressivo,
--t.TotaleFattura as TotaleFatturaImponibile,
-r.CodiceMateriale as CodiceMateriale,
---r.Imponibile as RigaImponibile, 
-CASE 
-    WHEN (r.CodiceMateriale LIKE 'STORN%' AND r.CodiceMateriale LIKE '%NA%') 
-    OR (r.CodiceMateriale LIKE 'STORN%' AND r.CodiceMateriale LIKE '%ND%' ) 
-    THEN CAST(r.Imponibile AS DECIMAL(10, 2))*-1 
-    ELSE CAST(r.Imponibile AS DECIMAL(10, 2))
-END 
-AS RigaImponibile,
-t.CodiceContratto as IdContratto,
-t.AnnoRiferimento as Anno,
-t.MeseRiferimento as Mese, 
-@tipologiafattura as TipologiaFattura,
-0 as RelTotaleAnalogico, 
-0 as RelTotaleDigitale, 
-0 as RelTotaleNotificheAnalogiche, 
-0 as RelTotaleNotificheDigitali, 
-0 as RelTotaleNotifiche, 
-0 as RelTotale, 
-0 as RelTotaleIvatoAnalogico, 
-0 as RelTotaleIvatoDigitale, 
-0 as RelTotaleIvato, 
-NULL as Caricata, 
-NULL as RelFatturata,
-c.FkIdTipoContratto,
-tp.Descrizione as TipologiaContratto
-FROM pfd.tmpFattureTestata t
-LEFT OUTER join pfd.Enti e
-    ON e.InternalIstitutionId = t.FkIdEnte
-LEFT JOIN pfd.Contratti c
-    ON c.onboardingtokenid = t.CodiceContratto
-    AND c.internalistitutionid = e.InternalIstitutionId
-inner join pfw.TipoContratto tp
-    ON c.FkIdTipoContratto = tp.IdTipoContratto
-INNER JOIN pfd.tmpFattureRighe r
-    ON t.IdFattura = r.FkIdFattura 
-where 
-t.AnnoRiferimento=@anno and 
-t.MeseRiferimento=@mese and 
-t.FkTipologiaFattura=@tipologiafattura and
-r.CodiceMateriale like '%STORNO%'
-AND t.FkIdEnte NOT IN
-(SELECT rr.internal_organization_id from pfd.tmpRelTestata rr
-WHERE rr.month= @mese and rr.year=@anno and rr.TipologiaFattura=@tipologiafattura) 
-AND (
+    SELECT [IdFattura]
+          ,[RagioneSociale]
+          ,[TipoDocumento]
+          ,[IdEnte]
+          ,[DataFattura]
+          ,[Progressivo]
+          ,[TotaleFatturaImponibile]
+          ,[CodiceMateriale]
+          ,[RigaImponibile]
+          ,[IdContratto]
+          ,[Anno]
+          ,[Mese]
+          ,[TipologiaFattura]
+          ,[RelTotaleAnalogico]
+          ,[RelTotaleDigitale]
+          ,[RelTotaleNotificheAnalogiche]
+          ,[RelTotaleNotificheDigitali]
+          ,[RelTotaleNotifiche]
+          ,[RelTotale]
+          ,[RelTotaleIvatoAnalogico]
+          ,[RelTotaleIvatoDigitale]
+          ,[RelTotaleIvato]
+          ,[Caricata]
+          ,[RelFatturata]
+          ,[FkIdTipoContratto]
+          ,[TipologiaContratto]
+          ,[FatturaInviata]
+    FROM [pfd].[vwFattureSospeseNoteReport]
+    where 
+    [Anno]=@anno and 
+    [Mese]=@mese and 
+    [TipologiaFattura]=@tipologiafattura
+    AND IdEnte NOT IN
+    (SELECT rr.internal_organization_id from pfd.tmpRelTestata rr
+    WHERE rr.month= @mese and rr.year=@anno and rr.TipologiaFattura=@tipologiafattura) 
+    AND 
+    (
         @FatturaInviata IS NULL  -- Tutte
-        OR (@FatturaInviata = 2 AND t.FatturaInviata IS NULL)  -- In elaborazione
-        OR (t.FatturaInviata = @FatturaInviata)  -- 0 o 1
+        OR (@FatturaInviata = 2 AND FatturaInviata IS NULL)  -- In elaborazione
+        OR (FatturaInviata = @FatturaInviata)  -- 0 o 1
     ) 
+    AND (@FkIdTipoContratto IS NULL OR [FkIdTipoContratto] = @FkIdTipoContratto)
 ";
 
     private static string _sqlRel = @"
@@ -189,71 +174,43 @@ SELECT
 ";
 
     private static string _sqlRelSospese = @"
-SELECT 
-	t.IdFattura as IdFattura, 
-	e.description as RagioneSociale,
-	t.FkIdTipoDocumento as TipoDocumento, 
-	t.FkIdEnte as IdEnte, 
-	t.DataFattura as DataFattura,
-	t.Progressivo as Progressivo,
-	CAST(
-		CASE
-		WHEN t.FkIdTipoDocumento  = 'TD04'  
-			THEN -t.TotaleFattura
-		ELSE t.TotaleFattura
-				 END AS decimal(18,2)) as TotaleFatturaImponibile, 
-	r.CodiceMateriale as CodiceMateriale,
-	--r.Imponibile as RigaImponibile, 
-	CASE 
-        WHEN (r.CodiceMateriale LIKE 'STORN%' AND r.CodiceMateriale LIKE '%NA%') 
-        OR (r.CodiceMateriale LIKE 'STORN%' AND r.CodiceMateriale LIKE '%ND%' ) 
-        THEN CAST(r.Imponibile AS DECIMAL(10, 2))*-1 
-        ELSE CAST(r.Imponibile AS DECIMAL(10, 2))
-	END AS RigaImponibile,
-	t.CodiceContratto as IdContratto,
-	t.AnnoRiferimento as Anno,
-	t.MeseRiferimento as Mese,
-	rr.[TipologiaFattura], 
-	ISNULL(rr.[TotaleAnalogico],0) as RelTotaleAnalogico,
-	ISNULL(rr.[TotaleDigitale],0) as RelTotaleDigitale,
-	ISNULL(rr.[TotaleNotificheAnalogiche],0) as RelTotaleNotificheAnalogiche,
-	ISNULL(rr.[TotaleNotificheDigitali],0) as RelTotaleNotificheDigitali,
-	ISNULL(rr.[TotaleNotificheAnalogiche],0) + ISNULL(rr.[TotaleNotificheDigitali],0) as RelTotaleNotifiche,
-	ISNULL(rr.[Totale],0) as RelTotale,
-	ISNULL(rr.[TotaleAnalogicoIva],0)  as RelTotaleIvatoAnalogico,
-	ISNULL(rr.[TotaleDigitaleIva],0)  as RelTotaleIvatoDigitale,
-	ISNULL(rr.[TotaleIva],0)  as RelTotaleIvato,
-	rr.[Caricata] as Caricata,
-	rr.[RelFatturata],
-	c.FkIdTipoContratto,
-    tp.Descrizione as TipologiaContratto
-	FROM pfd.tmpFattureTestata t
-	LEFT OUTER join pfd.Enti e
-	ON e.InternalIstitutionId = t.FkIdEnte
-    LEFT OUTER join pfd.tmpFattureRighe r
-	ON t.IdFattura = r.FkIdFattura
-	LEFT OUTER join  [pfd].[tmpRelTestata] rr
-	ON rr.year = t.AnnoRiferimento 
-	AND rr.month = t.MeseRiferimento 
-	AND rr.TipologiaFattura = t.FkTipologiaFattura
-	AND rr.internal_organization_id = t.FkIdEnte 
-	AND rr.contract_id = t.CodiceContratto 
-    LEFT JOIN pfd.Contratti c
-	ON c.onboardingtokenid = t.CodiceContratto
-    AND c.internalistitutionid = e.InternalIstitutionId
-    INNER JOIN pfw.TipoContratto tp
-    ON c.FkIdTipoContratto = tp.IdTipoContratto
-    LEFT JOIN pfd.tmpRelTestata rt ON t.fkidente = rt.internal_organization_id 
-								and t.annoriferimento = rt.year
-								and t.meseriferimento = rt.month
-                                and t.FkTipologiaFattura = rt.TipologiaFattura
-    WHERE rr.month= @mese and rr.year=@anno and rr.TipologiaFattura=@tipologiafattura  
-    AND (
-        @FatturaInviata IS NULL  -- Tutte
-        OR (@FatturaInviata = 2 AND t.FatturaInviata IS NULL)  -- In elaborazione
-        OR (t.FatturaInviata = @FatturaInviata)  -- 0 o 1
-    ) 
-";
+        SELECT 
+           [IdFattura]
+          ,[RagioneSociale]
+          ,[TipoDocumento]
+          ,[IdEnte]
+          ,[DataFattura]
+          ,[Progressivo]
+          ,[TotaleFatturaImponibile]
+          ,[CodiceMateriale]
+          ,[RigaImponibile]
+          ,[IdContratto]
+          ,[Anno]
+          ,[Mese]
+          ,[TipologiaFattura]
+          ,[RelTotaleAnalogico]
+          ,[RelTotaleDigitale]
+          ,[RelTotaleNotificheAnalogiche]
+          ,[RelTotaleNotificheDigitali]
+          ,[RelTotaleNotifiche]
+          ,[RelTotale]
+          ,[RelTotaleIvatoAnalogico]
+          ,[RelTotaleIvatoDigitale]
+          ,[RelTotaleIvato]
+          ,[Caricata]
+          ,[RelFatturata]
+          ,[FkIdTipoContratto]
+          ,[TipologiaContratto]
+          ,[FatturaInviata]
+        FROM [pfd].[vwFattureSospeseReport]
+        WHERE Anno=@anno and Mese=@mese and TipologiaFattura=@tipologiafattura  
+        AND (
+            @FatturaInviata IS NULL  -- Tutte
+            OR (@FatturaInviata = 2 AND FatturaInviata IS NULL)  -- In elaborazione
+            OR (FatturaInviata = @FatturaInviata)  -- 0 o 1
+        )
+        AND (@FkIdTipoContratto IS NULL OR [FkIdTipoContratto] = @FkIdTipoContratto)
+    ";
 
 
     public static string SelectRel()
@@ -283,8 +240,22 @@ order by CAST(
 		THEN -t.TotaleFattura
 	ELSE t.TotaleFattura
              END AS decimal(18,2)) desc";
+
     public static string OrderByRel()
     {
         return _orderByRel;
+    }
+
+    private static readonly string _orderByRelSospese = @"
+          ) as a
+        order by CAST(
+            CASE WHEN a.[TipoDocumento]  = 'TD04'  
+            THEN -a.[TotaleFatturaImponibile]
+        ELSE a.[TotaleFatturaImponibile]
+        END AS decimal(18,2)) desc";
+
+    public static string OrderByRelSospese()
+    {
+        return _orderByRelSospese;
     }
 }
