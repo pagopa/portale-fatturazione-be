@@ -19,24 +19,27 @@ public class FattureSospeseNotaNoRelExcelPersistence(FattureSospeseRelExcelQuery
         var mese = _command.Mese;
         var tipoFattura = _command.TipologiaFattura;
         var fatturaInviata = _command.FatturaInviata;
+        var tipoContratto = _command.FkIdTipoContratto;
+
         var query = new DynamicParameters();
         query.Add("anno", anno);
         query.Add("mese", mese);
         query.Add("TipologiaFattura", tipoFattura);
         query.Add("FatturaInviata", fatturaInviata.HasValue ? fatturaInviata.Value : null);
-
+        query.Add("FkIdTipoContratto", tipoContratto.HasValue ? tipoContratto.Value : null);
+   
         string where = string.Empty;
         if (!_command.IdEnti!.IsNullNotAny())
         {
             query.Add("IdEnti", _command.IdEnti);
-            where += " AND t.FKIdEnte in @IdEnti ";
+            where += " AND IdEnte in @IdEnti ";
         }
 
-        if (_command.FkIdTipoContratto.HasValue)
-        {
-            query.Add("FkIdTipoContratto", _command.FkIdTipoContratto, DbType.Int32);
-            where += " AND c.FkIdTipoContratto = @FkIdTipoContratto ";
-        }
+        //if (_command.FkIdTipoContratto.HasValue)
+        //{
+        //    query.Add("FkIdTipoContratto", _command.FkIdTipoContratto, DbType.Int32);
+        //    where += " AND c.FkIdTipoContratto = @FkIdTipoContratto ";
+        //}
 
         var sql = _sql + where;
 

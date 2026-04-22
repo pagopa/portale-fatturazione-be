@@ -13,7 +13,7 @@ public class FattureSospeseUnionRelExcelPersistence(FattureSospeseRelExcelQuery 
     private readonly FattureSospeseRelExcelQuery _command = command;
     private static readonly string _sqlNo = FattureRelExcelBuilder.SelectNoteSenzaRelSospese();
     private static readonly string _sqlRel = FattureRelExcelBuilder.SelectRelSospese();
-    private static readonly string _order = FattureRelExcelBuilder.OrderByRel();
+    private static readonly string _order = FattureRelExcelBuilder.OrderByRelSospese();
     public async Task<IEnumerable<FattureRelExcelDto>?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
     {
         var computedFatture = new Dictionary<string, FattureRelExcelDto>();
@@ -22,27 +22,29 @@ public class FattureSospeseUnionRelExcelPersistence(FattureSospeseRelExcelQuery 
         var mese = _command.Mese;
         var tipoFattura = _command.TipologiaFattura;
         var fatturaInviata = _command.FatturaInviata;
+        var tipoContratto = _command.FkIdTipoContratto;
 
         var query = new DynamicParameters();
         query.Add("anno", anno);
         query.Add("mese", mese);
         query.Add("TipologiaFattura", tipoFattura);
         query.Add("FatturaInviata", fatturaInviata);
+        query.Add("FkIdTipoContratto", tipoContratto.HasValue ? tipoContratto.Value : null);
 
         string where = string.Empty;
         if (!_command.IdEnti!.IsNullNotAny())
         {
             query.Add("IdEnti", _command.IdEnti);
-            where += " AND t.FKIdEnte in @IdEnti ";
+            where += " AND IdEnte in @IdEnti ";
         }
 
-        if (_command.FkIdTipoContratto.HasValue)
-        {
-            query.Add("FkIdTipoContratto", _command.FkIdTipoContratto, DbType.Int32);
-            where += " AND c.FkIdTipoContratto = @FkIdTipoContratto ";
-        }
+        //if (_command.FkIdTipoContratto.HasValue)
+        //{
+        //    query.Add("FkIdTipoContratto", _command.FkIdTipoContratto, DbType.Int32);
+        //    where += " AND FkIdTipoContratto = @FkIdTipoContratto ";
+        //}
 
-        var sql = _sqlRel + where + " UNION " + _sqlNo + where + _order;
+        var sql = "SELECT* FROM (" + _sqlRel + where + " UNION " + _sqlNo + where + _order;
 
         var values = await ((IDatabase)this).SelectAsync<FattureRelExcelDto>(
         connection!,
