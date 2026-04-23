@@ -14,7 +14,12 @@ using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries.Persistence;
 
 namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.QueryHandlers;
 
-
+    /// <summary>
+    /// Gestisce le query per ottenere i dettagli delle fatture emesse in formato PDF per utenti Admin.
+    /// </summary>
+    /// <param name="factory">La factory utilizzata per creare istanze del contesto database delle fatture.</param>
+    /// <param name="localizer">L'oggetto utilizzato per la localizzazione delle stringhe dell'applicazione.</param>
+    /// <param name="logger">L'istanza del logger utilizzata per la registrazione delle informazioni diagnostiche e degli errori.</param>
     public class FattureDettaglioEmessoPdfAdminQueryHandler(IFattureDbContextFactory factory,
         IStringLocalizer<Localization> localizer,
         ILogger<FattureDettaglioEmessoPdfAdminQueryHandler> logger) : IRequestHandler<FattureDettaglioEmessoPdfAdminQuery, IEnumerable<FatturaDocContabileEmessoDettaglioDto>>
