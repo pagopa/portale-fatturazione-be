@@ -290,6 +290,23 @@ public static class FattureExtensions
         };
     }
 
+    public static FattureDettaglioEmessoPdfQuery MapEmessoPdf(this FattureDocContabileEnteRequest req, AuthenticationInfo authInfo)
+    {
+        return new FattureDettaglioEmessoPdfQuery(authInfo)
+        {
+            IdFattura = req.IdFattura
+        };
+    }
+
+    public static FattureDettaglioEmessoPdfAdminQuery MapEmessoPdfAdmin(this FattureDocContabileEnteAdminRequest req)
+    {
+        return new FattureDettaglioEmessoPdfAdminQuery()
+        {
+            IdFattura = req.IdFattura,
+            IdEnte = req.IdEnte
+        };
+    }
+
     public static DocumentoContabileDettaglioResponse Map(this FattureDocContabiliDettaglioDto dto)
     {
         return new DocumentoContabileDettaglioResponse

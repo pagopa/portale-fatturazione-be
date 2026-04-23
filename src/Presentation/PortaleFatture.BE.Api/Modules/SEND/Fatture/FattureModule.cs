@@ -1491,7 +1491,7 @@ public partial class FattureModule
             IdFattura = id
         };
         var authInfo = context.GetAuthInfo();
-        IEnumerable<FatturaDocContabileEmessoDettaglioDto> fattureEmesseExportPdf = await handler.Send(request.MapEmesso(authInfo));
+        IEnumerable<FatturaDocContabileEmessoDettaglioDto> fattureEmesseExportPdf = await handler.Send(request.MapEmessoPdf(authInfo));
         if (fattureEmesseExportPdf == null || !fattureEmesseExportPdf.Any())
             return NotFound();
 
@@ -1556,7 +1556,7 @@ public partial class FattureModule
             IdEnte = idEnte
         };
 
-        var fattureEmesseExportPdf = await handler.Send(request.MapEmessoAdmin());
+        var fattureEmesseExportPdf = await handler.Send(request.MapEmessoPdfAdmin());
         if (fattureEmesseExportPdf == null || !fattureEmesseExportPdf.Any())
             return NotFound();
 
