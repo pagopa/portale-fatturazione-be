@@ -331,6 +331,20 @@ public static class DocumentExtensions
         return template;
     }
 
+
+    /// <summary>
+    /// Sostituisce i placeholder nel modello di testo specificato con i valori correnti delle proprietà dell'istanza di
+    /// DocumentoContabileEmessiMultipli.
+    /// </summary>
+    /// <remarks>I placeholder devono corrispondere ai nomi delle proprietà di
+    /// DocumentoContabileEmessiMultipli, formattati secondo la convenzione utilizzata dal metodo GetName. I valori
+    /// numerici sono formattati come numeri con due decimali, ove applicabile. I segnaposto non riconosciuti rimangono
+    /// invariati.</remarks>
+    /// <param name="model">L'istanza di DocumentoContabileEmessiMultipli i cui valori vengono utilizzati per sostituire i segnaposto nel
+    /// modello.</param>
+    /// <param name="template">La stringa di modello contenente i segnaposto da sostituire con i valori delle proprietà.</param>
+    /// <returns>Una nuova stringa in cui tutti i segnaposto riconosciuti sono stati sostituiti con i valori corrispondenti
+    /// dell'istanza fornita.</returns>
     public static string Replace(this DocumentoContabileEmessiMultipli model, string template)
     {
         template = template

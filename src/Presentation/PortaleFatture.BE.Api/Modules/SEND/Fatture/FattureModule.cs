@@ -1644,6 +1644,13 @@ public partial class FattureModule
         }
     }
 
+    /// <summary>
+    /// Determina se la tipologia di fattura specificata corrisponde a un anticipo o a un acconto.
+    /// </summary>
+    /// <param name="tipologiaFattura">La tipologia di fattura da verificare. Il confronto non fa distinzione tra maiuscole e minuscole. Può essere
+    /// null.</param>
+    /// <returns>Restituisce <see langword="true"/> se <paramref name="tipologiaFattura"/> è "ANTICIPO" o "ACCONTO" (ignorando la
+    /// distinzione tra maiuscole e minuscole); in caso contrario, <see langword="false"/>.</returns>
     private static bool IsAnticipoOrAcconto(string? tipologiaFattura)
     {
         return string.Equals(tipologiaFattura, "ANTICIPO", StringComparison.OrdinalIgnoreCase)

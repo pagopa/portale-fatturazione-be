@@ -186,6 +186,14 @@ public class DocumentBuilder : IDocumentBuilder
         return CreatePdf(relText!);
     }
 
+    /// <summary>
+    /// Genera un file PDF contenente il dettaglio di fatture emesse multiple, utilizzando il modello appropriato in base
+    /// alla tipologia di contratto specificata.
+    /// </summary>
+    /// <param name="dati">I dati contabili relativi alle fatture emesse da includere nel PDF. Deve specificare una tipologia di contratto
+    /// valida ('PAC' o 'PAL').</param>
+    /// <returns>Un array di byte che rappresenta il file PDF generato con i dettagli delle fatture emesse.</returns>
+    /// <exception cref="Exception">Viene generata se la tipologia di contratto specificata in 'dati' non è valida o non è supportata.</exception>
     public byte[] CreateDettaglioFatturaEmessaMultiplaPdf(DocumentoContabileEmessiMultipli dati)
     {
         string? fileRel;
@@ -280,6 +288,17 @@ public class DocumentBuilder : IDocumentBuilder
         return relText;
     }
 
+
+    /// <summary>
+    /// Genera il contenuto HTML dettagliato per una fattura emessa multipla in base ai dati forniti.
+    /// </summary>
+    /// <remarks>La generazione del dettaglio HTML dipende dal valore della proprietà 'TipologiaContratto' di
+    /// 'dati'. Solo le tipologie che contengono 'PAC' o 'PAL' sono supportate.</remarks>
+    /// <param name="dati">I dati della fattura emessa multipla, inclusa la tipologia di contratto e le informazioni necessarie per la
+    /// generazione del dettaglio.</param>
+    /// <returns>Una stringa contenente il contenuto HTML generato per la fattura emessa multipla. Restituisce null se il file di
+    /// dettaglio non viene trovato.</returns>
+    /// <exception cref="Exception">Viene generata se la tipologia di contratto specificata in 'dati' non è supportata.</exception>
     public string? CreateDettaglioFatturaEmessaMultiplaHtml(DocumentoContabileEmessiMultipli dati)
     {
         string? fileRel;

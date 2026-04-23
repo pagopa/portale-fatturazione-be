@@ -11,6 +11,11 @@ using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries.Persistence.B
 
 namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries.Persistence
 {
+    /// <summary>
+    /// Provides persistence logic to retrieve detailed PDF information for issued invoices using administrative
+    /// queries.
+    /// </summary>
+    /// <param name="command">The query object containing parameters for retrieving issued invoice details.</param>
     public class FattureDettaglioEmessoPdfAdminPersistence(FattureDocContabileDettaglioAdminEmessoQuery command) : DapperBase, IQuery<IEnumerable<FatturaDocContabileEmessoDettaglioDto>>
     {
         private readonly FattureDocContabileDettaglioAdminEmessoQuery _command = command;
