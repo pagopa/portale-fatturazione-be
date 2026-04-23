@@ -1671,6 +1671,11 @@ SELECT [AnnoRiferimento] as Anno
     FROM [pfd].[vwFatturaEmessaDownloadPDF]
     WHERE IdEnte = @IdEnte AND IdFattura = @IdFattura";
 
+
+    /// <summary>
+    /// Retrieves the SQL query string used to select detailed information for issued PDF documents.
+    /// </summary>
+    /// <returns>A string containing the SQL query for retrieving detailed data about issued PDF documents.</returns>
     public static string SelectDettaglioEmessoPdf()
     {
         return _sqlSelectDettaglioEmessoPdf;

@@ -290,6 +290,14 @@ public static class FattureExtensions
         };
     }
 
+    /// <summary>
+    /// Crea una nuova istanza di FattureDettaglioEmessoPdfQuery utilizzando le informazioni di autenticazione e
+    /// l'identificativo della fattura.
+    /// </summary>
+    /// <param name="req">La richiesta contenente i dati della fattura, incluso l'identificativo da utilizzare per la query. Non può
+    /// essere null.</param>
+    /// <param name="authInfo">Le informazioni di autenticazione da associare alla query. Non può essere null.</param>
+    /// <returns>Un oggetto FattureDettaglioEmessoPdfQuery inizializzato con i dati forniti.</returns>
     public static FattureDettaglioEmessoPdfQuery MapEmessoPdf(this FattureDocContabileEnteRequest req, AuthenticationInfo authInfo)
     {
         return new FattureDettaglioEmessoPdfQuery(authInfo)
@@ -298,6 +306,11 @@ public static class FattureExtensions
         };
     }
 
+    /// <summary>
+    /// Converte una richiesta di un di documento contabile in una query per il dettaglio PDF emesso (Admin)
+    /// </summary>
+    /// <param name="req">La richiesta del documento contabile da convertire. Non può essere null.</param>
+    /// <returns>Un oggetto FattureDettaglioEmessoPdfAdminQuery che rappresenta la query generata dalla richiesta specificata.</returns>
     public static FattureDettaglioEmessoPdfAdminQuery MapEmessoPdfAdmin(this FattureDocContabileEnteAdminRequest req)
     {
         return new FattureDettaglioEmessoPdfAdminQuery()

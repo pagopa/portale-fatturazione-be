@@ -3,6 +3,13 @@ using PortaleFatture.BE.Core.Entities.SEND.DatiRel;
 
 namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Dto;
 
+/// <summary>
+/// Rappresenta i dettagli di una fattura e dei relativi documenti contabili, inclusi identificativi, importi,
+/// informazioni contrattuali e dati di relazione tra analogico e digitale.
+/// </summary>
+/// <remarks>Questa classe viene utilizzata per trasferire i dati dettagliati di una fattura, comprese le
+/// informazioni necessarie per la gestione contabile e la riconciliazione tra documenti analogici e digitali. 
+/// </remarks>
 public class FattureDocContabiliDettaglioDto
 {
     public long IdFattura { get; set; }
@@ -80,6 +87,13 @@ public class FattureDocContabiliDettaglioDto
     public decimal Iva { get; set; }
 }
 
+/// <summary>
+/// Represents the raw detail data for an issued accounting document (fattura) that is suspended, including information
+/// about the suspension and related financial details.
+/// </summary>
+/// <remarks>This DTO extends FattureDocContabiliDettaglioDto to provide additional fields specific to suspended
+/// invoices, such as suspension identifiers, payment method, and suspension status. Use this type when handling
+/// detailed data for suspended issued invoices in accounting workflows.</remarks>
 public class FatturaDocContabileEmessoDettaglioRawDto : FattureDocContabiliDettaglioDto
 {
     public string? IdFatturaSospesa { get; set; }
@@ -105,6 +119,13 @@ public class FatturaDocContabileEmessoDettaglioRawDto : FattureDocContabiliDetta
     public string? SollecitoSospesa { get; set; }
 }
 
+/// <summary>
+/// Rappresenta i dettagli di una fattura emessa collegata a una sospensione, includendo informazioni sulla fattura
+/// sospesa, i relativi importi e lo stato delle notifiche associate.
+/// </summary>
+/// <remarks>Questa classe estende FattureDocContabiliDettaglioDto aggiungendo proprietà specifiche per la
+/// gestione delle fatture sospese e delle relative notifiche. Può essere utilizzata per tracciare lo stato, i totali e
+/// le informazioni di pagamento delle fatture sospese collegate a una fattura emessa.</remarks>
 public class FatturaDocContabileEmessoDettaglioDto : FattureDocContabiliDettaglioDto
 {
     public string? IdFatturaSospesa { get; set; }
@@ -158,6 +179,13 @@ public class FatturaDocContabileEmessoDettaglioDto : FattureDocContabiliDettagli
     public IEnumerable<FatturaDocContabileEmessoSospesaDettaglioDto>? FattureSospese { get; set; }
 }
 
+/// <summary>
+/// Rappresenta i dettagli di una fattura sospesa associata a un documento contabile emesso.
+/// </summary>
+/// <remarks>Utilizzare questa classe per trasferire le informazioni relative a una fattura sospesa, inclusi
+/// identificativi, dati contabili, metodo di pagamento e stato di invio. Tutte le proprietà sono opzionali, salvo
+/// diversa indicazione, e possono essere utilizzate per la visualizzazione o l'elaborazione dei dati di fatturazione
+/// sospesa.</remarks>
 public class FatturaDocContabileEmessoSospesaDettaglioDto
 {
     public string? IdFatturaSospesa { get; set; }
