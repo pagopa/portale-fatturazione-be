@@ -446,11 +446,12 @@ public static class FattureExtensions
         {
             Anno = anno,
             Mese = mese,
-            Totale = dto.TotaleFatturaSospesaImponibile ?? dto.RelTotale,
+            Totale = dto.RelTotaleSospeso ?? dto.RelTotale,
             TotaleDigitale = dto.RelTotaleDigitaleSospeso ?? dto.RelTotaleDigitale,
             TotaleAnalogico = dto.RelTotaleAnalogicoSospeso ?? dto.RelTotaleAnalogico,
             TotaleNotificheDigitali = dto.RelTotaleNotificheDigitaliSospeso ?? dto.RelTotaleNotificheDigitali,
             TotaleNotificheAnalogiche = dto.RelTotaleNotificheAnalogicheSospeso ?? dto.RelTotaleNotificheAnalogiche,
+            TotaleFatturaSospesaImponibile = dto.TotaleFatturaSospesaImponibile,
 
             TipologiaContratto = dto.TipologiaContratto,
             TipologiaFattura = dto.TipologiaFattura,
@@ -499,7 +500,8 @@ public static class FattureExtensions
     var totalAmount = dtos.Sum(d => d.TotaleFatturaSospesaImponibile ?? 0);
     var totalSuspended = dtos.Sum(d => d.RelTotaleSospeso ?? 0);
 
-    if (totalSuspended < 10)
+        // ? TODO : da verificare con il team se è necessario questo controllo, la logica di sospensione è in carico a data non a BE
+        if (totalSuspended < 10)
     {
         totalSuspended = 0;
     }
