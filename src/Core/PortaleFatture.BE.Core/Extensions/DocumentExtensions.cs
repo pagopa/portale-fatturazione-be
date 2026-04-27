@@ -110,7 +110,7 @@ public static class DocumentExtensions
         StringBuilder builder = new();
         foreach (var fattura in fatture)
         {
-            var isPac = fattura.TipologiaContratto != null && 
+            var isPac = fattura.TipologiaContratto != null &&
                         fattura.TipologiaContratto.Contains("PAC", StringComparison.InvariantCultureIgnoreCase);
 
             // ? TODO: va bene gestirlo solo per le emesse ?
@@ -125,24 +125,36 @@ public static class DocumentExtensions
             }
 
             const string baseStyle = "font-family: Calibri, sans-serif;font-style: normal;font-weight: normal;text-decoration: none;font-size: 16pt;padding-top: 9pt; text-indent: 0pt; line-height: 114%; text-align: justify;";
-            const string bulletStyle = "font-family: Calibri, sans-serif;font-style: normal;font-weight: normal;text-decoration: none;font-size: 16pt;padding-top: 9pt; padding-left: 16pt; text-indent: 0pt; line-height: 114%; text-align: justify;";
+            const string listStyle = "font-family: Calibri, sans-serif;font-style: normal;font-weight: normal;text-decoration: none;font-size: 16pt;padding-right: 0pt;margin-left: 24pt;line-height: 114%;text-align: justify;list-style-type: disc;";
+            const string listItemStyle = "padding-top: 9pt;";
+            const string boldSpanStyle = "font-family: Calibri, sans-serif;font-style: normal;font-weight: bold;text-decoration: none;font-size: 16pt;";
             const string avoidBreakStyle = "page-break-inside: avoid; break-inside: avoid; -webkit-column-break-inside: avoid;";
 
             var tipologiaSuffix = string.IsNullOrWhiteSpace(tipologiaFattura) ? string.Empty : $" {tipologiaFattura}";
 
+            var totale = (fattura.Totale ?? 0).ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"));
+            var totaleDigitale = (fattura.TotaleDigitale ?? 0).ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"));
+            var totaleAnalogico = (fattura.TotaleAnalogico ?? 0).ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"));
+
             builder.Append($"<div style=\"{avoidBreakStyle}\">");
             builder.Append($"<p style=\"{baseStyle}\">MESE DI {fattura.Mese.PadLeft(2, '0')}/{fattura.Anno}{tipologiaSuffix}</p>");
-            builder.Append($"<p style=\"{bulletStyle}\">- € {(fattura.Totale ?? 0).ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} oltre IVA, così determinato: - € {(fattura.TotaleDigitale ?? 0).ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} per n.&nbsp;{fattura.TotaleNotificheDigitali ?? 0} notifiche digitali e € {(fattura.TotaleAnalogico ?? 0).ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} per n.&nbsp;{fattura.TotaleNotificheAnalogiche ?? 0} notifiche analogiche espletate.</p>");
+
+            builder.Append($"<ul style=\"{listStyle}\">");
+            builder.Append($"<li style=\"{listItemStyle}\">€ <span style=\"{boldSpanStyle}\">{totale}</span> oltre IVA, così determinato: € {totaleDigitale} per n.&nbsp;{fattura.TotaleNotificheDigitali ?? 0} notifiche digitali e € {totaleAnalogico} per n.&nbsp;{fattura.TotaleNotificheAnalogiche ?? 0} notifiche analogiche espletate.</li>");
+            builder.Append("</ul>");
 
             if (showDetails)
             {
                 builder.Append($"<p style=\"{baseStyle}\">{(isPac ? "Agli importi sopra indicati per l’emissione di regolare fattura sono stornati i seguenti importi già versati in anticipo e/o acconto:" : "Agli importi sopra indicati per l’emissione di regolare fattura sono stornati i seguenti importi già versati in anticipo:")}</p>");
-                builder.Append($"<p style=\"{bulletStyle}\">- € {fattura.TotaleAnticipo.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} oltre IVA, così determinato: - € {fattura.AnticipoDigitale.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} per l’anticipazione delle notifiche digitali e € {fattura.AnticipoAnalogico.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} per l’anticipazione delle notifiche analogiche.</p>");
+
+                builder.Append($"<ul style=\"{listStyle}\">");
+                builder.Append($"<li style=\"{listItemStyle}\">€ {fattura.TotaleAnticipo.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} oltre IVA, così determinato: € {fattura.AnticipoDigitale.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} per l’anticipazione delle notifiche digitali e € {fattura.AnticipoAnalogico.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} per l’anticipazione delle notifiche analogiche.</li>");
 
                 if (isPac)
                 {
-                    builder.Append($"<p style=\"{bulletStyle}\">- € {fattura.TotaleAcconto.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} oltre IVA, così determinato: - € {fattura.AccontoDigitale.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} per l’acconto delle notifiche digitali e € {fattura.AccontoAnalogico.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} per l’acconto delle notifiche analogiche.</p>");
+                    builder.Append($"<li style=\"{listItemStyle}\">€ {fattura.TotaleAcconto.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} oltre IVA, così determinato: € {fattura.AccontoDigitale.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} per l’acconto delle notifiche digitali e € {fattura.AccontoAnalogico.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} per l’acconto delle notifiche analogiche.</li>");
                 }
+                builder.Append("</ul>");
             }
             else
             {
