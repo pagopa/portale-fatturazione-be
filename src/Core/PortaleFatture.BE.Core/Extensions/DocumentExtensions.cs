@@ -135,12 +135,13 @@ public static class DocumentExtensions
             var totale = (fattura.Totale ?? 0).ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"));
             var totaleDigitale = (fattura.TotaleDigitale ?? 0).ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"));
             var totaleAnalogico = (fattura.TotaleAnalogico ?? 0).ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"));
+            var totaleSospesoImponibile = (fattura.TotaleFatturaSospesaImponibile ?? 0).ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"));
 
             builder.Append($"<div style=\"{avoidBreakStyle}\">");
             builder.Append($"<p style=\"{baseStyle}\">MESE DI {fattura.Mese.PadLeft(2, '0')}/{fattura.Anno}{tipologiaSuffix}</p>");
 
             builder.Append($"<ul style=\"{listStyle}\">");
-            builder.Append($"<li style=\"{listItemStyle}\">€ <span style=\"{boldSpanStyle}\">{totale}</span> oltre IVA, così determinato: € {totaleDigitale} per n.&nbsp;{fattura.TotaleNotificheDigitali ?? 0} notifiche digitali e € {totaleAnalogico} per n.&nbsp;{fattura.TotaleNotificheAnalogiche ?? 0} notifiche analogiche espletate.</li>");
+            builder.Append($"<li style=\"{listItemStyle}\">€ <span>{totale}</span> oltre IVA, così determinato: € {totaleDigitale} per n.&nbsp;{fattura.TotaleNotificheDigitali ?? 0} notifiche digitali e € {totaleAnalogico} per n.&nbsp;{fattura.TotaleNotificheAnalogiche ?? 0} notifiche analogiche espletate.</li>");
             builder.Append("</ul>");
 
             if (showDetails)
@@ -160,9 +161,9 @@ public static class DocumentExtensions
             {
                 builder.Append($"<p style=\"{baseStyle}\">{(isPac ? "Agli importi sopra indicati per l’emissione di regolare fattura sono stornati gli importi già versati in anticipo e/o acconto." : "Agli importi sopra indicati per l’emissione di regolare fattura sono stornati gli importi già versati in anticipo.")}</p>");
             }
-
+            builder.Append($"<p>Fattura imponibile pari a <span style=\"{boldSpanStyle}\">{totaleSospesoImponibile}</span> oltre IVA</p>");
             builder.Append("</div>");
-            builder.Append("<p style=\"text-indent: 0pt;text-align: left;\"><br /></p>");
+ 
         }
 
         return builder.ToString();
