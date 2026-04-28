@@ -128,7 +128,9 @@ public static class DocumentExtensions
             const string listStyle = "font-family: Calibri, sans-serif;font-style: normal;font-weight: normal;text-decoration: none;font-size: 16pt;padding-right: 0pt;margin-left: 24pt;line-height: 114%;text-align: justify;list-style-type: disc;";
             const string listItemStyle = "padding-top: 9pt;";
             const string boldSpanStyle = "font-family: Calibri, sans-serif;font-style: normal;font-weight: bold;text-decoration: none;font-size: 16pt;";
-            const string avoidBreakStyle = "page-break-inside: avoid; break-inside: avoid; -webkit-column-break-inside: avoid;";
+            //const string avoidBreakStyle = "page-break-inside: avoid; break-inside: avoid; -webkit-column-break-inside: avoid;";
+            //const string bulletStyle = "font-family: Calibri, sans-serif;font-style: normal;font-weight: normal;text-decoration: none;font-size: 16pt;padding-top: 9pt; padding-left: 16pt; text-indent: 0pt; line-height: 114%; text-align: justify;";
+            const string avoidBreakStyle = "page-break-inside: avoid; break-inside: avoid; -webkit-column-break-inside: avoid; padding-top: 6pt;";
 
             var tipologiaSuffix = string.IsNullOrWhiteSpace(tipologiaFattura) ? string.Empty : $" {tipologiaFattura}";
 
