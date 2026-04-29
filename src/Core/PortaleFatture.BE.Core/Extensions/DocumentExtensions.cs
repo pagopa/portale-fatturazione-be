@@ -163,7 +163,7 @@ public static class DocumentExtensions
             {
                 builder.Append($"<p style=\"{baseStyle}\">{(isPac ? "Agli importi sopra indicati per l’emissione di regolare fattura sono stornati gli importi già versati in anticipo e/o acconto." : "Agli importi sopra indicati per l’emissione di regolare fattura sono stornati gli importi già versati in anticipo.")}</p>");
             }
-            builder.Append($"<p>Fattura imponibile pari a <span style=\"{boldSpanStyle}\">{totaleSospesoImponibile}</span> oltre IVA</p>");
+            builder.Append($"<p style=\"{baseStyle}\">Totale imponibile pari a <span style=\"{boldSpanStyle}\">{totaleSospesoImponibile}</span> oltre IVA</p>");
             builder.Append("</div>");
  
         }
