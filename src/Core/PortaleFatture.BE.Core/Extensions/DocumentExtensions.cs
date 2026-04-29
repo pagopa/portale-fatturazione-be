@@ -151,11 +151,11 @@ public static class DocumentExtensions
                 builder.Append($"<p style=\"{baseStyle}\">{(isPac ? "Agli importi sopra indicati per l’emissione di regolare fattura sono stornati i seguenti importi già versati in anticipo e/o acconto:" : "Agli importi sopra indicati per l’emissione di regolare fattura sono stornati i seguenti importi già versati in anticipo:")}</p>");
 
                 builder.Append($"<ul style=\"{listStyle}\">");
-                builder.Append($"<li style=\"{listItemStyle}\">€ {fattura.TotaleAnticipo.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} oltre IVA, così determinato: € {fattura.AnticipoDigitale.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} per l’anticipazione delle notifiche digitali e € {fattura.AnticipoAnalogico.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} per l’anticipazione delle notifiche analogiche.</li>");
+                builder.Append($"<li style=\"{listItemStyle}\">€ {Math.Abs(fattura.TotaleAnticipo).ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} oltre IVA, così determinato: € {Math.Abs(fattura.AnticipoDigitale).ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} per l’anticipazione delle notifiche digitali e € {Math.Abs(fattura.AnticipoAnalogico).ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} per l’anticipazione delle notifiche analogiche.</li>");
 
                 if (isPac)
                 {
-                    builder.Append($"<li style=\"{listItemStyle}\">€ {fattura.TotaleAcconto.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} oltre IVA, così determinato: € {fattura.AccontoDigitale.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} per l’acconto delle notifiche digitali e € {fattura.AccontoAnalogico.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} per l’acconto delle notifiche analogiche.</li>");
+                    builder.Append($"<li style=\"{listItemStyle}\">€ {Math.Abs(fattura.TotaleAcconto).ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} oltre IVA, così determinato: € {Math.Abs(fattura.AccontoDigitale).ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} per l’acconto delle notifiche digitali e € {Math.Abs(fattura.AccontoAnalogico).ToString("N2", CultureInfo.CreateSpecificCulture("it-IT"))} per l’acconto delle notifiche analogiche.</li>");
                 }
                 builder.Append("</ul>");
             }
@@ -300,11 +300,11 @@ public static class DocumentExtensions
             .Replace("[ElencoMesi]", $"{model.Mese.ToString().PadLeft(2, '0')}/{model.Anno}")
             .Replace(nameof(model.Totale).GetName<DocumentoContabileSospeso>(), model.Totale.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT")))
             .Replace(nameof(model.TotaleAnalogico).GetName<DocumentoContabileSospeso>(), model.TotaleAnalogico.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT")))
-            .Replace(nameof(model.AnticipoAnalogico).GetName<DocumentoContabileSospeso>(), model.AnticipoAnalogico.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT")))
-            .Replace(nameof(model.AnticipoDigitale).GetName<DocumentoContabileSospeso>(), model.AnticipoDigitale.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT")))
-            .Replace(nameof(model.TotaleStorno).GetName<DocumentoContabileSospeso>(), model.TotaleStorno.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT")))
-            .Replace(nameof(model.StornoDigitale).GetName<DocumentoContabileSospeso>(), model.StornoDigitale.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT")))
-            .Replace(nameof(model.StornoAnalogico).GetName<DocumentoContabileSospeso>(), model.StornoAnalogico.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT")))
+            .Replace(nameof(model.AnticipoAnalogico).GetName<DocumentoContabileSospeso>(), Math.Abs(model.AnticipoAnalogico).ToString("N2", CultureInfo.CreateSpecificCulture("it-IT")))
+            .Replace(nameof(model.AnticipoDigitale).GetName<DocumentoContabileSospeso>(), Math.Abs(model.AnticipoDigitale).ToString("N2", CultureInfo.CreateSpecificCulture("it-IT")))
+            .Replace(nameof(model.TotaleStorno).GetName<DocumentoContabileSospeso>(), Math.Abs(model.TotaleStorno).ToString("N2", CultureInfo.CreateSpecificCulture("it-IT")))
+            .Replace(nameof(model.StornoDigitale).GetName<DocumentoContabileSospeso>(), Math.Abs(model.StornoDigitale).ToString("N2", CultureInfo.CreateSpecificCulture("it-IT")))
+            .Replace(nameof(model.StornoAnalogico).GetName<DocumentoContabileSospeso>(), Math.Abs(model.StornoAnalogico).ToString("N2", CultureInfo.CreateSpecificCulture("it-IT")))
             .Replace(nameof(model.ImportoSottoSoglia).GetName<DocumentoContabileSospeso>(), model.ImportoSottoSoglia.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT")))
             .Replace(nameof(model.TotaleDigitale).GetName<DocumentoContabileSospeso>(), model.TotaleDigitale.ToString("N2", CultureInfo.CreateSpecificCulture("it-IT")))
             .Replace(nameof(model.TotaleNotificheAnalogiche).GetName<DocumentoContabileSospeso>(), model.TotaleNotificheAnalogiche.ToString())
@@ -368,15 +368,15 @@ public static class DocumentExtensions
             .Replace(nameof(model.TotaleDigitale).GetName<DocumentoContabileEmessiMultipli>(), model.TotaleDigitale.ToString("N2"))
             .Replace(nameof(model.TotaleNotificheAnalogiche).GetName<DocumentoContabileEmessiMultipli>(), model.TotaleNotificheAnalogiche.ToString())
             .Replace(nameof(model.TotaleNotificheDigitali).GetName<DocumentoContabileEmessiMultipli>(), model.TotaleNotificheDigitali.ToString())
-            .Replace(nameof(model.TotaleAnticipo).GetName<DocumentoContabileEmessiMultipli>(), model.TotaleAnticipo.ToString("N2"))
-            .Replace(nameof(model.AnticipoDigitale).GetName<DocumentoContabileEmessiMultipli>(), model.AnticipoDigitale.ToString("N2"))
-            .Replace(nameof(model.AnticipoAnalogico).GetName<DocumentoContabileEmessiMultipli>(), model.AnticipoAnalogico.ToString("N2"))
-            .Replace(nameof(model.TotaleStorno).GetName<DocumentoContabileEmessiMultipli>(), model.TotaleStorno.ToString("N2"))
-            .Replace(nameof(model.StornoDigitale).GetName<DocumentoContabileEmessiMultipli>(), model.StornoDigitale.ToString("N2"))
-            .Replace(nameof(model.StornoAnalogico).GetName<DocumentoContabileEmessiMultipli>(), model.StornoAnalogico.ToString("N2"))
-            .Replace(nameof(model.TotaleAcconto).GetName<DocumentoContabileEmessiMultipli>(), model.TotaleAcconto.ToString("N2"))
-            .Replace(nameof(model.AccontoDigitale).GetName<DocumentoContabileEmessiMultipli>(), model.AccontoDigitale.ToString("N2"))
-            .Replace(nameof(model.AccontoAnalogico).GetName<DocumentoContabileEmessiMultipli>(), model.AccontoAnalogico.ToString("N2"))
+            .Replace(nameof(model.TotaleAnticipo).GetName<DocumentoContabileEmessiMultipli>(), Math.Abs(model.TotaleAnticipo).ToString("N2"))
+            .Replace(nameof(model.AnticipoDigitale).GetName<DocumentoContabileEmessiMultipli>(), Math.Abs(model.AnticipoDigitale).ToString("N2"))
+            .Replace(nameof(model.AnticipoAnalogico).GetName<DocumentoContabileEmessiMultipli>(), Math.Abs(model.AnticipoAnalogico).ToString("N2"))
+            .Replace(nameof(model.TotaleStorno).GetName<DocumentoContabileEmessiMultipli>(), Math.Abs(model.TotaleStorno).ToString("N2"))
+            .Replace(nameof(model.StornoDigitale).GetName<DocumentoContabileEmessiMultipli>(), Math.Abs(model.StornoDigitale).ToString("N2"))
+            .Replace(nameof(model.StornoAnalogico).GetName<DocumentoContabileEmessiMultipli>(), Math.Abs(model.StornoAnalogico).ToString("N2"))
+            .Replace(nameof(model.TotaleAcconto).GetName<DocumentoContabileEmessiMultipli>(), Math.Abs(model.TotaleAcconto).ToString("N2"))
+            .Replace(nameof(model.AccontoDigitale).GetName<DocumentoContabileEmessiMultipli>(), Math.Abs(model.AccontoDigitale).ToString("N2"))
+            .Replace(nameof(model.AccontoAnalogico).GetName<DocumentoContabileEmessiMultipli>(), Math.Abs(model.AccontoAnalogico).ToString("N2"))
             .Replace(nameof(model.Imponibile).GetName<DocumentoContabileEmessiMultipli>(), model.Imponibile.ToString("N2"))
             .Replace(nameof(model.RagioneSociale).GetName<DocumentoContabileEmessiMultipli>(), model.RagioneSociale!)
             .Replace(nameof(model.IdContratto).GetName<DocumentoContabileEmessiMultipli>(), model.IdContratto!)
