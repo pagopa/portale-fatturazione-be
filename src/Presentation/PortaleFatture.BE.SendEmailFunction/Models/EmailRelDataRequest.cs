@@ -9,4 +9,5 @@ public class EmailRelDataRequest
     public string? Ricalcola { get; set; } 
     public string? Data { get; set; }  
     public int? Fase { get; set; }
+    public bool? Preview { get; set; }
 }

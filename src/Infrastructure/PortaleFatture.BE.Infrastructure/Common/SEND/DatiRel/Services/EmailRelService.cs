@@ -59,6 +59,42 @@ public class EmailRelService(string cn) : IEmailRelService
             ,@Invio
             ,@Fase);";
 
+    private readonly string _sqlInsertPreview = @"
+        INSERT INTO [stg].[RelEmailPreview]
+                   ([FkIdEnte]
+                   ,[contract_id]
+                   ,[TipologiaFattura]
+                   ,[year]
+                   ,[month]
+                   ,[DataEvento]
+                   ,[Pec]
+                   ,[Oggetto]
+                   ,[Corpo]
+                   ,[RagioneSociale]
+                   ,[Invio]
+                   ,[TipoComunicazione]
+                   ,[Sospesa]
+                   ,[Multipla]
+                   ,[TipoContratto]
+                   ,[Fase])
+             VALUES
+                   (@idEnte
+                   ,@idContratto
+                   ,@tipologiaFattura
+                   ,@anno
+                   ,@mese
+                   ,@data
+                   ,@pec
+                   ,@oggetto
+                   ,@corpo
+                   ,@ragioneSociale
+                   ,@invio
+                   ,@tipoComunicazione
+                   ,@sospesa
+                   ,@multipla
+                   ,@tipoContratto
+                   ,@fase)";
+
     private readonly string _sqlSelectFatture = @"
 with cte_emesse as (
  
@@ -228,7 +264,8 @@ from cte_sospese cs
                             NumeroRighe = reader.GetInt32(8),
                             TmpAnno = reader.IsDBNull(9) ? (int?)null : reader.GetInt32(9),
                             TmpMese = reader.IsDBNull(10) ? (int?)null : reader.GetInt32(10),
-                            FlagFatturata = reader.GetBoolean(11)
+                            FlagFatturata = reader.GetBoolean(11),
+                            StatoFattura = reader.GetString(12)
                         });
                     }
                 }
@@ -256,6 +293,7 @@ from cte_sospese cs
                         TipoContratto = first.TipoContratto,
                         NumeroRighe = first.NumeroRighe,
                         FlagFatturata = first.FlagFatturata,
+                        StatoFattura = first.StatoFattura,
                         ElencoMesi = elencoMesi
                     });
                 }
@@ -296,6 +334,49 @@ from cte_sospese cs
                 cmd.Parameters.Add("@Fase", SqlDbType.Int).Value = DBNull.Value;
             }
             cmd.CommandText = _sqlInsert;
+            var rows = cmd.ExecuteNonQuery();
+            return rows == 1;
+        }
+        catch
+        {
+
+            return false;
+        }
+    }
+
+    public bool InsertPreviewEmail(RelEmailTracking email)
+    {
+        try
+        {
+            using var conn = new SqlConnection(_cn);
+            conn.Open();
+            using var cmd = new SqlCommand();
+            cmd.Connection = conn;
+            cmd.Parameters.Add("@idEnte", SqlDbType.NVarChar).Value = email.IdEnte;
+            cmd.Parameters.Add("@idContratto", SqlDbType.NVarChar).Value = email.IdContratto;
+            cmd.Parameters.Add("@tipologiaFattura", SqlDbType.NVarChar).Value = email.TipologiaFattura;
+            cmd.Parameters.Add("@anno", SqlDbType.Int).Value = email.Anno;
+            cmd.Parameters.Add("@mese", SqlDbType.Int).Value = email.Mese;
+            cmd.Parameters.Add("@data", SqlDbType.NVarChar).Value = email.Data;
+            cmd.Parameters.Add("@pec", SqlDbType.NVarChar).Value = email.Pec;
+            cmd.Parameters.Add("@oggetto", SqlDbType.NVarChar).Value = email.Oggetto;
+            cmd.Parameters.Add("@corpo", SqlDbType.NVarChar).Value = email.Corpo;
+            cmd.Parameters.Add("@ragioneSociale", SqlDbType.NVarChar).Value = email.RagioneSociale;
+            cmd.Parameters.Add("@invio", SqlDbType.Bit).Value = email.Invio;
+            cmd.Parameters.Add("@tipoComunicazione", SqlDbType.NVarChar).Value = email.TipoComunicazione;
+            cmd.Parameters.Add("@sospesa", SqlDbType.Bit).Value = email.Sospesa;
+            cmd.Parameters.Add("@multipla", SqlDbType.Bit).Value = email.Multipla;
+            cmd.Parameters.Add("@tipoContratto", SqlDbType.NVarChar).Value = email.TipoContratto;
+
+            if (email.Fase != null)
+            {
+                cmd.Parameters.Add("@Fase", SqlDbType.Int).Value = email.Fase;
+            }
+            else
+            {
+                cmd.Parameters.Add("@Fase", SqlDbType.Int).Value = DBNull.Value;
+            }
+            cmd.CommandText = _sqlInsertPreview;
             var rows = cmd.ExecuteNonQuery();
             return rows == 1;
         }
