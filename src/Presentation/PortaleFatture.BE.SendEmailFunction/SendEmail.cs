@@ -73,6 +73,7 @@ public class SendEmail(ILoggerFactory loggerFactory)
             var data = req.Data;
             var tipoComunicazione = req.TipoComunicazione;
             var fase = req.Fase;
+            var preview = req.Preview;
 
             var ricalcola = Convert.ToInt32(String.IsNullOrEmpty(req.Ricalcola) ? "0" : req.Ricalcola);
 
@@ -134,49 +135,75 @@ public class SendEmail(ILoggerFactory loggerFactory)
                         }
                     }
 
-                    if (production)
+                    // se è in preview non invio l'email e non scrivo nella tracking, altrimenti invio l'email (se in produzione) e scrivo sempre nella tracking
+                    if (!preview.HasValue || !preview.Value)
                     {
-                        var (msg, ver) = sender.SendEmail(ente.Pec, subject, builder.CreateEmailHtml(ente)!);
-                        if (!ver)
-                            _logger.LogInformation(msg);
-
-                        emailService.InsertTracciatoEmail(new RelEmailTracking()
+                        if (production)
                         {
-                            Data = data,
-                            IdContratto = ente.IdContratto,
-                            Invio = Convert.ToByte(ver == true ? 1 : 0),
-                            Anno = ente.Anno,
-                            Mese = ente.Mese,
-                            Messaggio = $"{msg}\n\nOGGETTO: {subject}\n\nCORPO:\n{builder.CreateEmailHtml(ente)!}",
-                            Pec = ente.Pec,
-                            IdEnte = ente.IdEnte,
-                            RagioneSociale = ente.RagioneSociale,
-                            TipologiaFattura = ente.TipologiaFattura,
-                            TipoComunicazione = tipoComunicazione,
-                            Fase = fase
-                        });
-                    }
-                    else
-                    {
-                        _logger.LogInformation($"Ambiente di test: email NON inviata a {ente.Pec} con oggetto {subject}");
+                            var (msg, ver) = sender.SendEmail(ente.Pec, subject, builder.CreateEmailHtml(ente)!);
+                            if (!ver)
+                                _logger.LogInformation(msg);
 
-                        emailService.InsertTracciatoEmail(new RelEmailTracking()
+                            emailService.InsertTracciatoEmail(new RelEmailTracking()
+                            {
+                                Data = data,
+                                IdContratto = ente.IdContratto,
+                                Invio = Convert.ToByte(ver == true ? 1 : 0),
+                                Anno = ente.Anno,
+                                Mese = ente.Mese,
+                                Messaggio = $"{msg}\n\nOGGETTO: {subject}\n\nCORPO:\n{builder.CreateEmailHtml(ente)!}",
+                                Pec = ente.Pec,
+                                IdEnte = ente.IdEnte,
+                                RagioneSociale = ente.RagioneSociale,
+                                TipologiaFattura = ente.TipologiaFattura,
+                                TipoComunicazione = tipoComunicazione,
+                                Fase = fase
+                            });
+                        }
+                        else
+                        {
+                            _logger.LogInformation($"Ambiente di test: email NON inviata a {ente.Pec} con oggetto {subject}");
+
+                            emailService.InsertTracciatoEmail(new RelEmailTracking()
+                            {
+                                Data = data,
+                                IdContratto = ente.IdContratto,
+                                Invio = 0,
+                                Anno = ente.Anno,
+                                Mese = ente.Mese,
+                                Messaggio = $"OGGETTO: {subject}\n\nCORPO:\n{builder.CreateEmailHtml(ente)!}",
+                                Pec = ente.Pec,
+                                IdEnte = ente.IdEnte,
+                                RagioneSociale = ente.RagioneSociale,
+                                TipologiaFattura = ente.TipologiaFattura,
+                                TipoComunicazione = tipoComunicazione,
+                                Fase = fase
+                            });
+                        }
+                    }else
+                    {
+                        _logger.LogInformation($"Modalità preview: email NON inviata a {ente.Pec} con oggetto {subject} e non inserita nella tracking");
+
+                        emailService.InsertPreviewEmail(new RelEmailTracking()
                         {
                             Data = data,
                             IdContratto = ente.IdContratto,
                             Invio = 0,
                             Anno = ente.Anno,
                             Mese = ente.Mese,
-                            Messaggio = $"OGGETTO: {subject}\n\nCORPO:\n{builder.CreateEmailHtml(ente)!}",
-                            Pec = ente.Pec,
+                            Corpo = builder.CreateEmailHtml(ente)!,
+                            Oggetto = subject,
+                            Pec = ente.Pec, 
+                            Multipla = ente.NumeroRighe > 1 ? (byte)1 : (byte)0,
+                            Sospesa = ente.StatoFattura == "sospese" ? (byte)1 : (byte)0,
                             IdEnte = ente.IdEnte,
+                            TipoContratto = ente.TipoContratto,
                             RagioneSociale = ente.RagioneSociale,
                             TipologiaFattura = ente.TipologiaFattura,
                             TipoComunicazione = tipoComunicazione,
                             Fase = fase
                         });
                     }
-
                 }
         }
         catch (Exception ex)
