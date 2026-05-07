@@ -77,9 +77,20 @@ LEFT JOIN pfw.TipoContestazione a ON a.IdTipoContestazione = t.FkIdTipoContestaz
         return _offSet;
     }
 
-    public static string OrderBy()
+    public static string OrderBy(string? columnName = null, string? order = null)
     {
-        return " ORDER BY n.year, n.month";
+        if (columnName == "data" && order == "1")
+        {
+            return $" ORDER BY  n.event_timestamp ASC";
+        }
+        else if (columnName == "data" && order == "2")
+        {
+            return $" ORDER BY  n.event_timestamp DESC";
+        }
+        else
+        {
+            return " ORDER BY n.year, n.month";
+        }
     }
 
     public static string SelectAll()

@@ -22,4 +22,7 @@ public class NotificaQueryGetByListaEnti(IAuthenticationInfo authenticationInfo)
     public string? RecipientId { get; set; }
     public string[]? Consolidatori { get; set; }
     public string[]? Recapitisti { get; set; }
+    public string? Order { get; set; }
+    public string? ColumnName { get; set; }
+
 }

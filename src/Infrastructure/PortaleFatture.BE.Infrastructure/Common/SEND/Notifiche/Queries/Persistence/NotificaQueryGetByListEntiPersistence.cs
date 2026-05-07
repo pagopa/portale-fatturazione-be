@@ -14,10 +14,11 @@ public class NotificaQueryGetByListEntiPersistence(NotificaQueryGetByListaEnti c
     private static readonly string _sqlSelectAll = NotificaSQLBuilder.SelectAll();
     private static readonly string _sqlSelectAllCount = NotificaSQLBuilder.SelectAllCount();
     private static readonly string _offSet = NotificaSQLBuilder.OffSet();
-    private static readonly string _orderBy = NotificaSQLBuilder.OrderBy();
+    //private static readonly string _orderBy = NotificaSQLBuilder.OrderBy();
 
     public async Task<NotificaDto?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
     {
+        var _orderBy = NotificaSQLBuilder.OrderBy(command.ColumnName, command.Order);
         var notifiche = new NotificaDto();
         var where = string.Empty;
         var page = _command.Page;

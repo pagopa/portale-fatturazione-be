@@ -9,7 +9,7 @@ public class NotificheRicercaRequestPagoPA
     public string? Prodotto { get; set; }
     public string? Cap { get; set; }
     public string? Profilo { get; set; }
-  
+   
     private TipoNotifica[]? _tipoNotifica;
     public TipoNotifica[]? TipoNotifica
     {
@@ -42,4 +42,7 @@ public class NotificheRicercaRequestPagoPA
         get { return _consolidatori; }
         set { _consolidatori = value!.IsNullNotAny() ? null : value; }
     }
+
+    public string? Order { get; set; }
+    public string? ColumnName { get; set; }
 }

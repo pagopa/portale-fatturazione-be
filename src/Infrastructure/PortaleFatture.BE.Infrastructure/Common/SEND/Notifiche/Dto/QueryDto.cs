@@ -20,4 +20,6 @@ public class QueryDto
     public string? Consolidatore { get; set; }
     public string[]? Recapitisti { get; set; }
     public string[]? Consolidatori { get; set; }
+    public string? Order { get; set; }   // sarà la stringa che ci dirà asc desc o null
+    public string? ColumnName { get; set; }  // nome della colonna lato fe dove verra applicato l'if lato be
 }

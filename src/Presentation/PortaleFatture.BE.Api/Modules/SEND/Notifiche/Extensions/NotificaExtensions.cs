@@ -23,7 +23,9 @@ public static class NotificaExtensions
             EntiIds = req.IdEnti,
             RecipientId = req.RecipientId,
             Consolidatori = req.Consolidatori,
-            Recapitisti = req.Recapitisti
+            Recapitisti = req.Recapitisti,
+            Order = req.Order,
+            ColumnName = req.ColumnName
         };
     }
 
@@ -129,7 +131,9 @@ public static class NotificaExtensions
             EntiIds = req.IdEnti,
             RecipientId = req.RecipientId,
             Consolidatori = req.Consolidatori,
-            Recapitisti = req.Recapitisti
+            Recapitisti = req.Recapitisti,
+            Order = req.Order,
+            ColumnName = req.ColumnName
         };
     }
 }

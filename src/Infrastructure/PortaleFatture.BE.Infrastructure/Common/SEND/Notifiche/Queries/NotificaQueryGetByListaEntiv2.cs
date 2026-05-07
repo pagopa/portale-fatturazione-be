@@ -22,4 +22,9 @@ public class NotificaQueryGetByListaEntiv2(IAuthenticationInfo authenticationInf
     public string? RecipientId { get; set; }
     public string[]? Consolidatori { get; set; }
     public string[]? Recapitisti { get; set; }
+    //bisogna inserirlo perchè utilizziamo lo stesso builder?
+    //è corretto utilizzare lo stesso builder in 2 posti diversi ?
+    public string? Order { get; set; }
+    public string? ColumnName { get; set; }
+
 }
