@@ -1,6 +1,9 @@
 ﻿using PortaleFatture.BE.Core.Entities.SEND.Notifiche;
 using PortaleFatture.BE.Core.Extensions;
 namespace PortaleFatture.BE.Api.Modules.SEND.Notifiche.Payload.Request;
+using PortaleFatture.BE.Infrastructure.Common.SEND.Notifiche.Queries;
+
+
 
 public class NotificheRicercaRequestPagoPA
 {
@@ -9,7 +12,7 @@ public class NotificheRicercaRequestPagoPA
     public string? Prodotto { get; set; }
     public string? Cap { get; set; }
     public string? Profilo { get; set; }
-  
+
     private TipoNotifica[]? _tipoNotifica;
     public TipoNotifica[]? TipoNotifica
     {
@@ -42,4 +45,5 @@ public class NotificheRicercaRequestPagoPA
         get { return _consolidatori; }
         set { _consolidatori = value!.IsNullNotAny() ? null : value; }
     }
+
 }

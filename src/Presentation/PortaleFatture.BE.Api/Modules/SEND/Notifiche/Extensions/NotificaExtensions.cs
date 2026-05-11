@@ -6,8 +6,11 @@ namespace PortaleFatture.BE.Api.Modules.SEND.Notifiche.Extensions;
 
 public static class NotificaExtensions
 {
-    public static NotificaQueryGetByListaEntiv2 Mapv2(this NotificheRicercaRequestPagoPA req, AuthenticationInfo authInfo, int? page, int? pageSize)
+
+
+    public static NotificaQueryGetByListaEntiv2 Mapv2(this NotificheRicercaRequestPagoPA req, AuthenticationInfo authInfo, int? page, int? pageSize,string? columnName,string? order)
     {
+
         return new NotificaQueryGetByListaEntiv2(authInfo)
         {
             AnnoValidita = req.Anno,
@@ -23,7 +26,9 @@ public static class NotificaExtensions
             EntiIds = req.IdEnti,
             RecipientId = req.RecipientId,
             Consolidatori = req.Consolidatori,
-            Recapitisti = req.Recapitisti
+            Recapitisti = req.Recapitisti,
+            ColumName = columnName,
+            OrderDir = order
         };
     }
 
@@ -94,7 +99,7 @@ public static class NotificaExtensions
         };
     }
 
-    public static NotificaQueryGetByIdEnte Map(this NotificheRicercaRequest req, AuthenticationInfo authInfo, int? page, int? pageSize)
+    public static NotificaQueryGetByIdEnte Map(this NotificheRicercaRequest req, AuthenticationInfo authInfo, int? page, int? pageSize, string? columnName, string? order)
     {
         return new NotificaQueryGetByIdEnte(authInfo)
         {
@@ -108,11 +113,13 @@ public static class NotificaExtensions
             TipoNotifica = req.TipoNotifica,
             StatoContestazione = req.StatoContestazione,
             Iun = req.Iun,
-            RecipientId = req.RecipientId
+            RecipientId = req.RecipientId,
+            ColumName = columnName,
+            OrderDir = order
         };
     }
 
-    public static NotificaQueryGetByListaEnti Map(this NotificheRicercaRequestPagoPA req, AuthenticationInfo authInfo, int? page, int? pageSize)
+    public static NotificaQueryGetByListaEnti Map(this NotificheRicercaRequestPagoPA req, AuthenticationInfo authInfo, int? page, int? pageSize, string? columnName, string? order)
     {
         return new NotificaQueryGetByListaEnti(authInfo)
         {
@@ -129,7 +136,9 @@ public static class NotificaExtensions
             EntiIds = req.IdEnti,
             RecipientId = req.RecipientId,
             Consolidatori = req.Consolidatori,
-            Recapitisti = req.Recapitisti
+            Recapitisti = req.Recapitisti,
+            ColumName = columnName,
+            OrderDir = order
         };
     }
 }

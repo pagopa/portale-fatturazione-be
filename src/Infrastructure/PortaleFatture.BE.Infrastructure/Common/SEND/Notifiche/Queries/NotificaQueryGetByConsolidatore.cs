@@ -19,4 +19,6 @@ public class NotificaQueryGetByConsolidatore(IAuthenticationInfo authenticationI
     public int? Size { get; set; }
     public int[]? StatoContestazione { get; set; }
     public string? RecipientId { get; set; }
+    public string? ColumName { get; set; }
+    public string? OrderDir { get; set; }
 }
