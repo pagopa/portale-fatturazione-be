@@ -6,7 +6,8 @@ using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Notifiche.Dto;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Notifiche.Queries.Persistence.Builder;
-
+//perchè abbiamo bisogno di questa riga ?
+using static PortaleFatture.BE.Infrastructure.Common.SEND.Notifiche.Queries.Persistence.Builder.NotificaSQLBuilder;
 namespace PortaleFatture.BE.Infrastructure.Common.SEND.Notifiche.Queries.Persistence;
 public class NotificaQueryGetByListEntiPersistence(NotificaQueryGetByListaEnti command) : DapperBase, IQuery<NotificaDto?>
 {
@@ -14,10 +15,10 @@ public class NotificaQueryGetByListEntiPersistence(NotificaQueryGetByListaEnti c
     private static readonly string _sqlSelectAll = NotificaSQLBuilder.SelectAll();
     private static readonly string _sqlSelectAllCount = NotificaSQLBuilder.SelectAllCount();
     private static readonly string _offSet = NotificaSQLBuilder.OffSet();
-    private static readonly string _orderBy = NotificaSQLBuilder.OrderBy();
 
     public async Task<NotificaDto?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
     {
+        var _orderBy = NotificaSQLBuilder.OrderBy(new SortParamSQLBuilder(_command.ColumName, _command.OrderDir));
         var notifiche = new NotificaDto();
         var where = string.Empty;
         var page = _command.Page;

@@ -22,4 +22,7 @@ public class NotificaQueryGetByListaEntiv2(IAuthenticationInfo authenticationInf
     public string? RecipientId { get; set; }
     public string[]? Consolidatori { get; set; }
     public string[]? Recapitisti { get; set; }
+    public string? ColumName { get; set; }
+    public string? OrderDir { get; set; }
+
 }

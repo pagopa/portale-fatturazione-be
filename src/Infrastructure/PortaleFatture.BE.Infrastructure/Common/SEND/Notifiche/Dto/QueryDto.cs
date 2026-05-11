@@ -1,5 +1,6 @@
 ﻿namespace PortaleFatture.BE.Infrastructure.Common.SEND.Notifiche.Dto;
 
+
 public class QueryDto
 {
     public string? IdEnte { get; set; } = null;
@@ -20,4 +21,6 @@ public class QueryDto
     public string? Consolidatore { get; set; }
     public string[]? Recapitisti { get; set; }
     public string[]? Consolidatori { get; set; }
+    public string? ColumName { get; set; }
+    public string? OrderDir { get; set; }
 }

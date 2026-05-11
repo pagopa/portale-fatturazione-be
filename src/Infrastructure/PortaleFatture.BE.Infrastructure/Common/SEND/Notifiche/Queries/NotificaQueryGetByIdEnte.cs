@@ -19,4 +19,6 @@ public class NotificaQueryGetByIdEnte(IAuthenticationInfo authenticationInfo) : 
     public int? Page { get; set; }
     public int? Size { get; set; }
     public int[]? StatoContestazione { get; set; }
+    public string? ColumName { get; set; }
+    public string? OrderDir { get; set; }
 }
