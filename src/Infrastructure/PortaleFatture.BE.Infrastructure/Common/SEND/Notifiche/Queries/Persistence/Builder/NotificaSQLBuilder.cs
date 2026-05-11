@@ -1,5 +1,4 @@
 ﻿namespace PortaleFatture.BE.Infrastructure.Common.SEND.Notifiche.Queries.Persistence.Builder;
-
 internal static class NotificaSQLBuilder
 {
     // non metto LEFT JOIN pfd.Notifiche_CodiceOggetto g ON n.event_id = g.event_id
@@ -77,9 +76,24 @@ LEFT JOIN pfw.TipoContestazione a ON a.IdTipoContestazione = t.FkIdTipoContestaz
         return _offSet;
     }
 
-    public static string OrderBy()
+
+    public static string OrderBy(SortParamSQLBuilder? request = null)
     {
-        return " ORDER BY n.year, n.month";
+        var column = request?.ColumnName?.ToLowerInvariant();
+        var order = request?.Order;
+
+        if (column == "data" && order == "1")
+        {
+            return " ORDER BY n.event_timestamp ASC";
+        }
+        else if (column == "data" && order == "2")
+        {
+            return " ORDER BY n.event_timestamp DESC";
+        }
+        else
+        {
+            return " ORDER BY n.year, n.month";
+        }
     }
 
     public static string SelectAll()

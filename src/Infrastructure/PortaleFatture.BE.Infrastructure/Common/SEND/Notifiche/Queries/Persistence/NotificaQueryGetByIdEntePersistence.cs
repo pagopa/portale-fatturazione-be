@@ -14,9 +14,9 @@ public class NotificaQueryGetByIdEntePersistence(NotificaQueryGetByIdEnte comman
     private static readonly string _sqlSelectAll = NotificaSQLBuilder.SelectAll();
     private static readonly string _sqlSelectAllCount = NotificaSQLBuilder.SelectAllCount();
     private static readonly string _offSet = NotificaSQLBuilder.OffSet();
-    private static readonly string _orderBy = NotificaSQLBuilder.OrderBy();
     public async Task<NotificaDto?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
     {
+        var _orderBy = NotificaSQLBuilder.OrderBy(new SortParamSQLBuilder(_command.ColumName, _command.OrderDir));
         var notifiche = new NotificaDto();
         var where = string.Empty;
         var idEnte = _command.AuthenticationInfo.IdEnte;

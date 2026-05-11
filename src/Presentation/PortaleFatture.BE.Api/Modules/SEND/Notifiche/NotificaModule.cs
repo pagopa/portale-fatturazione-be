@@ -98,11 +98,13 @@ public partial class NotificaModule
     [FromBody] NotificheRicercaRequestPagoPA request,
     [FromQuery] int page,
     [FromQuery] int pageSize,
+    [FromQuery] string? columnName,
+    [FromQuery] string? order,
     [FromServices] IStringLocalizer<Localization> localizer,
     [FromServices] IMediator handler)
     {
         var authInfo = context.GetAuthInfo();
-        var notifiche = await handler.Send(request.Mapv2(authInfo, page, pageSize));
+        var notifiche = await handler.Send(request.Mapv2(authInfo, page, pageSize,columnName,order));
         if (notifiche == null || notifiche.Count == 0)
             return NotFound();
         return Ok(notifiche);
@@ -120,11 +122,13 @@ public partial class NotificaModule
     [FromBody] NotificheRicercaRequestPagoPA request,
     [FromQuery] int page,
     [FromQuery] int pageSize,
+    [FromQuery] string? columnName,
+    [FromQuery] string? order,
     [FromServices] IStringLocalizer<Localization> localizer,
     [FromServices] IMediator handler)
     {
         var authInfo = context.GetAuthInfo();
-        var notifiche = await handler.Send(request.Map(authInfo, page, pageSize));
+        var notifiche = await handler.Send(request.Map(authInfo, page, pageSize, columnName, order));
         if (notifiche == null || notifiche.Count == 0)
             return NotFound();
         return Ok(notifiche);
@@ -208,7 +212,7 @@ public partial class NotificaModule
     [FromQuery] bool? binary = null)
     {
         var authInfo = context.GetAuthInfo();
-        var notifiche = await handler.Send(request.Map(authInfo, null, null));
+        var notifiche = await handler.Send(request.Map(authInfo, null, null, null, null));
         if (notifiche == null || notifiche.Count == 0)
             return NotFound();
 
@@ -374,6 +378,8 @@ public partial class NotificaModule
     [FromBody] NotificheRicercaRequest request,
     [FromQuery] int page,
     [FromQuery] int pageSize,
+    [FromQuery] string? columnName,
+    [FromQuery] string? order,
     [FromServices] IStringLocalizer<Localization> localizer,
     [FromServices] IMediator handler)
     {
@@ -512,6 +518,8 @@ public partial class NotificaModule
     [FromBody] NotificheRicercaRequest request,
     [FromQuery] int page,
     [FromQuery] int pageSize,
+    [FromQuery] string? columnName,
+    [FromQuery] string? order,
     [FromServices] IStringLocalizer<Localization> localizer,
     [FromServices] IMediator handler)
     {
@@ -560,11 +568,13 @@ public partial class NotificaModule
     [FromBody] NotificheRicercaRequest request,
     [FromQuery] int page,
     [FromQuery] int pageSize,
+    [FromQuery] string? columnName,
+    [FromQuery] string? order,
     [FromServices] IStringLocalizer<Localization> localizer,
     [FromServices] IMediator handler)
     {
         var authInfo = context.GetAuthInfo();
-        var notifiche = await handler.Send(request.Map(authInfo, page, pageSize));
+        var notifiche = await handler.Send(request.Map(authInfo, page, pageSize, columnName, order));
         if (notifiche == null || notifiche.Count == 0)
             return NotFound();
         return Ok(notifiche);

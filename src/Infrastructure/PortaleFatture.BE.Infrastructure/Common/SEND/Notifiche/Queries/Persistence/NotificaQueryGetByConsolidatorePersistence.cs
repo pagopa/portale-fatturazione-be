@@ -12,10 +12,10 @@ public class NotificaQueryGetByConsolidatorePersistence(NotificaQueryGetByConsol
     private static readonly string _sqlSelectAll = NotificaSQLBuilder.SelectAll();
     private static readonly string _sqlSelectAllCount = NotificaSQLBuilder.SelectAllCount();
     private static readonly string _offSet = NotificaSQLBuilder.OffSet();
-    private static readonly string _orderBy = NotificaSQLBuilder.OrderBy();
 
     public async Task<NotificaRECCONDto?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
     {
+        var _orderBy = NotificaSQLBuilder.OrderBy(new SortParamSQLBuilder(_command.ColumName, _command.OrderDir));
         var notifiche = new NotificaRECCONDto();
         var where = string.Empty;
         var page = _command.Page;
