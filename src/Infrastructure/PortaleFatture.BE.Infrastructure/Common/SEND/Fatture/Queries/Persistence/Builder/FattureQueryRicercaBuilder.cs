@@ -315,8 +315,8 @@ SELECT
                 CAST(FR.PrezzoUnitario AS DECIMAL(10, 2))  AS 'prezzoUnitario',
                 --CAST(FR.Imponibile AS DECIMAL(10, 2))  AS 'imponibile',
                 CASE 
-                    WHEN (FR.CodiceMateriale LIKE 'STORN%' AND FR.CodiceMateriale LIKE '%NA') 
-                    OR (FR.CodiceMateriale LIKE 'STORN%' AND FR.CodiceMateriale LIKE '%ND' ) 
+                    WHEN (FR.CodiceMateriale LIKE 'STORN%' AND FR.CodiceMateriale LIKE '%NA%') 
+                    OR (FR.CodiceMateriale LIKE 'STORN%' AND FR.CodiceMateriale LIKE '%ND%' ) 
                     THEN CAST(FR.Imponibile AS DECIMAL(10, 2))*-1 
                     ELSE CAST(FR.Imponibile AS DECIMAL(10, 2)) END 
                 AS 'imponibile',
