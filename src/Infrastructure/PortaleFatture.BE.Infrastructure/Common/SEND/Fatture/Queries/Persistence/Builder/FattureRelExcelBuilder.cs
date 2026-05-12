@@ -123,8 +123,8 @@ SELECT
 	r.CodiceMateriale as CodiceMateriale,
 	--r.Imponibile as RigaImponibile, 
 	CASE 
-		WHEN (r.CodiceMateriale LIKE 'STORN%' AND r.CodiceMateriale LIKE '%NA') 
-		OR (r.CodiceMateriale LIKE 'STORN%' AND r.CodiceMateriale LIKE '%ND' ) 
+		WHEN (r.CodiceMateriale LIKE 'STORN%' AND r.CodiceMateriale LIKE '%NA%') 
+		OR (r.CodiceMateriale LIKE 'STORN%' AND r.CodiceMateriale LIKE '%ND%' ) 
 		THEN CAST(r.Imponibile AS DECIMAL(10, 2))*-1 
 		ELSE CAST(r.Imponibile AS DECIMAL(10, 2))
 	END 
