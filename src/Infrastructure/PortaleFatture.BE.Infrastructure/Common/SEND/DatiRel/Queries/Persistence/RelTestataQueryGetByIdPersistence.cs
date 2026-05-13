@@ -18,7 +18,7 @@ public class RelTestataQueryGetByIdPersistence(RelTestataQueryGetById command) :
         var dati = RelTestataKey.Deserialize(_command.IdTestata!);
         var where = string.Empty;
         var idEnte = _command.AuthenticationInfo.IdEnte;
-        where += " WHERE internal_organization_id=@IdEnte ";
+        where += " WHERE [IdEnte]=@IdEnte ";
         var anno = dati.Anno;
         var mese = dati.Mese;
         var tipoFattura = dati.TipologiaFattura;
@@ -33,15 +33,15 @@ public class RelTestataQueryGetByIdPersistence(RelTestataQueryGetById command) :
             idEnte = dati.IdEnte;
 
         if (!string.IsNullOrEmpty(tipoFattura))
-            where += " AND TipologiaFattura=@TipologiaFattura";
+            where += " AND [TipologiaFattura]=@TipologiaFattura";
         else
             throw new DomainException("");
 
-        where += " AND year=@anno";
-        where += " AND month=@mese";
+        where += " AND [anno]=@anno";
+        where += " AND [mese]=@mese";
 
         if (!string.IsNullOrEmpty(idContratto))
-            where += " AND contract_id=@IdContratto";
+            where += " AND [IdContratto]=@IdContratto";
         else
             throw new DomainException("");
 
