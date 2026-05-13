@@ -53,6 +53,15 @@ public class RelTestataDettaglioDto
     [Column("TotaleNotificheDigitali")]
     public int TotaleNotificheDigitali { get; set; }
 
+    [Column("StornoAnalogico")]
+    public decimal? StornoAnalogico { get; set; }
+
+    [Column("StornoDigitale")]
+    public decimal? StornoDigitale { get; set; }
+
+    [Column("StornoTotale")]
+    public decimal? StornoTotale { get; set; }
+
     [Column("Totale")]
     public decimal Totale { get; set; }
 
