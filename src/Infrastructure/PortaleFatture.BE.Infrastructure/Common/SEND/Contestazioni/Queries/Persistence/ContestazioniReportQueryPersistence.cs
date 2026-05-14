@@ -53,7 +53,7 @@ public class ContestazioniReportQueryPersistence(ContestazioniReportQuery comman
 
         if (!_command.IdEnti.IsNullNotAny())
         {
-            where += " AND internal_organization_id IN @IdEnti";
+            where += " AND [InternalOrganizationId] IN @IdEnti";
             parameters.IdEnti = _command.IdEnti;
         }
 

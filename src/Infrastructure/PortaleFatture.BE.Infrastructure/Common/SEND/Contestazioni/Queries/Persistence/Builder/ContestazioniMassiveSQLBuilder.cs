@@ -11,76 +11,34 @@ SELECT [IdTipologiaReport]
       ,[DataModifica]
   FROM [pfd].[TipologiaReport]
 ";
-    private static string _sqlCountReports = @"
-SELECT  count(report_id)
-  FROM [pfd].[ReportContestazioni] r
-  inner join pfd.Enti e
-  on e.InternalIstitutionId = r.internal_organization_id
-  left join pfd.Contratti c
-  on c.internalistitutionid = e.InternalIstitutionId
-  inner join pfd.TipologiaReport t
-  on t.IdTipologiaReport = r.FkIdTipologiaReport
-";
+    private static string _sqlCountReports = @"SELECT COUNT([ReportId]) FROM [be].[vwCMOverviewProcessi]";
 
     private static string _sqlReports = @"
-WITH StatoGruppoEspanso AS (
-    SELECT 
-        CAST(sg.stato AS INT) AS stato,
-        sg.descrizione AS descrizione,
-        CAST(TRIM(value) AS INT) AS step
-    FROM pfd.ReportContestazioniStato sg
-    CROSS APPLY STRING_SPLIT(sg.steps, ',')
-),
-UltimoStepPerReport AS (
-    SELECT 
-        report_id,
-        step,
-        ROW_NUMBER() OVER (PARTITION BY report_id ORDER BY step DESC) AS rn
-    FROM pfd.ReportContestazioniRighe
-),
-SingolaRigaPerReport AS (
-    SELECT 
-        *,
-        ROW_NUMBER() OVER (PARTITION BY report_id ORDER BY step DESC) AS rn
-    FROM pfd.ReportContestazioniRighe
-)
-
-
-SELECT r.[report_id] as ReportId
-      ,[unique_id] as UniqueId
-      ,[json] as Json
-      ,[anno]
-      ,[mese]
-      ,[internal_organization_id] as InternalOrganizationId
-      ,[contract_id] as ContractId
-      ,[utente_id] as UtenteId
-      ,[prodotto] as Prodotto
-      ,g.stato 
-	  ,g.descrizione as DescrizioneStato
-      ,[data_inserimento] as DataInserimento
-      ,[data_stepcorrente] as DataStepCorrente
-      ,r.[storage]
-      ,r.[nomedocumento]
-      ,r.[link] as LinkDocumento
-      ,[content_language] as ContentLanguage
-      ,[content_type] as ContentType
-      ,[FkIdTipologiaReport]
-      ,[hash]
-	  , description as RagioneSociale
-	  , contract_id as ActualContractId
-	  , t.TipologiaDocumento
-	  , t.CategoriaDocumento
-  FROM [pfd].[ReportContestazioni] r
-  inner join pfd.Enti e
-  on e.InternalIstitutionId = r.internal_organization_id
-  left join pfd.Contratti c
-  on c.internalistitutionid = e.InternalIstitutionId
-  inner join pfd.TipologiaReport t
-  on t.IdTipologiaReport = r.FkIdTipologiaReport
-	LEFT JOIN SingolaRigaPerReport cr ON cr.report_id = r.report_id AND cr.rn = 1
-	LEFT JOIN UltimoStepPerReport st ON st.report_id = r.report_id AND st.rn = 1
-	LEFT JOIN StatoGruppoEspanso g ON g.step = st.step
-";
+    SELECT [ReportId]
+          ,[UniqueId]
+          ,[Json]
+          ,[anno]
+          ,[mese]
+          ,[InternalOrganizationId]
+          ,[ContractId]
+          ,[UtenteId]
+          ,[Prodotto]
+          ,[stato]
+          ,[DescrizioneStato]
+          ,[DataInserimento]
+          ,[DataStepCorrente]
+          ,[storage]
+          ,[nomedocumento]
+          ,[LinkDocumento]
+          ,[ContentLanguage]
+          ,[ContentType]
+          ,[FkIdTipologiaReport]
+          ,[hash]
+          ,[RagioneSociale]
+          ,[ActualContractId]
+          ,[TipologiaDocumento]
+          ,[CategoriaDocumento]
+      FROM [be].[vwCMOverviewProcessi]";
 
     private static string _sqlRecap = @"
 DECLARE @Cent decimal = 100.00;
@@ -190,7 +148,7 @@ ORDER BY ordine, IdFlagContestazione
     public static string OrderByReports()
     {
         return @" 
-        ORDER BY data_inserimento DESC";
+        ORDER BY [DataInserimento] DESC";
     }
 
     public static string SelectTipologiaReport()
