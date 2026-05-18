@@ -146,4 +146,7 @@ public class FattureRelExcelDto
 
     [Column("TipologiaContratto")]
     public string? TipologiaContratto { get; set; }
+
+    [Column("RowNum")]
+    public int RowNum { get; set; }
 }
