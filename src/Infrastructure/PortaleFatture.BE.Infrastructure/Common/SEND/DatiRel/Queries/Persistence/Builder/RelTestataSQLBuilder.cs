@@ -91,38 +91,42 @@ SELECT [internal_organization_id] as IdEnte
 ";
 
     private static string _sqlDettaglio = @"
-        SELECT [IdEnte]
-              ,[RagioneSociale]
-              ,[IdContratto]
-              ,[TipologiaFattura]
-              ,[anno]
-              ,[mese]
-              ,[TotaleAnalogico]
-              ,[TotaleDigitale]
-              ,[TotaleNotificheAnalogiche]
-              ,[TotaleNotificheDigitali]
-              ,[StornoAnalogico]
-              ,[StornoDigitale]
-              ,[StornoTotale]
-              ,[Totale]
-              ,[Iva]
-              ,[TotaleAnalogicoIva]
-              ,[TotaleDigitaleIva]
-              ,[TotaleIva]
-              ,[AsseverazioneTotaleAnalogico]
-              ,[AsseverazioneTotaleDigitale]
-              ,[AsseverazioneTotaleNotificheAnalogiche]
-              ,[AsseverazioneTotaleNotificheDigitali]
-              ,[AsseverazioneTotale]
-              ,[AsseverazioneTotaleAnalogicoIva]
-              ,[AsseverazioneTotaleDigitaleIva]
-              ,[AsseverazioneTotaleIva]
-              ,[IdDocumento]
-              ,[Cup]
-              ,[DataDocumento]
-              ,[DatiFatturazione]
-              ,[Caricata]
-          FROM [be].[vwRelDettaglio]";
+    SELECT 
+        [IdEnte],
+        [RagioneSociale],
+        [IdContratto],
+        [TipologiaFattura],
+        [anno],
+        [mese],
+        [TotaleAnalogico],
+        [TotaleDigitale],
+        [TotaleNotificheAnalogiche],
+        [TotaleNotificheDigitali],
+        [Anticipo_StornoAnalogico],
+        [Anticipo_StornoDigitale],
+        [Acconto_StornoAnalogico],
+        [Acconto_StornoDigitale],
+        [Anticipo_StornoTotale],
+        [Acconto_StornoTotale],
+        [StornoTotale],
+        [Iva],
+        [TotaleAnalogicoIva],
+        [TotaleDigitaleIva],
+        [TotaleIva],
+        [AsseverazioneTotaleAnalogico],
+        [AsseverazioneTotaleDigitale],
+        [AsseverazioneTotaleNotificheAnalogiche],
+        [AsseverazioneTotaleNotificheDigitali],
+        [AsseverazioneTotale],
+        [AsseverazioneTotaleAnalogicoIva],
+        [AsseverazioneTotaleDigitaleIva],
+        [AsseverazioneTotaleIva],
+        [IdDocumento],
+        [Cup],
+        [DataDocumento],
+        [DatiFatturazione],
+        [Caricata]
+    FROM [be].[vwRelDettaglio]";
 
     private static string _offSet = " OFFSET (@page-1)*@size ROWS FETCH NEXT @size ROWS ONLY";
     public static string OffSet()
