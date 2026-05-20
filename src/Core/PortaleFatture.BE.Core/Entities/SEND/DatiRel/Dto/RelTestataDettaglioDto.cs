@@ -9,15 +9,14 @@ public class RelTestataDettaglioDto
     {
         get
         {
-            return
-                $"{IdEnte}_{IdContratto}_{TipologiaFattura!.Replace(" ", "-")}_{Anno}_{Mese}";
+            return $"{IdEnte}_{IdContratto}_{TipologiaFattura!.Replace(" ", "-")}_{Anno}_{Mese}";
         }
     }
 
-    [Column("internal_organization_id")]
+    [Column("IdEnte")]
     public string? IdEnte { get; set; }
 
-    [Column("description")]
+    [Column("RagioneSociale")]
     public string? RagioneSociale { get; set; }
 
     [Column("DataDocumento")]
@@ -29,16 +28,16 @@ public class RelTestataDettaglioDto
     [Column("Cup")]
     public string? Cup { get; set; }
 
-    [Column("contract_id")]
+    [Column("IdContratto")]
     public string? IdContratto { get; set; }
 
     [Column("TipologiaFattura")]
     public string? TipologiaFattura { get; set; }
 
-    [Column("year")]
+    [Column("anno")]
     public string? Anno { get; set; }
 
-    [Column("month")]
+    [Column("mese")]
     public string? Mese { get; set; }
 
     [Column("TotaleAnalogico")]
@@ -53,11 +52,23 @@ public class RelTestataDettaglioDto
     [Column("TotaleNotificheDigitali")]
     public int TotaleNotificheDigitali { get; set; }
 
-    [Column("StornoAnalogico")]
-    public decimal? StornoAnalogico { get; set; }
+    [Column("Anticipo_StornoAnalogico")]
+    public decimal? Anticipo_StornoAnalogico { get; set; }
 
-    [Column("StornoDigitale")]
-    public decimal? StornoDigitale { get; set; }
+    [Column("Anticipo_StornoDigitale")]
+    public decimal? Anticipo_StornoDigitale { get; set; }
+
+    [Column("Acconto_StornoAnalogico")]
+    public decimal? Acconto_StornoAnalogico { get; set; }
+
+    [Column("Acconto_StornoDigitale")]
+    public decimal? Acconto_StornoDigitale { get; set; }
+
+    [Column("Anticipo_StornoTotale")]
+    public decimal? Anticipo_StornoTotale { get; set; }
+
+    [Column("Acconto_StornoTotale")]
+    public decimal? Acconto_StornoTotale { get; set; }
 
     [Column("StornoTotale")]
     public decimal? StornoTotale { get; set; }
@@ -79,12 +90,33 @@ public class RelTestataDettaglioDto
     [Column("TotaleIva")]
     public decimal TotaleIva { get; set; }
 
+    [Column("AsseverazioneTotaleAnalogico")]
+    public decimal AsseverazioneTotaleAnalogico { get; set; }
+
+    [Column("AsseverazioneTotaleDigitale")]
+    public decimal AsseverazioneTotaleDigitale { get; set; }
+
+    [Column("AsseverazioneTotaleNotificheAnalogiche")]
+    public int AsseverazioneTotaleNotificheAnalogiche { get; set; }
+
+    [Column("AsseverazioneTotaleNotificheDigitali")]
+    public int AsseverazioneTotaleNotificheDigitali { get; set; }
+
+    [Column("AsseverazioneTotale")]
+    public decimal AsseverazioneTotale { get; set; }
+
+    [Column("AsseverazioneTotaleAnalogicoIva")]
+    public decimal AsseverazioneTotaleAnalogicoIva { get; set; }
+
+    [Column("AsseverazioneTotaleDigitaleIva")]
+    public decimal AsseverazioneTotaleDigitaleIva { get; set; }
+
+    [Column("AsseverazioneTotaleIva")]
+    public decimal AsseverazioneTotaleIva { get; set; }
+
     public string Firmata
     {
-        get
-        {
-            return Caricata.MapRelTestata();
-        }
+        get { return Caricata.MapRelTestata(); }
     }
 
     [Column("Caricata")]
