@@ -30,12 +30,18 @@ public class FattureNotaNoRelExcelPersistence(FattureRelExcelQuery command) : Da
         {
             query.Add("IdEnti", _command.IdEnti);
             where += " AND t.FKIdEnte in @IdEnti ";
+
+            // ! TODO: passaggio a vista temporaneamente sospeso
+            //where += " AND [IdEnte] in @IdEnti ";
         }  
 
         if (_command.FkIdTipoContratto.HasValue)
         {
             query.Add("FkIdTipoContratto", _command.FkIdTipoContratto, DbType.Int32);
             where += " AND c.FkIdTipoContratto = @FkIdTipoContratto ";
+
+            // ! TODO: passaggio a vista temporaneamente sospeso
+            //where += " AND [FkIdTipoContratto] = @FkIdTipoContratto ";
         }
 
         var sql = _sql + where;
