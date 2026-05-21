@@ -9,7 +9,7 @@ public class RelNonFatturataDto
     [Column("internal_organization_id")]
     [Header(caption: "IdEnte", Order = 1)]
     [HeaderAttributev2(caption: "IdEnte", Order = 1)]
-    public string? IdEnte { get; set; }
+    public string? IdEnte { get; set; } 
 
 
     [Header(caption: "Ragione Sociale", Order = 2)]
@@ -88,4 +88,14 @@ public class RelNonFatturataDto
     [HeaderAttributev2(caption: "Category", Order = 5)]
     [Column("Category")]
     public string? Category { get; set; }
+
+    [Header(caption: "Data Fattura", Order = 13)]
+    [HeaderAttributev2(caption: "Data Fattura", Order = 13)]
+    [Column("DataFattura")]
+    public string? DataFattura { get; set; }
+
+    [Header(caption: "Data Estrazione", Order = 14)]
+    [HeaderAttributev2(caption: "Data Estrazione", Order = 14)]
+    [Column("DataEstrazione")]
+    public string? DataEstrazione { get; set; }
 }
