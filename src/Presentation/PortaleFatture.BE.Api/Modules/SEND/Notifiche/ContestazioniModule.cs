@@ -289,7 +289,7 @@ public partial class ContestazioniModule
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    private async Task<Results<Ok<IEnumerable<ContestazioneRecap>>, NotFound>> PostRecapContestazioniAsync(
+    private async Task<Results<Ok<IEnumerable<ContestazioneRecapDto>>, NotFound>> PostRecapContestazioniAsync(
     HttpContext context,
     [FromBody] ContestazioniRecapRequest request,
     [FromServices] IStringLocalizer<Localization> localizer,
@@ -581,7 +581,7 @@ public partial class ContestazioniModule
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    private async Task<Results<Ok<IEnumerable<ContestazioneRecap>>, NotFound>> PostRecapContestazioniEnteAsync(
+    private async Task<Results<Ok<IEnumerable<ContestazioneRecapDto>>, NotFound>> PostRecapContestazioniEnteAsync(
     HttpContext context,
     [FromBody] ContestazioniRecapEnteRequest request,
     [FromServices] IStringLocalizer<Localization> localizer,

@@ -6,38 +6,35 @@ using PortaleFatture.BE.Infrastructure.Common.SEND.Contestazioni.Queries.Persist
 
 namespace PortaleFatture.BE.Infrastructure.Common.SEND.Contestazioni.Queries.Persistence;
 
-public class ContestazioniRecapQueryPersistence(ContestazioniRecapQuery command) : DapperBase, IQuery<IEnumerable<ContestazioneRecap>?>
+public class ContestazioniRecapQueryPersistence(ContestazioniRecapQuery command) : DapperBase, IQuery<IEnumerable<ContestazioneRecapDto>?>
 {
     private readonly ContestazioniRecapQuery _command = command;
     private static readonly string _sql = ContestazioniMassiveSQLBuilder.SelectRecap();
-    private static readonly string _gorderBy = ContestazioniMassiveSQLBuilder.GroupByOrderByRecap();
-    public async Task<IEnumerable<ContestazioneRecap>?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
+
+    public async Task<IEnumerable<ContestazioneRecapDto>?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
     {
         dynamic parameters = new ExpandoObject();
-        var where = string.Empty;
+
+        var where = "WHERE 1=1"; //per evitare di dover gestire la logica di concatenazione degli AND
+
         if (!string.IsNullOrEmpty(_command.Anno))
         {
-            where += " AND N.year=@anno ";
+            where += " AND [Anno]=@anno ";
             parameters.Anno = _command.Anno;
         }
         if (!string.IsNullOrEmpty(_command.Mese))
         {
-            where += "  AND N.month=@mese ";
-            parameters.Anno = _command.Anno;
-        }
-        if (!string.IsNullOrEmpty(_command.ContractId))
-        {
-            where += " AND N.contract_id=@ContractId ";
-            parameters.Anno = _command.Anno;
+            where += "  AND [Mese]=@mese ";
+            parameters.Mese = _command.Mese;
         }
 
         if (!string.IsNullOrEmpty(_command.IdEnte))
         {
-            where += " AND N.internal_organization_id=@idEnte ";
+            where += " AND [IdEnte]=@idEnte ";
             parameters.IdEnte = _command.IdEnte;
         }
 
-        return await ((IDatabase)this).SelectAsync<ContestazioneRecap>(
-            connection!, _sql + where + _gorderBy, _command, transaction); 
+        return await ((IDatabase)this).SelectAsync<ContestazioneRecapDto>(
+            connection!, _sql + where, _command, transaction); 
     }
 }

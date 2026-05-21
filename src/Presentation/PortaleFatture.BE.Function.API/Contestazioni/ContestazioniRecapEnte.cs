@@ -44,7 +44,7 @@ public class ContestazioniRecapEnte(ILoggerFactory loggerFactory)
             contractId = contratto?.IdContratto;
         }
 
-        var recap = await mediator.Send(new ContestazioniRecapQuery(authInfo)
+        var recap = await mediator.Send(new ContestazioniRecapQueryIntegration(authInfo)
         {
             Anno = req.Anno.ToString(),
             Mese = req.Mese.ToString(),
