@@ -9,17 +9,17 @@ using PortaleFatture.BE.Infrastructure.Common.SEND.Contestazioni.Queries.Persist
 
 namespace PortaleFatture.BE.Infrastructure.Common.SEND.Contestazioni.QueryHandlers;
 
-public class ContestazioniRecapHandler(
+public class ContestazioniRecapHandlerIntegration(
  IFattureDbContextFactory factory,
  IStringLocalizer<Localization> localizer,
- ILogger<ContestazioniRecapHandler> logger) : IRequestHandler<ContestazioniRecapQuery, IEnumerable<ContestazioneRecapDto>?>
+ ILogger<ContestazioniRecapHandlerIntegration> logger) : IRequestHandler<ContestazioniRecapQueryIntegration, IEnumerable<ContestazioneRecap>?>
 {
     private readonly IFattureDbContextFactory _factory = factory;
-    private readonly ILogger<ContestazioniRecapHandler> _logger = logger;
+    private readonly ILogger<ContestazioniRecapHandlerIntegration> _logger = logger;
     private readonly IStringLocalizer<Localization> _localizer = localizer;
-    public async Task<IEnumerable<ContestazioneRecapDto>?> Handle(ContestazioniRecapQuery request, CancellationToken ct)
+    public async Task<IEnumerable<ContestazioneRecap>?> Handle(ContestazioniRecapQueryIntegration request, CancellationToken ct)
     {
         using var rs = await _factory.Create(cancellationToken: ct);
-        return await rs.Query(new ContestazioniRecapQueryPersistence(request), ct);
+        return await rs.Query(new ContestazioniRecapQueryPersistenceIntegration(request), ct);
     }
 }

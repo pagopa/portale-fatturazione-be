@@ -5,7 +5,8 @@ using PortaleFatture.BE.Infrastructure.Common.SEND.Contestazioni.Dto;
 namespace PortaleFatture.BE.Infrastructure.Common.SEND.Contestazioni.Queries;
 
 
-public class ContestazioniRecapQuery(IAuthenticationInfo authenticationInfo) : IRequest<IEnumerable<ContestazioneRecapDto>?>
+
+public class ContestazioniRecapQueryIntegration(IAuthenticationInfo authenticationInfo) : IRequest<IEnumerable<ContestazioneRecap>?>
 {
     public IAuthenticationInfo AuthenticationInfo { get; internal set; } = authenticationInfo;
 
