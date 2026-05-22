@@ -8,8 +8,58 @@ namespace PortaleFatture.BE.Infrastructure.Common.SEND.DatiRel.Queries.Persisten
 
 internal sealed class RelNonFatturateSQLBuilder
 {
+    // ! TODO: da valutare in futuro se utilizzarla, nel caso andrà modificata anche la classe RelNonFatturataDto
+    //private static string _sql = @"
+    //SELECT 
+    //    [IdEnte],
+    //    [RagioneSociale],
+    //    [IdContratto],
+    //    [TipoContratto],
+    //    [Category],
+    //    [TipologiaFattura],
+    //    [anno],
+    //    [mese],
+    //    [Totale],
+    //    [TotaleIva],
+    //    [Caricata],
+    //    [data],
+    //    [DataFattura],
+    //    [DataEstrazione]
+    // FROM [be].[vwDownloadRelPAC]";
+
     private static string _sql = @"
-    SELECT * FROM [be].[vwDownloadRelPAC]";
+        SELECT e.description              AS RagioneSociale,
+               r.internal_organization_id AS IdEnte,
+               t.descrizione              AS TipoContratto,
+               e.category                 AS Category,
+               r.contract_id              AS IdContratto,
+               r.year                     AS anno,
+               r.month                    AS mese,
+               r.tipologiafattura,
+               r.totale,
+               r.totaleiva,
+               r.caricata,
+               u.dataevento               AS data
+        FROM   pfd.reltestata r
+               LEFT JOIN pfd.relupload u
+                      ON r.internal_organization_id = u.fkidente
+                         AND r.contract_id = u.contract_id
+                         AND r.year = u.year
+                         AND r.month = u.month
+                         AND r.tipologiafattura = u.tipologiafattura
+               LEFT OUTER JOIN pfd.enti e
+                            ON e.internalistitutionid = r.internal_organization_id
+               LEFT OUTER JOIN pfd.contratti c
+                            ON e.internalistitutionid = c.internalistitutionid
+               LEFT OUTER JOIN pfw.tipocontratto t
+                            ON t.idtipocontratto = c.fkidtipocontratto
+        WHERE  r.relfatturata = 0 AND ((Azione = 'UP' AND Caricata = 1) OR (Azione IS NULL AND Caricata = 0))
+               AND totale > 0
+               AND NOT (r.tipologiafattura = 'primo saldo' AND t.descrizione = 'pal')
+        ORDER  BY r.year DESC,
+                  r.month DESC,
+                  r.tipologiafattura 
+            ";
 
     public static string SelectAll()
     {

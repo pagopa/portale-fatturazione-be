@@ -89,13 +89,14 @@ public class RelNonFatturataDto
     [Column("Category")]
     public string? Category { get; set; }
 
-    [Header(caption: "Data Fattura", Order = 13)]
-    [HeaderAttributev2(caption: "Data Fattura", Order = 13)]
-    [Column("DataFattura")]
-    public string? DataFattura { get; set; }
+    // ! TODO: togliere commento nel caso venga ripristinata li vista [be].[vwDownloadRelPAC]
+    //[Header(caption: "Data Fattura", Order = 13)]
+    //[HeaderAttributev2(caption: "Data Fattura", Order = 13)]
+    //[Column("DataFattura")]
+    //public string? DataFattura { get; set; }
 
-    [Header(caption: "Data Estrazione", Order = 14)]
-    [HeaderAttributev2(caption: "Data Estrazione", Order = 14)]
-    [Column("DataEstrazione")]
-    public string? DataEstrazione { get; set; }
+    //[Header(caption: "Data Estrazione", Order = 14)]
+    //[HeaderAttributev2(caption: "Data Estrazione", Order = 14)]
+    //[Column("DataEstrazione")]
+    //public string? DataEstrazione { get; set; }
 }
