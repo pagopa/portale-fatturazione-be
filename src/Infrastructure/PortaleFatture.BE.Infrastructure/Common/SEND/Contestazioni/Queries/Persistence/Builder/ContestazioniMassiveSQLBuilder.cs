@@ -79,24 +79,27 @@ SELECT e.[InternalIstitutionId] as IdEnte,
 ";
 
     private static string _sqlAnni = @"
-SELECT  
-      distinct [year]
-   FROM [pfd].[Notifiche]
+SELECT [Anno] 
+    FROM [be].[vwCMOverviewFiltri] 
+    WHERE @idEnte IS null OR @idEnte = idEnte
+    GROUP BY Anno 
 ";
 
     private static string _sqlMesi = @"
-SELECT  
-      distinct [month]
-   FROM [pfd].[Notifiche]
+SELECT [Mese]
+    FROM [be].[vwCMOverviewFiltri] 
+    WHERE (@idEnte IS null OR @idEnte = idEnte)
+    AND (@Anno IS null OR @Anno = Anno)
+    GROUP BY Anno , Mese 
 ";
 
     public static string OrderByYear()
     {
-        return " ORDER BY year desc";
+        return " ORDER BY anno desc";
     }
     public static string OrderByMonth()
     {
-        return " ORDER BY month desc";
+        return " ORDER BY mese desc";
     }
 
     public static string GroupByOrderByRecap()

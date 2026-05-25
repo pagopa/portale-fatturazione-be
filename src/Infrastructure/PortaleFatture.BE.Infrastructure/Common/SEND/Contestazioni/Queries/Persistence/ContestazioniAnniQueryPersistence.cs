@@ -11,8 +11,19 @@ public class ContestazioniAnniQueryPersistence(ContestazioniAnniQuery command) :
     private static readonly string _orderBy = ContestazioniMassiveSQLBuilder.OrderByYear();
     public async Task<IEnumerable<string>?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
     {
+        var idEnte = _command.AuthenticationInfo.IdEnte;
+
+        if (string.IsNullOrWhiteSpace(idEnte))
+        {
+            idEnte = null;
+        }
+
+        var param = new
+        {
+            idEnte
+        };
 
         return await ((IDatabase)this).SelectAsync<string>(
-            connection!, _sql + _orderBy, _command, transaction); 
-    }
+            connection!, _sql + _orderBy, param, transaction); 
+    }  
 }
