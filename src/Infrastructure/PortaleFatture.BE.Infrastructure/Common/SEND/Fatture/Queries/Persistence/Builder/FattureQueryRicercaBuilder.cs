@@ -1680,4 +1680,34 @@ SELECT [AnnoRiferimento] as Anno
     {
         return _sqlSelectDettaglioEmessoPdf;
     }
+
+    private static string _sqlPeriodoNonInviate =
+        @"
+            SELECT 
+            [FkTipologiaFattura] AS TipologiaFattura,
+            [AnnoRiferimento] AS Anno, 
+            [MeseRiferimento] AS Mese
+            FROM [pfd].[FattureTestata]
+            WHERE (@FilterByTipologia = 0 OR FkTipologiaFattura IN @TipologiaFattura) AND (fatturainviata = 0 OR fatturainviata is null)
+            GROUP BY 
+            [FkProdotto], 
+            [FkTipologiaFattura],
+            [AnnoRiferimento], 
+            [MeseRiferimento],
+            CASE 
+                WHEN fatturainviata IS NULL THEN 2
+                ELSE 0
+            END
+            ORDER BY AnnoRiferimento, MeseRiferimento DESC
+        ";
+
+
+    /// <summary>
+    /// Restituisce la query SQL utilizzata per selezionare i periodi aggregati per le fatture non inviate.
+    /// </summary>
+    /// <returns>La stringa contenente la query SQL per i periodi aggregati delle fatture non inviate.</returns>
+    public static string SelectPeriodoNonInviate()
+    {
+        return _sqlPeriodoNonInviate;
+    }
 }

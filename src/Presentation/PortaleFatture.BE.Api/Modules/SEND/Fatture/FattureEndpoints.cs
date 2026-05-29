@@ -280,6 +280,12 @@ public partial class FattureModule : Module, IRegistrableModule
         .SetOpenApi(Module.DatiFattureLabel)
         .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
+        endpointRouteBuilder
+        .MapPost("api/fatture/pagopa/non-inviate/report", PostNonFatturateReportByRicercaAsync)
+        .WithName("Permette di scaricare lo zip excel delle fatture emesse per Amministrazione")
+        .SetOpenApi(Module.DatiFattureLabel)
+        .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
         #endregion
 
         #region ente

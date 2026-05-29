@@ -1,9 +1,13 @@
 using System.Data;
 using System.IO.Compression;
 using System.Reflection;
+using System.Text.RegularExpressions;
+using DocumentFormat.OpenXml.Bibliography;
+using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Office2013.PowerPoint.Roaming;
 using MediatR;
 using Microsoft.AspNetCore.Authentication;
+using Org.BouncyCastle.Ocsp;
 using PortaleFatture.BE.Api.Infrastructure.Documenti;
 using PortaleFatture.BE.Api.Modules.Fatture;
 using PortaleFatture.BE.Api.Modules.SEND.Fatture.Payload.Request;
@@ -806,6 +810,252 @@ public static class FattureExtensions
                 default:
                     break;
             }
+        }
+
+        return reports;
+    }
+
+
+    public static async Task<Dictionary<string, byte[]>> ReportNonFatturate(this NonFatturateRicercaRequest request, IMediator handler, AuthenticationInfo authInfo)
+    {
+        Dictionary<string, byte[]> reports = [];
+
+        var anniMesiTipologia = (await handler.Send(new NonFatturateTipologiaQueryRicerca(authInfo)
+        {
+            TipologiaFattura = request.TipologiaFattura,
+            Inviata = request.Inviata
+        }))!;
+
+        Dictionary<string, List<List<FattureRelExcelDto>>> dictFatture = new();
+        Dictionary<string, List<List<FattureRelExcelDto>>> dictFattureSospese = new();
+        Dictionary<string, List<List<FattureAccontoExcelDto>>> dictAcconto = new(); 
+        Dictionary<string, List<List<FattureCommessaExcelDto>>> dictAnticipo = new();
+
+        var relNonFirmate = await handler.Send(new RelNonFatturateQuery(authInfo));
+
+        foreach (var amt in anniMesiTipologia!)
+        {
+            switch (amt.TipologiaFattura)
+            {
+                case TipologiaFattura.PRIMOSALDO:
+                case TipologiaFattura.SECONDOSALDO:
+                case TipologiaFattura.VAR_SEMESTRALE:
+                    var fatture = await handler.Send(new FattureRelExcelQuery(authInfo)
+                    {
+                        Anno = amt.Anno,
+                        Mese = amt.Mese,
+                        TipologiaFattura = amt.TipologiaFattura,
+                        FatturaInviata = request.Inviata
+                    })!;
+
+                    if (fatture == null)
+                        continue;
+
+                    // Materializzo subito (single-use safety) preservando gli slot
+                    var fattureMat = fatture.Select(f => f?.ToList() ?? new List<FattureRelExcelDto>()).ToList();
+
+                    if (fattureMat.Sum(s => s.Count) == 0)
+                        continue;
+
+                    if (!dictFatture.TryGetValue(amt.TipologiaFattura!, out var listaSlot))
+                    {
+                        // prima volta: copio direttamente la struttura
+                        dictFatture[amt.TipologiaFattura!] = fattureMat;
+                    }
+                    else
+                    {
+                        // chiave già presente: faccio merge slot per slot
+                        for (int i = 0; i < fattureMat.Count; i++)
+                        {
+                            if (i < listaSlot.Count)
+                                listaSlot[i].AddRange(fattureMat[i]);
+                            else
+                                listaSlot.Add(fattureMat[i]); // nuovo slot non visto prima
+                        }
+                    }
+          
+                    foreach (var kvp in dictFatture)
+                    {
+                        var tipologia = kvp.Key;
+                        var fattureSlot = kvp.Value; // List<List<FattureRelExcelDto>>
+
+                        if (fattureSlot == null || fattureSlot.Count == 0)
+                            continue;
+
+                        // Appiattisco SOLO per ricavare le coppie (Anno, Mese) distinte:
+                        // la struttura "a slot" resta intatta in dictFatture.
+                        var perAnnoMese = fattureSlot
+                            .SelectMany(slot => slot)
+                            .Where(x => x.Anno.HasValue && x.Mese.HasValue)
+                            .GroupBy(x => new { Anno = x.Anno!.Value, Mese = x.Mese!.Value })
+                            .OrderBy(g => g.Key.Anno).ThenBy(g => g.Key.Mese);
+
+                        foreach (var gruppo in perAnnoMese)
+                        {
+                            var anno = gruppo.Key.Anno;
+                            var mese = gruppo.Key.Mese;
+
+                            var fattureSospese = await handler.Send(new FattureSospeseRelExcelQuery(authInfo)
+                            {
+                                Anno = anno,
+                                Mese = mese,
+                                TipologiaFattura = tipologia,
+                                FatturaInviata = request.Inviata
+                            });
+
+                            if (fattureSospese == null)
+                                break;
+
+                            // Preservo gli slot anche per le sospese
+                            var sospeseMat = fattureSospese
+                                .Select(f => f?.ToList() ?? new List<FattureRelExcelDto>())
+                                .ToList();
+
+                            if (sospeseMat.Sum(s => s.Count) == 0)
+                                break;
+
+                            if (!dictFattureSospese.TryGetValue(tipologia, out var listaSlotSospese))
+                            {
+                                dictFattureSospese[tipologia] = sospeseMat;
+                            }
+                            else
+                            {
+                                for (int i = 0; i < sospeseMat.Count; i++)
+                                {
+                                    if (i < listaSlotSospese.Count)
+                                        listaSlotSospese[i].AddRange(sospeseMat[i]);
+                                    else
+                                        listaSlotSospese.Add(sospeseMat[i]);
+                                }
+                            }
+                        }
+                    }
+            break;
+                case TipologiaFattura.ANTICIPO:
+                var fattureAnticipo = await handler.Send(new FattureCommessaExcelQuery(authInfo)
+                {
+                    Anno = amt.Anno,
+                    Mese = amt.Mese,
+                    FatturaInviata = request.Inviata
+                });
+
+                if (fattureAnticipo == null)
+                    continue;
+
+                    var anticipoMat = fattureAnticipo
+                        .Select(f => f?.ToList() ?? new List<FattureCommessaExcelDto>())
+                        .ToList();
+
+                    if (anticipoMat.Sum(s => s.Count) == 0)
+                        continue;
+
+                    if (!dictAnticipo.TryGetValue(amt.TipologiaFattura!, out var listaSlotAnt))
+                    {
+                        dictAnticipo[amt.TipologiaFattura!] = anticipoMat;
+                    }
+                    else
+                    {
+                        for (int i = 0; i < anticipoMat.Count; i++)
+                        {
+                            if (i < listaSlotAnt.Count)
+                                listaSlotAnt[i].AddRange(anticipoMat[i]);
+                            else
+                                listaSlotAnt.Add(anticipoMat[i]);
+                        }
+                    }
+                    break;
+            case TipologiaFattura.ACCONTO:
+                var fattureAcconto = await handler.Send(new FattureAccontoExcelQuery(authInfo)
+                {
+                    Anno = amt.Anno,
+                    Mese = amt.Mese,
+                    FatturaInviata = request.Inviata
+                });
+
+                    if (fattureAcconto == null)
+                        continue;
+
+                    var accontoMat = fattureAcconto
+                        .Select(f => f?.ToList() ?? new List<FattureAccontoExcelDto>())
+                        .ToList();
+
+                    if (accontoMat.Sum(s => s.Count) == 0)
+                        continue;
+
+                    if (!dictAcconto.TryGetValue(amt.TipologiaFattura!, out var listaSlotAcc))
+                    {
+                        dictAcconto[amt.TipologiaFattura!] = accontoMat;
+                    }
+                    else
+                    {
+                        for (int i = 0; i < accontoMat.Count; i++)
+                        {
+                            if (i < listaSlotAcc.Count)
+                                listaSlotAcc[i].AddRange(accontoMat[i]);
+                            else
+                                listaSlotAcc.Add(accontoMat[i]);
+                        }
+                    }
+                break;
+                // per anticipo e acconto non esistono le sospese, quindi non ha senso includerli nel report "non fatturate"
+            default:
+                break;
+            }
+        }
+
+        foreach (var kvp in dictFatture)
+        {
+            var tipologia = kvp.Key;
+            var fattureSlot = kvp.Value;  // List<List<FattureRelExcelDto>>
+
+            // Conversione a List<IEnumerable<...>> richiesta dalla firma di ReportFattureRel
+            var fattureForReport = fattureSlot
+                .Select(s => (IEnumerable<FattureRelExcelDto>)s)
+                .ToList();
+
+            List<IEnumerable<FattureRelExcelDto>>? sospeseForReport = null;
+            if (dictFattureSospese.TryGetValue(tipologia, out var sospeseSlot))
+            {
+                sospeseForReport = sospeseSlot
+                    .Select(s => (IEnumerable<FattureRelExcelDto>)s)
+                    .ToList(); 
+            }
+
+            var relNonFirmateTipologia = relNonFirmate?
+                .Where(x => x.TipologiaFattura == tipologia)
+                .ToList();
+
+            reports.Add(
+                $"Lista {tipologia}",
+                fattureForReport.ReportFattureRel(sospeseForReport, relNonFirmateTipologia, "", tipologia));
+        }
+
+        foreach (var kvp in dictAnticipo)
+        {
+            var tipologia = kvp.Key;
+            var commesseSlot = kvp.Value; // List<List<FattureCommessaExcelDto>>
+
+            var commesseForReport = commesseSlot
+                .Select(s => (IEnumerable<FattureCommessaExcelDto>)s)
+                .ToList();
+
+            reports.Add(
+                $"Lista {tipologia}",
+                commesseForReport.ReportFattureModuloCommessa(""));
+        }
+
+        foreach (var kvp in dictAcconto)
+        {
+            var tipologia = kvp.Key;
+            var accontoSlot = kvp.Value; // List<List<FattureAccontoExcelDto>>
+
+            var accontoForReport = accontoSlot
+                .Select(s => (IEnumerable<FattureAccontoExcelDto>)s)
+                .ToList();
+
+            reports.Add(
+                $"Lista {tipologia}",
+                accontoForReport.ReportFattureSospeseAcconto(""));
         }
 
         return reports;
