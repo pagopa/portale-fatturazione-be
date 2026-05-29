@@ -1,0 +1,28 @@
+﻿using PortaleFatture.BE.Core.Extensions;
+
+namespace PortaleFatture.BE.Api.Modules.SEND.Fatture.Payload.Request;
+
+public class NonFatturateRicercaRequest
+{
+    //private string[]? _idEnti;
+    //public string[]? IdEnti
+    //{
+    //    get { return _idEnti; }
+    //    set { _idEnti = value!.IsNullNotAny() ? null : value; }
+    //}
+    private string[]? _tipologiaFattura;
+    public string[]? TipologiaFattura
+    {
+        get { return _tipologiaFattura; }
+        set { _tipologiaFattura = value!.IsNullNotAny() ? null : value; }
+    }
+    //private DateTime[]? _dateFatture;
+    //public DateTime[]? DateFatture
+    //{
+    //    get { return _dateFatture; }
+    //    set { _dateFatture = value!.IsNullNotAny() ? null : value; }
+    //}
+    //public bool? Cancellata { get; set; } 
+    //public int? IdTipoContratto { get; set; } 
+    public int Inviata { get; set; } = 0;
+}
