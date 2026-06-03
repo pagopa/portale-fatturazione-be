@@ -188,11 +188,12 @@ ResultSet AS (
             END
         ) AS DataChiusuraLegale,
         COALESCE(cf.Quarter, CONCAT(dt.AnnoValidita, '-', ql.QuarterSuffix)) AS Quarter,
-        CASE 
-            WHEN ISNULL(cf.Source, 'archiviato') = 'archiviato' THEN CAST(0 AS BIT)
-            WHEN dc.CurrentDay > dc.GiornoFine THEN CAST(0 AS BIT)
-            ELSE CAST(1 AS BIT)
-        END AS modifica,
+       CASE 
+          WHEN ISNULL(cf.Source, 'archiviato') = 'facoltativo' THEN CAST(1 AS BIT)
+          WHEN ISNULL(cf.Source, 'archiviato') = 'archiviato' THEN CAST(0 AS BIT)
+          WHEN dc.CurrentDay > dc.GiornoFine THEN CAST(0 AS BIT)
+          ELSE CAST(1 AS BIT)
+       END AS modifica,
         e.description AS RagioneSociale,
         t.Descrizione AS TipologiaContratto,
         c.createdat AS DataContratto,
