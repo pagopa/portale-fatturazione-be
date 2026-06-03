@@ -245,8 +245,9 @@ SELECT
         END
     ) AS DataChiusuraLegale,
     COALESCE(cf.Quarter, CONCAT(dt.AnnoValidita, '-', ql.QuarterSuffix)) AS Quarter,
-    -- LOGICA AGGIORNATA: se oggi è oltre il frame, tutti i record diventano non modificabili
-    CASE 
+    -- LOGICA AGGIORNATA: se oggi è oltre il frame, tutti i record diventano non modificabili tranne i FACOLTATIVI
+   CASE 
+        WHEN ISNULL(cf.Source, 'archiviato') = 'facoltativo' THEN CAST(1 AS BIT)
         WHEN ISNULL(cf.Source, 'archiviato') = 'archiviato' THEN CAST(0 AS BIT)
         WHEN dc.CurrentDay > dc.GiornoFine THEN CAST(0 AS BIT)
         ELSE CAST(1 AS BIT)
@@ -552,17 +553,16 @@ SELECT
     COALESCE(cf.Quarter, CONCAT(dt.AnnoValidita, '-', ql.QuarterSuffix)) AS Quarter,
     -- LOGICA CORRETTA: confronta data corrente con DataChiusura specifica del record
     CASE 
-        WHEN ISNULL(cf.Source, 'archiviato') = 'archiviato' THEN CAST(0 AS BIT)
-        WHEN dc.CurrentDate > COALESCE(cf.datavalidita, 
-            CASE 
-                WHEN dt.MeseValidita = 1 THEN 
-                    DATEFROMPARTS(dt.AnnoValidita - 1, 12, 19)
-                ELSE 
-                    DATEFROMPARTS(dt.AnnoValidita, dt.MeseValidita - 1, 19)
-            END
-        ) THEN CAST(0 AS BIT)
-        ELSE CAST(1 AS BIT)
-    END AS modifica
+    WHEN ISNULL(cf.Source, 'archiviato') = 'archiviato' THEN CAST(0 AS BIT)
+    WHEN dc.CurrentDate > COALESCE(cf.datavalidita, 
+        CASE 
+            WHEN dt.MeseValidita = 1 THEN
+                DATEFROMPARTS(dt.AnnoValidita - 1, 12, 19)
+            ELSE DATEFROMPARTS(dt.AnnoValidita, dt.MeseValidita - 1, 19)
+        END
+    ) AND ISNULL(cf.Source, 'archiviato') <> 'facoltativo' THEN CAST(0 AS BIT)
+    ELSE CAST(1 AS BIT)
+END AS modifica
 
 FROM DatiTotali dt
 CROSS APPLY DateConstants dc
@@ -594,7 +594,7 @@ SELECT
     -- LOGICA CORRETTA: confronta data corrente con DataChiusura
     CASE 
         WHEN ce.Source = 'archiviato' THEN CAST(0 AS BIT)
-        WHEN dc.CurrentDate > ce.datavalidita THEN CAST(0 AS BIT)
+        WHEN dc.CurrentDate > ce.datavalidita AND ce.Source <> 'facoltativo' THEN CAST(0 AS BIT)
         ELSE CAST(1 AS BIT)
     END AS modifica
 
