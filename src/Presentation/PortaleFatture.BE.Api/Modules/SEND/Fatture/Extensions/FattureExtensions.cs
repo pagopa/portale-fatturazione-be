@@ -873,64 +873,98 @@ public static class FattureExtensions
                                 listaSlot.Add(fattureMat[i]); // nuovo slot non visto prima
                         }
                     }
-          
-                    foreach (var kvp in dictFatture)
+
+                    var fattureSospese = await handler.Send(new FattureSospeseRelExcelQuery(authInfo)
                     {
-                        var tipologia = kvp.Key;
-                        var fattureSlot = kvp.Value; // List<List<FattureRelExcelDto>>
+                        Anno = amt.Anno,
+                        Mese = amt.Mese,
+                        TipologiaFattura = amt.TipologiaFattura,
+                        FatturaInviata = request.Inviata
+                    });
 
-                        if (fattureSlot == null || fattureSlot.Count == 0)
-                            continue;
+                    if (fattureSospese == null)
+                        break;
 
-                        // Appiattisco SOLO per ricavare le coppie (Anno, Mese) distinte:
-                        // la struttura "a slot" resta intatta in dictFatture.
-                        var perAnnoMese = fattureSlot
-                            .SelectMany(slot => slot)
-                            .Where(x => x.Anno.HasValue && x.Mese.HasValue)
-                            .GroupBy(x => new { Anno = x.Anno!.Value, Mese = x.Mese!.Value })
-                            .OrderBy(g => g.Key.Anno).ThenBy(g => g.Key.Mese);
+                    // Preservo gli slot anche per le sospese
+                    var sospeseMat = fattureSospese
+                        .Select(f => f?.ToList() ?? new List<FattureRelExcelDto>())
+                        .ToList();
 
-                        foreach (var gruppo in perAnnoMese)
+                    if (sospeseMat.Sum(s => s.Count) == 0)
+                        break;
+
+                    if (!dictFattureSospese.TryGetValue(amt.TipologiaFattura!, out var listaSlotSospese))
+                    {
+                        dictFattureSospese[amt.TipologiaFattura!] = sospeseMat;
+                    }
+                    else
+                    {
+                        for (int i = 0; i < sospeseMat.Count; i++)
                         {
-                            var anno = gruppo.Key.Anno;
-                            var mese = gruppo.Key.Mese;
-
-                            var fattureSospese = await handler.Send(new FattureSospeseRelExcelQuery(authInfo)
-                            {
-                                Anno = anno,
-                                Mese = mese,
-                                TipologiaFattura = tipologia,
-                                FatturaInviata = request.Inviata
-                            });
-
-                            if (fattureSospese == null)
-                                break;
-
-                            // Preservo gli slot anche per le sospese
-                            var sospeseMat = fattureSospese
-                                .Select(f => f?.ToList() ?? new List<FattureRelExcelDto>())
-                                .ToList();
-
-                            if (sospeseMat.Sum(s => s.Count) == 0)
-                                break;
-
-                            if (!dictFattureSospese.TryGetValue(tipologia, out var listaSlotSospese))
-                            {
-                                dictFattureSospese[tipologia] = sospeseMat;
-                            }
+                            if (i < listaSlotSospese.Count)
+                                listaSlotSospese[i].AddRange(sospeseMat[i]);
                             else
-                            {
-                                for (int i = 0; i < sospeseMat.Count; i++)
-                                {
-                                    if (i < listaSlotSospese.Count)
-                                        listaSlotSospese[i].AddRange(sospeseMat[i]);
-                                    else
-                                        listaSlotSospese.Add(sospeseMat[i]);
-                                }
-                            }
+                                listaSlotSospese.Add(sospeseMat[i]);
                         }
                     }
-            break;
+
+                    //foreach (var kvp in dictFatture)
+                    //{
+                    //    var tipologia = kvp.Key;
+                    //    var fattureSlot = kvp.Value; // List<List<FattureRelExcelDto>>
+
+                    //    if (fattureSlot == null || fattureSlot.Count == 0)
+                    //        continue;
+
+                    //    // Appiattisco SOLO per ricavare le coppie (Anno, Mese) distinte:
+                    //    // la struttura "a slot" resta intatta in dictFatture.
+                    //    var perAnnoMese = fattureSlot
+                    //        .SelectMany(slot => slot)
+                    //        .Where(x => x.Anno.HasValue && x.Mese.HasValue)
+                    //        .GroupBy(x => new { Anno = x.Anno!.Value, Mese = x.Mese!.Value })
+                    //        .OrderBy(g => g.Key.Anno).ThenBy(g => g.Key.Mese);
+
+                    //    foreach (var gruppo in perAnnoMese)
+                    //    {
+                    //        var anno = gruppo.Key.Anno;
+                    //        var mese = gruppo.Key.Mese;
+
+                    //        var fattureSospese = await handler.Send(new FattureSospeseRelExcelQuery(authInfo)
+                    //        {
+                    //            Anno = anno,
+                    //            Mese = mese,
+                    //            TipologiaFattura = tipologia,
+                    //            FatturaInviata = request.Inviata
+                    //        });
+
+                    //        if (fattureSospese == null)
+                    //            break;
+
+                    //        // Preservo gli slot anche per le sospese
+                    //        var sospeseMat = fattureSospese
+                    //            .Select(f => f?.ToList() ?? new List<FattureRelExcelDto>())
+                    //            .ToList();
+
+                    //        if (sospeseMat.Sum(s => s.Count) == 0)
+                    //            break;
+
+                    //        if (!dictFattureSospese.TryGetValue(tipologia, out var listaSlotSospese))
+                    //        {
+                    //            dictFattureSospese[tipologia] = sospeseMat;
+                    //        }
+                    //        else
+                    //        {
+                    //            for (int i = 0; i < sospeseMat.Count; i++)
+                    //            {
+                    //                if (i < listaSlotSospese.Count)
+                    //                    listaSlotSospese[i].AddRange(sospeseMat[i]);
+                    //                else
+                    //                    listaSlotSospese.Add(sospeseMat[i]);
+                    //            }
+                    //        }
+                    //    }
+                    //}
+                    break;
                 case TipologiaFattura.ANTICIPO:
                 var fattureAnticipo = await handler.Send(new FattureCommessaExcelQuery(authInfo)
                 {
