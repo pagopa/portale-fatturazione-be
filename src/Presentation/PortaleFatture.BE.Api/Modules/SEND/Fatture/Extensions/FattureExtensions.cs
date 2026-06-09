@@ -736,6 +736,7 @@ public static class FattureExtensions
                     }
                     break;
                 case TipologiaFattura.VAR_SEMESTRALE:
+                case TipologiaFattura.SEMESTRALE_SOSPESI:
                     fatture = await handler.Send(request.Mapv2(authInfo, tipologia));
                     if (fatture.IsNotEmpty())
                     {
