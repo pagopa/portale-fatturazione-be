@@ -16,11 +16,14 @@ public class FattureAccontoFatturaExcelPersistence(FattureAccontoExcelQuery comm
         var mese = _command.Mese;
         var where = " where f.Anno= @anno and f.mese=@mese ";
 
+        // FIX bug #960:
+        // 1) usare l'alias corretto della vista (vFattureAcconto f), non un inesistente "t"
+        // 2) usare += per concatenare, non = (altrimenti si perde la WHERE iniziale)
         if (!_command.IdEnti!.IsNullNotAny())
-            where = " AND t.FKIdEnte in @IdEnti ";
+            where += " AND f.IdEnte in @IdEnti ";
 
-        if(_command.FkIdTipoContratto.HasValue) 
-            where += " AND c.FkIdTipoContratto = @FkIdTipoContratto "; 
+        if (_command.FkIdTipoContratto.HasValue)
+            where += " AND c.FkIdTipoContratto = @FkIdTipoContratto ";
 
         var sql = _sql + where;
 
