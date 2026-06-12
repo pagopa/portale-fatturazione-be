@@ -7,9 +7,11 @@
         <UserSecretsId>072fb2f2-e073-421a-a57d-e0c25e7517fd</UserSecretsId>
         <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
         <DockerfileContext>..\..\..</DockerfileContext>
+        <AppDesignerFolder>Properties</AppDesignerFolder>
     </PropertyGroup>
 
     <ItemGroup>
+      <Content Remove="Properties\launchSettings.json" />
       <Content Include="properties\launchSettings.json" />
     </ItemGroup>
 
