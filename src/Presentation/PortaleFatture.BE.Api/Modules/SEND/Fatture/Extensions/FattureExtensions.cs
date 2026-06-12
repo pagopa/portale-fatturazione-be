@@ -1356,6 +1356,15 @@ public static byte[] ReportFattureSospeseModuloCommessa(this List<IEnumerable<Fa
             FatturaInviata = req.Inviata
         };
     }
+    public static ReportAndamentoCreditoSospesoQuery Map(this ReportAndamentoCreditoSospesoRequest req, AuthenticationInfo authInfo)
+    {
+        return new ReportAndamentoCreditoSospesoQuery(authInfo)
+        {
+            Anno = req.Anno,
+            Mese = req.Mese,
+            TipologiaFattura = req.TipologiaFattura
+        };
+    }
 
     public static IEnumerable<FattureExcel> Map(this FattureListaDto model)
     {
@@ -1438,5 +1447,26 @@ public static byte[] ReportFattureSospeseModuloCommessa(this List<IEnumerable<Fa
             zipArchive.Dispose();
         }
         return memoryStreamZip;
+    }
+
+    public static IEnumerable<ReportAndamentoCreditoSospesoExcelDto> MapExport(
+    this IEnumerable<ReportAndamentoCreditoSospesoDto> dtos)
+    {
+        return dtos.Select(x => new ReportAndamentoCreditoSospesoExcelDto
+        {
+            IdEnte = x.IdEnte,
+            RagioneSociale = x.RagioneSociale,
+            IdContratto = x.IdContratto,
+            TipoContratto = x.TipoContratto,
+            TipologiaFattura = x.TipologiaFattura,
+            NumFatturaSospesa = x.NumFatturaSospesa,
+            TipoDocumento = x.TipoDocumento,
+            DataFattura = x.DataFattura.ToString("dd/MM/yyyy"),
+            Anno = x.Anno,
+            Mese = x.Mese,
+            ImponibileFattura = x.ImponibileFattura,
+            CreditoCumulato = x.CreditoCumulato,
+            RelNonFirmata = x.RelNonFirmata
+        });
     }
 }

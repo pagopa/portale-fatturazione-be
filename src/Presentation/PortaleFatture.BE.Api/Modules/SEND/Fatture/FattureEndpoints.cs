@@ -286,7 +286,13 @@ public partial class FattureModule : Module, IRegistrableModule
         .SetOpenApi(Module.DatiFattureLabel)
         .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
-        #endregion
+        endpointRouteBuilder
+        .MapPost("api/fatture/andamento-sospese/download", PostReportAndamentoCreditoSospesoExcelAsync)
+        .WithName("Permette di scaricare l'excel del report andamento credito sospeso")
+        .SetOpenApi(Module.DatiFattureLabel)
+        .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+#endregion
 
         #region ente
         endpointRouteBuilder
@@ -380,7 +386,6 @@ public partial class FattureModule : Module, IRegistrableModule
            .WithName("Permette di scaricare il dettaglio in pdf della fatture emessa per specifico ente")
            .SetOpenApi(Module.DatiFattureEnti)
            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
-
-        #endregion
     }
+    #endregion
 }
