@@ -1688,4 +1688,32 @@ public partial class FattureModule
         return NotFound();
     }
 
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<IResult> PostReportAndamentoCreditoSospesoExcelAsync(
+    HttpContext context,
+    [FromBody] ReportAndamentoCreditoSospesoRequest request,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] ILogger<FattureModule> logger,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+
+        var report = await handler.Send(request.Map(authInfo));
+        if (report.IsNullNotAny())
+            return NotFound();
+
+        var mime = "application/vnd.ms-excel";
+        var filename = $"{Guid.NewGuid()}.xlsx";
+
+        var dataSet = report!.MapExport().FillOneSheetv2();
+        var content = dataSet.ToExcel();
+
+        return Results.Stream(content!, mime, filename);
+    }
+
 }
