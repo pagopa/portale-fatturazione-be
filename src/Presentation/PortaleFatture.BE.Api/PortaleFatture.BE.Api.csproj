@@ -12,6 +12,7 @@
 
     <ItemGroup>
       <Content Remove="Properties\launchSettings.json" />
+      <Content Include="properties\launchSettings.json" />
     </ItemGroup>
 
     <ItemGroup>
@@ -78,6 +79,10 @@
       <None Update="Infrastructure\Documenti\SECONDO_SALDO_rel.html">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Properties\" />
     </ItemGroup>
 
 </Project>
