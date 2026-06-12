@@ -785,8 +785,10 @@ public static class FattureExtensions
             {
                 case TipologiaFattura.PRIMOSALDO:
                     var fatture = await handler.Send(request.MapSospesev2(authInfo, tipologia));
-                    if (fatture.IsNotEmpty())
-                        reports.Add($"Lista Sospese {tipologia} {year} {month}", fatture!.ReportFattureSospeseRel(month, tipologia));
+                    var fattureSospeseDettaglio = await handler.Send(request.Map(authInfo));
+                    
+                    if (fatture.IsNotEmpty() && fattureSospeseDettaglio != null && fattureSospeseDettaglio.Count > 0)
+                        reports.Add($"Lista Sospese {tipologia} {year} {month}", fatture!.ReportFattureSospeseRel(fattureSospeseDettaglio!, month, tipologia));
                     break;
                 case TipologiaFattura.SECONDOSALDO:
                     fatture = await handler.Send(request.MapSospesev2(authInfo, tipologia));
@@ -1251,6 +1253,31 @@ public static byte[] ReportFattureSospeseModuloCommessa(this List<IEnumerable<Fa
         return memory.ToArray();
     }
 
+    public static byte[] ReportFattureSospeseRel(this List<IEnumerable<FattureRelExcelDto>> fatture, FattureListaDto fattureSospeseDettaglio, string month, string tipologia)
+    {
+        
+        DataSet? dataSet = new();
+        for (var i = 0; i < fatture.Count; i++)
+        {
+            if (i == 0)
+                dataSet.Tables.Add(fatture[i]!.FillTableWithTotalsRel(9, $"Reg. Esec. Sospese {month}"));
+            else if (i == 1)
+            {
+                var fattureNONzero = fatture[i].Where(x => x.TotaleFatturaImponibile != 0);
+                dataSet.Tables.Add(fattureNONzero!.FillTableWithTotalsRel(9, $"Enti Fatt. Sospese {month}"));
+                var fatturezero = fatture[i].Where(x => x.TotaleFatturaImponibile == 0);
+                if (!fatturezero.IsNullNotAny())
+                    dataSet.Tables.Add(fatturezero!.FillTableWithTotalsRel(9, $"Fatt. a Zero Sosp. {month}"));
+            }
+        }
+
+        // aggiunta sheet: dettaglio fatture sospese
+        dataSet.Tables.Add(fattureSospeseDettaglio.MapDettaglioFattSospese()!.FillOneTable($"Dett Fatt Sosp {month}"));
+
+        using var memory = dataSet!.ToExcel();
+        return memory.ToArray();
+    }
+
     public static (MessaggioCreateCommand, DocumentiStorageKey) Mapv2(this FatturaRicercaRequest req, AuthenticationInfo authInfo, string? contentType, string? contentLanguage)
     {
         var command = new MessaggioCreateCommand(authInfo)
@@ -1395,6 +1422,64 @@ public static byte[] ReportFattureSospeseModuloCommessa(this List<IEnumerable<Fa
             });
 
             result.Add(new FattureExcel());
+        }
+        return result;
+    }
+
+    public static IEnumerable<FattureExcel> MapDettaglioFattSospese(this FattureListaDto model)
+    {
+        var result = new List<FattureExcel>();
+        foreach (var item in model)
+        {
+            foreach (var pos in item.fattura!.Posizioni!)
+            {
+                result.Add(new FattureExcel()
+                {
+                    Numero = item.fattura!.Numero,
+                    Posizione = pos.CodiceMateriale,
+                    Totale = (decimal?)pos.Imponibile,
+                    PeriodoRiferimento = pos.PeriodoRiferimento,
+
+                    Causale = item.fattura!.Causale,
+                    DataFattura = item.fattura!.DataFattura,
+                    Divisa = item.fattura!.Divisa,
+                    IdContratto = item.fattura!.IdContratto,
+                    IstitutioID = item.fattura.IstitutioID,
+                    MetodoPagamento = item.fattura.MetodoPagamento,
+                    OnboardingTokenID = item.fattura.OnboardingTokenID,
+                    Prodotto = item.fattura.Prodotto,
+                    RagioneSociale = item.fattura.RagioneSociale,
+                    TipologiaFattura = item.fattura.TipologiaFattura,
+                    TipoContratto = item.fattura.TipoContratto,
+                    Identificativo = item.fattura.Identificativo,
+                    Sollecito = item.fattura.Sollecito,
+                    Split = item.fattura.Split,
+                    TipoDocumento = item.fattura.TipoDocumento,
+
+                });
+            }
+            result.Add(new FattureExcel()
+            {
+                Causale = item.fattura!.Causale,
+                DataFattura = item.fattura!.DataFattura,
+                Divisa = item.fattura!.Divisa,
+                IdContratto = item.fattura!.IdContratto,
+                Numero = item.fattura!.Numero,
+                IstitutioID = item.fattura.IstitutioID,
+                MetodoPagamento = item.fattura.MetodoPagamento,
+                OnboardingTokenID = item.fattura.OnboardingTokenID,
+                Prodotto = item.fattura.Prodotto,
+                RagioneSociale = item.fattura.RagioneSociale,
+                TipologiaFattura = item.fattura.TipologiaFattura,
+                TipoContratto = item.fattura.TipoContratto,
+                Totale = item.fattura.Totale,
+                Identificativo = item.fattura.Identificativo,
+                Sollecito = item.fattura.Sollecito,
+                Split = item.fattura.Split,
+                TipoDocumento = item.fattura.TipoDocumento,
+                Posizione = "totale:",
+            });
+
         }
         return result;
     }
