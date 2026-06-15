@@ -49,8 +49,8 @@ FROM (
     private static string _sqlCount = @"
             SELECT Count(internal_organization_id) 
             FROM pfd.RiepilogoFatturazione_NPF rf
-            inner join pfd.tmpRelTestata rt on rf.FkIdEnte = rt.internal_organization_id
-            and rf.AnnoRiferimento = rt.year and rf.MeseRiferimento = rt.month
+            inner join pfd.tmpRelTestata t on rf.FkIdEnte = t.internal_organization_id
+            and rf.AnnoRiferimento = t.year and rf.MeseRiferimento = t.month
             WHERE rf.PrimoSaldoSospeso = 1
     ";
 
