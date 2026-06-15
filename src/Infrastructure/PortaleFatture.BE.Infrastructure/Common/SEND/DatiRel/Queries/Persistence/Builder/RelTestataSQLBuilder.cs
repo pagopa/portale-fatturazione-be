@@ -125,7 +125,8 @@ SELECT [internal_organization_id] as IdEnte
         [Cup],
         [DataDocumento],
         [DatiFatturazione],
-        [Caricata]
+        [Caricata],
+        [Totale]
     FROM [be].[vwRelDettaglio]";
 
     private static string _offSet = " OFFSET (@page-1)*@size ROWS FETCH NEXT @size ROWS ONLY";
