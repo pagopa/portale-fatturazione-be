@@ -1,8 +1,6 @@
 ﻿using System.Data;
 using Microsoft.Data.SqlClient;
 using System.Dynamic;
-using DocumentFormat.OpenXml.Spreadsheet;
-using Microsoft.Data.SqlClient;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Contestazioni.Queries.Persistence.Builder;
 
@@ -19,7 +17,6 @@ public class ContestazioniMesiQueryPersistence(ContestazioniMesiQuery command) :
 
         if (!string.IsNullOrEmpty(_command.Anno))
         {
-            where += " WHERE year=@anno ";
             parameters.Anno = _command.Anno;
         }
   

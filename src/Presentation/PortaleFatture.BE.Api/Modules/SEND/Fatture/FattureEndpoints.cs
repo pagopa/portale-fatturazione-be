@@ -387,7 +387,6 @@ public partial class FattureModule : Module, IRegistrableModule
            .SetOpenApi(Module.DatiFattureEnti)
            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
-        #endregion
     }
     #endregion
 }
