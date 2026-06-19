@@ -25,5 +25,5 @@ public class ContestazioniAnniQueryPersistence(ContestazioniAnniQuery command) :
 
         return await ((IDatabase)this).SelectAsync<string>(
             connection!, _sql + _orderBy, param, transaction); 
-    }  
+    }
 }

@@ -21,6 +21,7 @@ public class DatiFatturazioneEnteDto
 
     [Column("FkIdEnte")]
     [JsonPropertyOrder(-4)]
+    [Header(caption: "IdEnte", Order = -1)]
     public string? IdEnte { get; set; }
 
     [Column("internalistitutionid")]
@@ -98,6 +99,10 @@ public class DatiFatturazioneEnteDto
     [Header(caption: "Tipo Contratto", Order = 15)]
     [JsonPropertyName("tipocontratto")]
     public string? TipoContratto { get; set; }
+
+    [Header(caption: "IdContratto", Order = 0)]
+    [JsonIgnore]
+    public string? IdContratto { get; set; }
 }
 
 

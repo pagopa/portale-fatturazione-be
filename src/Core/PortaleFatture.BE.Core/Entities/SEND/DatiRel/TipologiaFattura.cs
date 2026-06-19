@@ -5,6 +5,7 @@ public static class TipologiaFattura
     public const string PRIMOSALDO = "PRIMO SALDO";
     public const string SECONDOSALDO = "SECONDO SALDO";
     public const string VAR_SEMESTRALE = "VAR. SEMESTRALE";
+    public const string SEMESTRALE_SOSPESI = "SEM. SOSPESI";
     public const string VAR_ANNUALE = "VAR. ANNUALE";
     public const string ASSEVERAZIONE = "ASSEVERAZIONE";
 

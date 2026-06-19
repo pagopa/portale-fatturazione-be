@@ -133,7 +133,7 @@ public static class FattureRelExcelBuilder
           ,[FkIdTipoContratto]
           ,[TipologiaContratto]
           ,[FatturaInviata]
-    FROM [pfd].[vwFattureSospeseNoteReport]
+    FROM [be].[vwFattureSospeseNoteReport]
     where 
     [Anno]=@anno and 
     [Mese]=@mese and 

@@ -1,4 +1,5 @@
 ﻿using System.Data;
+using Microsoft.Data.SqlClient;
 using System.Dynamic;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.Data.SqlClient;
@@ -18,9 +19,10 @@ public class ContestazioniMesiQueryPersistence(ContestazioniMesiQuery command) :
 
         if (!string.IsNullOrEmpty(_command.Anno))
         {
+            where += " WHERE year=@anno ";
             parameters.Anno = _command.Anno;
         }
-
+  
         var idEnte = _command.AuthenticationInfo.IdEnte;
 
         if (string.IsNullOrWhiteSpace(idEnte))

@@ -17,8 +17,8 @@ SELECT [IdTipologiaReport]
     SELECT [ReportId]
           ,[UniqueId]
           ,[Json]
-          ,[anno]
-          ,[mese]
+      ,[anno]
+      ,[mese]
           ,[InternalOrganizationId]
           ,[ContractId]
           ,[UtenteId]
@@ -32,8 +32,8 @@ SELECT [IdTipologiaReport]
           ,[LinkDocumento]
           ,[ContentLanguage]
           ,[ContentType]
-          ,[FkIdTipologiaReport]
-          ,[hash]
+      ,[FkIdTipologiaReport]
+      ,[hash]
           ,[RagioneSociale]
           ,[ActualContractId]
           ,[TipologiaDocumento]
@@ -53,33 +53,33 @@ SELECT [IdTipologiaReport]
       FROM [be].[vwCMOverviewStatoNotifiche]";
 
     private static string _sqlRecapIntegration = @"
-        DECLARE @Cent decimal = 100.00;
-        SELECT 
-	        CASE
-		        WHEN N.TipologiaFattura = 'ANTICIPO' THEN 1
-		        WHEN N.TipologiaFattura = 'ACCONTO' THEN 2
-		        WHEN N.TipologiaFattura = 'ASSEVERAZIONE' THEN 3
-		        WHEN N.TipologiaFattura = 'PRIMO SALDO' THEN 4
-		        WHEN N.TipologiaFattura = 'SECONDO SALDO' THEN 5
-		        WHEN N.TipologiaFattura = 'VAR. SEMESTRALE' THEN 6
-		        WHEN N.TipologiaFattura = 'VAR. ANNUALE' THEN 7
-		        ELSE 6
-	        END AS ordine,
-            ISNULL(N.TipologiaFattura, 'CONTESTAZIONE') as TipologiaFattura,
-            F.IdFlagContestazione,
-	        F.FlagContestazione,
-            COUNT(*) AS Totale,
-            SUM(CASE WHEN N.[notificationtype] LIKE '%Analog%' THEN 1 ELSE 0 END) AS TotaleNotificheAnalogiche,
-            SUM(CASE WHEN N.[notificationtype] = 'Digitale' OR N.[notificationtype] = '' THEN 1 ELSE 0 END) AS TotaleNotificheDigitali
-        FROM 
-            [pfd].[Notifiche] N
-        LEFT JOIN 
-            [pfw].[Contestazioni] C ON C.[FkIdNotifica] = N.[event_id]
-        INNER JOIN 
-            [pfw].[FlagContestazione] F ON F.[IdFlagContestazione] = ISNULL(C.[FkIdFlagContestazione], 1)
-        WHERE  
-              ([cost_eurocent]/@Cent) > 0   
-        ";
+DECLARE @Cent decimal = 100.00;
+SELECT 
+	CASE
+		WHEN N.TipologiaFattura = 'ANTICIPO' THEN 1
+		WHEN N.TipologiaFattura = 'ACCONTO' THEN 2
+		WHEN N.TipologiaFattura = 'ASSEVERAZIONE' THEN 3
+		WHEN N.TipologiaFattura = 'PRIMO SALDO' THEN 4
+		WHEN N.TipologiaFattura = 'SECONDO SALDO' THEN 5
+		WHEN N.TipologiaFattura = 'VAR. SEMESTRALE' THEN 6
+		WHEN N.TipologiaFattura = 'VAR. ANNUALE' THEN 7
+		ELSE 6
+	END AS ordine,
+    ISNULL(N.TipologiaFattura, 'CONTESTAZIONE') as TipologiaFattura,
+    F.IdFlagContestazione,
+	F.FlagContestazione,
+    COUNT(*) AS Totale,
+    SUM(CASE WHEN N.[notificationtype] LIKE '%Analog%' THEN 1 ELSE 0 END) AS TotaleNotificheAnalogiche,
+    SUM(CASE WHEN N.[notificationtype] = 'Digitale' OR N.[notificationtype] = '' THEN 1 ELSE 0 END) AS TotaleNotificheDigitali
+FROM 
+    [pfd].[Notifiche] N
+LEFT JOIN 
+    [pfw].[Contestazioni] C ON C.[FkIdNotifica] = N.[event_id]
+INNER JOIN 
+    [pfw].[FlagContestazione] F ON F.[IdFlagContestazione] = ISNULL(C.[FkIdFlagContestazione], 1)
+WHERE  
+      ([cost_eurocent]/@Cent) > 0   
+";
 
     private static string _sqlEnti = @"
 SELECT e.[InternalIstitutionId] as IdEnte,
@@ -122,11 +122,11 @@ SELECT [Mese]
     public static string GroupByOrderByRecapIntegration()
     {
         return @"GROUP BY 
-            N.TipologiaFattura,
-            F.IdFlagContestazione,
-	        F.FlagContestazione
-        ORDER BY ordine, IdFlagContestazione
-        ";
+    N.TipologiaFattura,
+    F.IdFlagContestazione,
+	F.FlagContestazione
+ORDER BY ordine, IdFlagContestazione
+";
     }
 
     public static string SelectAnni()

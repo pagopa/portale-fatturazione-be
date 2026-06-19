@@ -2,7 +2,7 @@
 using Microsoft.Data.SqlClient;
 using PortaleFatture.BE.ImportModuloCommessaAderenti;
 
-var connectionString = "Server=tcp:fat-d-sql.database.windows.net,1433;Initial Catalog=fat-sqldb;Persist Security Info=False;User ID=pfwebuser;Password=x&5DLJ-12CcF9ma;MultipleActiveResultSets=true;Encrypt=True;TrustServerCertificate=False;Connection Timeout=320;";
+var connectionString = "Server=tcp:***REDACTED***;Initial Catalog=***REDACTED***;Persist Security Info=False;User ID=***REDACTED***;Password=***REDACTED***;MultipleActiveResultSets=true;Encrypt=True;TrustServerCertificate=False;Connection Timeout=320;";
 
 var query = @"INSERT INTO pfw.DatiModuloCommessaAderenti (dataExport, internalistitutionid, segmento, macrocategoriaVendita, sottocategoriaVendita, provincia, regione)
                  VALUES (@dataExport, @internalistitutionid, @segmento, @macrocategoriaVendita, @sottocategoriaVendita, @provincia, @regione)";

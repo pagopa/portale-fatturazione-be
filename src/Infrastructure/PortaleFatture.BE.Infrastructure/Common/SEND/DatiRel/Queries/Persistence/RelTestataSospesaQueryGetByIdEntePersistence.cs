@@ -19,7 +19,7 @@ public class RelTestataSospesaQueryGetByIdEntePersistence(RelTestataSospesaQuery
         var idEnte = _command.AuthenticationInfo.IdEnte;
         var page = _command.Page;
         var size = _command.Size;
-        where += " WHERE internal_organization_id=@IdEnte ";
+        where += " AND t.internal_organization_id=@IdEnte ";
 
         var caricata = _command.Caricata;
         var anno = _command.Anno;

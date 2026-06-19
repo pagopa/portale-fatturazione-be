@@ -82,7 +82,7 @@ The JSON file should contain an array of client categorization objects:
 The connection string is currently hardcoded in `Program.cs`:
 
 ```csharp
-var connectionString = "Server=tcp:fat-d-sql.database.windows.net,1433;Initial Catalog=fat-sqldb;...";
+var connectionString = "Server=tcp:***REDACTED***,1433;Initial Catalog=fat-sqldb;...";
 ```
 
 **Note**: This should be moved to configuration for security and flexibility.
@@ -146,7 +146,7 @@ Console output includes:
 **Important**: The current implementation has hardcoded credentials in `Program.cs`:
 
 ```csharp
-User ID=pfwebuser;Password=x&5DLJ-12CcF9ma;
+User ID=***REDACTED***;Password=***REDACTED***;
 ```
 
 **Recommendations**:
