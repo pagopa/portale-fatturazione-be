@@ -21,6 +21,7 @@ public class DatiFatturazioneEnteDto
 
     [Column("FkIdEnte")]
     [JsonPropertyOrder(-4)]
+    [Header(caption: "IdEnte", Order = -1)]
     public string? IdEnte { get; set; }
 
     [Column("internalistitutionid")]
