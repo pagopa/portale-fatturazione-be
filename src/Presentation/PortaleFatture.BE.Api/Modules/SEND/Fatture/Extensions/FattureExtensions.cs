@@ -1554,4 +1554,17 @@ public static byte[] ReportFattureSospeseModuloCommessa(this List<IEnumerable<Fa
             RelNonFirmata = x.RelNonFirmata
         });
     }
+
+
+    public static FattureDaNonInviareSapQuery Map2(this RicercaEsclusioneInvioFattureRequest req, AuthenticationInfo authInfo)
+    {
+        return new FattureDaNonInviareSapQuery(authInfo)
+        {
+            Anno = req.Anno,
+            Mesi = req.Mesi,
+            IdEnti = req.IdEnti,
+            TipologiaFattura = req.TipologiaFattura,
+            TipologiaContratto = req.TipologiaContratto,
+        };
+    }
 }
