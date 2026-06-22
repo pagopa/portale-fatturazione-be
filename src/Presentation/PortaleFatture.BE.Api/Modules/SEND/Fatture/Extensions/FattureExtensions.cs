@@ -1551,7 +1551,10 @@ public static byte[] ReportFattureSospeseModuloCommessa(this List<IEnumerable<Fa
             Mese = x.Mese,
             ImponibileFattura = x.ImponibileFattura,
             CreditoCumulato = x.CreditoCumulato,
-            RelNonFirmata = x.RelNonFirmata
+            RelNonFirmata = x.RelNonFirmata,
+            TipoREL = x.TipoREL,
+            AnnoREL = x.AnnoREL,
+            MeseREL = x.MeseREL
         });
     }
 }
