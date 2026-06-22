@@ -309,10 +309,11 @@ public static class ReflectionExtensions
         return ds;
     }
 
-    public static DataSet FillOneSheetv2<T>(this IEnumerable<T> data)
+    public static DataSet FillOneSheetv2<T>(this IEnumerable<T> data, string? dataTableName = null)
     {
         var ds = new DataSet();
-        var (table, headers) = ToTablev2<T>();
+
+        var (table, headers) = ToTablev2<T>(dataTableName);
         DataRow row;
         foreach (var d in data)
         {
