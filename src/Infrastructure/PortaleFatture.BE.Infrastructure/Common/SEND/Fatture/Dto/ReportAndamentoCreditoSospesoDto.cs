@@ -1,5 +1,8 @@
 ﻿namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Dto;
 
+/// <summary>
+/// Data Transfer Object (DTO) che rappresenta il report di andamento del credito sospeso.
+/// </summary>
 public sealed class ReportAndamentoCreditoSospesoDto
 {
     public string? IdEnte { get; set; }
@@ -15,4 +18,7 @@ public sealed class ReportAndamentoCreditoSospesoDto
     public decimal ImponibileFattura { get; set; }
     public decimal CreditoCumulato { get; set; }
     public string? RelNonFirmata { get; set; }
+    public string? TipoREL { get; set; }
+    public int? AnnoREL { get; set; }
+    public int? MeseREL { get; set; }
 }

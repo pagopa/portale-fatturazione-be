@@ -22,6 +22,9 @@ public static class FattureSospeseQueryBuilder
             ,[ImponibileFattura]
             ,[CreditoCumulato]
             ,[RelNonFirmata]
+            ,[TipoREL]
+            ,[AnnoREL]
+            ,[MeseREL]
         FROM [be].[vwReportAndamentoCreditoSospeso]
         WHERE 
             (@Anno IS NULL OR [Anno] = @Anno)
