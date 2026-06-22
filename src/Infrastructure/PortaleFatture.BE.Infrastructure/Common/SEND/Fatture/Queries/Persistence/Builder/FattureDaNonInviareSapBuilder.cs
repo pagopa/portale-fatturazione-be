@@ -116,4 +116,59 @@ internal class FattureDaNonInviareSapBuilder
     {
         return _sqlEsclusioneFattureTipologiaFattura;
     }
+
+
+    public static string SelectEsclusioneFattureAnniInserisci()
+    {
+        return $@"
+
+WITH Months AS (
+    SELECT 1 AS Mese
+    UNION ALL
+    SELECT Mese + 1 FROM Months WHERE Mese < 12
+),
+ExistingData AS ( 
+    -- Combine data from FattureTestata and FattureStaging
+    SELECT DISTINCT
+        ft.annoriferimento AS anno,
+        ft.meseriferimento AS mese
+    FROM [pfd].[FattureTestata] ft
+    WHERE ft.FkTipologiaFattura = @TipologiaFattura
+    AND ft.annoriferimento <= @anno
+
+    UNION
+
+    SELECT DISTINCT
+        fwl.Anno AS anno,
+        fwl.Mese AS mese
+    FROM [cfg].[FattureStaging] fwl
+    WHERE fwl.FkTipologiaFattura = @TipologiaFattura
+    AND fwl.Anno <= @anno  
+    AND fwl.FkIdEnte = @IdEnte  
+    AND fwl.Stato <> 0   
+)
+
+-- Select missing months for the given years (previous and current)
+SELECT 
+    m.AnnoRiferimento,
+    m.MeseRiferimento,
+    @TipologiaFattura AS TipologiaFattura
+FROM (
+    -- Generate months for previous year and current year
+    SELECT @anno - 1 AS AnnoRiferimento, Mese AS MeseRiferimento
+    FROM Months
+    UNION ALL
+    SELECT @anno AS AnnoRiferimento, Mese AS MeseRiferimento
+    FROM Months
+    UNION ALL
+    SELECT @anno + 1 AS AnnoRiferimento, Mese AS MeseRiferimento
+    FROM Months 
+) AS m
+LEFT JOIN ExistingData e 
+    ON m.AnnoRiferimento = e.anno AND m.MeseRiferimento = e.mese
+--WHERE e.mese IS NULL  -- Exclude months that already exist in both tables
+ORDER BY AnnoRiferimento DESC, MeseRiferimento
+OPTION (MAXRECURSION 12);
+    ";
+    }
 }

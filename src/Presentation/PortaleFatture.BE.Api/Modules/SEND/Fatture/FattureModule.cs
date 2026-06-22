@@ -1808,4 +1808,80 @@ public partial class FattureModule
         return Results.Stream(content!, mime, filename);
     }
 
+  
+    private async Task<Results<Ok<IEnumerable<FattureMeseResponse>>, BadRequest, NotFound>> PostPagoPAEsclusioneInvioFattureMesiModificaAsync(
+    HttpContext context,
+    RicercaFattureDaNonInviareSapMesiRequest request,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var slist = await handler.Send(new FattureDaNonInviareSapAnniInserisciQuery(authInfo)
+        {
+            TipologiaFattura = request.TipologiaFattura,
+            IdEnte = request.IdEnte,
+            Anno = request.Anno,
+        });
+
+        if (slist.IsNullNotAny())
+            return NotFound();
+
+        slist = slist!.Where(x => x.AnnoRiferimento == request.Anno);
+
+        return Ok(slist!.Select(x => new FattureMeseResponse()
+        {
+            Mese = Convert.ToString(x.MeseRiferimento),
+            Descrizione = Convert.ToInt32(x.MeseRiferimento).GetMonth()
+        }));
+    }
+
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<int>>, BadRequest, NotFound>> PostPagoPAEsclusioneInvioFattureAnniModificaAsync(
+    HttpContext context,
+    RicercaWhiteListFattureAnniModifica request,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var wlist = await handler.Send(new FattureDaNonInviareSapAnniInserisciQuery(authInfo)
+        {
+            TipologiaFattura = request.TipologiaFattura,
+            IdEnte = request.IdEnte
+        });
+
+        if (wlist.IsNullNotAny())
+            return NotFound();
+
+        return Ok(wlist!.Select(x => x.AnnoRiferimento).Distinct());
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<bool?>, Conflict, NotFound>> PostPagoPAEsclusioneInvioFattureInserimentoAsync(
+    HttpContext context,
+    RicercaFattureDaNonInviareSapMesiRequest request,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var result = await handler.Send(new FattureDaNonInviareSapAggiungiCommand(authInfo)
+        {
+            TipologiaFattura = request.TipologiaFattura,
+            IdEnte = request.IdEnte,
+            Anno = request.Anno,
+            Mesi = request.Mesi
+        });
+        if (result.HasValue && result.Value)
+            return Ok(result);
+        else
+            return Conflict();
+    }
+
 }

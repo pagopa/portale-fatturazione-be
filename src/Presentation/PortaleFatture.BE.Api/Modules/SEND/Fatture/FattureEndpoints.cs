@@ -309,6 +309,24 @@ public partial class FattureModule : Module, IRegistrableModule
          .WithName("Permette di recuperare le Tipologie Fattura relative alle fatture da non inviare a SAP via utente PagoPA.")
          .SetOpenApi(Module.DatiFattureLabel)
          .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+            .MapPost("api/fatture-da-non-inviare/pagopa/mesi/modifica", PostPagoPAEsclusioneInvioFattureMesiModificaAsync)
+            .WithName("Permette di recuperare i mesi relativi alle fatture che potrebbero essere NON incluse nel JSON da inviare a SAP via utente PagoPA.")
+            .SetOpenApi(Module.DatiFattureLabel)
+            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+            .MapPost("api/fatture-da-non-inviare/pagopa/anni/modifica", PostPagoPAEsclusioneInvioFattureAnniModificaAsync)
+            .WithName("Permette di recuperare gli anni relativi alle fatture che potrebbero essere NON incluse nel JSON da inviare a SAP via utente PagoPA.")
+            .SetOpenApi(Module.DatiFattureLabel)
+            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+            .MapPost("api/fatture-da-non-inviare/pagopa/inserisci", PostPagoPAEsclusioneInvioFattureInserimentoAsync)
+            .WithName("Permette di inserire le fatture da NON inviare nel json SAP via utente PagoPA.")
+            .SetOpenApi(Module.DatiFattureLabel)
+            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
         #endregion pagoPA
         #region ente
         endpointRouteBuilder
