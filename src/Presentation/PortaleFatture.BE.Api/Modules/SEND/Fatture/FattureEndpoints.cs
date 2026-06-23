@@ -327,6 +327,18 @@ public partial class FattureModule : Module, IRegistrableModule
             .WithName("Permette di inserire le fatture da NON inviare nel json SAP via utente PagoPA.")
             .SetOpenApi(Module.DatiFattureLabel)
             .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+            .MapDelete("api/fatture-da-non-inviare/pagopa/cancellazione", DeletePagoPAEsclusioneInvioFattureAsync)
+            .WithName("Permette di eliminare le fatture dalla sezione di staging via utente PagoPA.")
+            .SetOpenApi(Module.DatiFattureLabel)
+            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+            .MapPost("api/fatture-da-non-inviare/pagopa/ripristino", PostPagoPAEsclusioneInvioFattureRipristinoAsync)
+            .WithName("Permette di ripristinare le fatture da  inviare nel json SAP via utente PagoPA.")
+            .SetOpenApi(Module.DatiFattureLabel)
+            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
         #endregion pagoPA
         #region ente
         endpointRouteBuilder

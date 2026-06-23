@@ -1884,4 +1884,62 @@ public partial class FattureModule
             return Conflict();
     }
 
+
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+
+    private async Task<Results<Ok<bool>, BadRequest, Conflict, NotFound>> DeletePagoPAEsclusioneInvioFattureAsync(
+    HttpContext context,
+    [FromBody] DeleteFattureDaNonInviareSap request,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var result = await handler.Send(new FattureDaNonInviareSapCancellazioneCommand(authInfo, request.Fatture));
+
+        if (result.HasValue)
+        {
+            if (result == 0)
+                return Ok(true);
+            else if (result < 0)
+                return Conflict();
+            else
+                return BadRequest();
+        }
+        else
+            return BadRequest();
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+
+    private async Task<Results<Ok<bool>, BadRequest, Conflict, NotFound>> PostPagoPAEsclusioneInvioFattureRipristinoAsync(
+   HttpContext context,
+   [FromBody] RipristinoFattureDaNonInviareSap request,
+   [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var result = await handler.Send(new FattureDaNonInviareSapRipristinoCommand(authInfo, request.Fatture));
+
+        if (result.HasValue)
+        {
+            if (result == 0)
+                return Ok(true);
+            else if (result < 0)
+                return Conflict();
+            else
+                return BadRequest();
+        }
+        else
+            return BadRequest();
+    }
+
 }
