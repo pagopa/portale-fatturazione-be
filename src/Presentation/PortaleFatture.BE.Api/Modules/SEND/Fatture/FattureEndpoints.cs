@@ -339,6 +339,12 @@ public partial class FattureModule : Module, IRegistrableModule
             .WithName("Permette di ripristinare le fatture da  inviare nel json SAP via utente PagoPA.")
             .SetOpenApi(Module.DatiFattureLabel)
             .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+            .MapPost("api/fatture-da-non-inviare/pagopa/download", PostPagoPAEsclusioneInvioFattureDownloadAsync)
+            .WithName("Permette di scaricare il file excel delle fatture da NON inviare a SAP via utente PagoPA.")
+            .SetOpenApi(Module.DatiFattureLabel)
+            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
         #endregion pagoPA
         #region ente
         endpointRouteBuilder

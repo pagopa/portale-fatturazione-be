@@ -1942,4 +1942,42 @@ public partial class FattureModule
             return BadRequest();
     }
 
+
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<IResult> PostPagoPAEsclusioneInvioFattureDownloadAsync(
+    HttpContext context,
+    RicercaEsclusioneInvioFattureRequest request,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+
+        var lista = await handler.Send(new FattureDaNonInviareSapQuery(authInfo)
+        {
+            Anno = request.Anno,
+            IdEnti = request.IdEnti,
+            Mesi = request.Mesi,
+            TipologiaContratto = request.TipologiaContratto,
+            TipologiaFattura = request.TipologiaFattura,
+        });
+
+        if (lista == null! || lista.FattureEscluse.IsNullNotAny())
+            return NotFound();
+        var mime = "application/vnd.ms-excel";
+        var filename = $"{Guid.NewGuid()}.xlsx";
+
+        var dataSet = lista.FattureEscluse!.FillOneSheetv2();
+        var content = dataSet.ToExcel();
+        var result = new DisposableStreamResult(content, mime)
+        {
+            FileDownloadName = filename
+        };
+        return Results.Stream(result.FileStream, result.ContentType, result.FileDownloadName);
+    }
+
 }
