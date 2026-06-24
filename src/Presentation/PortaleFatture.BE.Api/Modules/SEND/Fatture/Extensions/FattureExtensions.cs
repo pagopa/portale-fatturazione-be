@@ -843,6 +843,7 @@ public static class FattureExtensions
                 case TipologiaFattura.PRIMOSALDO:
                 case TipologiaFattura.SECONDOSALDO:
                 case TipologiaFattura.VAR_SEMESTRALE:
+                case TipologiaFattura.SEMESTRALE_SOSPESI:
                     var fatture = await handler.Send(new FattureRelExcelQuery(authInfo)
                     {
                         Anno = amt.Anno,
