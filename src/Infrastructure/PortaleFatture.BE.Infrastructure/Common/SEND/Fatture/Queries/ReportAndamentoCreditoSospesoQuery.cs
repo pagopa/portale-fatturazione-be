@@ -4,7 +4,10 @@ using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Dto;
 
 namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries;
 
-
+/// <summary>
+/// Query per ottenere il report di andamento del credito sospeso, con filtri dinamici per anno, mese e tipologia di fattura.
+/// </summary>
+/// <param name="authenticationInfo">Informazioni di autenticazione dell'utente.</param>
 public class ReportAndamentoCreditoSospesoQuery(IAuthenticationInfo authenticationInfo)
     : IRequest<IEnumerable<ReportAndamentoCreditoSospesoDto>?>
 {

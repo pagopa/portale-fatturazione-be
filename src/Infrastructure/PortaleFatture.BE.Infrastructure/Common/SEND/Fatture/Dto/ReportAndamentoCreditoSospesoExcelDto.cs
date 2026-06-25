@@ -1,6 +1,8 @@
 ﻿using PortaleFatture.BE.Infrastructure.Common.SEND.Documenti.Common;
 
-
+/// <summary>
+/// Data Transfer Object (DTO) che rappresenta il report di andamento del credito sospeso, specificamente progettato per l'esportazione in formato Excel.
+/// </summary>
 public class ReportAndamentoCreditoSospesoExcelDto
 {
     [HeaderAttributev2(caption: "Id Ente", Order = 1)]
@@ -41,4 +43,13 @@ public class ReportAndamentoCreditoSospesoExcelDto
 
     [HeaderAttributev2(caption: "REL Non Firmata", Order = 13)]
     public string? RelNonFirmata { get; set; }
+
+    [HeaderAttributev2(caption: "Tipo REL", Order = 14)]
+    public string? TipoREL { get; set; }
+
+    [HeaderAttributev2(caption: "Anno REL", Order = 15)]
+    public int? AnnoREL { get; set; }
+
+    [HeaderAttributev2(caption: "Mese REL", Order = 16)]
+    public int? MeseREL { get; set; }
 }

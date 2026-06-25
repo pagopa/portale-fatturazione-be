@@ -843,6 +843,7 @@ public static class FattureExtensions
                 case TipologiaFattura.PRIMOSALDO:
                 case TipologiaFattura.SECONDOSALDO:
                 case TipologiaFattura.VAR_SEMESTRALE:
+                case TipologiaFattura.SEMESTRALE_SOSPESI:
                     var fatture = await handler.Send(new FattureRelExcelQuery(authInfo)
                     {
                         Anno = amt.Anno,
@@ -1551,7 +1552,10 @@ public static byte[] ReportFattureSospeseModuloCommessa(this List<IEnumerable<Fa
             Mese = x.Mese,
             ImponibileFattura = x.ImponibileFattura,
             CreditoCumulato = x.CreditoCumulato,
-            RelNonFirmata = x.RelNonFirmata
+            RelNonFirmata = x.RelNonFirmata,
+            TipoREL = x.TipoREL,
+            AnnoREL = x.AnnoREL,
+            MeseREL = x.MeseREL
         });
     }
 }
