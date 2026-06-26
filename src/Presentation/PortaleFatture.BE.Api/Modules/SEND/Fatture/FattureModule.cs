@@ -1802,7 +1802,7 @@ public partial class FattureModule
         var mime = "application/vnd.ms-excel";
         var filename = $"{Guid.NewGuid()}.xlsx";
 
-        var dataSet = report!.MapExport().FillOneSheetv2();
+        var dataSet = report!.MapExport().FillOneSheetv2("Andamento Credito Sosp.");
         var content = dataSet.ToExcel();
 
         return Results.Stream(content!, mime, filename);
