@@ -136,11 +136,11 @@ public partial class FattureModule : Module, IRegistrableModule
            .SetOpenApi(Module.DatiFattureLabel)
            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
-       endpointRouteBuilder
-           .MapPost("api/fatture/riepilogo", PostFattureRiepilogoRicercaAsync)
-           .WithName("Permette di ottenere il riepilogo delle fatture per ricerca")
-           .SetOpenApi(Module.DatiFattureLabel)
-           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+        endpointRouteBuilder
+            .MapPost("api/fatture/riepilogo", PostFattureRiepilogoRicercaAsync)
+            .WithName("Permette di ottenere il riepilogo delle fatture per ricerca")
+            .SetOpenApi(Module.DatiFattureLabel)
+            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
         endpointRouteBuilder
            .MapGet("api/fatture/tipologiacontratto", GetTipologiaContratto)
@@ -287,25 +287,10 @@ public partial class FattureModule : Module, IRegistrableModule
         .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
         endpointRouteBuilder
-        .MapPost("api/fatture/andamento-sospese/download", PostReportAndamentoCreditoSospesoExcelAsync)
-        .WithName("Permette di scaricare l'excel del report andamento credito sospeso")
-        .SetOpenApi(Module.DatiFattureLabel)
+        .MapPost("api/fatture/ente", PostFattureEnteByRicercaAsync)
+        .WithName("Permette di ottenere le fatture per ricerca singolo ente")
+        .SetOpenApi(Module.DatiFattureEnti)
         .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
-
-#endregion
-
-        #region ente
-        endpointRouteBuilder
-        .MapPost("api/fatture/ente/tipologia", PostTipologiaEnteFatture)
-            .WithName("Permette di visualizzare la tipologia fatture per ente")
-            .SetOpenApi(Module.DatiFattureEnti)
-            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
-
-        endpointRouteBuilder
-            .MapPost("api/fatture/ente", PostFattureEnteByRicercaAsync)
-            .WithName("Permette di ottenere le fatture per ricerca singolo ente")
-            .SetOpenApi(Module.DatiFattureEnti)
-            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
         endpointRouteBuilder
            .MapPost("api/fatture/ente/download", PostFattureEnteExcelByRicercaAsync)
@@ -313,6 +298,67 @@ public partial class FattureModule : Module, IRegistrableModule
            .SetOpenApi(Module.DatiFattureEnti)
            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
+        endpointRouteBuilder
+           .MapPost("api/fatture-da-non-inviare/pagopa/ricerca", PostPagoPAEsclusioneInvioFattureAsync)
+           .WithName("Permette di visualizzare tutte le fatture da non inviare a SAP via utente PagoPA.")
+           .SetOpenApi(Module.DatiFattureLabel)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+           .MapGet("api/fatture-da-non-inviare/pagopa/anni", GetPagoPAEsclusioneInvioFattureAnniAsync)
+           .WithName("Permette di recuperare gli ANNI relativi alle fatture da non inviare a SAP via utente PagoPA.")
+           .SetOpenApi(Module.DatiFattureLabel)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+          .MapPost("api/fatture-da-non-inviare/pagopa/mesi", PostPagoPAEsclusioneInvioFattureMesiAsync)
+          .WithName("Permette di recuperare i MESI relativi alle fatture da non inviare a SAP via utente PagoPA.")
+          .SetOpenApi(Module.DatiFattureLabel)
+          .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+         .MapGet("api/fatture-da-non-inviare/pagopa/tipologia-fatture", GetPagoPAEsclusioneInvioFattureTipologiaFatturaAsync)
+         .WithName("Permette di recuperare le Tipologie Fattura relative alle fatture da non inviare a SAP via utente PagoPA.")
+         .SetOpenApi(Module.DatiFattureLabel)
+         .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+            .MapPost("api/fatture-da-non-inviare/pagopa/mesi/modifica", PostPagoPAEsclusioneInvioFattureMesiModificaAsync)
+            .WithName("Permette di recuperare i mesi relativi alle fatture che potrebbero essere NON incluse nel JSON da inviare a SAP via utente PagoPA.")
+            .SetOpenApi(Module.DatiFattureLabel)
+            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+            .MapPost("api/fatture-da-non-inviare/pagopa/anni/modifica", PostPagoPAEsclusioneInvioFattureAnniModificaAsync)
+            .WithName("Permette di recuperare gli anni relativi alle fatture che potrebbero essere NON incluse nel JSON da inviare a SAP via utente PagoPA.")
+            .SetOpenApi(Module.DatiFattureLabel)
+            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+            .MapGet("api/fatture-da-non-inviare/pagopa", PostPagoPAEsclusioneInvioFattureInserimentoAsync)
+            .WithName("Permette di inserire le fatture da NON inviare nel json SAP via utente PagoPA.")
+            .SetOpenApi(Module.DatiFattureLabel)
+            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+            .MapDelete("api/fatture-da-non-inviare/pagopa", DeletePagoPAEsclusioneInvioFattureAsync)
+            .WithName("Permette di eliminare le fatture dalla sezione di staging via utente PagoPA.")
+            .SetOpenApi(Module.DatiFattureLabel)
+            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+            .MapPatch("api/fatture-da-non-inviare/pagopa/stato", PostPagoPAEsclusioneInvioFattureRipristinoAsync)
+            .WithName("Permette di ripristinare le fatture da  inviare nel json SAP via utente PagoPA.")
+            .SetOpenApi(Module.DatiFattureLabel)
+            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+            .MapPost("api/fatture-da-non-inviare/pagopa/download", PostPagoPAEsclusioneInvioFattureDownloadAsync)
+            .WithName("Permette di scaricare il file excel delle fatture da NON inviare a SAP via utente PagoPA.")
+            .SetOpenApi(Module.DatiFattureLabel)
+            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+        #endregion pagoPA
+        #region ente
         endpointRouteBuilder
            .MapGet("api/fatture/ente/periodo", GetFattureEntePeriodoAsync)
            .WithName("Permette di ottenere mesi e anni delle fatture emesse lato ente")
@@ -354,7 +400,7 @@ public partial class FattureModule : Module, IRegistrableModule
             .WithName("Permette di ottenere il dettaglio di una specifica fattura emessa per ente")
             .SetOpenApi(Module.DatiFattureEnti)
             .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
-        
+
 
         endpointRouteBuilder
             .MapPost("api/fatture/ente/sospese/dettaglio", PostFattureSospeseDettaglioAsync)
@@ -375,17 +421,20 @@ public partial class FattureModule : Module, IRegistrableModule
            .SetOpenApi(Module.DatiFattureEnti)
            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
-         endpointRouteBuilder
-           .MapGet("api/fatture/ente/sospese/dettaglio/download/{id}", FattureSospeseDettaglioDownloadAsync)
-           .WithName("Permette di scaricare il dettaglio in pdf della fatture sospesa per specifico ente")
-           .SetOpenApi(Module.DatiFattureEnti)
-           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+        endpointRouteBuilder
+          .MapGet("api/fatture/ente/sospese/dettaglio/download/{id}", FattureSospeseDettaglioDownloadAsync)
+          .WithName("Permette di scaricare il dettaglio in pdf della fatture sospesa per specifico ente")
+          .SetOpenApi(Module.DatiFattureEnti)
+          .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
-         endpointRouteBuilder
-           .MapGet("api/fatture/ente/emesse/dettaglio/download/{id}", FattureEmesseDettaglioDownloadAsync)
-           .WithName("Permette di scaricare il dettaglio in pdf della fatture emessa per specifico ente")
-           .SetOpenApi(Module.DatiFattureEnti)
-           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+        endpointRouteBuilder
+          .MapGet("api/fatture/ente/emesse/dettaglio/download/{id}", FattureEmesseDettaglioDownloadAsync)
+          .WithName("Permette di scaricare il dettaglio in pdf della fatture emessa per specifico ente")
+          .SetOpenApi(Module.DatiFattureEnti)
+          .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        
     }
-    #endregion
+
 }
+#endregion ente
