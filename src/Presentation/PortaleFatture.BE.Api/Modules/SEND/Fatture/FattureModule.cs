@@ -1702,6 +1702,9 @@ public partial class FattureModule
       [FromQuery] int pageSize,
       [FromServices] IMediator handler)
     {
+        if (page < 1 || pageSize < 1 || pageSize > 200)
+            return BadRequest();
+
         var authInfo = context.GetAuthInfo();
 
         var lista = await handler.Send(new FattureDaNonInviareSapQuery(authInfo)
@@ -1717,6 +1720,7 @@ public partial class FattureModule
 
         if (lista == null! || lista.FattureEscluse.IsNullNotAny())
             return NotFound();
+
         return Ok(lista);
     }
 
@@ -1728,18 +1732,21 @@ public partial class FattureModule
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     private async Task<Results<Ok<IEnumerable<int>>, BadRequest, NotFound>> GetPagoPAEsclusioneInvioFattureAnniAsync(
-     HttpContext context,
-     [FromServices] IMediator handler)
+    HttpContext context,
+    [FromServices] IMediator handler)
     {
         var authInfo = context.GetAuthInfo();
         var anni = await handler.Send(new FattureDaNonInviareSapAnniQuery(authInfo)
         {
 
         });
+        if (anni.IsNullNotAny()) return NotFound();
+
         return Ok(anni);
     }
 
 
+    [Authorize(Roles = $"{Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
     private async Task<Results<Ok<IEnumerable<FattureMeseResponse>>, BadRequest, NotFound>> PostPagoPAEsclusioneInvioFattureMesiAsync(
      HttpContext context,
      FattureDaNonInviareSapMesiRequest request,
@@ -1776,6 +1783,9 @@ public partial class FattureModule
         {
 
         });
+
+        if (tipologie.IsNullNotAny()) return NotFound();
+
         return Ok(tipologie);
 
     }
@@ -1808,14 +1818,15 @@ public partial class FattureModule
         return Results.Stream(content!, mime, filename);
     }
 
-  
+
+    [Authorize(Roles = $"{Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
     private async Task<Results<Ok<IEnumerable<FattureMeseResponse>>, BadRequest, NotFound>> PostPagoPAEsclusioneInvioFattureMesiModificaAsync(
     HttpContext context,
     RicercaFattureDaNonInviareSapMesiRequest request,
     [FromServices] IMediator handler)
     {
         var authInfo = context.GetAuthInfo();
-        var slist = await handler.Send(new FattureDaNonInviareSapAnniInserisciQuery(authInfo)
+        var slist = await handler.Send(new FattureDaNonInviareSapMesiInserisciQuery(authInfo)
         {
             TipologiaFattura = request.TipologiaFattura,
             IdEnte = request.IdEnte,
@@ -1824,8 +1835,6 @@ public partial class FattureModule
 
         if (slist.IsNullNotAny())
             return NotFound();
-
-        slist = slist!.Where(x => x.AnnoRiferimento == request.Anno);
 
         return Ok(slist!.Select(x => new FattureMeseResponse()
         {
@@ -1867,7 +1876,7 @@ public partial class FattureModule
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     private async Task<Results<Ok<bool?>, Conflict, NotFound>> PostPagoPAEsclusioneInvioFattureInserimentoAsync(
     HttpContext context,
-    RicercaFattureDaNonInviareSapMesiRequest request,
+    FattureDaNonInviareSapInserimentoRequest request,
     [FromServices] IMediator handler)
     {
         var authInfo = context.GetAuthInfo();
@@ -1880,6 +1889,10 @@ public partial class FattureModule
         });
         if (result.HasValue && result.Value)
             return Ok(result);
+
+        if (result == null)
+            return NotFound();
+
         else
             return Conflict();
     }

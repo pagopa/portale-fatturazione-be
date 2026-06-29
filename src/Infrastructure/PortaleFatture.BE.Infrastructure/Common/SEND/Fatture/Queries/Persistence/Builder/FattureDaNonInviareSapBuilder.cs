@@ -166,6 +166,7 @@ FROM (
 ) AS m
 LEFT JOIN ExistingData e 
     ON m.AnnoRiferimento = e.anno AND m.MeseRiferimento = e.mese
+WHERE m.AnnoRiferimento = @anno 
 --WHERE e.mese IS NULL  -- Exclude months that already exist in both tables
 ORDER BY AnnoRiferimento DESC, MeseRiferimento
 OPTION (MAXRECURSION 12);
