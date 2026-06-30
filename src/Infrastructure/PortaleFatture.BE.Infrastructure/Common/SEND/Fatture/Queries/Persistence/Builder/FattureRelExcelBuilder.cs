@@ -133,6 +133,7 @@ public static class FattureRelExcelBuilder
           ,[FkIdTipoContratto]
           ,[TipologiaContratto]
           ,[FatturaInviata]
+          ,'' as RelNonFirmata
     FROM [be].[vwFattureSospeseNoteReport]
     where 
     [Anno]=@anno and 
@@ -287,7 +288,8 @@ public static class FattureRelExcelBuilder
           ,[FkIdTipoContratto]
           ,[TipologiaContratto]
           ,[FatturaInviata]
-        FROM [pfd].[vwFattureSospeseReport]
+          ,[RelNonFirmata]
+        FROM [be].[vwFattureSospeseReport]
         WHERE Anno=@anno and Mese=@mese and TipologiaFattura=@tipologiafattura  
         AND (
             @FatturaInviata IS NULL  -- Tutte
