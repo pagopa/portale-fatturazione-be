@@ -147,6 +147,10 @@ public class FattureRelExcelDto
     [Column("TipologiaContratto")]
     public string? TipologiaContratto { get; set; }
 
+    [HeaderAttributev2(caption: "Rel Non Firmata", Order = 23)]
+    [Column("RelNonFirmata")]
+    public string? RelNonFirmata { get; set; }
+
     [Column("RowNum")]
     public int RowNum { get; set; }
 }
