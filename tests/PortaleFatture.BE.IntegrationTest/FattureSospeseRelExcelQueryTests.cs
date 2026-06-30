@@ -46,7 +46,7 @@ public class FattureSospeseRelExcelQueryTests
 
     private int ConfAnno => int.TryParse(_conf["IntegrationTest:Anno"], out var a) ? a : 2026;
     private int ConfMese => int.TryParse(_conf["IntegrationTest:Mese"], out var m) ? m : 2;
-    private string ConfTipologia => _conf["IntegrationTest:TipologiaFattura"] ?? "PRIMO SALDO";
+    private string ConfTipologia => _conf["IntegrationTest:TipologiaFattura"] ?? "SECONDO SALDO";
 
     private FattureSospeseRelExcelQuery BuildSospeseQuery(
         int? anno = null, int? mese = null, string? tipologia = null,

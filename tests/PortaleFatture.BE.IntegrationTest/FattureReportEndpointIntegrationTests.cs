@@ -43,7 +43,7 @@ public class FattureReportEndpointIntegrationTests
 
     private int ConfAnno => int.TryParse(_conf["IntegrationTest:Anno"], out var a) ? a : 2026;
     private int ConfMese => int.TryParse(_conf["IntegrationTest:Mese"], out var m) ? m : 2;
-    private string ConfTipologia => _conf["IntegrationTest:TipologiaFattura"] ?? "PRIMO SALDO";
+    private string ConfTipologia => _conf["IntegrationTest:TipologiaFattura"] ?? "SECONDO SALDO";
 
     private static FatturaSospeseRicercaRequest BuildSospeseRequest(
         int anno, int mese, string? tipologia = null, int? idTipoContratto = null, int? inviata = null)
