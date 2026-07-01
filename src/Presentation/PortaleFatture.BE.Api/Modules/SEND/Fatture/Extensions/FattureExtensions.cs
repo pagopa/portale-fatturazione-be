@@ -838,7 +838,7 @@ public static class FattureExtensions
         }))!;
 
         Dictionary<string, List<List<FattureRelExcelDto>>> dictFatture = new();
-        Dictionary<string, List<List<FattureRelExcelDto>>> dictFattureSospese = new();
+        Dictionary<string, List<List<FattureRelSospeseExcelDto>>> dictFattureSospese = new();
         Dictionary<string, List<List<FattureAccontoExcelDto>>> dictAcconto = new(); 
         Dictionary<string, List<List<FattureCommessaExcelDto>>> dictAnticipo = new();
 
@@ -899,7 +899,7 @@ public static class FattureExtensions
 
                     // Preservo gli slot anche per le sospese
                     var sospeseMat = fattureSospese
-                        .Select(f => f?.ToList() ?? new List<FattureRelExcelDto>())
+                        .Select(f => f?.ToList() ?? new List<FattureRelSospeseExcelDto>())
                         .ToList();
 
                     if (sospeseMat.Sum(s => s.Count) == 0)
@@ -1059,12 +1059,12 @@ public static class FattureExtensions
                 .Select(s => (IEnumerable<FattureRelExcelDto>)s)
                 .ToList();
 
-            List<IEnumerable<FattureRelExcelDto>>? sospeseForReport = null;
+            List<IEnumerable<FattureRelSospeseExcelDto>>? sospeseForReport = null;
             if (dictFattureSospese.TryGetValue(tipologia, out var sospeseSlot))
             {
                 sospeseForReport = sospeseSlot
-                    .Select(s => (IEnumerable<FattureRelExcelDto>)s)
-                    .ToList(); 
+                    .Select(s => (IEnumerable<FattureRelSospeseExcelDto>)s)
+                    .ToList();
             }
 
             var relNonFirmateTipologia = relNonFirmate?
@@ -1200,7 +1200,7 @@ public static byte[] ReportFattureSospeseModuloCommessa(this List<IEnumerable<Fa
         return memory.ToArray();
     }
 
-    public static byte[] ReportFattureRel(this List<IEnumerable<FattureRelExcelDto>> fatture, List<IEnumerable<FattureRelExcelDto>>? fattureSospese, IEnumerable<RelNonFatturataDto>? relNonFirmate, string month, string tipologia)
+    public static byte[] ReportFattureRel(this List<IEnumerable<FattureRelExcelDto>> fatture, List<IEnumerable<FattureRelSospeseExcelDto>>? fattureSospese, IEnumerable<RelNonFatturataDto>? relNonFirmate, string month, string tipologia)
     {
         DataSet? dataSet = new();
         for (var i = 0; i < fatture.Count; i++)
@@ -1239,7 +1239,7 @@ public static byte[] ReportFattureSospeseModuloCommessa(this List<IEnumerable<Fa
         return memory.ToArray();
     }
 
-    public static byte[] ReportFattureSospeseRel(this List<IEnumerable<FattureRelExcelDto>> fatture, string month, string tipologia)
+    public static byte[] ReportFattureSospeseRel(this List<IEnumerable<FattureRelSospeseExcelDto>> fatture, string month, string tipologia)
     {
         DataSet? dataSet = new();
         for (var i = 0; i < fatture.Count; i++)
@@ -1262,7 +1262,7 @@ public static byte[] ReportFattureSospeseModuloCommessa(this List<IEnumerable<Fa
         return memory.ToArray();
     }
 
-    public static byte[] ReportFattureSospeseRel(this List<IEnumerable<FattureRelExcelDto>> fatture, FattureListaDto fattureSospeseDettaglio, string month, string tipologia)
+    public static byte[] ReportFattureSospeseRel(this List<IEnumerable<FattureRelSospeseExcelDto>> fatture, FattureListaDto fattureSospeseDettaglio, string month, string tipologia)
     {
         
         DataSet? dataSet = new();
