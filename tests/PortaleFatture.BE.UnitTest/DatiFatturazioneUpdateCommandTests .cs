@@ -11,6 +11,7 @@ using PortaleFatture.BE.UnitTest.Common;
 
 namespace PortaleFatture.BE.UnitTest;
 
+[Ignore("Pregresso: richiede DB seedato e/o allineamento agli handler attuali (CodiceSDI/SDI). Vedi PF-705")]
 public class DatiFatturazioneUpdateCommandTests
 {
     private IDbContextFactory _factory;

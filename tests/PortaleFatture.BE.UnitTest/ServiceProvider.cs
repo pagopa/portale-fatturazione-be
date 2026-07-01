@@ -1,12 +1,14 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Moq;
 using PortaleFatture.BE.Core.Common;
 using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Infrastructure;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.Persistence.Schemas;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Scadenziari;
+using PortaleFatture.BE.Infrastructure.Gateway;
 
 namespace PortaleFatture.BE.UnitTest;
 
@@ -44,6 +46,10 @@ public static class ServiceProvider
         services.AddSingleton<ISelfCareDbContextFactory>(new DbContextFactory(dbConnectionString, "pfd"));
         services.AddSingleton<IFattureDbContextFactory>(new DbContextFactory(dbConnectionString, "pfw"));
         services.AddSingleton<IScadenziarioService, ScadenziarioService>();
+
+        // Gateway HTTP esterni: mockati per gli unit test (nessuna chiamata reale)
+        services.AddSingleton(new Mock<ISelfCareOnBoardingHttpClient>().Object);
+        services.AddSingleton(new Mock<ISupportAPIServiceHttpClient>().Object);
 
         services.AddMediatR(x => x.RegisterServicesFromAssembly(typeof(RootInfrastructure).Assembly));
 
