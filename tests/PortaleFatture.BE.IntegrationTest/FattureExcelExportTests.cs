@@ -14,7 +14,7 @@ public class FattureExcelExportTests
     private const string Caption = "Rel Non Firmata";
     private const string EntiFattSospeseSheetPrefix = "Enti Fatt. Sospese";
 
-    private static FattureRelExcelDto SampleRow(string relNonFirmata) => new()
+    private static FattureRelSospeseExcelDto SampleRow(string relNonFirmata) => new()
     {
         IdEnte = "ENTE-1",
         RagioneSociale = "Ente Test",
@@ -34,10 +34,10 @@ public class FattureExcelExportTests
     public void ReportFattureSospeseRel_ShouldExport_RelNonFirmataColumn_WithValue()
     {
         // bucket 0 -> "Reg. Esec. Sospese", bucket 1 -> "Enti Fatt. Sospese"
-        var data = new List<IEnumerable<FattureRelExcelDto>>
+        var data = new List<IEnumerable<FattureRelSospeseExcelDto>>
         {
-            new List<FattureRelExcelDto> { SampleRow("SI") },
-            new List<FattureRelExcelDto> { SampleRow("SI") }
+            new List<FattureRelSospeseExcelDto> { SampleRow("SI") },
+            new List<FattureRelSospeseExcelDto> { SampleRow("SI") }
         };
 
         var bytes = data.ReportFattureSospeseRel("Febbraio", "SECONDO SALDO");
@@ -61,10 +61,10 @@ public class FattureExcelExportTests
     [Test]
     public void ReportFattureSospeseRel_RelNonFirmata_EmptyValue_ShouldStillHaveColumn()
     {
-        var data = new List<IEnumerable<FattureRelExcelDto>>
+        var data = new List<IEnumerable<FattureRelSospeseExcelDto>>
         {
-            new List<FattureRelExcelDto> { SampleRow(string.Empty) },
-            new List<FattureRelExcelDto> { SampleRow(string.Empty) }
+            new List<FattureRelSospeseExcelDto> { SampleRow(string.Empty) },
+            new List<FattureRelSospeseExcelDto> { SampleRow(string.Empty) }
         };
 
         var bytes = data.ReportFattureSospeseRel("Febbraio", "SECONDO SALDO");

@@ -186,28 +186,46 @@ public class FattureReportEndpointIntegrationTests
     }
 
     /// <summary>
-    /// Anche il report emesse usa FattureRelExcelDto: con dati, il foglio "Enti Fatt." deve esporre la colonna
-    /// "Rel Non Firmata" (valorizzata vuota per le righe non-sospese).
+    /// Dopo la separazione dei DTO: nel report emesse i fogli non-sospesi ("Regolari Esecuzioni", "Enti Fatt.",
+    /// "Enti Fatt. a Zero") NON devono contenere "Rel Non Firmata"; solo il sotto-foglio
+    /// "Enti Fatt. {mese} Sospesi" (da FattureRelSospeseExcelDto) la contiene.
     /// </summary>
     [Test]
-    public async Task ReportFatture_WhenDataPresent_ExcelHasRelNonFirmataColumn()
+    public async Task ReportFatture_WhenDataPresent_ColumnOnlyInSospesiSheet()
     {
         var reports = await BuildReportRequest(ConfAnno, ConfMese, ConfTipologia).ReportFatture(_handler, AdminAuth());
 
         Assume.That(reports.Count, Is.GreaterThan(0),
             "Nessun report per il periodo: eseguire in UAT.");
 
-        var results = new List<bool>();
+        var nonSospese = new List<(string Sheet, bool HasColumn)>();
+        var sospesi = new List<(string Sheet, bool HasColumn)>();
         foreach (var bytes in reports.Values)
         {
-            var hasColumn = TryColumnPresence(bytes, EntiFattSheetPrefix, RelNonFirmataCaption, out var sheetFound);
-            if (sheetFound)
-                results.Add(hasColumn);
+            using var ms = new MemoryStream(bytes);
+            using var wb = new XLWorkbook(ms);
+            foreach (var ws in wb.Worksheets)
+            {
+                var has = ws.Row(1).CellsUsed()
+                    .Any(c => string.Equals(c.GetString(), RelNonFirmataCaption, StringComparison.OrdinalIgnoreCase));
+
+                if (ws.Name.EndsWith("Sospesi", StringComparison.OrdinalIgnoreCase))
+                    sospesi.Add((ws.Name, has));
+                else if (ws.Name.StartsWith("Regolari Esecuzioni", StringComparison.OrdinalIgnoreCase)
+                      || ws.Name.StartsWith(EntiFattSheetPrefix, StringComparison.OrdinalIgnoreCase))
+                    nonSospese.Add((ws.Name, has));
+            }
         }
 
-        Assume.That(results.Count, Is.GreaterThan(0),
-            $"Nessun foglio '{EntiFattSheetPrefix}' generato: eseguire in UAT con dati.");
-        Assert.That(results.All(x => x), Is.True,
-            $"Il foglio '{EntiFattSheetPrefix}' deve contenere la colonna '{RelNonFirmataCaption}'.");
+        Assume.That(nonSospese.Count, Is.GreaterThan(0),
+            "Nessun foglio non-sospeso generato: eseguire in UAT con dati.");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(nonSospese.All(s => !s.HasColumn), Is.True,
+                $"I fogli non-sospesi NON devono contenere '{RelNonFirmataCaption}'.");
+            Assert.That(sospesi.All(s => s.HasColumn), Is.True,
+                $"Il sotto-foglio 'Enti Fatt. {{mese}} Sospesi' deve contenere '{RelNonFirmataCaption}'.");
+        });
     }
 }

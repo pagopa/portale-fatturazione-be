@@ -136,7 +136,7 @@ public class FattureSospeseRelExcelQueryTests
     public async Task Query_ViewBranch_RelNonFirmata_IsConsistentPerIdFattura()
     {
         var result = await _handler.Send(BuildSospeseQuery());
-        var viewRows = result![ViewBranch]?.ToList() ?? new List<FattureRelExcelDto>();
+        var viewRows = result![ViewBranch]?.ToList() ?? new List<FattureRelSospeseExcelDto>();
 
         Assume.That(viewRows.Count, Is.GreaterThan(0),
             "Nessun dato per il periodo: eseguire in UAT valorizzando IntegrationTest:Anno/Mese/TipologiaFattura.");
@@ -159,7 +159,7 @@ public class FattureSospeseRelExcelQueryTests
     public async Task Query_NoteBranch_RelNonFirmata_IsEmptyPlaceholder()
     {
         var result = await _handler.Send(BuildSospeseQuery());
-        var noteRows = result![NoteBranch]?.ToList() ?? new List<FattureRelExcelDto>();
+        var noteRows = result![NoteBranch]?.ToList() ?? new List<FattureRelSospeseExcelDto>();
 
         Assume.That(noteRows.Count, Is.GreaterThan(0),
             "Nessuna riga nel ramo note per il periodo: eseguire in UAT.");
@@ -190,11 +190,13 @@ public class FattureSospeseRelExcelQueryTests
     // -------- Regressione report non-sospesi (DTO condiviso) --------
 
     /// <summary>
-    /// Il report Fatture Emesse (non sospese) usa lo stesso DTO FattureRelExcelDto ma query che NON
-    /// leggono la vista: deve continuare a eseguire senza errori. Per quei dati RelNonFirmata resta null.
+    /// Il report Fatture Emesse (non sospese) usa FattureRelExcelDto che, dopo la separazione dei DTO,
+    /// NON espone piu' RelNonFirmata: l'assenza della colonna e' garantita a livello di tipo (compile-time)
+    /// ed e' verificata dai unit test FattureRelDtoMetadataTests. Qui si verifica solo che la query
+    /// non-sospese esegua correttamente e ritorni i bucket attesi.
     /// </summary>
     [Test]
-    public async Task RelExcelQuery_NonSospese_ShouldExecute_AndRelNonFirmataIsNull()
+    public async Task RelExcelQuery_NonSospese_ShouldExecute()
     {
         var query = new FattureRelExcelQuery(AdminAuth())
         {
@@ -207,10 +209,5 @@ public class FattureSospeseRelExcelQueryTests
 
         Assert.That(result, Is.Not.Null);
         Assert.That(result!.Count, Is.EqualTo(3));
-
-        var rows = result[ViewBranch]?.ToList() ?? new List<FattureRelExcelDto>();
-        Assume.That(rows.Count, Is.GreaterThan(0), "Nessun dato per il periodo: eseguire in UAT.");
-        Assert.That(rows.All(x => x.RelNonFirmata == null), Is.True,
-            "Nel report non-sospesi RelNonFirmata non e' selezionata: deve restare null.");
     }
 }
