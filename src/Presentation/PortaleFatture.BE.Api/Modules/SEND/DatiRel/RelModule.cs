@@ -357,7 +357,7 @@ public partial class RelModule
         var mime = "application/vnd.ms-excel";
         var filename = $"{Guid.NewGuid()}.xlsx";
 
-        var dataSet = rels.RelTestate!.FillOneSheetWithTotalsRel();
+        var dataSet = rels.RelTestate!.FillOneSheetWithTotalsRel(dataTableName:"Regolari Esecuzioni");
         var content = dataSet.ToExcel();
         if (binary == null)
             return Ok(new DocumentDto() { Documento = Convert.ToBase64String(content.ToArray()) });

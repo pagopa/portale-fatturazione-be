@@ -852,7 +852,7 @@ public partial class FattureModule
         var mime = "application/vnd.ms-excel";
         var filename = $"{Guid.NewGuid()}.xlsx";
 
-        var dataSet = fatture.Map()!.FillOneSheetv2();
+        var dataSet = fatture.Map()!.FillOneSheetv2(dataTableName: "Fatture Emesse");
         var content = dataSet.ToExcel();
         var result = new DisposableStreamResult(content, mime)
         {
@@ -880,7 +880,7 @@ public partial class FattureModule
         var mime = "application/vnd.ms-excel";
         var filename = $"{Guid.NewGuid()}.xlsx";
 
-        var dataSet = fatture.Map()!.FillOneSheetv2();
+        var dataSet = fatture.Map()!.FillOneSheetv2(dataTableName: "Fatture Sospese");
         var content = dataSet.ToExcel();
         var result = new DisposableStreamResult(content, mime)
         {

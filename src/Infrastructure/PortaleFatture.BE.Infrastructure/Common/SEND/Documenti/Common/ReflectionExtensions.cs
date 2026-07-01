@@ -267,10 +267,10 @@ public static class ReflectionExtensions
         return table;
     }
 
-    public static DataSet FillOneSheetWithTotalsRel<T>(this IEnumerable<T> data, int startToSum = 6)
+    public static DataSet FillOneSheetWithTotalsRel<T>(this IEnumerable<T> data, int startToSum = 6, string? dataTableName = null)
     {
         var ds = new DataSet();
-        var (table, headers) = ToTablev2<T>();
+        var (table, headers) = ToTablev2<T>(dataTableName);
         DataRow row;
         foreach (var d in data)
         {
