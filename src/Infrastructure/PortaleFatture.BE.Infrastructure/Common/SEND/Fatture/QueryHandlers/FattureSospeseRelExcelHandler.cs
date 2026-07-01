@@ -12,12 +12,12 @@ namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.QueryHandlers;
 public class FattureSospeseRelExcelHandler(
  ISelfCareDbContextFactory factory,
  IStringLocalizer<Localization> localizer,
- ILogger<FattureSospeseRelExcelHandler> logger) : IRequestHandler<FattureSospeseRelExcelQuery, List<IEnumerable<FattureRelExcelDto>>?>
+ ILogger<FattureSospeseRelExcelHandler> logger) : IRequestHandler<FattureSospeseRelExcelQuery, List<IEnumerable<FattureRelSospeseExcelDto>>?>
 {
     private readonly ISelfCareDbContextFactory _factory = factory;
     private readonly ILogger<FattureSospeseRelExcelHandler> _logger = logger;
     private readonly IStringLocalizer<Localization> _localizer = localizer;
-    public async Task<List<IEnumerable<FattureRelExcelDto>>?> Handle(FattureSospeseRelExcelQuery request, CancellationToken ct)
+    public async Task<List<IEnumerable<FattureRelSospeseExcelDto>>?> Handle(FattureSospeseRelExcelQuery request, CancellationToken ct)
     {
         using var rs = await _factory.Create(cancellationToken: ct);
         var rel = await rs.Query(new FattureSospeseRelExcelBuilderPersistence(request), ct);
@@ -28,6 +28,6 @@ public class FattureSospeseRelExcelHandler(
         using var rsu = await _factory.Create(cancellationToken: ct);
         var relsu = await rsu.Query(new FattureSospeseUnionRelExcelPersistence(request), ct);
 
-        return new List<IEnumerable<FattureRelExcelDto>> { rel!, relsu!, relno! };
+        return new List<IEnumerable<FattureRelSospeseExcelDto>> { rel!, relsu!, relno! };
     }
 }

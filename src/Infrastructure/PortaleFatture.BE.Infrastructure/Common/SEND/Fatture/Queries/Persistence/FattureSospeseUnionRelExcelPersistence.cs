@@ -8,15 +8,15 @@ using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries.Persistence.B
 
 namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries.Persistence;
 
-public class FattureSospeseUnionRelExcelPersistence(FattureSospeseRelExcelQuery command) : DapperBase, IQuery<IEnumerable<FattureRelExcelDto>?>
+public class FattureSospeseUnionRelExcelPersistence(FattureSospeseRelExcelQuery command) : DapperBase, IQuery<IEnumerable<FattureRelSospeseExcelDto>?>
 {
     private readonly FattureSospeseRelExcelQuery _command = command;
     private static readonly string _sqlNo = FattureRelExcelBuilder.SelectNoteSenzaRelSospese();
     private static readonly string _sqlRel = FattureRelExcelBuilder.SelectRelSospese();
     private static readonly string _order = FattureRelExcelBuilder.OrderByRelSospese();
-    public async Task<IEnumerable<FattureRelExcelDto>?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<FattureRelSospeseExcelDto>?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
     {
-        var computedFatture = new Dictionary<string, FattureRelExcelDto>();
+        var computedFatture = new Dictionary<string, FattureRelSospeseExcelDto>();
 
         var anno = _command.Anno;
         var mese = _command.Mese;
@@ -46,7 +46,7 @@ public class FattureSospeseUnionRelExcelPersistence(FattureSospeseRelExcelQuery 
 
         var sql = "SELECT* FROM (" + _sqlRel + where + " UNION " + _sqlNo + where + _order;
 
-        var values = await ((IDatabase)this).SelectAsync<FattureRelExcelDto>(
+        var values = await ((IDatabase)this).SelectAsync<FattureRelSospeseExcelDto>(
         connection!,
         sql,
         query,
