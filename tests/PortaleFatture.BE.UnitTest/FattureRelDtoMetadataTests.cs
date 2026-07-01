@@ -52,4 +52,40 @@ public class FattureRelDtoMetadataTests
         Assert.That(captions, Does.Contain("Tipo Contratto"));
         Assert.That(captions, Does.Contain(RelNonFirmataCaption));
     }
+
+    [Test]
+    public void FattureRelBaseExcelDto_ShouldNotExpose_RelNonFirmataColumn()
+    {
+        Assert.That(typeof(FattureRelBaseExcelDto).GetProperty("RelNonFirmata"), Is.Null);
+        Assert.That(HeaderCaptions(typeof(FattureRelBaseExcelDto)), Does.Not.Contain(RelNonFirmataCaption));
+    }
+
+    /// <summary>
+    /// Rispetto al DTO non-sospeso, il DTO sospeso deve esporre ESATTAMENTE una colonna in più: "Rel Non Firmata".
+    /// </summary>
+    [Test]
+    public void FattureRelSospeseExcelDto_ShouldHave_ExactlyOneMoreColumn_ThanNonSospese()
+    {
+        var nonSospese = HeaderCaptions(typeof(FattureRelExcelDto));
+        var sospese = HeaderCaptions(typeof(FattureRelSospeseExcelDto));
+
+        var extra = sospese.Except(nonSospese).ToList();
+        Assert.That(extra, Is.EquivalentTo(new[] { RelNonFirmataCaption }));
+    }
+
+    [Test]
+    public void FattureRelSospeseExcelDto_RelNonFirmata_HasHighestOrder()
+    {
+        var orders = typeof(FattureRelSospeseExcelDto).GetProperties()
+            .Select(p => (HeaderAttributev2?)Attribute.GetCustomAttribute(p, typeof(HeaderAttributev2)))
+            .Where(a => a != null)
+            .Select(a => a!.Order)
+            .ToList();
+
+        var relAttr = (HeaderAttributev2)Attribute.GetCustomAttribute(
+            typeof(FattureRelSospeseExcelDto).GetProperty("RelNonFirmata")!, typeof(HeaderAttributev2))!;
+
+        Assert.That(relAttr.Order, Is.EqualTo(orders.Max()),
+            "'Rel Non Firmata' deve avere l'Order più alto (ultima colonna).");
+    }
 }

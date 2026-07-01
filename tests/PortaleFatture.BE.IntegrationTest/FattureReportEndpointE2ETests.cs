@@ -87,4 +87,52 @@ public class FattureReportEndpointE2ETests
         Assert.That(sospese.All(s => s.HasColumn), Is.True,
             "I fogli rel sospesi devono contenere 'Rel Non Firmata'.");
     }
+
+    // =================== Rami ANTICIPO / ACCONTO (e2e, solo connettività DB) ===================
+
+    [TestCase("ANTICIPO")]
+    [TestCase("ACCONTO")]
+    public async Task ReportFatture_AnticipoAcconto_ShouldNotThrow(string tipologia)
+    {
+        var request = new FatturaRicercaRequest { Anno = Anno, Mese = Mese, TipologiaFattura = new[] { tipologia } };
+        var reports = await request.ReportFatture(_handler, AdminAuth());
+        Assert.That(reports, Is.Not.Null);
+    }
+
+    [TestCase("ANTICIPO")]
+    [TestCase("ACCONTO")]
+    public async Task ReportFattureSospese_AnticipoAcconto_ShouldNotThrow(string tipologia)
+    {
+        var request = new FatturaSospeseRicercaRequest { Anno = Anno, Mese = Mese, TipologiaFattura = new[] { tipologia } };
+        var reports = await request.ReportFattureSospese(_handler, AdminAuth());
+        Assert.That(reports, Is.Not.Null);
+    }
+
+    // =================== Più tipologie nello stesso request (e2e) ===================
+
+    [Test]
+    public async Task ReportFatture_MultipleTipologie_ShouldNotThrow()
+    {
+        var request = new FatturaRicercaRequest
+        {
+            Anno = Anno,
+            Mese = Mese,
+            TipologiaFattura = new[] { "SECONDO SALDO", "VAR. SEMESTRALE" }
+        };
+        var reports = await request.ReportFatture(_handler, AdminAuth());
+        Assert.That(reports, Is.Not.Null);
+    }
+
+    [Test]
+    public async Task ReportFattureSospese_MultipleTipologie_ShouldNotThrow()
+    {
+        var request = new FatturaSospeseRicercaRequest
+        {
+            Anno = Anno,
+            Mese = Mese,
+            TipologiaFattura = new[] { "SECONDO SALDO", "VAR. SEMESTRALE" }
+        };
+        var reports = await request.ReportFattureSospese(_handler, AdminAuth());
+        Assert.That(reports, Is.Not.Null);
+    }
 }
