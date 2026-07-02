@@ -81,6 +81,9 @@ INSERT INTO [ppa].[PspEmail]
            ,[DataEvento]
            ,[Email]
            ,[Messaggio]
+         ,[Oggetto]
+         ,[Corpo]
+         ,[Link]
            ,[RagioneSociale]
            ,[Invio])
      VALUES
@@ -91,8 +94,39 @@ INSERT INTO [ppa].[PspEmail]
            ,@data
            ,@Email
            ,@Messaggio
+         ,@Oggetto
+         ,@Corpo
+         ,@Link
            ,@RagioneSociale
            ,@Invio);";
+
+    private readonly string _sqlInsertPreview = @"
+INSERT INTO [stg].[PspEmailPreview]
+           ([IdContratto]
+           ,[Tipologia]
+           ,[Anno]
+           ,[Trimestre]
+           ,[DataEvento]
+           ,[Email]
+           ,[Oggetto]
+           ,[Corpo]
+           ,[Link]
+           ,[RagioneSociale]
+           ,[Invio]
+           ,[TipoContratto])
+     VALUES
+           (@IdContratto
+           ,@Tipologia
+           ,@Anno
+           ,@Trimestre
+           ,@Data
+           ,@Email
+           ,@Oggetto
+           ,@Corpo
+           ,@Link
+           ,@RagioneSociale
+           ,@Invio
+           ,@TipoContratto);";
 
     public bool CountInvio(string? trimestre)
     {
@@ -201,9 +235,43 @@ INSERT INTO [ppa].[PspEmail]
             cmd.Parameters.Add("@data", SqlDbType.NVarChar).Value = email.Data;
             cmd.Parameters.Add("@email", SqlDbType.NVarChar).Value = email.Email;
             cmd.Parameters.Add("@messaggio", SqlDbType.NVarChar).Value = email.Messaggio;
+            cmd.Parameters.Add("@Oggetto", SqlDbType.NVarChar).Value = (object?)email.Oggetto ?? DBNull.Value;
+            cmd.Parameters.Add("@Corpo", SqlDbType.NVarChar).Value = (object?)email.Corpo ?? DBNull.Value;
+            cmd.Parameters.Add("@Link", SqlDbType.NVarChar).Value = (object?)email.Link ?? DBNull.Value;
             cmd.Parameters.Add("@RagioneSociale", SqlDbType.NVarChar).Value = email.RagioneSociale;
             cmd.Parameters.Add("@Invio", SqlDbType.Bit).Value = email.Invio;
             cmd.CommandText = _sqlInsert;
+            var rows = cmd.ExecuteNonQuery();
+            return rows == 1;
+        }
+        catch
+        {
+
+            return false;
+        }
+    }
+
+    public bool InsertPreviewEmail(PspEmailTracking email)
+    {
+        try
+        {
+            using var conn = new SqlConnection(_cn);
+            conn.Open();
+            using var cmd = new SqlCommand();
+            cmd.Connection = conn;
+            cmd.Parameters.Add("@IdContratto", SqlDbType.NVarChar).Value = email.IdContratto;
+            cmd.Parameters.Add("@Tipologia", SqlDbType.NVarChar).Value = email.Tipologia;
+            cmd.Parameters.Add("@Anno", SqlDbType.Int).Value = email.Anno;
+            cmd.Parameters.Add("@Trimestre", SqlDbType.NVarChar).Value = email.Trimestre;
+            cmd.Parameters.Add("@Data", SqlDbType.NVarChar).Value = email.Data;
+            cmd.Parameters.Add("@Email", SqlDbType.NVarChar).Value = email.Email;
+            cmd.Parameters.Add("@Oggetto", SqlDbType.NVarChar).Value = email.Oggetto;
+            cmd.Parameters.Add("@Corpo", SqlDbType.NVarChar).Value = email.Corpo;
+            cmd.Parameters.Add("@Link", SqlDbType.NVarChar).Value = (object?)email.Link ?? DBNull.Value;
+            cmd.Parameters.Add("@RagioneSociale", SqlDbType.NVarChar).Value = email.RagioneSociale;
+            cmd.Parameters.Add("@Invio", SqlDbType.Bit).Value = email.Invio;
+            cmd.Parameters.Add("@TipoContratto", SqlDbType.NVarChar).Value = (object?)email.TipoContratto ?? DBNull.Value;
+            cmd.CommandText = _sqlInsertPreview;
             var rows = cmd.ExecuteNonQuery();
             return rows == 1;
         }
