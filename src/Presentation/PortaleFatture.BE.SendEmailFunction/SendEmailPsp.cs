@@ -99,12 +99,6 @@ public class SendEmailPsp(ILoggerFactory loggerFactory)
                 data = DateTime.UtcNow.ItalianTime().ToString("yyyy-MM-dd HH:mm:ss");
 
             var subject = $"Detailed invoice reports {trimestre}";
-            var sender = new PspEmailSender(accessToken: ConfigurazionepagoPA.AccessToken!,
-                refreshToken: ConfigurazionepagoPA.RefreshToken!,
-                clientId: ConfigurazionepagoPA.ClientId!,
-                clientSecret: ConfigurazionepagoPA.ClientSecret!,
-                from: ConfigurazionepagoPA.From,
-                fromName: ConfigurazionepagoPA.FromName!);
 
             IEnumerable<PspEmail>? psps = [];
             var emailService = new EmailPspService(ConfigurazionepagoPA.ConnectionString!);
@@ -144,6 +138,13 @@ public class SendEmailPsp(ILoggerFactory loggerFactory)
                     {
                         if(production)
                         {
+                            var sender = new PspEmailSender(accessToken: ConfigurazionepagoPA.AccessToken!,
+                                refreshToken: ConfigurazionepagoPA.RefreshToken!,
+                                clientId: ConfigurazionepagoPA.ClientId!,
+                                clientSecret: ConfigurazionepagoPA.ClientSecret!,
+                                from: ConfigurazionepagoPA.From,
+                                fromName: ConfigurazionepagoPA.FromName!);
+
                             var (msg, ver) = sender.SendEmail(psp.Email, psp.RagioneSociale!, subject, body!, Guid.NewGuid().ToString());
                             //var (msg, ver) = sender.SendEmail(ConfigurazionepagoPA.To!, ConfigurazionepagoPA.ToName!, subject, body!, Guid.NewGuid().ToString());
 
