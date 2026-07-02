@@ -4,6 +4,9 @@ using PortaleFatture.BE.Core.Common;
 using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Infrastructure;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
+using PortaleFatture.BE.Infrastructure.Common.Persistence.Schemas;
+using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Service;
+using PortaleFatture.BE.Infrastructure.Common.SEND.Scadenziari;
 using PortaleFatture.BE.Infrastructure.Gateway;
 
 namespace PortaleFatture.BE.IntegrationTest;
@@ -41,6 +44,10 @@ public static class ServiceProvider
                       throw new ConfigurationException("Db connection string not configured");
 
         services.AddSingleton<IDbContextFactory>(new DbContextFactory(dbConnectionString, "pfw"));
+        services.AddSingleton<ISelfCareDbContextFactory>(new DbContextFactory(dbConnectionString, "pfd"));
+        services.AddSingleton<IFattureDbContextFactory>(new DbContextFactory(dbConnectionString, "pfw"));
+        services.AddSingleton<IServiceWorkFlowFatture>(new ServiceWorkFlowFatture());
+        services.AddSingleton<IScadenziarioService, ScadenziarioService>();
 
         services.AddMediatR(x => x.RegisterServicesFromAssembly(typeof(RootInfrastructure).Assembly));
 

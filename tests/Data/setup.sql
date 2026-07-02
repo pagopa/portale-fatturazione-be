@@ -8,55 +8,6 @@ IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'pfd')
     EXEC ('CREATE SCHEMA pfd;');
     END; 
 
-IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'stg')
-	BEGIN
-	EXEC ('CREATE SCHEMA stg;');
-	END;
-
-IF OBJECT_ID('[stg].[PspEmailPreview]', 'U') IS NULL
-BEGIN
-	CREATE TABLE [stg].[PspEmailPreview]
-	(
-		[Id] BIGINT IDENTITY(1,1) NOT NULL,
-		[IdContratto] NVARCHAR(100) NULL,
-		[Tipologia] NVARCHAR(100) NULL,
-		[Anno] INT NULL,
-		[Trimestre] NVARCHAR(20) NULL,
-		[DataEvento] NVARCHAR(50) NULL,
-		[Email] NVARCHAR(320) NULL,
-		[Oggetto] NVARCHAR(MAX) NULL,
-		[Corpo] NVARCHAR(MAX) NULL,
-		[Link] NVARCHAR(MAX) NULL,
-		[RagioneSociale] NVARCHAR(500) NULL,
-		[Invio] BIT NOT NULL CONSTRAINT [DF_PspEmailPreview_Invio] DEFAULT(0),
-		[TipoContratto] NVARCHAR(100) NULL,
-		CONSTRAINT [PK_PspEmailPreview] PRIMARY KEY CLUSTERED ([Id] ASC)
-	);
-END;
-
-IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'ppa')
-	BEGIN
-	EXEC ('CREATE SCHEMA ppa;');
-	END;
-
-IF OBJECT_ID('[ppa].[PspEmail]', 'U') IS NOT NULL
-BEGIN
-	IF COL_LENGTH('ppa.PspEmail', 'Oggetto') IS NULL
-	BEGIN
-		ALTER TABLE [ppa].[PspEmail] ADD [Oggetto] NVARCHAR(MAX) NULL;
-	END;
-
-	IF COL_LENGTH('ppa.PspEmail', 'Corpo') IS NULL
-	BEGIN
-		ALTER TABLE [ppa].[PspEmail] ADD [Corpo] NVARCHAR(MAX) NULL;
-	END;
-
-	IF COL_LENGTH('ppa.PspEmail', 'Link') IS NULL
-	BEGIN
-		ALTER TABLE [ppa].[PspEmail] ADD [Link] NVARCHAR(MAX) NULL;
-	END;
-END;
-
 CREATE TABLE pfw.CategoriaSpedizione (
 	IdCategoriaSpedizione int IDENTITY(1,1) NOT NULL,
 	Descrizione nvarchar(250) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,

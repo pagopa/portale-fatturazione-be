@@ -25,10 +25,13 @@
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
+        <PackageReference Include="Moq" Version="4.20.70" />
+        <PackageReference Include="ClosedXML" Version="0.104.2" />
     </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\..\src\Infrastructure\PortaleFatture.BE.Infrastructure\PortaleFatture.BE.Infrastructure.csproj" />
+        <ProjectReference Include="..\..\src\Presentation\PortaleFatture.BE.Api\PortaleFatture.BE.Api.csproj" />
     </ItemGroup>
 
     <ItemGroup>
