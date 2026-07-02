@@ -6,5 +6,6 @@ namespace PortaleFatture.BE.Infrastructure.Common.pagoPA.FinancialReports.Servic
     {
         IEnumerable<PspEmail>? GetSenderEmail(string? trimestre);
         bool InsertTracciatoEmail(PspEmailTracking email);
+        bool InsertPreviewEmail(PspEmailTracking email);
     }
 }
