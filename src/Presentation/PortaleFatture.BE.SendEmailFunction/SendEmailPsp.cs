@@ -22,7 +22,7 @@ public class SendEmailPsp(ILoggerFactory loggerFactory)
         try
         {
 
-            string[] environments = new string[] { "fat-d-api-func", "fat-u-api-func", "DEBUG" };
+            string[] environments = ["fat-d-api-func", "fat-u-api-func", "debug"];
 
             ConfigurazionepagoPA.Environment = GetEnvironmentVariable("PortaleFattureOptions:WEBSITE_SITE_NAME");
 
@@ -31,7 +31,9 @@ public class SendEmailPsp(ILoggerFactory loggerFactory)
                 ConfigurazionepagoPA.Environment = GetEnvironmentVariable("WEBSITE_SITE_NAME");
             }
 
-            var production = !environments.Contains(ConfigurazionepagoPA.Environment!);
+            var currentEnvironment = ConfigurazionepagoPA.Environment?.Trim();
+            var production = !string.IsNullOrWhiteSpace(currentEnvironment)
+                && !environments.Contains(currentEnvironment, StringComparer.OrdinalIgnoreCase);
 
             ConfigurazionepagoPA.ConnectionString = GetEnvironmentVariable("PortaleFattureOptions:ConnectionString");
 
