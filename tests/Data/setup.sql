@@ -8,6 +8,108 @@ IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'pfd')
     EXEC ('CREATE SCHEMA pfd;');
     END; 
 
+IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'stg')
+	BEGIN
+	EXEC ('CREATE SCHEMA stg;');
+	END;
+
+IF OBJECT_ID('[stg].[PspEmailPreview]', 'U') IS NULL
+BEGIN
+	CREATE TABLE [stg].[PspEmailPreview]
+	(
+		[Id] BIGINT IDENTITY(1,1) NOT NULL,
+		[IdContratto] NVARCHAR(100) NULL,
+		[Tipologia] NVARCHAR(100) NULL,
+		[Anno] INT NULL,
+		[Trimestre] NVARCHAR(20) NULL,
+		[DataEvento] NVARCHAR(50) NULL,
+		[Email] NVARCHAR(320) NULL,
+		[Oggetto] NVARCHAR(MAX) NULL,
+		[Corpo] NVARCHAR(MAX) NULL,
+		[Link] NVARCHAR(MAX) NULL,
+		[RagioneSociale] NVARCHAR(500) NULL,
+		[Invio] BIT NOT NULL CONSTRAINT [DF_PspEmailPreview_Invio] DEFAULT(0),
+		[TipoContratto] NVARCHAR(100) NULL,
+		CONSTRAINT [PK_PspEmailPreview] PRIMARY KEY CLUSTERED ([Id] ASC)
+	);
+END;
+
+IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'ppa')
+	BEGIN
+	EXEC ('CREATE SCHEMA ppa;');
+	END;
+
+IF OBJECT_ID('[ppa].[Contracts]', 'U') IS NULL
+BEGIN
+	CREATE TABLE [ppa].[Contracts]
+	(
+		[contract_id] NVARCHAR(100) NOT NULL,
+		[year_quarter] NVARCHAR(20) NOT NULL,
+		[name] NVARCHAR(500) NULL,
+		[referentefattura_mail] NVARCHAR(320) NULL,
+		[courtesy_mail] NVARCHAR(320) NULL,
+		CONSTRAINT [PK_ppa_Contracts] PRIMARY KEY CLUSTERED ([contract_id], [year_quarter])
+	);
+END;
+
+IF OBJECT_ID('[ppa].[kpmg]', 'U') IS NULL
+BEGIN
+	CREATE TABLE [ppa].[kpmg]
+	(
+		[contract_id] NVARCHAR(100) NOT NULL,
+		[year_quarter] NVARCHAR(20) NOT NULL,
+		[descrizione_riga] NVARCHAR(MAX) NULL,
+		CONSTRAINT [PK_ppa_kpmg] PRIMARY KEY CLUSTERED ([contract_id], [year_quarter])
+	);
+END;
+
+IF OBJECT_ID('[ppa].[KpiPagamenti_Sconto]', 'U') IS NULL
+BEGIN
+	CREATE TABLE [ppa].[KpiPagamenti_Sconto]
+	(
+		[recipient_id] NVARCHAR(100) NOT NULL,
+		[year_quarter] NVARCHAR(20) NOT NULL,
+		[linkReport] NVARCHAR(MAX) NULL,
+		[percsconto] DECIMAL(18,2) NULL
+	);
+END;
+
+IF OBJECT_ID('[ppa].[PspEmail]', 'U') IS NOT NULL
+BEGIN
+	IF COL_LENGTH('ppa.PspEmail', 'Oggetto') IS NULL
+	BEGIN
+		ALTER TABLE [ppa].[PspEmail] ADD [Oggetto] NVARCHAR(MAX) NULL;
+	END;
+
+	IF COL_LENGTH('ppa.PspEmail', 'Corpo') IS NULL
+	BEGIN
+		ALTER TABLE [ppa].[PspEmail] ADD [Corpo] NVARCHAR(MAX) NULL;
+	END;
+
+	IF COL_LENGTH('ppa.PspEmail', 'Link') IS NULL
+	BEGIN
+		ALTER TABLE [ppa].[PspEmail] ADD [Link] NVARCHAR(MAX) NULL;
+	END;
+END;
+
+INSERT INTO [ppa].[Contracts] ([contract_id], [year_quarter], [name], [referentefattura_mail], [courtesy_mail])
+VALUES
+	('IT_RO_REF_2026_1', '2026_1', 'PSP ReadOnly Referente', 'referente.readonly@pagopa.it', 'courtesy.readonly@pagopa.it'),
+	('IT_RO_FBK_2026_1', '2026_1', 'PSP ReadOnly Fallback', '', 'courtesy.fallback@pagopa.it'),
+	('IT_RO_REF_2026_2', '2026_2', 'PSP ReadOnly Quarter Filter', 'q2@pagopa.it', 'q2-courtesy@pagopa.it');
+
+INSERT INTO [ppa].[kpmg] ([contract_id], [year_quarter], [descrizione_riga])
+VALUES
+	('IT_RO_REF_2026_1', '2026_1', 'agentquarter_link_ref,detailed_link_ref'),
+	('IT_RO_FBK_2026_1', '2026_1', 'agentquarter_link_fbk,detailed_link_fbk'),
+	('IT_RO_REF_2026_2', '2026_2', 'agentquarter_link_q2,detailed_link_q2');
+
+INSERT INTO [ppa].[KpiPagamenti_Sconto] ([recipient_id], [year_quarter], [linkReport], [percsconto])
+VALUES
+	('IT_RO_REF_2026_1', '2026_1', 'https://example.test/discount-report-ref', 10.00),
+	('IT_RO_FBK_2026_1', '2026_1', 'https://example.test/discount-report-fbk', 0.00),
+	('IT_RO_REF_2026_2', '2026_2', 'https://example.test/discount-report-q2', 15.00);
+
 CREATE TABLE pfw.CategoriaSpedizione (
 	IdCategoriaSpedizione int IDENTITY(1,1) NOT NULL,
 	Descrizione nvarchar(250) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
