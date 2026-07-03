@@ -29,7 +29,7 @@ public class EmailPspServiceIntegrationTests
         var service = new EmailPspService(connectionString);
 
         var idContratto = $"IT_PREV_{Guid.NewGuid():N}";
-        var trimestre = "2026_Q3";
+        var trimestre = "2026_1";
         var data = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
 
         try
@@ -69,7 +69,7 @@ public class EmailPspServiceIntegrationTests
         var service = new EmailPspService(connectionString);
 
         var idContratto = $"IT_TRK_{Guid.NewGuid():N}";
-        var trimestre = "2026_Q3";
+        var trimestre = "2026_1";
         var data = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
 
         try
@@ -94,9 +94,9 @@ public class EmailPspServiceIntegrationTests
 
             var row = GetTrackingRow(connectionString, idContratto, trimestre);
             ClassicAssert.IsNotNull(row, "Inserted row not found in [ppa].[PspEmail]");
-            ClassicAssert.AreEqual("Tracking Oggetto", row!.Oggetto);
-            ClassicAssert.AreEqual("Tracking Corpo", row.Corpo);
-            ClassicAssert.AreEqual("https://example.test/tracking", row.Link);
+            Assert.That(row!.Oggetto, Is.EqualTo("Tracking Oggetto"));
+            Assert.That(row.Corpo, Is.EqualTo("Tracking Corpo"));
+            Assert.That(row.Link, Is.EqualTo("https://example.test/tracking"));
         }
         finally
         {
@@ -104,11 +104,171 @@ public class EmailPspServiceIntegrationTests
         }
     }
 
+    [Test]
+    public void GetSenderEmail_ReadOnly_ShouldUseReferenteMail_WhenNotEmpty()
+    {
+        var connectionString = Required("PortaleFattureOptions:ConnectionString");
+        var service = new EmailPspService(connectionString);
+        const string quarter = "2026_1";
+
+        var result = service.GetSenderEmail(quarter);
+
+        ClassicAssert.IsNotNull(result);
+        var expected = GetExpectedRowWithReferente(connectionString, quarter);
+        if (expected is null)
+        {
+            Assert.Pass($"No suitable referente record found for quarter {quarter}; read-only query executed successfully.");
+            return;
+        }
+
+        var row = result!.FirstOrDefault(x => x.IdContratto == expected.IdContratto);
+
+        ClassicAssert.IsNotNull(row, $"Contract {expected.IdContratto} not found in GetSenderEmail result.");
+        Assert.That(row!.Email, Is.EqualTo(expected.ExpectedEmail));
+        Assert.That(row.RagioneSociale, Is.EqualTo(expected.RagioneSociale));
+        Assert.That(row.AgentReport, Is.EqualTo(ParseReportLink(expected.Links, "agentquarter")));
+        Assert.That(row.DetailReport, Is.EqualTo(ParseReportLink(expected.Links, "detailed")));
+        Assert.That(row.DiscountReport, Is.EqualTo(expected.DiscountReport ?? string.Empty));
+    }
+
+    [Test]
+    public void GetSenderEmail_ReadOnly_ShouldFallbackToCourtesyMail_WhenReferenteEmpty()
+    {
+        var connectionString = Required("PortaleFattureOptions:ConnectionString");
+        var service = new EmailPspService(connectionString);
+        const string quarter = "2026_1";
+
+        var result = service.GetSenderEmail(quarter);
+
+        ClassicAssert.IsNotNull(result);
+        var expected = GetExpectedRowWithCourtesyFallback(connectionString, quarter);
+        if (expected is null)
+        {
+            Assert.Pass($"No suitable courtesy fallback record found for quarter {quarter}; read-only query executed successfully.");
+            return;
+        }
+
+        var fallbackRow = result!.FirstOrDefault(x => x.IdContratto == expected.IdContratto);
+
+        ClassicAssert.IsNotNull(fallbackRow, $"Contract {expected.IdContratto} not found in GetSenderEmail result.");
+        Assert.That(fallbackRow!.Email, Is.EqualTo(expected.ExpectedEmail));
+        Assert.That(fallbackRow.RagioneSociale, Is.EqualTo(expected.RagioneSociale));
+        Assert.That(fallbackRow.AgentReport, Is.EqualTo(ParseReportLink(expected.Links, "agentquarter")));
+        Assert.That(fallbackRow.DetailReport, Is.EqualTo(ParseReportLink(expected.Links, "detailed")));
+        Assert.That(fallbackRow.DiscountReport, Is.EqualTo(expected.DiscountReport ?? string.Empty), "DiscountReport should be empty when percsconto <= 0.");
+
+        Assert.That(result.Any(x => x.Trimestre != quarter), Is.False,
+            "Quarter filter regression: result contains records from a different quarter.");
+    }
+
     private string Required(string key)
     {
         var value = _conf.GetValue<string>(key);
         ClassicAssert.IsFalse(string.IsNullOrWhiteSpace(value), $"{key} not configured (User Secrets)");
         return value!;
+    }
+
+    private static ExpectedSenderRow? GetExpectedRowWithReferente(string connectionString, string quarter)
+    {
+        const string sql = @"
+SELECT TOP 1
+    c.contract_id,
+    c.name,
+    c.referentefattura_mail,
+    k.descrizione_riga,
+    s.linkReport
+FROM [ppa].[kpmg] k
+INNER JOIN [ppa].[Contracts] c
+    ON c.contract_id = k.contract_id
+   AND c.year_quarter = k.year_quarter
+OUTER APPLY (
+    SELECT TOP 1 ks.linkReport
+    FROM [ppa].[KpiPagamenti_Sconto] ks
+    WHERE ks.recipient_id = k.contract_id
+      AND ks.year_quarter = k.year_quarter
+      AND ks.percsconto > 0
+    ORDER BY ks.linkReport
+) s
+WHERE k.year_quarter = @quarter
+  AND LEN(ISNULL(k.descrizione_riga, '')) > 0
+  AND LEN(LTRIM(RTRIM(ISNULL(c.referentefattura_mail, '')))) > 0
+ORDER BY c.contract_id;";
+
+        using var conn = new SqlConnection(connectionString);
+        conn.Open();
+        using var cmd = new SqlCommand(sql, conn);
+        cmd.Parameters.AddWithValue("@quarter", quarter);
+
+        using var reader = cmd.ExecuteReader();
+        if (!reader.Read())
+        {
+            return null;
+        }
+
+        return new ExpectedSenderRow(
+            IdContratto: reader.GetString(0),
+            RagioneSociale: reader.IsDBNull(1) ? string.Empty : reader.GetString(1),
+            ExpectedEmail: reader.IsDBNull(2) ? string.Empty : reader.GetString(2),
+            Links: reader.IsDBNull(3) ? string.Empty : reader.GetString(3),
+            DiscountReport: reader.IsDBNull(4) ? null : reader.GetString(4));
+    }
+
+    private static ExpectedSenderRow? GetExpectedRowWithCourtesyFallback(string connectionString, string quarter)
+    {
+        const string sql = @"
+SELECT TOP 1
+    c.contract_id,
+    c.name,
+    c.courtesy_mail,
+    k.descrizione_riga,
+    s.linkReport
+FROM [ppa].[kpmg] k
+INNER JOIN [ppa].[Contracts] c
+    ON c.contract_id = k.contract_id
+   AND c.year_quarter = k.year_quarter
+OUTER APPLY (
+    SELECT TOP 1 ks.linkReport
+    FROM [ppa].[KpiPagamenti_Sconto] ks
+    WHERE ks.recipient_id = k.contract_id
+      AND ks.year_quarter = k.year_quarter
+      AND ks.percsconto > 0
+    ORDER BY ks.linkReport
+) s
+WHERE k.year_quarter = @quarter
+  AND LEN(ISNULL(k.descrizione_riga, '')) > 0
+  AND LEN(LTRIM(RTRIM(ISNULL(c.referentefattura_mail, '')))) = 0
+  AND LEN(LTRIM(RTRIM(ISNULL(c.courtesy_mail, '')))) > 0
+ORDER BY c.contract_id;";
+
+        using var conn = new SqlConnection(connectionString);
+        conn.Open();
+        using var cmd = new SqlCommand(sql, conn);
+        cmd.Parameters.AddWithValue("@quarter", quarter);
+
+        using var reader = cmd.ExecuteReader();
+        if (!reader.Read())
+        {
+            return null;
+        }
+
+        return new ExpectedSenderRow(
+            IdContratto: reader.GetString(0),
+            RagioneSociale: reader.IsDBNull(1) ? string.Empty : reader.GetString(1),
+            ExpectedEmail: reader.IsDBNull(2) ? string.Empty : reader.GetString(2),
+            Links: reader.IsDBNull(3) ? string.Empty : reader.GetString(3),
+            DiscountReport: reader.IsDBNull(4) ? null : reader.GetString(4));
+    }
+
+    private static string? ParseReportLink(string links, string token)
+    {
+        if (string.IsNullOrWhiteSpace(links))
+        {
+            return null;
+        }
+
+        return links
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .FirstOrDefault(x => x.Contains(token, StringComparison.OrdinalIgnoreCase));
     }
 
     private static bool ExistsInPreview(string connectionString, string idContratto, string trimestre)
@@ -185,4 +345,11 @@ WHERE [IdContratto] = @IdContratto
     }
 
     private sealed record TrackingRow(string? Oggetto, string? Corpo, string? Link);
+
+    private sealed record ExpectedSenderRow(
+        string IdContratto,
+        string RagioneSociale,
+        string ExpectedEmail,
+        string Links,
+        string? DiscountReport);
 }
