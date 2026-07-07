@@ -22,6 +22,7 @@ internal class SendEmailPspHandler
         var trimestre = queryParams["trimestre"];
         var tipologia = EmailPspTipologia.Financial;
         var date = queryParams["data"];
+        var preview = bool.TryParse(queryParams["preview"], out var previewValue) && previewValue;
 
 
         if (string.IsNullOrEmpty(anno) || string.IsNullOrEmpty(trimestre) || string.IsNullOrEmpty(tipologia))
@@ -29,7 +30,7 @@ internal class SendEmailPspHandler
             return req.CreateResponse(HttpStatusCode.BadRequest);
         }
 
-        var data = new EmailPspDataRequest { Anno = anno, Trimestre = trimestre, Tipologia = tipologia, Reinvio = reinvio, Date = date };
+        var data = new EmailPspDataRequest { Anno = anno, Trimestre = trimestre, Tipologia = tipologia, Reinvio = reinvio, Date = date, Preview = preview };
 
         var instanceId = await client.ScheduleNewOrchestrationInstanceAsync("SendEmailPspOrchestrator", data);
         var payload = new

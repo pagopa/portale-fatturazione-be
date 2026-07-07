@@ -8,9 +8,15 @@
     <UserSecretsId>266818db-f424-410c-85fc-f4e8e092e06d</UserSecretsId>
   </PropertyGroup>
   <ItemGroup>
-    <Content Include="local.settings.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
+      <!-- Condition="Exists('local.settings.json')" => se il file non c'è (come in CI), l'item viene semplicemente escluso dal build, niente errore MSB3030. -->
+      <Content Include="local.settings.json" Condition="Exists('local.settings.json')">
+          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+          <!-- 
+            CopyToPublishDirectory>Never → buona prassi per Azure Functions, 
+            evitare che finisca nel pacchetto di pubblicazione (dove in produzione le impostazioni arrivano da App Settings, non dal file locale). 
+            -->
+          <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+      </Content>
   </ItemGroup>
     <ItemGroup>
         <PackageReference Include="Microsoft.Azure.Functions.Worker" Version="2.0.0" />

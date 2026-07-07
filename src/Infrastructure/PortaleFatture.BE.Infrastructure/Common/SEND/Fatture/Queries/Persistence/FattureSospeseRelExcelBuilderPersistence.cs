@@ -7,13 +7,13 @@ using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries.Persistence.B
 
 namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries.Persistence;
 
-public class FattureSospeseRelExcelBuilderPersistence(FattureSospeseRelExcelQuery command) : DapperBase, IQuery<IEnumerable<FattureRelExcelDto>?>
+public class FattureSospeseRelExcelBuilderPersistence(FattureSospeseRelExcelQuery command) : DapperBase, IQuery<IEnumerable<FattureRelSospeseExcelDto>?>
 {
     private readonly FattureSospeseRelExcelQuery _command = command;
     private static readonly string _sql = FattureRelExcelBuilder.SelectRelSospese();
-    public async Task<IEnumerable<FattureRelExcelDto>?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<FattureRelSospeseExcelDto>?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
     {
-        var computedFatture = new Dictionary<string, FattureRelExcelDto>();
+        var computedFatture = new Dictionary<string, FattureRelSospeseExcelDto>();
 
         var anno = _command.Anno;
         var mese = _command.Mese;
@@ -43,7 +43,7 @@ public class FattureSospeseRelExcelBuilderPersistence(FattureSospeseRelExcelQuer
 
         var sql = _sql + where;
 
-        var values = await ((IDatabase)this).SelectAsync<FattureRelExcelDto>(
+        var values = await ((IDatabase)this).SelectAsync<FattureRelSospeseExcelDto>(
         connection!,
         sql,
         query,

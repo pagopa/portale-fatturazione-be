@@ -18,4 +18,8 @@ public sealed class PspEmailTracking : PspEmail
     public string? Messaggio { get; set; }
     public string? Data { get; set; }
     public byte Invio { get; set; }
+    public string? Oggetto { get; set; }
+    public string? Corpo { get; set; }
+    public string? Link { get; set; }
+    public string? TipoContratto { get; set; }
 }

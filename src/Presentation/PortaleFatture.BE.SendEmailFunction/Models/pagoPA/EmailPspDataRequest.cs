@@ -7,4 +7,5 @@ public class EmailPspDataRequest
     public string? Tipologia { get; set; }
     public string? Reinvio { get; set; }
     public string? Date { get; set; }
+    public bool? Preview { get; set; }
 }

@@ -298,9 +298,9 @@ public static class FattureExtensions
     /// Crea una nuova istanza di FattureDettaglioEmessoPdfQuery utilizzando le informazioni di autenticazione e
     /// l'identificativo della fattura.
     /// </summary>
-    /// <param name="req">La richiesta contenente i dati della fattura, incluso l'identificativo da utilizzare per la query. Non puÚ
+    /// <param name="req">La richiesta contenente i dati della fattura, incluso l'identificativo da utilizzare per la query. Non pu√≤
     /// essere null.</param>
-    /// <param name="authInfo">Le informazioni di autenticazione da associare alla query. Non puÚ essere null.</param>
+    /// <param name="authInfo">Le informazioni di autenticazione da associare alla query. Non pu√≤ essere null.</param>
     /// <returns>Un oggetto FattureDettaglioEmessoPdfQuery inizializzato con i dati forniti.</returns>
     public static FattureDettaglioEmessoPdfQuery MapEmessoPdf(this FattureDocContabileEnteRequest req, AuthenticationInfo authInfo)
     {
@@ -313,7 +313,7 @@ public static class FattureExtensions
     /// <summary>
     /// Converte una richiesta di un di documento contabile in una query per il dettaglio PDF emesso (Admin)
     /// </summary>
-    /// <param name="req">La richiesta del documento contabile da convertire. Non puÚ essere null.</param>
+    /// <param name="req">La richiesta del documento contabile da convertire. Non pu√≤ essere null.</param>
     /// <returns>Un oggetto FattureDettaglioEmessoPdfAdminQuery che rappresenta la query generata dalla richiesta specificata.</returns>
     public static FattureDettaglioEmessoPdfAdminQuery MapEmessoPdfAdmin(this FattureDocContabileEnteAdminRequest req)
     {
@@ -504,7 +504,7 @@ public static class FattureExtensions
     var totalAmount = dtos.Sum(d => d.TotaleFatturaSospesaImponibile ?? 0);
     var totalSuspended = dtos.Sum(d => d.RelTotaleSospeso ?? 0);
 
-        // ? TODO : da verificare con il team se Ë necessario questo controllo, la logica di sospensione Ë in carico a data non a BE
+        // ? TODO : da verificare con il team se √® necessario questo controllo, la logica di sospensione √® in carico a data non a BE
         if (totalSuspended < 10)
     {
         totalSuspended = 0;
@@ -699,16 +699,20 @@ public static class FattureExtensions
     {
         Dictionary<string, byte[]> reports = [];
 
-        if (request.TipologiaFattura!.IsNullNotAny())
+        var tipologie = request.TipologiaFattura;
+        if (tipologie.IsNullNotAny())
         {
-            request.TipologiaFattura = (await handler.Send(new FattureTipologiaAnniMeseQuery(authInfo)
+            tipologie = (await handler.Send(new FattureTipologiaAnniMeseQuery(authInfo)
             {
                 Anno = request.Anno!,
                 Mese = request.Mese!
-            }))!.ToArray();
+            }))?.ToArray();
         }
 
-        foreach (var tipologia in request.TipologiaFattura!)
+        if (tipologie.IsNullNotAny())
+            return reports;
+
+        foreach (var tipologia in tipologie!)
         {
             var month = request.Mese.GetMonth();
             var year = request.Anno;
@@ -767,16 +771,20 @@ public static class FattureExtensions
     {
         Dictionary<string, byte[]> reports = [];
 
-        if (request.TipologiaFattura!.IsNullNotAny())
+        var tipologie = request.TipologiaFattura;
+        if (tipologie.IsNullNotAny())
         {
-            request.TipologiaFattura = (await handler.Send(new FattureSospeseTipologiaAnniMeseQuery(authInfo)
+            tipologie = (await handler.Send(new FattureSospeseTipologiaAnniMeseQuery(authInfo)
             {
                 Anno = request.Anno!,
                 Mese = request.Mese!
-            }))!.ToArray();
+            }))?.ToArray();
         }
 
-        foreach (var tipologia in request.TipologiaFattura!)
+        if (tipologie.IsNullNotAny())
+            return reports;
+
+        foreach (var tipologia in tipologie!)
         {
             var month = request.Mese.GetMonth();
             var year = request.Anno;
@@ -830,7 +838,7 @@ public static class FattureExtensions
         }))!;
 
         Dictionary<string, List<List<FattureRelExcelDto>>> dictFatture = new();
-        Dictionary<string, List<List<FattureRelExcelDto>>> dictFattureSospese = new();
+        Dictionary<string, List<List<FattureRelSospeseExcelDto>>> dictFattureSospese = new();
         Dictionary<string, List<List<FattureAccontoExcelDto>>> dictAcconto = new(); 
         Dictionary<string, List<List<FattureCommessaExcelDto>>> dictAnticipo = new();
 
@@ -868,7 +876,7 @@ public static class FattureExtensions
                     }
                     else
                     {
-                        // chiave gi‡ presente: faccio merge slot per slot
+                        // chiave gi√† presente: faccio merge slot per slot
                         for (int i = 0; i < fattureMat.Count; i++)
                         {
                             if (i < listaSlot.Count)
@@ -891,7 +899,7 @@ public static class FattureExtensions
 
                     // Preservo gli slot anche per le sospese
                     var sospeseMat = fattureSospese
-                        .Select(f => f?.ToList() ?? new List<FattureRelExcelDto>())
+                        .Select(f => f?.ToList() ?? new List<FattureRelSospeseExcelDto>())
                         .ToList();
 
                     if (sospeseMat.Sum(s => s.Count) == 0)
@@ -1051,12 +1059,12 @@ public static class FattureExtensions
                 .Select(s => (IEnumerable<FattureRelExcelDto>)s)
                 .ToList();
 
-            List<IEnumerable<FattureRelExcelDto>>? sospeseForReport = null;
+            List<IEnumerable<FattureRelSospeseExcelDto>>? sospeseForReport = null;
             if (dictFattureSospese.TryGetValue(tipologia, out var sospeseSlot))
             {
                 sospeseForReport = sospeseSlot
-                    .Select(s => (IEnumerable<FattureRelExcelDto>)s)
-                    .ToList(); 
+                    .Select(s => (IEnumerable<FattureRelSospeseExcelDto>)s)
+                    .ToList();
             }
 
             var relNonFirmateTipologia = relNonFirmate?
@@ -1192,7 +1200,7 @@ public static byte[] ReportFattureSospeseModuloCommessa(this List<IEnumerable<Fa
         return memory.ToArray();
     }
 
-    public static byte[] ReportFattureRel(this List<IEnumerable<FattureRelExcelDto>> fatture, List<IEnumerable<FattureRelExcelDto>>? fattureSospese, IEnumerable<RelNonFatturataDto>? relNonFirmate, string month, string tipologia)
+    public static byte[] ReportFattureRel(this List<IEnumerable<FattureRelExcelDto>> fatture, List<IEnumerable<FattureRelSospeseExcelDto>>? fattureSospese, IEnumerable<RelNonFatturataDto>? relNonFirmate, string month, string tipologia)
     {
         DataSet? dataSet = new();
         for (var i = 0; i < fatture.Count; i++)
@@ -1231,7 +1239,7 @@ public static byte[] ReportFattureSospeseModuloCommessa(this List<IEnumerable<Fa
         return memory.ToArray();
     }
 
-    public static byte[] ReportFattureSospeseRel(this List<IEnumerable<FattureRelExcelDto>> fatture, string month, string tipologia)
+    public static byte[] ReportFattureSospeseRel(this List<IEnumerable<FattureRelSospeseExcelDto>> fatture, string month, string tipologia)
     {
         DataSet? dataSet = new();
         for (var i = 0; i < fatture.Count; i++)
@@ -1254,7 +1262,7 @@ public static byte[] ReportFattureSospeseModuloCommessa(this List<IEnumerable<Fa
         return memory.ToArray();
     }
 
-    public static byte[] ReportFattureSospeseRel(this List<IEnumerable<FattureRelExcelDto>> fatture, FattureListaDto fattureSospeseDettaglio, string month, string tipologia)
+    public static byte[] ReportFattureSospeseRel(this List<IEnumerable<FattureRelSospeseExcelDto>> fatture, FattureListaDto fattureSospeseDettaglio, string month, string tipologia)
     {
         
         DataSet? dataSet = new();

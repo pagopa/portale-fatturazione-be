@@ -12,4 +12,5 @@ public static class ConfigurazionepagoPA
 
     public static string? To { get; set; }
     public static string? ToName { get; set; }
+     public static string? Environment { get; set; }
 }

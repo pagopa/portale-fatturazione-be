@@ -21,7 +21,7 @@ public class SendEmail(ILoggerFactory loggerFactory)
         var risposta = new Risposta();
         try
         {
-            string[] environments = new string[] { "fat-d-api-func", "fat-u-api-func", "DEBUG" };
+            string[] environments = ["fat-d-api-func", "fat-u-api-func", "debug"];
 
             ConfigurazioneSEND.Environment = GetEnvironmentVariable("PortaleFattureOptions:WEBSITE_SITE_NAME");
 
@@ -30,7 +30,9 @@ public class SendEmail(ILoggerFactory loggerFactory)
                 ConfigurazioneSEND.Environment = GetEnvironmentVariable("WEBSITE_SITE_NAME");
             }
 
-            var production = !environments.Contains(ConfigurazioneSEND.Environment!);
+            var currentEnvironment = ConfigurazioneSEND.Environment?.Trim();
+            var production = !string.IsNullOrWhiteSpace(currentEnvironment)
+                && !environments.Contains(currentEnvironment, StringComparer.OrdinalIgnoreCase);
 
             ConfigurazioneSEND.ConnectionString = GetEnvironmentVariable("PortaleFattureOptions:ConnectionString");
 
@@ -98,11 +100,6 @@ public class SendEmail(ILoggerFactory loggerFactory)
             }
 
             var subjectDefault = $"Notifica Regolare Esecuzione {tipologiafattura} Mese di {mese.GetMonth()}";
-            var sender = new EmailSender(smtpSource: ConfigurazioneSEND.Smtp!,
-                smtpPort: ConfigurazioneSEND.SmtpPort!,
-                smtpUser: ConfigurazioneSEND.SmtpAuth!,
-                smtpPassword: ConfigurazioneSEND.SmtpPassword!,
-                from: ConfigurazioneSEND.From!);
             var emailService = new EmailRelService(ConfigurazioneSEND.ConnectionString!);
             var enti = emailService.GetSenderEmail(risposta.Anno, risposta.Mese, risposta.TipologiaFattura!, tipoComunicazione, fase);
 
@@ -140,6 +137,12 @@ public class SendEmail(ILoggerFactory loggerFactory)
                     {
                         if (production)
                         {
+                            var sender = new EmailSender(smtpSource: ConfigurazioneSEND.Smtp!,
+                                smtpPort: ConfigurazioneSEND.SmtpPort!,
+                                smtpUser: ConfigurazioneSEND.SmtpAuth!,
+                                smtpPassword: ConfigurazioneSEND.SmtpPassword!,
+                                from: ConfigurazioneSEND.From!);
+
                             var (msg, ver) = sender.SendEmail(ente.Pec, subject, builder.CreateEmailHtml(ente)!);
                             if (!ver)
                                 _logger.LogInformation(msg);

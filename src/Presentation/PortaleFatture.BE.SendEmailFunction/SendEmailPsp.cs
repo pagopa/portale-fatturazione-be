@@ -21,30 +21,53 @@ public class SendEmailPsp(ILoggerFactory loggerFactory)
         var risposta = new RispostapagoPA();
         try
         {
-            // config
-            ConfigurazionepagoPA.ConnectionString = GetEnvironmentVariable("PortaleFattureOptions:ConnectionString");
-            ConfigurazionepagoPA.AccessToken = GetEnvironmentVariable("PortaleFattureOptions:AccessToken");
-            ConfigurazionepagoPA.RefreshToken = GetEnvironmentVariable("PortaleFattureOptions:RefreshToken");
-            ConfigurazionepagoPA.ClientId = GetEnvironmentVariable("PortaleFattureOptions:ClientId");
-            ConfigurazionepagoPA.ClientSecret = GetEnvironmentVariable("PortaleFattureOptions:ClientSecret");
-            ConfigurazionepagoPA.From = GetEnvironmentVariable("PortaleFattureOptions:From");
-            ConfigurazionepagoPA.FromName = GetEnvironmentVariable("PortaleFattureOptions:FromName");
-            ConfigurazionepagoPA.To = GetEnvironmentVariable("PortaleFattureOptions:To");
-            ConfigurazionepagoPA.ToName = GetEnvironmentVariable("PortaleFattureOptions:ToName");
 
-            if (String.IsNullOrEmpty(ConfigurazionepagoPA.ConnectionString) ||
-                String.IsNullOrEmpty(ConfigurazionepagoPA.AccessToken))
+            string[] environments = ["fat-d-api-func", "fat-u-api-func", "debug"];
+
+            ConfigurazionepagoPA.Environment = GetEnvironmentVariable("PortaleFattureOptions:WEBSITE_SITE_NAME");
+
+            if(String.IsNullOrEmpty(ConfigurazionepagoPA.Environment))
             {
-                ConfigurazionepagoPA.ConnectionString = GetEnvironmentVariable("CONNECTION_STRING");
-                ConfigurazionepagoPA.AccessToken = GetEnvironmentVariable("ACCESSTOKEN");
-                ConfigurazionepagoPA.RefreshToken = GetEnvironmentVariable("REFRESHTOKEN");
-                ConfigurazionepagoPA.ClientId = GetEnvironmentVariable("CLIENTID");
-                ConfigurazionepagoPA.ClientSecret = GetEnvironmentVariable("CLIENTSECRET");
-                ConfigurazionepagoPA.From = GetEnvironmentVariable("FROM");
-                ConfigurazionepagoPA.FromName = GetEnvironmentVariable("FROMNAME");
-                ConfigurazionepagoPA.To = GetEnvironmentVariable("TO");
-                ConfigurazionepagoPA.ToName = GetEnvironmentVariable("TONAME");
+                ConfigurazionepagoPA.Environment = GetEnvironmentVariable("WEBSITE_SITE_NAME");
             }
+
+            var currentEnvironment = ConfigurazionepagoPA.Environment?.Trim();
+            var production = !string.IsNullOrWhiteSpace(currentEnvironment)
+                && !environments.Contains(currentEnvironment, StringComparer.OrdinalIgnoreCase);
+
+            ConfigurazionepagoPA.ConnectionString = GetEnvironmentVariable("PortaleFattureOptions:ConnectionString");
+
+            if (String.IsNullOrEmpty(ConfigurazionepagoPA.ConnectionString)){
+                ConfigurazionepagoPA.ConnectionString = GetEnvironmentVariable("CONNECTION_STRING");
+            }
+
+            if(production){
+                // config
+                ConfigurazionepagoPA.ConnectionString = GetEnvironmentVariable("PortaleFattureOptions:ConnectionString");
+                ConfigurazionepagoPA.AccessToken = GetEnvironmentVariable("PortaleFattureOptions:AccessToken");
+                ConfigurazionepagoPA.RefreshToken = GetEnvironmentVariable("PortaleFattureOptions:RefreshToken");
+                ConfigurazionepagoPA.ClientId = GetEnvironmentVariable("PortaleFattureOptions:ClientId");
+                ConfigurazionepagoPA.ClientSecret = GetEnvironmentVariable("PortaleFattureOptions:ClientSecret");
+                ConfigurazionepagoPA.From = GetEnvironmentVariable("PortaleFattureOptions:From");
+                ConfigurazionepagoPA.FromName = GetEnvironmentVariable("PortaleFattureOptions:FromName");
+                ConfigurazionepagoPA.To = GetEnvironmentVariable("PortaleFattureOptions:To");
+                ConfigurazionepagoPA.ToName = GetEnvironmentVariable("PortaleFattureOptions:ToName");
+
+                if (String.IsNullOrEmpty(ConfigurazionepagoPA.ConnectionString) ||
+                    String.IsNullOrEmpty(ConfigurazionepagoPA.AccessToken))
+                {
+                    ConfigurazionepagoPA.ConnectionString = GetEnvironmentVariable("CONNECTION_STRING");
+                    ConfigurazionepagoPA.AccessToken = GetEnvironmentVariable("ACCESSTOKEN");
+                    ConfigurazionepagoPA.RefreshToken = GetEnvironmentVariable("REFRESHTOKEN");
+                    ConfigurazionepagoPA.ClientId = GetEnvironmentVariable("CLIENTID");
+                    ConfigurazionepagoPA.ClientSecret = GetEnvironmentVariable("CLIENTSECRET");
+                    ConfigurazionepagoPA.From = GetEnvironmentVariable("FROM");
+                    ConfigurazionepagoPA.FromName = GetEnvironmentVariable("FROMNAME");
+                    ConfigurazionepagoPA.To = GetEnvironmentVariable("TO");
+                    ConfigurazionepagoPA.ToName = GetEnvironmentVariable("TONAME");
+                }
+            }
+
             ;
 
 
@@ -57,6 +80,7 @@ public class SendEmailPsp(ILoggerFactory loggerFactory)
             var trimestre = req.Trimestre;
             var tipologia = EmailPspTipologia.Financial;
             var data = req.Date;
+            var preview = req.Preview;
 
             _logger.LogInformation("HTTP trigger function processed a request.");
 
@@ -75,12 +99,6 @@ public class SendEmailPsp(ILoggerFactory loggerFactory)
                 data = DateTime.UtcNow.ItalianTime().ToString("yyyy-MM-dd HH:mm:ss");
 
             var subject = $"Detailed invoice reports {trimestre}";
-            var sender = new PspEmailSender(accessToken: ConfigurazionepagoPA.AccessToken!,
-                refreshToken: ConfigurazionepagoPA.RefreshToken!,
-                clientId: ConfigurazionepagoPA.ClientId!,
-                clientSecret: ConfigurazionepagoPA.ClientSecret!,
-                from: ConfigurazionepagoPA.From,
-                fromName: ConfigurazionepagoPA.FromName!);
 
             IEnumerable<PspEmail>? psps = [];
             var emailService = new EmailPspService(ConfigurazionepagoPA.ConnectionString!);
@@ -116,24 +134,80 @@ public class SendEmailPsp(ILoggerFactory loggerFactory)
                 if (psp.Email != null)
                 {
                     var body = builder.CreateEmailHtml(psp);
-                    var (msg, ver) = sender.SendEmail(psp.Email, psp.RagioneSociale!, subject, body!, Guid.NewGuid().ToString());
-                    //var (msg, ver) = sender.SendEmail(ConfigurazionepagoPA.To!, ConfigurazionepagoPA.ToName!, subject, body!, Guid.NewGuid().ToString());
-
-                    if (!ver)
-                        _logger.LogInformation(msg);
-
-                    emailService.InsertTracciatoEmail(new PspEmailTracking()
+                    if (!preview.HasValue || !preview.Value)
                     {
-                        Data = data,
-                        IdContratto = psp.IdContratto,
-                        Invio = Convert.ToByte(ver == true ? 1 : 0),
-                        Anno = psp.Anno,
-                        Messaggio = msg,
-                        Email = psp.Email,
-                        Trimestre = psp.Trimestre,
-                        RagioneSociale = psp.RagioneSociale,
-                        Tipologia = psp.Tipologia
-                    });
+                        if(production)
+                        {
+                            var sender = new PspEmailSender(accessToken: ConfigurazionepagoPA.AccessToken!,
+                                refreshToken: ConfigurazionepagoPA.RefreshToken!,
+                                clientId: ConfigurazionepagoPA.ClientId!,
+                                clientSecret: ConfigurazionepagoPA.ClientSecret!,
+                                from: ConfigurazionepagoPA.From,
+                                fromName: ConfigurazionepagoPA.FromName!);
+
+                            var (msg, ver) = sender.SendEmail(psp.Email, psp.RagioneSociale!, subject, body!, Guid.NewGuid().ToString());
+                            //var (msg, ver) = sender.SendEmail(ConfigurazionepagoPA.To!, ConfigurazionepagoPA.ToName!, subject, body!, Guid.NewGuid().ToString());
+
+                            if (!ver)
+                                _logger.LogInformation(msg);
+
+                            emailService.InsertTracciatoEmail(new PspEmailTracking()
+                            {
+                                Data = data,
+                                IdContratto = psp.IdContratto,
+                                Invio = Convert.ToByte(ver == true ? 1 : 0),
+                                Anno = psp.Anno,
+                                Messaggio = $"{msg}\n\nOGGETTO: {subject}\n\nCORPO:\n{body!}",
+                                Oggetto = subject,
+                                Corpo = body,
+                                Link = psp.DetailReport ?? psp.AgentReport ?? psp.DiscountReport,
+                                Email = psp.Email,
+                                Trimestre = psp.Trimestre,
+                                RagioneSociale = psp.RagioneSociale,
+                                Tipologia = psp.Tipologia
+                            });
+                        }
+                        else
+                        {
+                            _logger.LogInformation($"Modalità di test: email NON inviata a {psp.Email} con oggetto {subject} e inserita nella tracking");
+                            emailService.InsertTracciatoEmail(new PspEmailTracking()
+                            {
+                                Data = data,
+                                IdContratto = psp.IdContratto,
+                                Invio = 0,
+                                Anno = psp.Anno,
+                                Messaggio = $"OGGETTO: {subject}\n\nCORPO:\n{body!}",
+                                Oggetto = subject,
+                                Corpo = body,
+                                Link = psp.DetailReport ?? psp.AgentReport ?? psp.DiscountReport,
+                                Email = psp.Email,
+                                Trimestre = psp.Trimestre,
+                                RagioneSociale = psp.RagioneSociale,
+                                Tipologia = psp.Tipologia
+                            });
+                        }
+
+                    }
+                    else
+                    {
+                        _logger.LogInformation($"Modalità preview: email NON inviata a {psp.Email} con oggetto {subject} e inserita nella tracking preview");
+
+                        emailService.InsertPreviewEmail(new PspEmailTracking()
+                        {
+                            Data = data,
+                            IdContratto = psp.IdContratto,
+                            Invio = 0,
+                            Anno = psp.Anno,
+                            Email = psp.Email,
+                            Trimestre = psp.Trimestre,
+                            RagioneSociale = psp.RagioneSociale,
+                            Tipologia = psp.Tipologia,
+                            Oggetto = subject,
+                            Corpo = body,
+                            Link = psp.DetailReport ?? psp.AgentReport ?? psp.DiscountReport,
+                            TipoContratto = null
+                        });
+                    }
                 }
 
             risposta.NumeroInvio = psps.Count();

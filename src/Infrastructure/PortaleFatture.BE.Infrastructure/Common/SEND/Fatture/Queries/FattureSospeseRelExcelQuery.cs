@@ -4,7 +4,7 @@ using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Dto;
 
 namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries;
 
-public class FattureSospeseRelExcelQuery(IAuthenticationInfo authenticationInfo) : IRequest<List<IEnumerable<FattureRelExcelDto>>?>
+public class FattureSospeseRelExcelQuery(IAuthenticationInfo authenticationInfo) : IRequest<List<IEnumerable<FattureRelSospeseExcelDto>>?>
 {
     public IAuthenticationInfo AuthenticationInfo { get; internal set; } = authenticationInfo;
     public string[]? IdEnti { get; set; }
