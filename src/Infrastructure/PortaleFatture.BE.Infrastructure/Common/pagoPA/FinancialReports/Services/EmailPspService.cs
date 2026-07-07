@@ -49,28 +49,28 @@ AND Invio=0 AND trimestre = @year_quarter";
     WHERE trimestre = @year_quarter";
 
     private readonly string _sqlSelect = @"
-SELECT 
-    k.contract_id, 
-    c.name,
-    k.year_quarter,
-    ISNULL([referentefattura_mail],[courtesy_mail]) as email,
-    k.descrizione_riga as links,
-	linkReport as DiscountReport
-FROM   ppa.kpmg k
-INNER JOIN   [ppa].[Contracts] c
-ON     c.contract_id = k.contract_id
-AND    c.year_quarter = k.year_quarter
-left JOIN
-       (
-                       SELECT DISTINCT [recipient_id],
-                                       year_quarter ,
-                                       [linkReport]
-                       FROM            [ppa].[KpiPagamenti_Sconto]
-                       WHERE           percsconto > 0) AS sconti
-ON     k.contract_id = sconti.recipient_id 
-and k.year_quarter = sconti.year_quarter
-where k.year_quarter =@year_quarter
-AND    len(k.descrizione_riga) > 0";
+        SELECT 
+            k.contract_id, 
+            c.name,
+            k.year_quarter,
+            ISNULL(NULLIF([referentefattura_mail], ''), [courtesy_mail]) as email,
+            k.descrizione_riga as links,
+            linkReport as DiscountReport
+        FROM   ppa.kpmg k
+        INNER JOIN   [ppa].[Contracts] c
+        ON     c.contract_id = k.contract_id
+        AND    c.year_quarter = k.year_quarter
+        left JOIN
+            (
+                            SELECT DISTINCT [recipient_id],
+                                            year_quarter ,
+                                            [linkReport]
+                            FROM            [ppa].[KpiPagamenti_Sconto]
+                            WHERE           percsconto > 0) AS sconti
+        ON     k.contract_id = sconti.recipient_id 
+        and k.year_quarter = sconti.year_quarter
+        where k.year_quarter =@year_quarter
+        AND    len(k.descrizione_riga) > 0";
 
     private readonly string _sqlInsert = @"
 INSERT INTO [ppa].[PspEmail]
