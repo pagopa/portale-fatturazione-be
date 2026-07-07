@@ -699,16 +699,20 @@ public static class FattureExtensions
     {
         Dictionary<string, byte[]> reports = [];
 
-        if (request.TipologiaFattura!.IsNullNotAny())
+        var tipologie = request.TipologiaFattura;
+        if (tipologie.IsNullNotAny())
         {
-            request.TipologiaFattura = (await handler.Send(new FattureTipologiaAnniMeseQuery(authInfo)
+            tipologie = (await handler.Send(new FattureTipologiaAnniMeseQuery(authInfo)
             {
                 Anno = request.Anno!,
                 Mese = request.Mese!
-            }))!.ToArray();
+            }))?.ToArray();
         }
 
-        foreach (var tipologia in request.TipologiaFattura!)
+        if (tipologie.IsNullNotAny())
+            return reports;
+
+        foreach (var tipologia in tipologie!)
         {
             var month = request.Mese.GetMonth();
             var year = request.Anno;
@@ -767,16 +771,20 @@ public static class FattureExtensions
     {
         Dictionary<string, byte[]> reports = [];
 
-        if (request.TipologiaFattura!.IsNullNotAny())
+        var tipologie = request.TipologiaFattura;
+        if (tipologie.IsNullNotAny())
         {
-            request.TipologiaFattura = (await handler.Send(new FattureSospeseTipologiaAnniMeseQuery(authInfo)
+            tipologie = (await handler.Send(new FattureSospeseTipologiaAnniMeseQuery(authInfo)
             {
                 Anno = request.Anno!,
                 Mese = request.Mese!
-            }))!.ToArray();
+            }))?.ToArray();
         }
 
-        foreach (var tipologia in request.TipologiaFattura!)
+        if (tipologie.IsNullNotAny())
+            return reports;
+
+        foreach (var tipologia in tipologie!)
         {
             var month = request.Mese.GetMonth();
             var year = request.Anno;
