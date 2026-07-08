@@ -7,5 +7,5 @@ public class EmailPspAdjustmentDataRequest
     // public string? Tipologia { get; set; }
     // public string? Reinvio { get; set; }
     // public string? Date { get; set; }
-    public bool? Preview { get; set; } = false;
+    public bool? Preview { get; set; } = true;
 }
