@@ -80,7 +80,7 @@ public class SendEmailPsp(ILoggerFactory loggerFactory)
             var trimestre = req.Trimestre;
             var tipologia = EmailPspTipologia.Financial;
             var data = req.Date;
-            var preview = req.Preview;
+            var preview = req.Preview ?? true;
 
             _logger.LogInformation("HTTP trigger function processed a request.");
 
@@ -134,7 +134,7 @@ public class SendEmailPsp(ILoggerFactory loggerFactory)
                 if (psp.Email != null)
                 {
                     var body = builder.CreateEmailHtml(psp);
-                    if (!preview.HasValue || !preview.Value)
+                    if (!preview)
                     {
                         if(production)
                         {

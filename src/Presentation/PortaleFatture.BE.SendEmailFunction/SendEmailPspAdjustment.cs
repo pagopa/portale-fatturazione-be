@@ -80,7 +80,7 @@ public class SendEmailPspAdjustment(ILoggerFactory loggerFactory)
             var trimestre = "2026_1";
             var tipologia = EmailPspTipologia.FinancialAdjust;
             var data = DateTime.UtcNow.ItalianTime().ToString("yyyy-MM-dd HH:mm:ss");
-            var preview = req.Preview;
+            var preview = req.Preview ?? true;
 
             _logger.LogInformation("HTTP trigger function processed a request.");
 
@@ -123,7 +123,7 @@ public class SendEmailPspAdjustment(ILoggerFactory loggerFactory)
                 if (psp.Email != null)
                 {
                     var body = builder.CreateEmailAdjsutmentHtml(psp);
-                    if (!preview.HasValue || !preview.Value)
+                    if (!preview)
                     {
                         if(production)
                         {
