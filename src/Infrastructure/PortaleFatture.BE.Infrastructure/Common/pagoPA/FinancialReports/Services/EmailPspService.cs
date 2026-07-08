@@ -48,6 +48,12 @@ AND Invio=0 AND trimestre = @year_quarter";
     FROM [ppa].[PspEmail]
     WHERE trimestre = @year_quarter";
 
+    private readonly string _sqlCountInvioEmailAdjust = @"
+        SELECT COUNT(idcontratto) 
+        FROM [ppa].[PspEmail]
+        WHERE trimestre = @year_quarter AND tipologia = 'FINANCIAL_ADJUST'
+    ";
+
     private readonly string _sqlSelect = @"
         SELECT 
             k.contract_id, 
@@ -150,6 +156,28 @@ INSERT INTO [stg].[PspEmailPreview]
         } 
     }
 
+    public bool CountInvioAdjustment(string? trimestre)
+    {
+        try
+        {
+            using var conn = new SqlConnection(_cn);
+            conn.Open();
+            using var cmd = new SqlCommand();
+            cmd.Connection = conn;
+            cmd.Parameters.Add("@year_quarter", SqlDbType.NVarChar).Value = trimestre;
+            cmd.CommandText = _sqlCountInvioEmailAdjust;
+            var count = cmd.ExecuteScalar();
+            if (count is not null)
+                return Convert.ToInt32(count) > 0;
+            else
+                return false;
+        }
+        catch
+        {
+            return false;
+        } 
+    }
+
     public List<string?> GetSenderEmailReinvio(string? trimestre)
     {
         List<string?> emails = [];
@@ -201,6 +229,47 @@ INSERT INTO [stg].[PspEmailPreview]
                         IdContratto = reader.GetString(0),
                         RagioneSociale = reader.GetString(1),
                         Tipologia = EmailPspTipologia.Financial,
+                        Anno = Convert.ToInt32(reader.GetString(2)!.Split("_")[0]),
+                        Trimestre = reader.GetString(2),
+                        Email = reader.IsDBNull(3) ? string.Empty : reader.GetString(3),
+                        AgentReport = reports.Where(x => x.ToLower().Contains("agentquarter")).FirstOrDefault(),
+                        DetailReport = reports.Where(x => x.ToLower().Contains("detailed")).FirstOrDefault(),
+                        DiscountReport = reader.IsDBNull(5) ? string.Empty : reader.GetString(5)
+                    });
+                }
+            }
+            reader.Close();
+        }
+        catch
+        {
+
+
+        }
+        return emails;
+    }
+
+    public IEnumerable<PspEmail>? GetSenderEmailAdjustment(string? trimestre)
+    {
+        List<PspEmail> emails = [];
+        try
+        {
+            using var conn = new SqlConnection(_cn);
+            conn.Open();
+            using var cmd = new SqlCommand();
+            cmd.Connection = conn;
+            cmd.Parameters.Add("@year_quarter", SqlDbType.NVarChar).Value = trimestre;
+            cmd.CommandText = _sqlSelect;
+            var reader = cmd.ExecuteReader();
+            if (reader.HasRows)
+            {
+                while (reader.Read())
+                {
+                    var reports = reader.GetString(4).Split(",");
+                    emails.Add(new PspEmail()
+                    {
+                        IdContratto = reader.GetString(0),
+                        RagioneSociale = reader.GetString(1),
+                        Tipologia = EmailPspTipologia.FinancialAdjust,
                         Anno = Convert.ToInt32(reader.GetString(2)!.Split("_")[0]),
                         Trimestre = reader.GetString(2),
                         Email = reader.IsDBNull(3) ? string.Empty : reader.GetString(3),
