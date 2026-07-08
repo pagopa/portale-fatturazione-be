@@ -22,7 +22,7 @@ internal class SendEmailPspHandler
         var trimestre = queryParams["trimestre"];
         var tipologia = EmailPspTipologia.Financial;
         var date = queryParams["data"];
-        var preview = bool.TryParse(queryParams["preview"], out var previewValue) && previewValue;
+        bool? preview = bool.TryParse(queryParams["preview"], out var previewValue) ? previewValue : null;
 
 
         if (string.IsNullOrEmpty(anno) || string.IsNullOrEmpty(trimestre) || string.IsNullOrEmpty(tipologia))
