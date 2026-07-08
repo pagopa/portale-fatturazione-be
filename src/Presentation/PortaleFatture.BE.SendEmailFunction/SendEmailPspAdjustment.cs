@@ -11,12 +11,12 @@ using PortaleFatture_BE_SendEmailFunction.Models.pagoPA;
 
 namespace PortaleFatture_BE_SendEmailFunction;
 
-public class SendEmailPsp(ILoggerFactory loggerFactory)
+public class SendEmailPspAdjustment(ILoggerFactory loggerFactory)
 {
-    private readonly ILogger _logger = loggerFactory.CreateLogger<SendEmailPsp>();
+    private readonly ILogger _logger = loggerFactory.CreateLogger<SendEmailPspAdjustment>();
 
-    [Function("SendEmailPsp")]
-    public async Task RunAsync([ActivityTrigger] EmailPspDataRequest req)
+    [Function(nameof(SendEmailPspAdjustment))]
+    public async Task RunAsync([ActivityTrigger] EmailPspAdjustmentDataRequest req)
     {
         var risposta = new RispostapagoPA();
         try
@@ -75,11 +75,11 @@ public class SendEmailPsp(ILoggerFactory loggerFactory)
             var path = fileInfo.Directory!.FullName;
 
             // params
-            var anno = Convert.ToInt32(req.Anno);
-            int? reinvio = Convert.ToInt32(req.Reinvio);
-            var trimestre = req.Trimestre;
-            var tipologia = EmailPspTipologia.Financial;
-            var data = req.Date;
+            var anno = 2026;
+            //int? reinvio = Convert.ToInt32(req.Reinvio);
+            var trimestre = "2026_1";
+            var tipologia = EmailPspTipologia.FinancialAdjust;
+            var data = DateTime.UtcNow.ItalianTime().ToString("yyyy-MM-dd HH:mm:ss");
             var preview = req.Preview ?? true;
 
             _logger.LogInformation("HTTP trigger function processed a request.");
@@ -102,38 +102,27 @@ public class SendEmailPsp(ILoggerFactory loggerFactory)
 
             IEnumerable<PspEmail>? psps = [];
             var emailService = new EmailPspService(ConfigurazionepagoPA.ConnectionString!);
-            if (reinvio is null || reinvio != 1)
+
+            var count = emailService.CountInvioAdjustment(risposta.Trimestre);
+            if (!count)
+                psps = emailService.GetSenderEmailAdjustment(risposta.Trimestre);
+            else
             {
-                // verifica comunque se c'è stato un invio
-                var count = emailService.CountInvio(risposta.Trimestre);
-                if (!count)
-                    psps = emailService.GetSenderEmail(risposta.Trimestre);
-                else
-                {
-                    var message = $"The email has been already sent for quarter {trimestre}.";
-                    risposta.Error = message;
-                    _logger.LogInformation($"The email has been already sent");
-                }
-            }
-            else // reinvio == 1
-            {
-                var subPsps = emailService.GetSenderEmailReinvio(risposta.Trimestre);
-                if (!subPsps.IsNullNotAny())
-                {
-                    var totalPsps = emailService.GetSenderEmail(risposta.Trimestre);
-                    psps = totalPsps!.Where(x => subPsps.Contains(x.IdContratto));
-                }
+                var message = $"The email adjustment has been already sent for quarter {trimestre}.";
+                risposta.Error = message;
+                _logger.LogInformation($"The email adjustment has been already sent");
             }
 
-            var apiKeyFilePath = builder.ApiKeyFilePath();
+            //psps = emailService.GetSenderEmailAdjustment(risposta.Trimestre);
+
+           var apiKeyFilePath = builder.ApiKeyFilePath();
             _logger.LogInformation(psps.Serialize());
 
-            Thread.Sleep(60000); // 1 minuto
 
             foreach (var psp in psps!)
                 if (psp.Email != null)
                 {
-                    var body = builder.CreateEmailHtml(psp);
+                    var body = builder.CreateEmailAdjsutmentHtml(psp);
                     if (!preview)
                     {
                         if(production)

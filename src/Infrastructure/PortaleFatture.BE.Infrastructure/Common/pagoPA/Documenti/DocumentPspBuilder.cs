@@ -8,6 +8,7 @@ public class DocumentPspBuilder
 {
     private static string _apiKeyFile = $"credentials.json";
     private static string _fileEmailFinancial = $"email_psp.html";
+    private static string _fileEmailAdjustmentFinancial = $"email_psp_adjustment.html";
     private static string _directory = $"Infrastructure/Documenti/pagoPA/";
     private readonly string _root;
     private readonly string _directoryPath;
@@ -25,6 +26,15 @@ public class DocumentPspBuilder
         text = Replace(dati, text!);
         return text;
     }
+
+    public string? CreateEmailAdjsutmentHtml(PspEmail dati)
+    {
+        var filePath = Path.Combine([_directoryPath, _fileEmailAdjustmentFinancial]);
+        var text = ReadFromFile(filePath);
+        text = Replace(dati, text!);
+        return text;
+    }
+
     public string? ApiKeyFilePath()
     {
         return Path.Combine([_directoryPath, _apiKeyFile]);

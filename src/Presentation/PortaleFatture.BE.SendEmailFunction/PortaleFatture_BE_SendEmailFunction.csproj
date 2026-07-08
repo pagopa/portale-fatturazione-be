@@ -30,6 +30,9 @@
     <None Update="host.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="Infrastructure\Documenti\pagoPA\email_psp_adjustment.html">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Infrastructure\Documenti\pagoPA\email_psp.html">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
