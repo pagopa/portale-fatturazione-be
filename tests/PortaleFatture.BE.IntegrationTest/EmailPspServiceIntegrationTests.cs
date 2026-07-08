@@ -161,6 +161,42 @@ public class EmailPspServiceIntegrationTests
             "Quarter filter regression: result contains records from a different quarter.");
     }
 
+    [Test]
+    public void GetSenderEmailAdjustment_ReadOnly_ShouldReturnAdjustmentTipologiaAndQuarterFilter()
+    {
+        var connectionString = Required("PortaleFattureOptions:ConnectionString");
+        var service = new EmailPspService(connectionString);
+        const string quarter = "2026_1";
+
+        var result = service.GetSenderEmailAdjustment(quarter);
+
+        ClassicAssert.IsNotNull(result);
+
+        var first = result!.FirstOrDefault();
+        if (first is null)
+        {
+            Assert.Pass($"No adjustment sender records found for quarter {quarter}; read-only query executed successfully.");
+            return;
+        }
+
+        Assert.That(first.Tipologia, Is.EqualTo(EmailPspTipologia.FinancialAdjust));
+        Assert.That(result.All(x => x.Trimestre == quarter), Is.True,
+            "Quarter filter regression: adjustment result contains records from a different quarter.");
+    }
+
+    [Test]
+    public void CountInvioAdjustment_ReadOnly_ShouldMatchDatabaseCountEvaluation()
+    {
+        var connectionString = Required("PortaleFattureOptions:ConnectionString");
+        var service = new EmailPspService(connectionString);
+        const string quarter = "2026_1";
+
+        var serviceResult = service.CountInvioAdjustment(quarter);
+        var dbCount = GetAdjustmentCount(connectionString, quarter);
+
+        Assert.That(serviceResult, Is.EqualTo(dbCount > 0));
+    }
+
     private string Required(string key)
     {
         var value = _conf.GetValue<string>(key);
@@ -342,6 +378,21 @@ WHERE [IdContratto] = @IdContratto
         cmd.Parameters.AddWithValue("@IdContratto", idContratto);
         cmd.Parameters.AddWithValue("@Trimestre", trimestre);
         cmd.ExecuteNonQuery();
+    }
+
+    private static int GetAdjustmentCount(string connectionString, string quarter)
+    {
+        const string sql = @"
+SELECT COUNT(1)
+FROM [ppa].[PspEmail]
+WHERE [Trimestre] = @Trimestre
+  AND [Tipologia] = 'FINANCIAL_ADJUST';";
+
+        using var conn = new SqlConnection(connectionString);
+        conn.Open();
+        using var cmd = new SqlCommand(sql, conn);
+        cmd.Parameters.AddWithValue("@Trimestre", quarter);
+        return Convert.ToInt32(cmd.ExecuteScalar());
     }
 
     private sealed record TrackingRow(string? Oggetto, string? Corpo, string? Link);

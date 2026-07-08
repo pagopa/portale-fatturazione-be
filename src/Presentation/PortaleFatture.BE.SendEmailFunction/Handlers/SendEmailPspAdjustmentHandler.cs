@@ -4,35 +4,25 @@ using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.DurableTask.Client;
 using PortaleFatture.BE.Core.Entities.pagoPA.AnagraficaPSP;
 using PortaleFatture_BE_SendEmailFunction.Models.pagoPA;
+using PortaleFatture_BE_SendEmailFunction.Orchestrators;
 
 namespace PortaleFatture_BE_SendEmailFunction.Handlers;
 
-internal class SendEmailPspHandler
+internal class SendEmailPspAdjustmentHandler
 {
 
-    [Function("SendEmailPspHandler")]
-    public async Task<HttpResponseData> StartEmailPspOrchestration(
+    [Function(nameof(SendEmailPspAdjustmentHandler))]
+    public async Task<HttpResponseData> StartEmailPspAdjustmentOrchestration(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post")] HttpRequestData req,
         [DurableClient] DurableTaskClient client)
     {
         var queryParams = req.Query;
 
-        var anno = queryParams["trimestre"]!.Split("_")[0];
-        var reinvio = queryParams["reinvio"];
-        var trimestre = queryParams["trimestre"];
-        var tipologia = EmailPspTipologia.Financial;
-        var date = queryParams["data"];
         bool? preview = bool.TryParse(queryParams["preview"], out var previewValue) ? previewValue : null;
 
+        var data = new EmailPspAdjustmentDataRequest { Preview = preview };
 
-        if (string.IsNullOrEmpty(anno) || string.IsNullOrEmpty(trimestre) || string.IsNullOrEmpty(tipologia))
-        {
-            return req.CreateResponse(HttpStatusCode.BadRequest);
-        }
-
-        var data = new EmailPspDataRequest { Anno = anno, Trimestre = trimestre, Tipologia = tipologia, Reinvio = reinvio, Date = date, Preview = preview };
-
-        var instanceId = await client.ScheduleNewOrchestrationInstanceAsync("SendEmailPspOrchestrator", data);
+        var instanceId = await client.ScheduleNewOrchestrationInstanceAsync(nameof(SendEmailPspAdjustmentOrchestrator), data);
         var payload = new
         {
             message = "Orchestration started successfully.",

@@ -70,11 +70,32 @@ public class EmailPspServiceTests
     }
 
     [Test]
+    public void CountInvioAdjustment_WithInvalidConnection_ShouldReturnFalse()
+    {
+        var service = new EmailPspService(InvalidConnectionString);
+
+        var result = service.CountInvioAdjustment("2026_1");
+
+        ClassicAssert.IsFalse(result);
+    }
+
+    [Test]
     public void GetSenderEmail_WithInvalidConnection_ShouldReturnEmpty()
     {
         var service = new EmailPspService(InvalidConnectionString);
 
         var result = service.GetSenderEmail("2026_1");
+
+        ClassicAssert.IsNotNull(result);
+        ClassicAssert.IsEmpty(result!);
+    }
+
+    [Test]
+    public void GetSenderEmailAdjustment_WithInvalidConnection_ShouldReturnEmpty()
+    {
+        var service = new EmailPspService(InvalidConnectionString);
+
+        var result = service.GetSenderEmailAdjustment("2026_1");
 
         ClassicAssert.IsNotNull(result);
         ClassicAssert.IsEmpty(result!);
@@ -122,5 +143,18 @@ public class EmailPspServiceTests
         ClassicAssert.IsTrue(referIndex >= 0, "[referentefattura_mail] not found in _sqlSelect.");
         ClassicAssert.IsTrue(courtesyIndex >= 0, "[courtesy_mail] not found in _sqlSelect.");
         ClassicAssert.IsTrue(referIndex < courtesyIndex, "Expected referentefattura_mail to be evaluated before courtesy_mail.");
+    }
+
+    [Test]
+    public void SqlCountInvioEmailAdjust_ShouldFilterOnFinancialAdjustTipologia()
+    {
+        var service = new EmailPspService(InvalidConnectionString);
+
+        var field = typeof(EmailPspService).GetField("_sqlCountInvioEmailAdjust", BindingFlags.NonPublic | BindingFlags.Instance);
+        ClassicAssert.IsNotNull(field, "Private field _sqlCountInvioEmailAdjust not found.");
+
+        var sql = field!.GetValue(service) as string;
+        ClassicAssert.IsNotNull(sql);
+        ClassicAssert.IsTrue(sql!.Contains("tipologia = 'FINANCIAL_ADJUST'", StringComparison.OrdinalIgnoreCase));
     }
 }
