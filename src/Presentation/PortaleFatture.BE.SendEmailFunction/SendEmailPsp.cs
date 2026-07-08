@@ -13,7 +13,7 @@ namespace PortaleFatture_BE_SendEmailFunction;
 
 public class SendEmailPsp(ILoggerFactory loggerFactory)
 {
-    private readonly ILogger _logger = loggerFactory.CreateLogger<SendEmail>();
+    private readonly ILogger _logger = loggerFactory.CreateLogger<SendEmailPsp>();
 
     [Function("SendEmailPsp")]
     public async Task RunAsync([ActivityTrigger] EmailPspDataRequest req)
