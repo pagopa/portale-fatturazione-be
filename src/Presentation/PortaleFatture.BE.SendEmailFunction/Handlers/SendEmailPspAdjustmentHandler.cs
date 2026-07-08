@@ -18,7 +18,7 @@ internal class SendEmailPspAdjustmentHandler
     {
         var queryParams = req.Query;
 
-        var preview = bool.TryParse(queryParams["preview"], out var previewValue) && previewValue;
+        bool? preview = bool.TryParse(queryParams["preview"], out var previewValue) ? previewValue : null;
 
         var data = new EmailPspAdjustmentDataRequest { Preview = preview };
 
