@@ -1993,4 +1993,37 @@ public partial class FattureModule
         return Results.Stream(result.FileStream, result.ContentType, result.FileDownloadName);
     }
 
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<GestioneFattureListDto>, BadRequest, NotFound>> PostPagoPAGestioneFatturazioneAsync(
+   HttpContext context,
+   RicercaGestioneFatture request,
+   [FromQuery] int page,
+   [FromQuery] int pageSize,
+   [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+
+        var lista = await handler.Send(new GestioneFattureQuery(authInfo)
+        {
+            Anno = request.Anno,
+            IdEnti = request.IdEnti,
+            Mesi = request.Mesi,
+            TipologiaContratto = request.TipologiaContratto,
+            TipologiaFattura = request.TipologiaFattura,
+            Azione = request.Azione,
+            Note = request.Note,
+            Page = page,
+            Size = pageSize
+        });
+
+        if (lista == null! || lista.GestioneFatture.IsNullNotAny())
+            return NotFound();
+        return Ok(lista);
+    }
+
 }

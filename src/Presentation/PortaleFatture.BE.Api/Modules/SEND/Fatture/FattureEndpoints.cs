@@ -335,7 +335,7 @@ public partial class FattureModule : Module, IRegistrableModule
             .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
         endpointRouteBuilder
-            .MapGet("api/fatture-da-non-inviare/pagopa", PostPagoPAEsclusioneInvioFattureInserimentoAsync)
+            .MapPost("api/fatture-da-non-inviare/pagopa", PostPagoPAEsclusioneInvioFattureInserimentoAsync)
             .WithName("Permette di inserire le fatture da NON inviare nel json SAP via utente PagoPA.")
             .SetOpenApi(Module.DatiFattureLabel)
             .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
@@ -433,7 +433,13 @@ public partial class FattureModule : Module, IRegistrableModule
           .SetOpenApi(Module.DatiFattureEnti)
           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
-        
+        endpointRouteBuilder
+            .MapPost("api/fatture/pagopa/gestione-fatture", PostPagoPAGestioneFatturazioneAsync)
+            .WithName("Permette di recuperare gli enti/fatture da non non inviare a SAP via utente PagoPA.")
+            .SetOpenApi(Module.DatiFattureLabel)
+            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+
     }
 
 }
