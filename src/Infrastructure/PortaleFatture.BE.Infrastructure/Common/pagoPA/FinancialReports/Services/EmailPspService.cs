@@ -51,7 +51,7 @@ AND Invio=0 AND trimestre = @year_quarter";
     private readonly string _sqlCountInvioEmailAdjust = @"
         SELECT COUNT(idcontratto) 
         FROM [ppa].[PspEmail]
-        WHERE trimestre = @year_quarter AND tipologia = 'FINANCIAL_ADJUST'
+        WHERE trimestre = @year_quarter AND tipologia = 'FINANCIAL_ADJUST' AND Invio = 1
     ";
 
     private readonly string _sqlSelect = @"

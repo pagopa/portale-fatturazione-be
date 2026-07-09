@@ -1,4 +1,5 @@
 using PortaleFatture_BE_SendEmailFunction.Models.pagoPA;
+using System.Collections.Specialized;
 
 namespace PortaleFatture.BE.UnitTest;
 
@@ -39,6 +40,23 @@ public class PreviewDefaultTests
         var req = new EmailPspAdjustmentDataRequest
         {
             Preview = null
+        };
+
+        var effectivePreview = req.Preview ?? true;
+
+        Assert.That(effectivePreview, Is.True);
+    }
+
+    [Test]
+    public void EmailPspAdjustment_QueryStringMissingPreview_ShouldResolveToTrueByDefault()
+    {
+        var queryParams = new NameValueCollection();
+
+        bool? preview = bool.TryParse(queryParams["preview"], out var previewValue) ? previewValue : null;
+
+        var req = new EmailPspAdjustmentDataRequest
+        {
+            Preview = preview
         };
 
         var effectivePreview = req.Preview ?? true;

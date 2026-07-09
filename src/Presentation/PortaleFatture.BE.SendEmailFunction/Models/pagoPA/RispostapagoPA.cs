@@ -9,4 +9,9 @@ public sealed class RispostapagoPA
     public bool? DbConnection { get; set; } = true;
     public string? Error { get; set; } 
     public int NumeroInvio { get; set; }
+    public int Processati { get; set; }
+    public int Inviati { get; set; }
+    public int Loggati { get; set; }
+    public int LogAnteprime{ get; set; }
+
 }

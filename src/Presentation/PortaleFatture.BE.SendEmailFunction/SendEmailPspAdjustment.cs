@@ -16,9 +16,14 @@ public class SendEmailPspAdjustment(ILoggerFactory loggerFactory)
     private readonly ILogger _logger = loggerFactory.CreateLogger<SendEmailPspAdjustment>();
 
     [Function(nameof(SendEmailPspAdjustment))]
-    public async Task RunAsync([ActivityTrigger] EmailPspAdjustmentDataRequest req)
+    public async Task<RispostapagoPA> RunAsync([ActivityTrigger] EmailPspAdjustmentDataRequest req)
     {
         var risposta = new RispostapagoPA();
+        var processati = 0;
+        var inviati = 0;
+        var loggati = 0;
+        var logAnteprime = 0;
+
         try
         {
 
@@ -98,7 +103,7 @@ public class SendEmailPspAdjustment(ILoggerFactory loggerFactory)
             if (string.IsNullOrEmpty(data))
                 data = DateTime.UtcNow.ItalianTime().ToString("yyyy-MM-dd HH:mm:ss");
 
-            var subject = $"Detailed invoice reports {trimestre}";
+            var subject = $"Report Dettagli Fatturazione {trimestre} - AGGIORNAMENTO";
 
             IEnumerable<PspEmail>? psps = [];
             var emailService = new EmailPspService(ConfigurazionepagoPA.ConnectionString!);
@@ -138,15 +143,15 @@ public class SendEmailPspAdjustment(ILoggerFactory loggerFactory)
                             //var (msg, ver) = sender.SendEmail(ConfigurazionepagoPA.To!, ConfigurazionepagoPA.ToName!, subject, body!, Guid.NewGuid().ToString());
 
                             if (!ver)
-                                _logger.LogInformation(msg);
-
+                                _logger.LogInformation(msg); 
+                            
                             emailService.InsertTracciatoEmail(new PspEmailTracking()
                             {
                                 Data = data,
                                 IdContratto = psp.IdContratto,
                                 Invio = Convert.ToByte(ver == true ? 1 : 0),
                                 Anno = psp.Anno,
-                                Messaggio = $"{msg}\n\nOGGETTO: {subject}\n\nCORPO:\n{body!}",
+                                Messaggio = $"{msg}",
                                 Oggetto = subject,
                                 Corpo = body,
                                 Link = psp.DetailReport ?? psp.AgentReport ?? psp.DiscountReport,
@@ -155,6 +160,7 @@ public class SendEmailPspAdjustment(ILoggerFactory loggerFactory)
                                 RagioneSociale = psp.RagioneSociale,
                                 Tipologia = psp.Tipologia
                             });
+                            inviati++;
                         }
                         else
                         {
@@ -165,7 +171,7 @@ public class SendEmailPspAdjustment(ILoggerFactory loggerFactory)
                                 IdContratto = psp.IdContratto,
                                 Invio = 0,
                                 Anno = psp.Anno,
-                                Messaggio = $"OGGETTO: {subject}\n\nCORPO:\n{body!}",
+                                Messaggio = $"Modalità di test: email NON inviata a {psp.Email} con oggetto {subject} e inserita nella tracking",
                                 Oggetto = subject,
                                 Corpo = body,
                                 Link = psp.DetailReport ?? psp.AgentReport ?? psp.DiscountReport,
@@ -175,7 +181,7 @@ public class SendEmailPspAdjustment(ILoggerFactory loggerFactory)
                                 Tipologia = psp.Tipologia
                             });
                         }
-
+                        loggati++;
                     }
                     else
                     {
@@ -196,10 +202,16 @@ public class SendEmailPspAdjustment(ILoggerFactory loggerFactory)
                             Link = psp.DetailReport ?? psp.AgentReport ?? psp.DiscountReport,
                             TipoContratto = null
                         });
+                        logAnteprime++;
                     }
+                    processati++;
                 }
 
             risposta.NumeroInvio = psps.Count();
+            risposta.Processati = processati;
+            risposta.Inviati = inviati;
+            risposta.Loggati = loggati;
+            risposta.LogAnteprime = logAnteprime;
         }
         catch (Exception ex)
         {
@@ -208,7 +220,9 @@ public class SendEmailPspAdjustment(ILoggerFactory loggerFactory)
             _logger.LogInformation(ex.Message);
         }
 
+        //var output = risposta.Serialize();
         _logger.LogInformation(risposta.Serialize());
+        return risposta;
     }
 
     private static string? GetEnvironmentVariable(string name)
