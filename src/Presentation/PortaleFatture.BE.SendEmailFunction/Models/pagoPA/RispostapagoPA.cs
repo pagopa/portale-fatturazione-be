@@ -2,6 +2,7 @@
 
 public sealed class RispostapagoPA
 {
+    public string? Environment { get; set; }
     public int Anno { get; set; }
     public string? Trimestre { get; set; }
     public string? Tipologia  { get; set; }

@@ -21,6 +21,10 @@ public class SendEmail(ILoggerFactory loggerFactory)
         var risposta = new Risposta();
         try
         {
+
+
+            // /|\ etection produzione per esclusione (ambiente sconosciuto ⇒ invio reale) — passare ad allow-list esplicita; 
+            // blocco duplicato in SendEmail.cs e SendEmailPspAdjustment.cs, estrarre helper condiviso
             string[] environments = ["fat-d-api-func", "fat-u-api-func", "debug"];
 
             ConfigurazioneSEND.Environment = GetEnvironmentVariable("PortaleFattureOptions:WEBSITE_SITE_NAME");
@@ -103,6 +107,7 @@ public class SendEmail(ILoggerFactory loggerFactory)
             var emailService = new EmailRelService(ConfigurazioneSEND.ConnectionString!);
             var enti = emailService.GetSenderEmail(risposta.Anno, risposta.Mese, risposta.TipologiaFattura!, tipoComunicazione, fase);
 
+            // /|\ nessun blocco anti-doppioni — riesecuzioni = PEC duplicate; decidere se aggiungere controllo su pfd.RelEmail o formalizzare l'idempotenza a carico della pipeline
             enti = enti!.Where(w => w.TipologiaFattura == risposta.TipologiaFattura!).ToList();
 
             foreach (var ente in enti!)
