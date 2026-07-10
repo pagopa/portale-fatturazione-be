@@ -26,7 +26,9 @@ public class SendEmailPspAdjustment(ILoggerFactory loggerFactory)
 
         try
         {
-
+            // /|\ etection produzione per esclusione (ambiente sconosciuto ⇒ invio reale) — 
+            // passare ad allow-list esplicita; blocco duplicato in SendEmail.cs e SendEmailPspAdjustment.cs, 
+            // estrarre helper condiviso
             string[] environments = ["fat-d-api-func", "fat-u-api-func", "debug"];
 
             ConfigurazionepagoPA.Environment = GetEnvironmentVariable("PortaleFattureOptions:WEBSITE_SITE_NAME");
@@ -92,6 +94,7 @@ public class SendEmailPspAdjustment(ILoggerFactory loggerFactory)
             // response
             risposta = new RispostapagoPA()
             {
+                Environment = currentEnvironment,
                 Anno = anno,
                 Trimestre = trimestre,
                 Tipologia = tipologia,
@@ -103,7 +106,7 @@ public class SendEmailPspAdjustment(ILoggerFactory loggerFactory)
             if (string.IsNullOrEmpty(data))
                 data = DateTime.UtcNow.ItalianTime().ToString("yyyy-MM-dd HH:mm:ss");
 
-            var subject = $"Report Dettagli Fatturazione {trimestre} - AGGIORNAMENTO";
+            var subject = $"piattaforma pagoPA - Report aggiornati Q1 2026 e conguagli in fatturazione Q2 2026";
 
             IEnumerable<PspEmail>? psps = [];
             var emailService = new EmailPspService(ConfigurazionepagoPA.ConnectionString!);

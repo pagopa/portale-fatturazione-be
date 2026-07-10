@@ -42,6 +42,9 @@ FROM RankedEmails
 WHERE RowNum = 1
 AND Invio=0 AND trimestre = @year_quarter";
 
+    // /|\ filtrare AND Invio = 1 AND tipologia = 'FINANCIAL' 
+    // come _sqlCountInvioEmailAdjust — oggi un run preview=false 
+    // da DEV/UAT blocca anche il futuro invio di produzione
     private readonly string _sqlCountInvioEmail = @"
     SELECT 
         count(idcontratto) 
@@ -315,6 +318,9 @@ INSERT INTO [stg].[PspEmailPreview]
         }
         catch
         {
+            // /|\ eccezione inghiottita senza log — loggarla (o rilanciarla); 
+            // i chiamanti devono controllare il bool: 
+            // un invio reale non tracciato rende cieco l'anti-doppioni
 
             return false;
         }
@@ -346,6 +352,9 @@ INSERT INTO [stg].[PspEmailPreview]
         }
         catch
         {
+            // /|\ eccezione inghiottita senza log — loggarla (o rilanciarla); 
+            // i chiamanti devono controllare il bool: 
+            // un invio reale non tracciato rende cieco l'anti-doppioni
 
             return false;
         }

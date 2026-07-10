@@ -339,6 +339,9 @@ from cte_sospese cs
         }
         catch
         {
+            // /|\ eccezione inghiottita senza log — loggarla (o rilanciarla); 
+            // i chiamanti devono controllare il bool: 
+            // un invio reale non tracciato rende cieco l'anti-doppioni
 
             return false;
         }
@@ -382,6 +385,9 @@ from cte_sospese cs
         }
         catch
         {
+            // /|\ eccezione inghiottita senza log — loggarla (o rilanciarla); 
+            // i chiamanti devono controllare il bool: 
+            // un invio reale non tracciato rende cieco l'anti-doppioni
 
             return false;
         }

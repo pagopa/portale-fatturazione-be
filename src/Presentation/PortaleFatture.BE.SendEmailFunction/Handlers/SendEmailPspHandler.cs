@@ -22,6 +22,8 @@ internal class SendEmailPspHandler
         var trimestre = queryParams["trimestre"];
         var tipologia = EmailPspTipologia.Financial;
         var date = queryParams["data"];
+
+        // /!\ pausa fissa di 1 minuto senza motivazione documentata — verificare se serve ancora, poi rimuovere o rendere configurabile
         bool? preview = bool.TryParse(queryParams["preview"], out var previewValue) ? previewValue : null;
 
 

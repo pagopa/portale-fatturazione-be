@@ -16,13 +16,16 @@ public class SendEmailPsp(ILoggerFactory loggerFactory)
     private readonly ILogger _logger = loggerFactory.CreateLogger<SendEmailPsp>();
 
     [Function("SendEmailPsp")]
+
+    // /!\ ritornare RispostapagoPA con Environment e contatori Processati/Inviati/Loggati/LogAnteprime come SendEmailPspAdjustment, invece di void+log
     public async Task RunAsync([ActivityTrigger] EmailPspDataRequest req)
     {
         var risposta = new RispostapagoPA();
         try
         {
-
-            string[] environments = ["fat-d-api-func", "fat-u-api-func", "debug"];
+            // /!\ detection produzione per esclusione (ambiente sconosciuto ⇒ invio reale) — passare ad allow-list esplicita; 
+            // blocco duplicato in SendEmail.cs e SendEmailPspAdjustment.cs, estrarre helper condiviso
+            string[] environments = new[] { "fat-d-api-func", "fat-u-api-func", "debug" };
 
             ConfigurazionepagoPA.Environment = GetEnvironmentVariable("PortaleFattureOptions:WEBSITE_SITE_NAME");
 
@@ -128,6 +131,7 @@ public class SendEmailPsp(ILoggerFactory loggerFactory)
             var apiKeyFilePath = builder.ApiKeyFilePath();
             _logger.LogInformation(psps.Serialize());
 
+            // /!\ pausa fissa di 1 minuto senza motivazione documentata — verificare se serve ancora, poi rimuovere o rendere configurabile
             Thread.Sleep(60000); // 1 minuto
 
             foreach (var psp in psps!)

@@ -18,9 +18,11 @@ internal class SendEmailPspAdjustmentHandler
     {
         var queryParams = req.Query;
 
-        bool? preview = bool.TryParse(queryParams["preview"], out var previewValue) ? previewValue : null;
+        var preview = bool.TryParse(queryParams["preview"], out var previewValue)
+            ? previewValue
+            : true;
 
-        var data = new EmailPspAdjustmentDataRequest { Preview = previewValue };
+        var data = new EmailPspAdjustmentDataRequest { Preview = preview};
 
         var instanceId = await client.ScheduleNewOrchestrationInstanceAsync(nameof(SendEmailPspAdjustmentOrchestrator), data);
         var payload = new
