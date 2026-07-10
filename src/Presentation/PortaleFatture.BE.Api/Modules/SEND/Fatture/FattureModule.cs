@@ -2026,4 +2026,77 @@ public partial class FattureModule
         return Ok(lista);
     }
 
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<int>>, BadRequest, NotFound>> GetPagoPAGestioneFatturazioneAnniAsync(
+    HttpContext context,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var anni = await handler.Send(new GestioneFattureAnniQuery(authInfo)
+        {
+
+        });
+        if (anni.IsNullNotAny()) return NotFound();
+
+        return Ok(anni);
+    }
+
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<GestioneFattureMeseResponse>>, BadRequest, NotFound>> PostPagoPAGestioneFatturazioneMesiAsync(
+    HttpContext context,
+    GestioneFattureMesiRequest request,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var mesi = await handler.Send(new GestioneFattureMesiQuery(authInfo)
+        {
+            Anno = request.Anno
+        });
+
+
+        if (mesi.IsNullNotAny())
+            return NotFound();
+
+
+        return Ok(mesi!.Select(x => new GestioneFattureMeseResponse()
+        {
+            Mese = Convert.ToString(x),
+            Descrizione = Convert.ToInt32(x).GetMonth()
+        }));
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<string>>, BadRequest, NotFound>> GetPagoPAGestioneFatturazioneTipologiaFatturaAsync(
+    HttpContext context,
+    GestioneFattureTipologiaFatturaRequest request,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var tipologie = await handler.Send(new GestioneFattureTipologiaFatturaQuery(authInfo)
+                                           
+        {
+            Anno = request.Anno,
+            Mesi = request.Mesi
+        });
+
+        if (tipologie.IsNullNotAny()) return NotFound();
+
+        return Ok(tipologie);
+
+    }
+
 }

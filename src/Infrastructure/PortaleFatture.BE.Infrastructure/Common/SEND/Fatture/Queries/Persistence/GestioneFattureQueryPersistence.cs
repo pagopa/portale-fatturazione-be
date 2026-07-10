@@ -24,33 +24,34 @@ public sealed class GestioneFattureQueryPersistance(GestioneFattureQuery command
     {
 
         var Staginglist = new GestioneFattureListDto();
-        var where = string.Empty;
-
         var page = _command.Page;
         var size = _command.Size;
-        where += " WHERE Stato <> 2";
+
+        var conditions = new List<string>();
 
         if (!_command.IdEnti!.IsNullNotAny())
-            where += $" AND e.InternalIstitutionId IN @identi";
+            conditions.Add("Ente IN @identi");
 
         if (_command.TipologiaContratto.HasValue)
-            where += $" AND c.FkIdTipoContratto = @tipocontratto";
+            conditions.Add("IdTipoContratto = @tipocontratto");
 
         if (_command.Anno.HasValue)
-            where += $" AND Anno = @anno";
+            conditions.Add("Anno = @anno");
 
         if (!_command.Mesi.IsNullNotAny())
-            where += $" AND Mese IN @mesi";
-
+            conditions.Add("Mese IN @mesi");
 
         if (!string.IsNullOrEmpty(_command.TipologiaFattura))
-            where += $" AND w.FkTipologiaFattura = @tipologiafattura";
+            conditions.Add("TipologiaFattura = @tipologiafattura");
 
         if (!string.IsNullOrEmpty(_command.Azione))
-            where += $" AND w.Azione = @azione";
+            conditions.Add("Azione = @azione");
+
+        var where = conditions.Count > 0
+            ? " WHERE " + string.Join(" AND ", conditions)
+            : string.Empty;
 
         var orderBy = _orderBy;
-
         var sqlEnte = _sqlSelectAll;
         var sqlCount = _sqlSelectAllCount;
         if (page == null && size == null)
@@ -69,7 +70,8 @@ public sealed class GestioneFattureQueryPersistance(GestioneFattureQuery command
             Tipocontratto = _command.TipologiaContratto,
             Anno = _command.Anno,
             Mesi = _command.Mesi,
-            TipologiaFattura = _command.TipologiaFattura
+            TipologiaFattura = _command.TipologiaFattura,
+            Azione = _command.Azione
         };
 
 

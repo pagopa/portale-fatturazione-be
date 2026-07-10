@@ -10,35 +10,19 @@ namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries.Persisten
 {
     private static string _sqlGestioneFattureList = @"
        
-     SELECT 
-    CONCAT(w.FkIdEnte, w.Anno, w.Mese, w.Stato) AS Id,
-    description AS RagioneSociale,
-    w.FkIdEnte AS IdEnte,
-    Anno,
-    Mese,
-    [DataInserimento],
-    [DataRipristino],
-    [DataCancellazione],
-    w.[FkTipologiaFattura] AS TipologiaFattura,
-    c.FkIdTipoContratto AS IdTipoContratto,
-    tc.Descrizione AS TipoContratto,
-    w.Stato,
-    Note,
-    Azione
-        FROM [cfg].[GestioneFatture] w
-    INNER JOIN pfd.Enti e ON e.InternalIstitutionId = w.FkIdEnte
-    INNER JOIN pfd.Contratti c ON c.internalistitutionid = e.InternalIstitutionId
-    INNER JOIN pfw.TipoContratto tc ON tc.IdTipoContratto = c.FkIdTipoContratto
-        ";
-    /*
-     * LEFT JOIN [pfd].[FattureTestata] ft 
-        ON ft.FkTipologiaFattura = w.FkTipologiaFattura
-        AND ft.AnnoRiferimento = w.Anno
-        AND ft.MeseRiferimento = w.Mese
-        AND ft.FkIdEnte = w.FkIdEnte
-     */
+     SELECT [Ente]
+      ,[RagioneSociale]
+      ,[TipologiaFattura]
+      ,[Anno]
+      ,[Mese]
+      ,[Azione]
+      ,[DataInserimento]
+      ,[DataRipristino]
+      ,[Note]
+      ,[TipoContratto] 
+      ,[IdTipoContratto]
+     FROM [be].[vwGestioneFattureGriglia]";
   
-
     public static string SelectGestioneFattureList()
     {
         return _sqlGestioneFattureList;
@@ -52,13 +36,7 @@ namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries.Persisten
     private static string _sqlGestioneFattureCount = @"
      SELECT 
       count(*)
-      FROM [cfg].[GestioneFatture] w
-      inner join pfd.Enti e
-      on e.InternalIstitutionId =  w.FkIdEnte
-      inner join pfd.Contratti c
-      on c.internalistitutionid = e.InternalIstitutionId
-      inner join pfw.TipoContratto tc
-      on tc.IdTipoContratto = c.FkIdTipoContratto
+      FROM [be].[vwGestioneFattureGriglia]
      ";
 
     public static string SelectGestioneFattureCount()
@@ -77,10 +55,9 @@ namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries.Persisten
     {
         return $@"
           SELECT Anno
-            FROM [cfg].[GestioneFatture]
+            FROM [be].[vwGestioneFattureGriglia]
             GROUP BY Anno
-            HAVING COUNT(CASE WHEN Stato <> 2 THEN 1 END) >= 1
-          ORDER BY Anno DESC 
+            ORDER BY Anno DESC 
     ";
     }
 
@@ -88,7 +65,7 @@ namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries.Persisten
     {
         return $@"
             SELECT DISTINCT  mese 
-            FROM [cfg].[GestioneFatture] 
+            FROM [be].[vwGestioneFattureGriglia]
     ";
     }
     public static string OrderByGestioneFattureMesi()
@@ -100,25 +77,29 @@ namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries.Persisten
 
 
     private static string _sqlGestioneFattureTipologiaFattura = @"
-    SELECT
-    FkTipologiaFattura,
-    CASE
-        WHEN FkTipologiaFattura = 'ANTICIPO'        THEN 1
-        WHEN FkTipologiaFattura = 'ACCONTO'         THEN 2
-        WHEN FkTipologiaFattura = 'PRIMO SALDO'     THEN 3
-        WHEN FkTipologiaFattura = 'SECONDO SALDO'   THEN 4
-        WHEN FkTipologiaFattura = 'VAR. SEMESTRALE' THEN 5
-        ELSE 6
-    END AS ordine
-        FROM [cfg].[GestioneFatture]
-        GROUP BY FkTipologiaFattura
-        HAVING COUNT(CASE WHEN Stato <> 2 THEN 1 END) >= 1
-        ORDER BY ordine
+     SELECT tipologiaFattura
+FROM [be].[vwGestioneFattureGriglia]
     ";
 
     public static string SelectGestioneFattureTipologiaFattura()
     {
         return _sqlGestioneFattureTipologiaFattura;
+    }
+
+    public static string SelectGestioneFattureTipologiaFatturaGroupOrder()
+    {
+        return @"
+            GROUP BY tipologiaFattura
+            ORDER BY 
+                CASE 
+                    WHEN tipologiaFattura = 'ANTICIPO'        THEN 1
+                    WHEN tipologiaFattura = 'ACCONTO'         THEN 2
+                    WHEN tipologiaFattura = 'PRIMO SALDO'     THEN 3
+                    WHEN tipologiaFattura = 'SECONDO SALDO'   THEN 4
+                    WHEN tipologiaFattura = 'VAR. SEMESTRALE' THEN 5
+                    ELSE 6
+                END
+        ";
     }
 
 
