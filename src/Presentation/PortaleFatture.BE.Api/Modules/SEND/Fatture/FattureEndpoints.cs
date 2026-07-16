@@ -299,66 +299,6 @@ public partial class FattureModule : Module, IRegistrableModule
            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
         endpointRouteBuilder
-           .MapPost("api/fatture-da-non-inviare/pagopa/ricerca", PostPagoPAEsclusioneInvioFattureAsync)
-           .WithName("Permette di visualizzare tutte le fatture da non inviare a SAP via utente PagoPA.")
-           .SetOpenApi(Module.DatiFattureLabel)
-           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
-
-        endpointRouteBuilder
-           .MapGet("api/fatture-da-non-inviare/pagopa/anni", GetPagoPAEsclusioneInvioFattureAnniAsync)
-           .WithName("Permette di recuperare gli ANNI relativi alle fatture da non inviare a SAP via utente PagoPA.")
-           .SetOpenApi(Module.DatiFattureLabel)
-           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
-
-        endpointRouteBuilder
-          .MapPost("api/fatture-da-non-inviare/pagopa/mesi", PostPagoPAEsclusioneInvioFattureMesiAsync)
-          .WithName("Permette di recuperare i MESI relativi alle fatture da non inviare a SAP via utente PagoPA.")
-          .SetOpenApi(Module.DatiFattureLabel)
-          .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
-
-        endpointRouteBuilder
-         .MapGet("api/fatture-da-non-inviare/pagopa/tipologia-fatture", GetPagoPAEsclusioneInvioFattureTipologiaFatturaAsync)
-         .WithName("Permette di recuperare le Tipologie Fattura relative alle fatture da non inviare a SAP via utente PagoPA.")
-         .SetOpenApi(Module.DatiFattureLabel)
-         .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
-
-        endpointRouteBuilder
-            .MapPost("api/fatture-da-non-inviare/pagopa/mesi/modifica", PostPagoPAEsclusioneInvioFattureMesiModificaAsync)
-            .WithName("Permette di recuperare i mesi relativi alle fatture che potrebbero essere NON incluse nel JSON da inviare a SAP via utente PagoPA.")
-            .SetOpenApi(Module.DatiFattureLabel)
-            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
-
-        endpointRouteBuilder
-            .MapPost("api/fatture-da-non-inviare/pagopa/anni/modifica", PostPagoPAEsclusioneInvioFattureAnniModificaAsync)
-            .WithName("Permette di recuperare gli anni relativi alle fatture che potrebbero essere NON incluse nel JSON da inviare a SAP via utente PagoPA.")
-            .SetOpenApi(Module.DatiFattureLabel)
-            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
-
-        endpointRouteBuilder
-            .MapPost("api/fatture-da-non-inviare/pagopa", PostPagoPAEsclusioneInvioFattureInserimentoAsync)
-            .WithName("Permette di inserire le fatture da NON inviare nel json SAP via utente PagoPA.")
-            .SetOpenApi(Module.DatiFattureLabel)
-            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
-
-        endpointRouteBuilder
-            .MapDelete("api/fatture-da-non-inviare/pagopa", DeletePagoPAEsclusioneInvioFattureAsync)
-            .WithName("Permette di eliminare le fatture dalla sezione di staging via utente PagoPA.")
-            .SetOpenApi(Module.DatiFattureLabel)
-            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
-
-        endpointRouteBuilder
-            .MapPatch("api/fatture-da-non-inviare/pagopa/stato", PostPagoPAEsclusioneInvioFattureRipristinoAsync)
-            .WithName("Permette di ripristinare le fatture da  inviare nel json SAP via utente PagoPA.")
-            .SetOpenApi(Module.DatiFattureLabel)
-            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
-
-        endpointRouteBuilder
-            .MapPost("api/fatture-da-non-inviare/pagopa/download", PostPagoPAEsclusioneInvioFattureDownloadAsync)
-            .WithName("Permette di scaricare il file excel delle fatture da NON inviare a SAP via utente PagoPA.")
-            .SetOpenApi(Module.DatiFattureLabel)
-            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
-
-        endpointRouteBuilder
            .MapPost("api/fatture/pagopa/gestione-fatture", PostPagoPAGestioneFatturazioneAsync)
            .WithName("Permette di recuperare gli enti/fatture da non non inviare a SAP via utente PagoPA.")
            .SetOpenApi(Module.DatiFattureLabel)
@@ -379,8 +319,32 @@ public partial class FattureModule : Module, IRegistrableModule
         endpointRouteBuilder
         .MapPost("api/fatture/pagopa/gestione-fatture/tipologia-fattura", GetPagoPAGestioneFatturazioneTipologiaFatturaAsync)
         .WithName("Permette di recuperare le Tipologie Fattura relative alle fatture/ente da non inviare a SAP via utente PagoPA.")
+       .SetOpenApi(Module.DatiFattureLabel)
+       .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+        .MapPost("api/fatture/pagopa/gestione-fatture/azione", GetPagoPAGestioneFatturazioneAzioneAsync)
+        .WithName("Permette di POSTICIPARE, ELIMINARE , RIPRISTINARE E ANNULLARE delle fatture/enti da non inviare a SAP via utente PagoPA.")
         .SetOpenApi(Module.DatiFattureLabel)
         .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+           .MapPost("api/fatture/pagopa/gestione-fatture/download", PostPagoPAEsclusioneInvioFattureDownloadAsync)
+           .WithName("Permette di scaricare il file excel delle fatture da NON inviare a SAP via utente PagoPA.")
+           .SetOpenApi(Module.DatiFattureLabel)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+          .MapPost("api/fatture/pagopa/gestione-fatture/modifica/anni", GetPagoPAModificaGestioneFatturazioneAnniAsync)
+          .WithName("Permette di recuperare gli ANNI su cui eseguire azioni di modifica riguardati il JSON  da  inviare a SAP via utente PagoPA.")
+          .SetOpenApi(Module.DatiFattureLabel)
+          .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+          .MapPost("api/fatture/pagopa/gestione-fatture/modifica/mesi", GetPagoPAModificaGestioneFatturazioneMesiAsync)
+          .WithName("Permette di recuperare i MESI su cui eseguire azioni di modifica riguardati il JSON  da  inviare a SAP via utente PagoPA.")
+          .SetOpenApi(Module.DatiFattureLabel)
+          .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
 
         #endregion pagoPA
