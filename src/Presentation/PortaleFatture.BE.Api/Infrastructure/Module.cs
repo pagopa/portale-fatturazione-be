@@ -24,6 +24,7 @@ public abstract class Module : IModule
     public static string DatiAccertamentiPagoPA = "Accertamenti PagoPA";
     public static string DatiOrchestratoreLabel = "Dati ORchestratore";
     public static string DatiApiKey = "Dati Api Key";
+    public static string LanguageService = "Language Service";
 
     // prodotto pagoPA
     public static string PSPEmail = "Psp Email prodotto PagoPA";

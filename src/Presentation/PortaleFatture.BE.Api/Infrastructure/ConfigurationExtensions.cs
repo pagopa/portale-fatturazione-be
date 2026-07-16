@@ -18,6 +18,7 @@ using PortaleFatture.BE.Core.Common;
 using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Infrastructure;
 using PortaleFatture.BE.Infrastructure.Common.Identity;
+using PortaleFatture.BE.Infrastructure.Common.Language.Service;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.Persistence.Schemas;
 using PortaleFatture.BE.Infrastructure.Common.SEND;
@@ -181,13 +182,23 @@ public static class ConfigurationExtensions
         var serviceProvider = services.BuildServiceProvider();
         var options = serviceProvider.GetRequiredService<IPortaleFattureOptions>();
         var logger = serviceProvider.GetRequiredService<ILogger<SynapseService>>();
+        
         services.AddSingleton<ISynapseService>(new SynapseService(
             options.Synapse!.SynapseWorkspaceName,
             options.Synapse.ResourceGroupName,
             options.Synapse.SubscriptionId,
             logger)
             );
+        
         services.AddSingleton<IServiceWorkFlowFatture>(new ServiceWorkFlowFatture());
+
+        var loggerLanguageService = serviceProvider.GetRequiredService<ILogger<LanguageService>>();
+        services.AddSingleton<ILanguageService>(new LanguageService(
+            options.Language!.Endpoint,
+            options.Language!.Key,
+            loggerLanguageService
+        ));
+
         return services;
     }
 

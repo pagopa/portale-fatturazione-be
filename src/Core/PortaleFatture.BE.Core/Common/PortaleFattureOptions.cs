@@ -28,6 +28,7 @@ public sealed class PortaleFattureOptions : IPortaleFattureOptions
     public StorageNotifiche? StorageNotifiche { get; set; } 
     public AzureFunction? AzureFunction { get; set; } 
     public StorageRelDownload? StorageRelDownload { get; set; }  
+    public Language? Language { get; set; }
 }
 
 public class StorageRelDownload()
@@ -116,5 +117,9 @@ public class AzureFunction()
     public string? NotificheUri { get; set; }
     public string? AppKey { get; set; } 
 }
- 
-        
+
+public class Language()
+{
+    public string? Endpoint { get; set; }
+    public string? Key { get; set; }
+}
