@@ -49,7 +49,7 @@ public partial class LanguageService
         // convert piientities to PiiCollection
         var response = new LanguageServiceReponse
         {
-            RedactedString = piiEntities.ToString()
+            RedactedString = piiEntities.RedactedText
         };
 
         return Ok(response);

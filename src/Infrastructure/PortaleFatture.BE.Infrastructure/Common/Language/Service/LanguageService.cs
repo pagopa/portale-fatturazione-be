@@ -42,8 +42,8 @@ public class LanguageService : ILanguageService
 
         try
         {
-            var response = await _client.RecognizePiiEntitiesAsync(text, language, cancellationToken: cancellationToken);
-            return response.Value;
+            PiiEntityCollection response = await _client.RecognizePiiEntitiesAsync(text, language, cancellationToken: cancellationToken);
+            return response;
         }
         catch (Exception ex)
         {
