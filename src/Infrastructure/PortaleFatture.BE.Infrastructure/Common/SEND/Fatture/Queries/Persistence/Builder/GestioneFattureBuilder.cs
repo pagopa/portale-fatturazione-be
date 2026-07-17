@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries.Persistence.Builder;
 
- internal class GestioneFattureBuilder
+internal class GestioneFattureBuilder
 {
     private static string _sqlGestioneFattureList = @"
        
@@ -22,7 +22,7 @@ namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries.Persisten
       ,[TipoContratto] 
       ,[IdTipoContratto]
      FROM [be].[vwGestioneFattureGriglia]";
-  
+
     public static string SelectGestioneFattureList()
     {
         return _sqlGestioneFattureList;
@@ -103,59 +103,46 @@ FROM [be].[vwGestioneFattureGriglia]
     }
 
 
-    public static string SelectGestioneFattureAnniInserisci()
+    public static string SelectGestioneFattureAllFilterPosticipa()
+    {
+        return @"
+            SELECT *
+            FROM [be].[vwGestioneFattureFormPosticipa]
+            
+        ";
+    }
+
+    public static string SelectGestioneFattureAllFilterElimina()
+    {
+        return @"
+            SELECT *
+            FROM [be].[vwGestioneFattureFormElimina]
+        ";
+    }
+
+    public static string SelectGestioneFattureAllFilterOrderAnno()
+    {
+        return @"
+            ORDER BY AnnoRiferimento DESC; 
+        ";
+    }
+
+
+    public static string SelectGestioneFattureModificaAnni()
     {
         return $@"
-
-WITH Months AS (
-    SELECT 1 AS Mese
-    UNION ALL
-    SELECT Mese + 1 FROM Months WHERE Mese < 12
-),
-ExistingData AS ( 
-    -- Combine data from FattureTestata and FattureStaging
-    SELECT DISTINCT
-        ft.annoriferimento AS anno,
-        ft.meseriferimento AS mese
-    FROM [pfd].[FattureTestata] ft
-    WHERE ft.FkTipologiaFattura = @TipologiaFattura
-    AND ft.annoriferimento <= @anno
-
-    UNION
-
-    SELECT DISTINCT
-        fwl.Anno AS anno,
-        fwl.Mese AS mese
-    FROM [cfg].[GestioneFatture] fwl
-    WHERE fwl.FkTipologiaFattura = @TipologiaFattura
-    AND fwl.Anno <= @anno  
-    AND fwl.FkIdEnte = @IdEnte  
-    AND fwl.Stato <> 0   
-)
-
--- Select missing months for the given years (previous and current)
-SELECT 
-    m.AnnoRiferimento,
-    m.MeseRiferimento,
-    @TipologiaFattura AS TipologiaFattura
-FROM (
-    -- Generate months for previous year and current year
-    SELECT @anno - 1 AS AnnoRiferimento, Mese AS MeseRiferimento
-    FROM Months
-    UNION ALL
-    SELECT @anno AS AnnoRiferimento, Mese AS MeseRiferimento
-    FROM Months
-    UNION ALL
-    SELECT @anno + 1 AS AnnoRiferimento, Mese AS MeseRiferimento
-    FROM Months 
-) AS m
-LEFT JOIN ExistingData e 
-    ON m.AnnoRiferimento = e.anno AND m.MeseRiferimento = e.mese
-WHERE m.AnnoRiferimento = @anno 
---WHERE e.mese IS NULL  -- Exclude months that already exist in both tables
-ORDER BY AnnoRiferimento DESC, MeseRiferimento
-OPTION (MAXRECURSION 12);
+          SELECT DISTINCT Anno
+            FROM [be].[vwGestioneFattureFormAnniMesi]
     ";
     }
-}
 
+    public static string SelectGestioneFattureModificaMesi()
+    {
+        return $@"
+          SELECT DISTINCT Mese
+            FROM [be].[vwGestioneFattureFormAnniMesi]
+    ";
+    }
+
+
+}
