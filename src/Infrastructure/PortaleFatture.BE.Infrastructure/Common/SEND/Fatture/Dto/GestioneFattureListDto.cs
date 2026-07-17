@@ -7,20 +7,19 @@ namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Dto;
 
 public class SimpleGestioneFattureDto
 {
-    public string Id { get; set; }
-
     [HeaderAttributev2(caption: "Ragione Sociale", Order = 1)]
     public string? RagioneSociale { get; set; }
 
     [HeaderAttributev2(caption: "IdEnte", Order = 2)]
-    public string? IdEnte { get; set; }
+    public string? Ente { get; set; }
 
-    [HeaderAttributev2(caption: "Anno", Order = 3)]
+
+    [HeaderAttributev2(caption: "Anno", Order = 4)]
     public int Anno { get; set; }
 
     public int Mese { get; set; }
 
-    [HeaderAttributev2(caption: "Mese", Order = 4)]
+    [HeaderAttributev2(caption: "Mese", Order = 5)]
     public string MeseDescrizione
     {
         get
@@ -29,19 +28,25 @@ public class SimpleGestioneFattureDto
         }
     }
 
-    [HeaderAttributev2(caption: "Data Inizio", Order = 7)]
+ 
     public DateTime? DataCancellazione { get; set; }
+
+    [HeaderAttributev2(caption: "DataRipristino", Order = 7)]
     public DateTime? DataRipristino { get; set; }
 
-    public DateTime? Inserimento { get; set; }
+    [HeaderAttributev2(caption: "DataInseriemnto", Order = 8)]
 
-    [HeaderAttributev2(caption: "Tipologia Fattura", Order = 5)]
+    public DateTime? DataInserimento { get; set; }
+
+    [HeaderAttributev2(caption: "Tipologia Fattura", Order = 6)]
     public string? TipologiaFattura { get; set; }
     public int IdTipoContratto { get; set; }
-    [HeaderAttributev2(caption: "Tipo Contratto", Order = 6)]
+  
     public string? TipoContratto { get; set; }
+    [HeaderAttributev2(caption: "Note", Order = 10)]
     public string? Note { get; set; }
 
+    [HeaderAttributev2(caption: "Azione", Order = 3)]
     public string? Azione { get; set; }
 
 

@@ -14,19 +14,19 @@ using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries.Persistence;
 
 namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.QueryHandlers;
 
-    public class FattureDaNonInviareSapHandler(
-         IFattureDbContextFactory factory,
- IStringLocalizer<Localization> localizer,
- ILogger<FattureDaNonInviareSapHandler> logger) : IRequestHandler<FattureDaNonInviareSapQuery, FattureDaNonInviareSapDto?>
+    public class GestioneFattureDownloadHandler(
+    IFattureDbContextFactory factory,
+    IStringLocalizer<Localization> localizer,
+    ILogger<GestioneFattureDownloadHandler> logger) : IRequestHandler<GestioneFattureDownloadQuery, GestioneFattureListDto?>
     {
 
     private readonly IFattureDbContextFactory _factory = factory;
-    private readonly ILogger<FattureDaNonInviareSapHandler> _logger = logger;
+    private readonly ILogger<GestioneFattureDownloadHandler> _logger = logger;
     private readonly IStringLocalizer<Localization> _localizer = localizer;
-    public async Task<FattureDaNonInviareSapDto?> Handle(FattureDaNonInviareSapQuery request, CancellationToken ct)
+    public async Task<GestioneFattureListDto?> Handle(GestioneFattureDownloadQuery request, CancellationToken ct)
     {
         using var rs = await _factory.Create(cancellationToken: ct);
-        return await rs.Query(new FattureDaNonInviareSapPersistence(request), ct);
+        return await rs.Query(new GestioneFattureDownloadPersistence(request), ct);
     }
 
 }

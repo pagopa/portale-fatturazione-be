@@ -10,7 +10,7 @@ using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Dto;
 
 namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries;
 
-public class FattureDaNonInviareSapQuery(IAuthenticationInfo authenticationInfo) : IRequest<FattureDaNonInviareSapDto?>
+public class GestioneFattureDownloadQuery(IAuthenticationInfo authenticationInfo) : IRequest<GestioneFattureListDto?>
 {
 
     public IAuthenticationInfo AuthenticationInfo { get; internal set; } = authenticationInfo;
@@ -27,6 +27,10 @@ public class FattureDaNonInviareSapQuery(IAuthenticationInfo authenticationInfo)
 
     public int? Anno { get; set; }
     public int[]? Mesi { get; set; }
+
+    public string? Azione { get; set; }
+
+    public string? Note { get; set; }
 
     public int? Page { get; set; }
     public int? Size { get; set; }

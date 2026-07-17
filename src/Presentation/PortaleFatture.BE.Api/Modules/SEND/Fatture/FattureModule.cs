@@ -1915,14 +1915,14 @@ public partial class FattureModule
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    private async Task<IResult> PostPagoPAEsclusioneInvioFattureDownloadAsync(
+    private async Task<IResult> PostPagoPAGestioneFattureDownloadAsync(
     HttpContext context,
-    RicercaEsclusioneInvioFattureRequest request,
+    RicercaGestioneFattureDownloadRequest request,
     [FromServices] IMediator handler)
     {
         var authInfo = context.GetAuthInfo();
 
-        var lista = await handler.Send(new FattureDaNonInviareSapQuery(authInfo)
+        var lista = await handler.Send(new GestioneFattureDownloadQuery(authInfo)
         {
             Anno = request.Anno,
             IdEnti = request.IdEnti,
@@ -1931,12 +1931,12 @@ public partial class FattureModule
             TipologiaFattura = request.TipologiaFattura,
         });
 
-        if (lista == null! || lista.FattureEscluse.IsNullNotAny())
+        if (lista == null! || lista.GestioneFatture.IsNullNotAny())
             return NotFound();
         var mime = "application/vnd.ms-excel";
         var filename = $"{Guid.NewGuid()}.xlsx";
 
-        var dataSet = lista.FattureEscluse!.FillOneSheetv2();
+        var dataSet = lista.GestioneFatture!.FillOneSheetv2();
         var content = dataSet.ToExcel();
         var result = new DisposableStreamResult(content, mime)
         {

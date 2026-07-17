@@ -2,7 +2,7 @@
 
 namespace PortaleFatture.BE.Api.Modules.SEND.Fatture.Payload.Response;
 
-    public class RicercaEsclusioneInvioFattureRequest
+    public class RicercaGestioneFattureDownloadRequest
     {
     private string[]? _idEnti;
     public string[]? IdEnti

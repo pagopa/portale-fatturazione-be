@@ -145,4 +145,38 @@ FROM [be].[vwGestioneFattureGriglia]
     }
 
 
+    private static string _sqlGestioneFattureListDownload = @"
+       
+     SELECT [Ente]
+      ,[RagioneSociale]
+      ,[Ente]
+      ,[TipologiaFattura]
+      ,[Anno]
+      ,[Mese]
+      ,[Azione]
+      ,[DataInserimento]
+      ,[DataRipristino]
+      ,[TipoContratto] 
+      ,[IdTipoContratto]
+      ,[Note]
+     FROM [be].[vwGestioneFattureDownload]";
+
+    public static string SelectGestioneFattureListDownload()
+    {
+        return _sqlGestioneFattureListDownload;
+    }
+
+
+    private static string _sqlGestioneFattureCountDownload = @"
+     SELECT 
+      count(*)
+      FROM [be].[vwGestioneFattureDownload]
+     ";
+
+    public static string SelectGestioneFattureCountDownload()
+    {
+        return _sqlGestioneFattureCountDownload;
+    }
+
+
 }

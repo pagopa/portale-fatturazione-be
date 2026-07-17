@@ -329,7 +329,7 @@ public partial class FattureModule : Module, IRegistrableModule
         .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
         endpointRouteBuilder
-           .MapPost("api/fatture/pagopa/gestione-fatture/download", PostPagoPAEsclusioneInvioFattureDownloadAsync)
+           .MapPost("api/fatture/pagopa/gestione-fatture/download", PostPagoPAGestioneFattureDownloadAsync)
            .WithName("Permette di scaricare il file excel delle fatture da NON inviare a SAP via utente PagoPA.")
            .SetOpenApi(Module.DatiFattureLabel)
            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
