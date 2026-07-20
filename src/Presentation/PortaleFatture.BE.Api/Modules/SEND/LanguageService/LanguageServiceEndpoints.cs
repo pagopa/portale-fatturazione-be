@@ -14,5 +14,12 @@ public partial class LanguageService : Module, IRegistrableModule
         .SetOpenApi(Module.LanguageService)
         .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
+
+        endpointRouteBuilder
+        .MapPost("api/language-detection", PostLanguageDetectionAsync)
+        .WithName("Permette di inviare una stringa per la rilevazione della lingua")
+        .SetOpenApi(Module.LanguageService)
+        .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
     }
 }

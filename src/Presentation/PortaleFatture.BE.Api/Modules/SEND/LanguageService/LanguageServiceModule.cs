@@ -31,7 +31,7 @@ public partial class LanguageService
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    private async Task<Results<Ok<LanguageServiceReponse>, BadRequest, NotFound>> PostPiidAsync(
+    private async Task<Results<Ok<LanguageServiceResponsePII>, BadRequest, NotFound>> PostPiidAsync(
     HttpContext context,
     [FromBody] LanguageServiceRequest request,
     [FromServices] IStringLocalizer<Localization> localizer,
@@ -47,10 +47,41 @@ public partial class LanguageService
             return NotFound();
 
         // convert piientities to PiiCollection
-        var response = new LanguageServiceReponse
+        var response = new LanguageServiceResponsePII
         {
             RedactedString = piiEntities.RedactedText
         };
+
+        return Ok(response);
+    }
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<LanguageServiceResponseLanguageDetection>, BadRequest, NotFound>> PostLanguageDetectionAsync(
+    HttpContext context,
+    [FromBody] LanguageServiceRequest request,
+    [FromServices] IStringLocalizer<Localization> localizer,
+    [FromServices] ILanguageService languageServiceHandler)
+    {
+        if (request.testo == null || request.testo.Length == 0)
+            return BadRequest();
+
+        DetectedLanguage? detectedLanguage = await languageServiceHandler.DetectLanguageAsync(request.testo);
+
+        // check if detectedLanguage is null then return NotFound
+        if (detectedLanguage == null)
+            return NotFound();
+
+        // convert detectedLanguage to LanguageServiceResponseLanguageDetection
+        var response = new LanguageServiceResponseLanguageDetection
+        (
+            detectedLanguage.Value.Name,
+            detectedLanguage.Value.ConfidenceScore
+        );
 
         return Ok(response);
     }

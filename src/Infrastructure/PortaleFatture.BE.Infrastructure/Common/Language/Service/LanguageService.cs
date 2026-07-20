@@ -51,4 +51,24 @@ public class LanguageService : ILanguageService
             return null;
         }
     }
+
+
+    public async Task<DetectedLanguage?> DetectLanguageAsync(string text, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            throw new ArgumentException("The text to analyze is required.", nameof(text));
+        }
+        try
+        {
+            DetectedLanguage response = await _client.DetectLanguageAsync(text, cancellationToken: cancellationToken);
+            return response;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during language detection.");
+            return null;
+        }
+    }
+
 }
