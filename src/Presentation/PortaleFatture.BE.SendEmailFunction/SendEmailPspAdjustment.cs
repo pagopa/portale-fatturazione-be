@@ -87,6 +87,7 @@ public class SendEmailPspAdjustment(ILoggerFactory loggerFactory)
             // response
             risposta = new RispostapagoPA()
             {
+                Environment = currentEnvironment,
                 Anno = anno,
                 Trimestre = trimestre,
                 Tipologia = tipologia,
