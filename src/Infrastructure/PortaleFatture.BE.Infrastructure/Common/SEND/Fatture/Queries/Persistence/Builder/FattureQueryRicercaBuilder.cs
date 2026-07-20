@@ -268,73 +268,84 @@ SELECT
     FOR JSON PATH, INCLUDE_NULL_VALUES)";
 
     private static string _sqlView = @"SELECT
-     listaFatture =    (
+  listaFatture =    (
 
-    SELECT 
-        CAST(FT.TotaleFattura AS DECIMAL(10, 2)) AS 'fattura.totale', 
-        FT.Progressivo AS 'fattura.numero',
+ SELECT 
+     CAST(FT.TotaleFattura AS DECIMAL(10, 2)) AS 'fattura.totale', 
+     FT.Progressivo AS 'fattura.numero',
 		FT.IdFattura AS 'fattura.idfattura', 
-        CONVERT(VARCHAR, FT.DataFattura, 23) AS 'fattura.dataFattura',
-        FT.FkProdotto AS 'fattura.prodotto',
-        CAST(FT.MeseRiferimento as varchar(2)) + '/' + CAST(FT.AnnoRiferimento as VARCHAR(4)) AS 'fattura.identificativo',
-        FT.FkTipologiaFattura AS 'fattura.tipologiaFattura', -- Changed this line
-        FT.FkIdEnte AS 'fattura.istitutioID',
-        FT.CodiceContratto AS 'fattura.onboardingTokenID',
-        FT.FkIdTipoDocumento AS 'fattura.tipoDocumento',
-        FT.Divisa AS 'fattura.divisa',
-        FT.MetodoPagamento AS 'fattura.metodoPagamento', 
+     CONVERT(VARCHAR, FT.DataFattura, 23) AS 'fattura.dataFattura',
+     FT.FkProdotto AS 'fattura.prodotto',
+     CAST(FT.MeseRiferimento as varchar(2)) + '/' + CAST(FT.AnnoRiferimento as VARCHAR(4)) AS 'fattura.identificativo',
+     FT.FkTipologiaFattura AS 'fattura.tipologiaFattura', -- Changed this line
+     FT.FkIdEnte AS 'fattura.istitutioID',
+     FT.CodiceContratto AS 'fattura.onboardingTokenID',
+     FT.FkIdTipoDocumento AS 'fattura.tipoDocumento',
+     FT.Divisa AS 'fattura.divisa',
+     FT.MetodoPagamento AS 'fattura.metodoPagamento', 
 		CONCAT(REPLACE( ftc.Causale,'[percentuale]', ISNULL(ftc.PercentualeAnticipo,'')),' ' ,CAST(FT.MeseRiferimento as varchar(2)), '/' , CAST(FT.AnnoRiferimento as VARCHAR(4))) as 'fattura.causale',
-        FT.SplitPayment AS 'fattura.split', 
-        CASE 
-            WHEN FT.FatturaInviata IS NULL THEN 2 
-            ELSE CONVERT(INT, FT.FatturaInviata) 
-        END AS 'fattura.inviata',
-        ISNULL(FT.Sollecito, '') AS 'fattura.sollecito',
-        (
-            SELECT
-                ISNULL(tC.[Descrizione],'') AS 'tipologia',  
-                '' AS 'riferimentoNumeroLinea',
-                ISNULL(FTn.IdDocumento,'') AS 'idDocumento',
-                CONVERT(VARCHAR,FTn.DataDocumento, 23) AS 'data',
-                ISNULL(FTn.NumItem,'') AS 'numItem',
-                ISNULL(FTn.CodCommessa,'') AS 'codiceCommessaConvenzione',
-                ISNULL(FTn.Cup,'') AS 'CUP',
-                ISNULL(FTn.Cig,'') AS 'CIG'
-            FROM [pfd].[FattureTestata] FTn
-            LEFT JOIN [pfw].[DatiFatturazione] dF ON ISNULL(FTn.FkIdDatiFatturazione,'') = ISNULL(dF.IdDatiFatturazione,'')
-            LEFT JOIN [pfw].[TipoCommessa] tC ON dF.[FkTipoCommessa] = tC.[TipoCommessa]
-               where FTn.IdFattura = FT.IdFattura
-            FOR JSON PATH
-        ) AS 'fattura.datiGeneraliDocumento',
-        (
-            SELECT
-                FR.NumeroLinea AS 'numerolinea',
-                ISNULL(FR.Testo,'') AS 'testo',
-                FR.CodiceMateriale AS 'codiceMateriale',
-                FR.Quantita AS 'quantita',
-                CAST(FR.PrezzoUnitario AS DECIMAL(10, 2))  AS 'prezzoUnitario',
-                --CAST(FR.Imponibile AS DECIMAL(10, 2))  AS 'imponibile',
-                CASE 
-                    WHEN (FR.CodiceMateriale LIKE 'STORN%' AND FR.CodiceMateriale LIKE '%NA%') 
-                    OR (FR.CodiceMateriale LIKE 'STORN%' AND FR.CodiceMateriale LIKE '%ND%' ) 
-                    THEN CAST(FR.Imponibile AS DECIMAL(10, 2))*-1 
-                    ELSE CAST(FR.Imponibile AS DECIMAL(10, 2)) END 
-                AS 'imponibile',
-				FR.PeriodoRiferimento as 'periodoRiferimento',
-                FR.PeriodoFatturazione as 'periodoFatturazione'
-            FROM [pfd].[FattureRighe] FR
-			LEFT JOIN [pfw].[CodiciMateriali] CM
-			ON FR.CodiceMateriale = CM.CodiceMateriale
-            WHERE FT.IdFattura = FR.FkIdFattura
-			ORDER BY CM.Ordinamento
-            FOR JSON PATH
-        ) AS 'fattura.posizioni'
-    FROM
-        [pfd].[FattureTestata] FT 
-	INNER JOIN pfd.Contratti c ON c.onboardingtokenid = FT.CodiceContratto
-    AND c.internalistitutionid  = ft.FkIdEnte
-	INNER JOIN pfw.FatturaTestataConfig ftc ON ftc.FkTipologiaFattura = FT.FkTipologiaFattura AND ftc.FKIdTipoContratto = c.FkIdTipoContratto
-    where FT.AnnoRiferimento = @AnnoRiferimento
+     FT.SplitPayment AS 'fattura.split', 
+     CASE 
+         WHEN FT.FatturaInviata IS NULL THEN 2 
+         ELSE CONVERT(INT, FT.FatturaInviata) 
+     END AS 'fattura.inviata',
+     ISNULL(FT.Sollecito, '') AS 'fattura.sollecito',
+     (
+         SELECT
+             ISNULL(tC.[Descrizione],'') AS 'tipologia',  
+             '' AS 'riferimentoNumeroLinea',
+             ISNULL(FTn.IdDocumento,'') AS 'idDocumento',
+             CONVERT(VARCHAR,FTn.DataDocumento, 23) AS 'data',
+             ISNULL(FTn.NumItem,'') AS 'numItem',
+             ISNULL(FTn.CodCommessa,'') AS 'codiceCommessaConvenzione',
+             ISNULL(FTn.Cup,'') AS 'CUP',
+             ISNULL(FTn.Cig,'') AS 'CIG'
+         FROM [pfd].[FattureTestata] FTn
+         LEFT JOIN [pfw].[DatiFatturazione] dF ON ISNULL(FTn.FkIdDatiFatturazione,'') = ISNULL(dF.IdDatiFatturazione,'')
+         LEFT JOIN [pfw].[TipoCommessa] tC ON dF.[FkTipoCommessa] = tC.[TipoCommessa]
+            where FTn.IdFattura = FT.IdFattura
+         FOR JSON PATH
+     ) AS 'fattura.datiGeneraliDocumento',
+     (
+         SELECT
+             FR.NumeroLinea AS 'numerolinea',
+             ISNULL(FR.Testo,'') AS 'testo',
+             FR.CodiceMateriale AS 'codiceMateriale',
+             FR.Quantita AS 'quantita',
+             CAST(FR.PrezzoUnitario AS DECIMAL(10, 2))  AS 'prezzoUnitario',
+             --CAST(FR.Imponibile AS DECIMAL(10, 2))  AS 'imponibile',
+             CASE 
+                 WHEN (FR.CodiceMateriale LIKE 'STORN%' AND FR.CodiceMateriale LIKE '%NA%') 
+                 OR (FR.CodiceMateriale LIKE 'STORN%' AND FR.CodiceMateriale LIKE '%ND%' ) 
+                 THEN CAST(FR.Imponibile AS DECIMAL(10, 2))*-1 
+                 ELSE CAST(FR.Imponibile AS DECIMAL(10, 2)) END 
+             AS 'imponibile',
+	FR.PeriodoRiferimento as 'periodoRiferimento',
+             FR.PeriodoFatturazione as 'periodoFatturazione'
+         FROM [pfd].[FattureRighe] FR
+LEFT JOIN [pfw].[CodiciMateriali] CM
+ON FR.CodiceMateriale = CM.CodiceMateriale
+         WHERE FT.IdFattura = FR.FkIdFattura
+ORDER BY CM.Ordinamento
+         FOR JSON PATH
+     ) AS 'fattura.posizioni'
+ FROM
+     [pfd].[FattureTestata] FT 
+	INNER JOIN pfd.Contratti c ON 
+        c.onboardingtokenid = FT.CodiceContratto
+        AND c.internalistitutionid  = ft.FkIdEnte
+	INNER JOIN pfw.FatturaTestataConfig ftc ON 
+        ftc.FkTipologiaFattura = FT.FkTipologiaFattura 
+        AND ftc.FKIdTipoContratto = c.FkIdTipoContratto
+    LEFT JOIN cfg.GestioneFatture gf ON
+        gf.FkIdEnte = ft.FkIdEnte
+        AND gf.FkTipologiaFattura = ft.FkTipologiaFattura
+        AND gf.Anno = ft.AnnoRiferimento
+        AND gf.Mese = ft.MeseRiferimento
+ where 
+    (gf.Stato <> 0 OR  gf.Stato IS NULL) -- Esclusione delle fatture Posticipate
+    AND    
+    FT.AnnoRiferimento = @AnnoRiferimento
 	and FT.MeseRiferimento = @MeseRiferimento
 	[condition_tipologiafattura]
 	and FT.FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865' --esclusione pagopa
@@ -346,7 +357,7 @@ SELECT
         OR (FT.FatturaInviata = @FatturaInviata)  -- 0 o 1
     )
 	ORDER BY FT.FkTipologiaFattura, FT.Progressivo
-    FOR JSON PATH, INCLUDE_NULL_VALUES )";
+ FOR JSON PATH, INCLUDE_NULL_VALUES )";
 
     private static string _sqlAnni = @"
 SELECT  
@@ -485,25 +496,32 @@ order by ordine
 
     private static string _sqlFattureInvioMultiploSap = @"
 SELECT 
-    COUNT(CASE WHEN FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865' THEN IdFattura END) AS NumeroFatture,
-    [FkProdotto], 
-    [FkTipologiaFattura] as TipologiaFattura, 
-    [AnnoRiferimento],
-    [MeseRiferimento],
-    SUM(CASE WHEN FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865' THEN TotaleFattura ELSE 0 END) AS Importo,
+    COUNT(CASE WHEN ft.FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865' THEN IdFattura END) AS NumeroFatture,
+    ft.[FkProdotto], 
+    ft.[FkTipologiaFattura] as TipologiaFattura, 
+    ft.[AnnoRiferimento],
+    ft.[MeseRiferimento],
+    SUM(CASE WHEN ft.FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865' THEN TotaleFattura ELSE 0 END) AS Importo,
     CASE 
-        WHEN fatturainviata IS NULL THEN 2 
+        WHEN ft.fatturainviata IS NULL THEN 2 
         ELSE 0
     END AS StatoInvio
-  FROM [pfd].[FattureTestata]
-WHERE fatturainviata = 0 OR fatturainviata is null
+  FROM [pfd].[FattureTestata] ft
+    LEFT JOIN cfg.GestioneFatture gf ON
+        gf.FkIdEnte = ft.FkIdEnte
+        AND gf.FkTipologiaFattura = ft.FkTipologiaFattura
+        AND gf.Anno = ft.AnnoRiferimento
+        AND gf.Mese = ft.MeseRiferimento
+WHERE 
+    (fatturainviata = 0 OR fatturainviata is null)
+    AND (gf.Stato <> 0 OR  gf.Stato IS NULL) -- Esclusione delle fatture Posticipate
 GROUP BY 
-    [FkProdotto], 
-    [FkTipologiaFattura],
-    [AnnoRiferimento], 
-    [MeseRiferimento],
+    ft.[FkProdotto], 
+    ft.[FkTipologiaFattura],
+    ft.[AnnoRiferimento], 
+    ft.[MeseRiferimento],
     CASE 
-        WHEN fatturainviata IS NULL THEN 2
+        WHEN ft.fatturainviata IS NULL THEN 2
         ELSE 0
     END
 order by AnnoRiferimento, MeseRiferimento desc

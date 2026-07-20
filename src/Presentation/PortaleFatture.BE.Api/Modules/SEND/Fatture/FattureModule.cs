@@ -21,6 +21,7 @@ using PortaleFatture.BE.Infrastructure.Common.SEND.Documenti.Common;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Commands;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Dto;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries;
+using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Service;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Messaggi.Commands;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Tipologie.Queries;
@@ -1688,108 +1689,6 @@ public partial class FattureModule
         return NotFound();
     }
 
-
-    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
-    [EnableCors(CORSLabel)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    private async Task<Results<Ok<FattureDaNonInviareSapDto>, BadRequest, NotFound>> PostPagoPAEsclusioneInvioFattureAsync(
-      HttpContext context,
-      [FromBody] RicercaEsclusioneInvioFattureRequest request,
-      [FromQuery] int page,
-      [FromQuery] int pageSize,
-      [FromServices] IMediator handler)
-    {
-        if (page < 1 || pageSize < 1 || pageSize > 200)
-            return BadRequest();
-
-        var authInfo = context.GetAuthInfo();
-
-        var lista = await handler.Send(new FattureDaNonInviareSapQuery(authInfo)
-        {
-            Anno = request.Anno,
-            IdEnti = request.IdEnti,
-            Mesi = request.Mesi,
-            TipologiaContratto = request.TipologiaContratto,
-            TipologiaFattura = request.TipologiaFattura,
-            Page = page,
-            Size = pageSize
-        });
-
-        if (lista == null! || lista.FattureEscluse.IsNullNotAny())
-            return NotFound();
-
-        return Ok(lista);
-    }
-
-
-    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
-    [EnableCors(CORSLabel)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    private async Task<Results<Ok<IEnumerable<int>>, BadRequest, NotFound>> GetPagoPAEsclusioneInvioFattureAnniAsync(
-    HttpContext context,
-    [FromServices] IMediator handler)
-    {
-        var authInfo = context.GetAuthInfo();
-        var anni = await handler.Send(new FattureDaNonInviareSapAnniQuery(authInfo)
-        {
-
-        });
-        if (anni.IsNullNotAny()) return NotFound();
-
-        return Ok(anni);
-    }
-
-
-    [Authorize(Roles = $"{Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
-    private async Task<Results<Ok<IEnumerable<FattureMeseResponse>>, BadRequest, NotFound>> PostPagoPAEsclusioneInvioFattureMesiAsync(
-     HttpContext context,
-     FattureDaNonInviareSapMesiRequest request,
-     [FromServices] IMediator handler)
-    {
-        var authInfo = context.GetAuthInfo();
-        var mesi = await handler.Send(new FattureDaNonInviareSapMesiQuery(authInfo)
-        {
-            Anno = request.Anno
-        });
-
-        if (mesi.IsNullNotAny())
-            return NotFound();
-
-        return Ok(mesi!.Select(x => new FattureMeseResponse()
-        {
-            Mese = Convert.ToString(x),
-            Descrizione = Convert.ToInt32(x).GetMonth()
-        }));
-    }
-
-    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
-    [EnableCors(CORSLabel)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    private async Task<Results<Ok<IEnumerable<string>>, BadRequest, NotFound>> GetPagoPAEsclusioneInvioFattureTipologiaFatturaAsync(
-    HttpContext context,
-    [FromServices] IMediator handler)
-    {
-        var authInfo = context.GetAuthInfo();
-        var tipologie = await handler.Send(new FattureDaNonInviareSapTipologiaFatturaQuery(authInfo)
-        {
-
-        });
-
-        if (tipologie.IsNullNotAny()) return NotFound();
-
-        return Ok(tipologie);
-
-    }
-
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -1819,85 +1718,112 @@ public partial class FattureModule
     }
 
 
-    [Authorize(Roles = $"{Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
-    private async Task<Results<Ok<IEnumerable<FattureMeseResponse>>, BadRequest, NotFound>> PostPagoPAEsclusioneInvioFattureMesiModificaAsync(
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<GestioneFattureListDto>, BadRequest, NotFound>> PostPagoPAGestioneFatturazioneAsync(
     HttpContext context,
-    RicercaFattureDaNonInviareSapMesiRequest request,
+    RicercaGestioneFatture request,
+    [FromQuery] int page,
+    [FromQuery] int pageSize,
     [FromServices] IMediator handler)
     {
         var authInfo = context.GetAuthInfo();
-        var slist = await handler.Send(new FattureDaNonInviareSapMesiInserisciQuery(authInfo)
+
+        var lista = await handler.Send(new GestioneFattureQuery(authInfo)
         {
-            TipologiaFattura = request.TipologiaFattura,
-            IdEnte = request.IdEnte,
             Anno = request.Anno,
+            IdEnti = request.IdEnti,
+            Mesi = request.Mesi,
+            TipologiaContratto = request.TipologiaContratto,
+            TipologiaFattura = request.TipologiaFattura,
+            Azione = request.Azione,
+            Note = request.Note,
+            Page = page,
+            Size = pageSize
         });
 
-        if (slist.IsNullNotAny())
+        if (lista == null! || lista.GestioneFatture.IsNullNotAny())
+            return NotFound();
+        return Ok(lista);
+    }
+
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<int>>, BadRequest, NotFound>> GetPagoPAGestioneFatturazioneAnniAsync(
+    HttpContext context,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var anni = await handler.Send(new GestioneFattureAnniQuery(authInfo)
+        {
+
+        });
+        if (anni.IsNullNotAny()) return NotFound();
+
+        return Ok(anni);
+    }
+
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<GestioneFattureMeseResponse>>, BadRequest, NotFound>> PostPagoPAGestioneFatturazioneMesiAsync(
+    HttpContext context,
+    GestioneFattureMesiRequest request,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var mesi = await handler.Send(new GestioneFattureMesiQuery(authInfo)
+        {
+            Anno = request.Anno
+        });
+
+
+        if (mesi.IsNullNotAny())
             return NotFound();
 
-        return Ok(slist!.Select(x => new FattureMeseResponse()
+
+        return Ok(mesi!.Select(x => new GestioneFattureMeseResponse()
         {
-            Mese = Convert.ToString(x.MeseRiferimento),
-            Descrizione = Convert.ToInt32(x.MeseRiferimento).GetMonth()
+            Mese = Convert.ToString(x),
+            Descrizione = Convert.ToInt32(x).GetMonth()
         }));
     }
 
 
-    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
-    [EnableCors(CORSLabel)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    private async Task<Results<Ok<IEnumerable<int>>, BadRequest, NotFound>> PostPagoPAEsclusioneInvioFattureAnniModificaAsync(
-    HttpContext context,
-    RicercaWhiteListFattureAnniModifica request,
-    [FromServices] IMediator handler)
-    {
-        var authInfo = context.GetAuthInfo();
-        var wlist = await handler.Send(new FattureDaNonInviareSapAnniInserisciQuery(authInfo)
-        {
-            TipologiaFattura = request.TipologiaFattura,
-            IdEnte = request.IdEnte
-        });
-
-        if (wlist.IsNullNotAny())
-            return NotFound();
-
-        return Ok(wlist!.Select(x => x.AnnoRiferimento).Distinct());
-    }
 
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    private async Task<Results<Ok<bool?>, Conflict, NotFound>> PostPagoPAEsclusioneInvioFattureInserimentoAsync(
+    private async Task<Results<Ok<IEnumerable<string>>, BadRequest, NotFound>> GetPagoPAGestioneFatturazioneTipologiaFatturaAsync(
     HttpContext context,
-    FattureDaNonInviareSapInserimentoRequest request,
+    GestioneFattureTipologiaFatturaRequest request,
     [FromServices] IMediator handler)
     {
         var authInfo = context.GetAuthInfo();
-        var result = await handler.Send(new FattureDaNonInviareSapAggiungiCommand(authInfo)
+        var tipologie = await handler.Send(new GestioneFattureTipologiaFatturaQuery(authInfo)
+
         {
-            TipologiaFattura = request.TipologiaFattura,
-            IdEnte = request.IdEnte,
             Anno = request.Anno,
             Mesi = request.Mesi
         });
-        if (result.HasValue && result.Value)
-            return Ok(result);
 
-        if (result == null)
-            return NotFound();
+        if (tipologie.IsNullNotAny()) return NotFound();
 
-        else
-            return Conflict();
+        return Ok(tipologie);
+
     }
-
-
 
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
     [EnableCors(CORSLabel)]
@@ -1905,57 +1831,83 @@ public partial class FattureModule
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-
-    private async Task<Results<Ok<bool>, BadRequest, Conflict, NotFound>> DeletePagoPAEsclusioneInvioFattureAsync(
+    private async Task<Results<Ok<bool>, BadRequest<string>, Conflict, NotFound>> GetPagoPAGestioneFatturazioneAzioneAsync(
     HttpContext context,
-    [FromBody] DeleteFattureDaNonInviareSap request,
+    GestioneFattureAzioneRequest request,
     [FromServices] IMediator handler)
     {
         var authInfo = context.GetAuthInfo();
-        var result = await handler.Send(new FattureDaNonInviareSapCancellazioneCommand(authInfo, request.Fatture));
-
-        if (result.HasValue)
+        try
         {
-            if (result == 0)
-                return Ok(true);
-            else if (result < 0)
-                return Conflict();
-            else
-                return BadRequest();
+            var result = await handler.Send(new GestioneFattureAzioneCommand(authInfo)
+        {
+            IdEnte = request.IdEnte,
+            Azione = request.Azione,
+            TipologiaFattura = request.TipologiaFattura,
+            Anno = request.Anno,
+            Mese = request.Mese,
+            IdUtente = request.IdUtente,
+            Note = request.Note,
+            IdFattura = request.IdFattura
+        });
+
+       
+            return Ok(true);
         }
-        else
-            return BadRequest();
+        catch (Exception ex)
+        {
+            return BadRequest( ex.Message );
+        }
     }
+
 
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-
-    private async Task<Results<Ok<bool>, BadRequest, Conflict, NotFound>> PostPagoPAEsclusioneInvioFattureRipristinoAsync(
-   HttpContext context,
-   [FromBody] RipristinoFattureDaNonInviareSap request,
-   [FromServices] IMediator handler)
+    private async Task<Results<Ok<IEnumerable<int>>, BadRequest, NotFound>> GetPagoPAModificaGestioneFatturazioneAnniAsync(
+    HttpContext context,
+    GestioneFattureModificaRequest request,
+    [FromServices] IMediator handler)
     {
         var authInfo = context.GetAuthInfo();
-        var result = await handler.Send(new FattureDaNonInviareSapRipristinoCommand(authInfo, request.Fatture));
-
-        if (result.HasValue)
+        var anni = await handler.Send(new GestioneFattureModificaAnniQuery(authInfo)
         {
-            if (result == 0)
-                return Ok(true);
-            else if (result < 0)
-                return Conflict();
-            else
-                return BadRequest();
-        }
-        else
-            return BadRequest();
+            TipologiaFattura = request.TipologiaFattura,
+            Azione = request.Azione
+        });
+        if (anni.IsNullNotAny()) return NotFound();
+
+        return Ok(anni);
     }
 
 
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<IEnumerable<FattureMeseResponse>>, BadRequest, NotFound>> GetPagoPAModificaGestioneFatturazioneMesiAsync(
+    HttpContext context,
+    GestioneFattureModificaRequest request,
+    [FromServices] IMediator handler)
+    {
+        var authInfo = context.GetAuthInfo();
+        var mesi = await handler.Send(new GestioneFattureModificaMesiQuery(authInfo)
+        {   
+            Anno = request.Anno,
+            TipologiaFattura = request.TipologiaFattura,
+            Azione = request.Azione
+        });
+        if (mesi.IsNullNotAny()) return NotFound();
+
+        return Ok(mesi!.Select( x => new FattureMeseResponse
+        {
+            Mese = Convert.ToString(x), 
+            Descrizione = Convert.ToInt32(x).GetMonth()
+        }));
+    }
 
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
     [EnableCors(CORSLabel)]
@@ -1963,14 +1915,14 @@ public partial class FattureModule
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    private async Task<IResult> PostPagoPAEsclusioneInvioFattureDownloadAsync(
+    private async Task<IResult> PostPagoPAGestioneFattureDownloadAsync(
     HttpContext context,
-    RicercaEsclusioneInvioFattureRequest request,
+    RicercaGestioneFattureDownloadRequest request,
     [FromServices] IMediator handler)
     {
         var authInfo = context.GetAuthInfo();
 
-        var lista = await handler.Send(new FattureDaNonInviareSapQuery(authInfo)
+        var lista = await handler.Send(new GestioneFattureDownloadQuery(authInfo)
         {
             Anno = request.Anno,
             IdEnti = request.IdEnti,
@@ -1979,12 +1931,12 @@ public partial class FattureModule
             TipologiaFattura = request.TipologiaFattura,
         });
 
-        if (lista == null! || lista.FattureEscluse.IsNullNotAny())
+        if (lista == null! || lista.GestioneFatture.IsNullNotAny())
             return NotFound();
         var mime = "application/vnd.ms-excel";
         var filename = $"{Guid.NewGuid()}.xlsx";
 
-        var dataSet = lista.FattureEscluse!.FillOneSheetv2();
+        var dataSet = lista.GestioneFatture!.FillOneSheetv2();
         var content = dataSet.ToExcel();
         var result = new DisposableStreamResult(content, mime)
         {
@@ -1992,5 +1944,6 @@ public partial class FattureModule
         };
         return Results.Stream(result.FileStream, result.ContentType, result.FileDownloadName);
     }
+
 
 }
