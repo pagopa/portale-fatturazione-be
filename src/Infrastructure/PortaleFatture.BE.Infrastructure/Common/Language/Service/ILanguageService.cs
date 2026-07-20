@@ -7,4 +7,6 @@ public interface ILanguageService
     Task<PiiEntityCollection?> DetectPersonalIdentifiableInformationAsync(string text, string language = "it", CancellationToken cancellationToken = default);
 
     Task<DetectedLanguage?> DetectLanguageAsync(string text, CancellationToken cancellationToken = default);
+
+    Task<List<AbstractiveSummarizeResultCollection>?> SummarizeTextAsync(string text, string language = "it", CancellationToken cancellationToken = default);
 }

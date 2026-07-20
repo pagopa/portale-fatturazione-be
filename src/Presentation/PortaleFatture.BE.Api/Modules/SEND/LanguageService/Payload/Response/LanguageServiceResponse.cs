@@ -17,3 +17,9 @@ public class LanguageServiceResponseLanguageDetection
         ConfidenceScore = confidenceScore;
     }
 }
+
+public class LanguageServiceResponseSummarizeText
+{
+    public string? Text { get; set; } = string.Empty;  
+
+}

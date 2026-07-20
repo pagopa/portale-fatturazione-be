@@ -71,4 +71,34 @@ public class LanguageService : ILanguageService
         }
     }
 
+    public async Task<List<AbstractiveSummarizeResultCollection>> SummarizeTextAsync(string text, string language = "it", CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            throw new ArgumentException("The text to analyze is required.", nameof(text));
+        }
+        try
+        {
+            var response = await _client.AbstractiveSummarizeAsync(
+                WaitUntil.Completed,
+                new[] { text },
+                language,
+                cancellationToken: cancellationToken);
+
+
+            // check if response is null then return null
+            if (response == null)
+            {
+                return null;
+            }
+            //otherwise return the response value
+            return response.GetValues().ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during text summarization.");
+            return null;
+        }
+    }
+
 }

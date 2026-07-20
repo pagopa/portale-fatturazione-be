@@ -86,4 +86,29 @@ public partial class LanguageService
         return Ok(response);
     }
 
+
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<Results<Ok<List<AbstractiveSummarizeResultCollection>>, BadRequest, NotFound>> PostSummarizeTextAsync(
+HttpContext context,
+[FromBody] LanguageServiceRequest request,
+[FromServices] IStringLocalizer<Localization> localizer,
+[FromServices] ILanguageService languageServiceHandler)
+    {
+        if (request.testo == null || request.testo.Length == 0)
+            return BadRequest();
+
+        var summarizeOperation = await languageServiceHandler.SummarizeTextAsync(request.testo);
+
+        // check if summarizeOperation is null then return NotFound
+        if (summarizeOperation == null)
+            return NotFound();
+
+
+        return Ok(summarizeOperation);
+    }
 }

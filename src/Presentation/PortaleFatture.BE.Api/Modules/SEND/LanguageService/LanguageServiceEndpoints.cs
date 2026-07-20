@@ -21,5 +21,11 @@ public partial class LanguageService : Module, IRegistrableModule
         .SetOpenApi(Module.LanguageService)
         .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
+        endpointRouteBuilder
+        .MapPost("api/summarize-text", PostSummarizeTextAsync)
+        .WithName("Permette di inviare una stringa per la sintesi del testo")
+        .SetOpenApi(Module.LanguageService)
+        .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
     }
 }
