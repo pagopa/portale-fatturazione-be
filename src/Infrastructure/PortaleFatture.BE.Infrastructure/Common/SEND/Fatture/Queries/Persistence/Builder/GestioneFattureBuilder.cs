@@ -179,4 +179,16 @@ FROM [be].[vwGestioneFattureGriglia]
     }
 
 
+
+    public static string SelectGestioneFattureVerificaAzione()
+    {
+        return $@"
+          SELECT DISTINCT Anno, Mese
+           FROM[be].[vwGestioneFattureFormAnniMesi]
+    ";
+    }
+
+    
+
+
 }
