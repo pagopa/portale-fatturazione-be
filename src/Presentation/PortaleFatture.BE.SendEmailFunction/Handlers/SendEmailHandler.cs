@@ -22,6 +22,8 @@ internal class SendEmailHandler
         var tipologiafattura = queryParams["tipologiafattura"];
         var tipoComunicazione = queryParams["tipoComunicazione"];
         var fase = queryParams["fase"];
+
+        // /!\ preview assente = ramo INVIO (opposto dei flussi PSP) — voluto per la pipeline Data, ma da rendere esplicito/obbligatorio; per prove manuali passare sempre ?preview=true
         var preview = bool.TryParse(queryParams["preview"], out var previewValue) && previewValue;
 
 

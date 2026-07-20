@@ -22,7 +22,7 @@ internal class SendEmailPspAdjustmentHandler
             ? previewValue
             : true;
 
-        var data = new EmailPspAdjustmentDataRequest { Preview = preview };
+        var data = new EmailPspAdjustmentDataRequest { Preview = preview};
 
         var instanceId = await client.ScheduleNewOrchestrationInstanceAsync(nameof(SendEmailPspAdjustmentOrchestrator), data);
         var payload = new
