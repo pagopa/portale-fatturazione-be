@@ -1831,7 +1831,7 @@ public partial class FattureModule
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    private async Task<Results<Ok<bool>, BadRequest<string>, Conflict, NotFound>> GetPagoPAGestioneFatturazioneAzioneAsync(
+    private async Task<Results<Ok<bool>, BadRequest<string>, Conflict, NotFound>> PostPagoPAGestioneFattureAzioneAsync(
     HttpContext context,
     GestioneFattureAzioneRequest request,
     [FromServices] IMediator handler)
