@@ -1846,7 +1846,7 @@ public partial class FattureModule
             TipologiaFattura = request.TipologiaFattura,
             Anno = request.Anno,
             Mese = request.Mese,
-            IdUtente = request.IdUtente,
+            IdUtente = authInfo!.Id,
             Note = request.Note,
             IdFattura = request.IdFattura
         });
