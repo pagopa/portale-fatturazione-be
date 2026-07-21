@@ -1833,13 +1833,13 @@ public partial class FattureModule
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     private async Task<Results<Ok<bool>, BadRequest<string>, Conflict, NotFound>> PostPagoPAGestioneFattureAzioneAsync(
     HttpContext context,
-    GestioneFattureAzioneRequest request,
+    [FromBody] GestioneFattureAzioneRequest request,
     [FromServices] IMediator handler)
     {
         var authInfo = context.GetAuthInfo();
         try
         {
-            var result = await handler.Send(new GestioneFattureAzioneCommand(authInfo)
+        var result = await handler.Send(new GestioneFattureAzioneCommand(authInfo)
         {
             IdEnte = request.IdEnte,
             Azione = request.Azione,
@@ -1851,8 +1851,13 @@ public partial class FattureModule
             IdFattura = request.IdFattura
         });
 
-       
-            return Ok(true);
+            if(!result.HasValue)
+                return BadRequest("Risultato non valido.");
+            
+            if(result.Value == false)
+                return NotFound();
+
+            return Ok(result.Value);
         }
         catch (Exception ex)
         {
