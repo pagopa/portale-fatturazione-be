@@ -1859,9 +1859,13 @@ public partial class FattureModule
 
             return Ok(result.Value);
         }
-        catch (Exception ex)
+        catch (ArgumentException aex)
         {
-            return BadRequest( ex.Message );
+            return BadRequest(aex.Message);
+        }
+        catch (Exception)
+        {
+            return BadRequest("Impossibile completare l'operazione.");
         }
     }
 

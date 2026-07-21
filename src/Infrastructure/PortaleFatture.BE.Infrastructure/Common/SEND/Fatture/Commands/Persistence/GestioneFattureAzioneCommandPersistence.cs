@@ -42,7 +42,7 @@ public class GestioneFattureAzioneCommandPersistence(GestioneFattureAzioneComman
         }
         else if(_action != "POSTICIPA" && _action != "ELIMINA" && _action != "RIPRISTINA" && _action != "CANCELLA")
         {
-            throw new Exception($"L'azione {_command.Azione} non esiste");
+            throw new ArgumentException($"L'azione {_command.Azione} non esiste");
         }
        
 
