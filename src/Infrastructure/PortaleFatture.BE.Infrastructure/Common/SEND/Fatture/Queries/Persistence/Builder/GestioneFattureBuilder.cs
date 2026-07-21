@@ -149,7 +149,6 @@ FROM [be].[vwGestioneFattureGriglia]
        
      SELECT [Ente]
       ,[RagioneSociale]
-      ,[Ente]
       ,[TipologiaFattura]
       ,[Anno]
       ,[Mese]
