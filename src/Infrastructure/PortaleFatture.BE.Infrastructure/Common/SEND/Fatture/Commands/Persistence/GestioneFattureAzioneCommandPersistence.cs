@@ -7,7 +7,7 @@ using PortaleFatture.BE.Infrastructure.Common.Persistence;
 
 namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Commands.Persistence;
 
-public class GestioneFattureAzioneCommandPersistence(GestioneFattureAzioneCommand command, IStringLocalizer<Localization> localizer) : DapperBase, ICommand<bool?>
+public class GestioneFattureAzioneCommandPersistence(GestioneFattureAzioneCommand command, IStringLocalizer<Localization> localizer) : DapperBase, ICommand<int?>
 {
     public bool RequiresTransaction => false;
     private readonly GestioneFattureAzioneCommand _command = command;
@@ -20,7 +20,7 @@ public class GestioneFattureAzioneCommandPersistence(GestioneFattureAzioneComman
     private static readonly string _sqlRipristina = $"be.GestioneFattureRipristina";
     private static readonly string _sqlCancella = $"be.GestioneFattureCancella";
 
-    public async Task<bool?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
+    public async Task<int?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
     {
         string _sql_based_on_action = "";
         string _action = _command.Azione.ToUpper();
@@ -44,19 +44,21 @@ public class GestioneFattureAzioneCommandPersistence(GestioneFattureAzioneComman
         {
             throw new ArgumentException($"L'azione {_command.Azione} non esiste");
         }
-       
 
-        var parameters = new
-        {
-            IdEnte = _command.IdEnte,
-            TipologiaFattura = _command.TipologiaFattura,
-            Anno = _command.Anno,
-            Mese = _command.Mese,
-            Note = JsonSerializer.Serialize(_command.Note),
-            IdUtente = _command.IdUtente,
-            IdFattura = _command.IdFattura,
-        };
-        return await ((IDatabase)this).ExecuteAsync<bool>(connection!, _sql_based_on_action, parameters, transaction, CommandType.StoredProcedure);
+
+        var parameters = new DynamicParameters();
+
+        parameters.Add("@IdEnte", dbType: DbType.Guid, direction: ParameterDirection.Input, value: Guid.Parse(_command.IdEnte!));
+        parameters.Add("@IdFattura", dbType: DbType.Int32, direction: ParameterDirection.Input, value: _command.IdFattura);
+        parameters.Add("@Anno", dbType: DbType.Int32, direction: ParameterDirection.Input, value: _command.Anno);
+        parameters.Add("@Mese", dbType: DbType.Int32, direction: ParameterDirection.Input, value: _command.Mese);
+        parameters.Add("@TipologiaFattura", dbType: DbType.String, direction: ParameterDirection.Input, value: _command.TipologiaFattura);
+        parameters.Add("@IdUtente", dbType: DbType.String, direction: ParameterDirection.Input, value: _command.IdUtente);
+        parameters.Add("@Note", dbType: DbType.String, direction: ParameterDirection.Input, value: JsonSerializer.Serialize(_command.Note));
+
+        parameters.Add("@ReturnValue", dbType: DbType.Int32, direction: ParameterDirection.ReturnValue);
+
+        return await ((IDatabase)this).ExecuteAsync<int>(connection!, _sql_based_on_action, parameters, transaction, CommandType.StoredProcedure);
 
     }
 }

@@ -4,7 +4,7 @@ using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Commands.Persistence;
 namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Commands;
 
- public class GestioneFattureAzioneCommand(IAuthenticationInfo authenticationInfo) : IRequest<bool?>
+ public class GestioneFattureAzioneCommand(IAuthenticationInfo authenticationInfo) : IRequest<int?>
  {
 
     public IAuthenticationInfo AuthenticationInfo { get; internal set; } = authenticationInfo;
@@ -23,7 +23,7 @@ namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Commands;
 
 public class NoteCommand
 {
-    public Guid IdNota { get; set; }
+    public Guid IdNota { get; set; } = Guid.NewGuid();
     public DateTime Data { get; set; }
     public string? Testo { get; set; }
 }

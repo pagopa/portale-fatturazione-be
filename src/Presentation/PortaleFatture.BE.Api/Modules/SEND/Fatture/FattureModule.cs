@@ -1831,7 +1831,7 @@ public partial class FattureModule
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    private async Task<Results<Ok<bool>, BadRequest<string>, Conflict, NotFound>> PostPagoPAGestioneFattureAzioneAsync(
+    private async Task<Results<Ok<int>, BadRequest<string>, Conflict, NotFound>> PostPagoPAGestioneFattureAzioneAsync(
     HttpContext context,
     [FromBody] GestioneFattureAzioneRequest request,
     [FromServices] IMediator handler)
@@ -1854,7 +1854,7 @@ public partial class FattureModule
             if(!result.HasValue)
                 return BadRequest("Risultato non valido.");
             
-            if(result.Value == false)
+            if(result.Value == 0)
                 return NotFound();
 
             return Ok(result.Value);
@@ -1863,8 +1863,10 @@ public partial class FattureModule
         {
             return BadRequest(aex.Message);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            var x = ex.Message;
+            Console.WriteLine(x);
             return BadRequest("Impossibile completare l'operazione.");
         }
     }

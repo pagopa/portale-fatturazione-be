@@ -18,7 +18,7 @@ public class GestioneFattureAzioneCommandHandler(
     IMediator handler,
     IStringLocalizer<Localization> localizer,
     ILogger<GestioneFattureAzioneCommandHandler> logger)
-    : IRequestHandler<GestioneFattureAzioneCommand, bool?>
+    : IRequestHandler<GestioneFattureAzioneCommand, int?>
 {
     private readonly IFattureDbContextFactory _factory = factory;
     private readonly IMediator _handler = handler;
@@ -26,11 +26,11 @@ public class GestioneFattureAzioneCommandHandler(
     private readonly IStringLocalizer<Localization> _localizer = localizer;
 
  
-    public async Task<bool?> Handle(GestioneFattureAzioneCommand command, CancellationToken ct)
+    public async Task<int?> Handle(GestioneFattureAzioneCommand command, CancellationToken ct)
     {
 
         using var uow = await _factory.Create(cancellationToken: ct);
-
+       /* 
         var verificaQuery = new GestioneFattureModificaVerificaQuery(command.AuthenticationInfo)
         {
             Azione = command.Azione,
@@ -44,8 +44,8 @@ public class GestioneFattureAzioneCommandHandler(
         {
             throw new Exception($"Non è possibile eseguire inserimenti con {Convert.ToInt32(command.Mese).GetMonth()}/{command.Anno}");
         }
-
-
+        
+        */
        
         var result = await uow.Execute(new GestioneFattureAzioneCommandPersistence(command, _localizer), ct);
         return result;
