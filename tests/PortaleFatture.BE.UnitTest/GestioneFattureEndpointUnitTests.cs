@@ -194,6 +194,99 @@ public class GestioneFattureEndpointUnitTests
             Times.Once);
     }
 
+    [Test]
+    /// <summary>
+    /// Verifica che l'endpoint GET /api/fatture/pagopa/gestione-fatture/anni ritorni Ok
+    /// e inoltri al mediator una GestioneFattureAnniQuery con auth info valorizzata.
+    /// </summary>
+    public async Task GetPagoPAGestioneFatturazioneAnniAsync_ShouldReturnOk_AndForwardAuthInfo()
+    {
+        var mediator = new Mock<IMediator>();
+        var module = new FattureModule();
+        var context = BuildAuthenticatedHttpContext();
+
+        mediator
+            .Setup(x => x.Send(It.IsAny<GestioneFattureAnniQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[] { 2026, 2025 });
+
+        var endpointResult = await InvokeGetGestioneFattureAnniAsync(module, context, mediator.Object);
+        var innerResult = GetInnerResult(endpointResult);
+
+        Assert.That(innerResult, Is.Not.Null);
+        Assert.That(innerResult!.GetType().Name, Is.EqualTo("Ok`1"));
+
+        mediator.Verify(x => x.Send(
+            It.Is<GestioneFattureAnniQuery>(q =>
+                q.AuthenticationInfo != null &&
+                q.AuthenticationInfo.Ruolo == Ruolo.ADMIN &&
+                q.AuthenticationInfo.IdEnte == "ENTE-TEST" &&
+                q.AuthenticationInfo.Prodotto == "prod-pn"),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Test]
+    /// <summary>
+    /// Verifica che l'endpoint GET /api/fatture/pagopa/gestione-fatture/anni ritorni NotFound
+    /// quando il layer query ritorna null.
+    /// </summary>
+    public async Task GetPagoPAGestioneFatturazioneAnniAsync_WhenMediatorReturnsNull_ShouldReturnNotFound()
+    {
+        var mediator = new Mock<IMediator>();
+        var module = new FattureModule();
+        var context = BuildAuthenticatedHttpContext();
+
+        mediator
+            .Setup(x => x.Send(It.IsAny<GestioneFattureAnniQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IEnumerable<int>?)null);
+
+        var endpointResult = await InvokeGetGestioneFattureAnniAsync(module, context, mediator.Object);
+        var innerResult = GetInnerResult(endpointResult);
+
+        Assert.That(innerResult, Is.Not.Null);
+        Assert.That(innerResult!.GetType().Name, Is.EqualTo("NotFound"));
+    }
+
+    [Test]
+    /// <summary>
+    /// Verifica che l'endpoint GET /api/fatture/pagopa/gestione-fatture/anni ritorni NotFound
+    /// quando il layer query ritorna una lista vuota.
+    /// </summary>
+    public async Task GetPagoPAGestioneFatturazioneAnniAsync_WhenMediatorReturnsEmpty_ShouldReturnNotFound()
+    {
+        var mediator = new Mock<IMediator>();
+        var module = new FattureModule();
+        var context = BuildAuthenticatedHttpContext();
+
+        mediator
+            .Setup(x => x.Send(It.IsAny<GestioneFattureAnniQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<int>());
+
+        var endpointResult = await InvokeGetGestioneFattureAnniAsync(module, context, mediator.Object);
+        var innerResult = GetInnerResult(endpointResult);
+
+        Assert.That(innerResult, Is.Not.Null);
+        Assert.That(innerResult!.GetType().Name, Is.EqualTo("NotFound"));
+    }
+
+    [Test]
+    /// <summary>
+    /// Verifica che l'endpoint GET /api/fatture/pagopa/gestione-fatture/anni propaghi
+    /// la SecurityException quando il principal non è autenticato.
+    /// </summary>
+    public void GetPagoPAGestioneFatturazioneAnniAsync_WhenUserIsNotAuthenticated_ShouldThrowSecurityException()
+    {
+        var mediator = new Mock<IMediator>();
+        var module = new FattureModule();
+        var context = new DefaultHttpContext
+        {
+            User = new ClaimsPrincipal(new ClaimsIdentity())
+        };
+
+        Assert.ThrowsAsync<SecurityException>(async () =>
+            await InvokeGetGestioneFattureAnniAsync(module, context, mediator.Object));
+    }
+
 
     /// <summary>
     /// Costruisce un HttpContext con un utente autenticato e i claim necessari per l'endpoint.
@@ -252,6 +345,28 @@ public class GestioneFattureEndpointUnitTests
 
         var taskResult = task.GetType().GetProperty("Result")?.GetValue(task);
         Assert.That(taskResult, Is.Not.Null, "Il task dell'endpoint non ha prodotto risultato.");
+        return taskResult!;
+    }
+
+    /// <summary>
+    /// Invoca l'endpoint GET /api/fatture/pagopa/gestione-fatture/anni tramite reflection.
+    /// </summary>
+    private static async Task<object> InvokeGetGestioneFattureAnniAsync(
+        FattureModule module,
+        HttpContext context,
+        IMediator mediator)
+    {
+        var method = typeof(FattureModule).GetMethod(
+            "GetPagoPAGestioneFatturazioneAnniAsync",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+
+        Assert.That(method, Is.Not.Null, "Metodo endpoint anni non trovato via reflection.");
+
+        var task = (Task)method!.Invoke(module, new object[] { context, mediator })!;
+        await task;
+
+        var taskResult = task.GetType().GetProperty("Result")?.GetValue(task);
+        Assert.That(taskResult, Is.Not.Null, "Il task dell'endpoint anni non ha prodotto risultato.");
         return taskResult!;
     }
 
