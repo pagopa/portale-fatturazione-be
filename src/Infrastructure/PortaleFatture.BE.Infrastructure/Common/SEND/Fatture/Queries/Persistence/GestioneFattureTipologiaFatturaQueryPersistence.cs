@@ -11,6 +11,9 @@ using PortaleFatture.BE.Infrastructure.Common.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries.Persistence.Builder;
 
+
+namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries.Persistence;
+
 public sealed class GestioneFattureTipologiaFatturaQueryPersistence(GestioneFattureTipologiaFatturaQuery command) : DapperBase, IQuery<IEnumerable<string>?>
 {
 
