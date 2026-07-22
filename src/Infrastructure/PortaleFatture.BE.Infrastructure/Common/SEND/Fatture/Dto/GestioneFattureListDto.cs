@@ -28,9 +28,6 @@ public class SimpleGestioneFattureDto
         }
     }
 
- 
-    public DateTime? DataCancellazione { get; set; }
-
     [HeaderAttributev2(caption: "DataRipristino", Order = 7)]
     public DateTime? DataRipristino { get; set; }
 
