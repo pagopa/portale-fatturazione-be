@@ -52,7 +52,7 @@ public class GestioneFattureAzioneCommandPersistence(GestioneFattureAzioneComman
         parameters.Add("@Mese", dbType: DbType.Int32, direction: ParameterDirection.Input, value: _command.Mese);
         parameters.Add("@TipologiaFattura", dbType: DbType.String, direction: ParameterDirection.Input, value: _command.TipologiaFattura);
         parameters.Add("@IdUtente", dbType: DbType.String, direction: ParameterDirection.Input, value: _command.IdUtente);
-        parameters.Add("@Note", dbType: DbType.String, direction: ParameterDirection.Input, value: JsonSerializer.Serialize(_command.Note));
+        parameters.Add("@Note", dbType: DbType.String, direction: ParameterDirection.Input, value: JsonSerializer.Serialize(_command.Nota));
 
         parameters.Add("@ReturnValue", dbType: DbType.Int32, direction: ParameterDirection.ReturnValue);
 

@@ -1847,7 +1847,7 @@ public partial class FattureModule
             Anno = request.Anno,
             Mese = request.Mese,
             IdUtente = authInfo!.Id,
-            Note = request.Note,
+            Nota = request.Nota,
             IdFattura = request.IdFattura
         });
 
