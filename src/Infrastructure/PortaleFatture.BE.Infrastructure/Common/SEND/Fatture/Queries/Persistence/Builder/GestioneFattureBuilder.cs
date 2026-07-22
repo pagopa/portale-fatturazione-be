@@ -106,16 +106,25 @@ FROM [be].[vwGestioneFattureGriglia]
     public static string SelectGestioneFattureAllFilterPosticipa()
     {
         return @"
-            SELECT *
-            FROM [be].[vwGestioneFattureFormPosticipa]
-            
+            SELECT
+            [AnnoRiferimento]
+            ,[MeseRiferimento]
+            ,[FkIdEnte]
+            ,[FkTipologiaFattura]
+            ,[IdFattura]
+            FROM [be].[vwGestioneFattureFormPosticipa]   
         ";
     }
 
     public static string SelectGestioneFattureAllFilterElimina()
     {
         return @"
-            SELECT *
+            SELECT
+            [AnnoRiferimento]
+            ,[MeseRiferimento]
+            ,[FkIdEnte]
+            ,[FkTipologiaFattura]
+            ,[IdFattura]
             FROM [be].[vwGestioneFattureFormElimina]
         ";
     }
