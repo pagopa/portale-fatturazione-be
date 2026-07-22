@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries.Persistence.Builder;
 
-internal class GestioneFattureBuilder
+internal class GestioneFattureQueryBuilder
 {
     private static string _sqlGestioneFattureList = @"
        

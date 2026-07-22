@@ -16,10 +16,10 @@ public sealed class GestioneFattureQueryPersistence(GestioneFattureQuery command
 {
 
     private readonly GestioneFattureQuery _command = command;
-    private static readonly string _sqlSelectAll = GestioneFattureBuilder.SelectGestioneFattureList();
-    private static readonly string _orderBy = GestioneFattureBuilder.OrderByGestioneFatture();
-    private static readonly string _sqlSelectAllCount = GestioneFattureBuilder.SelectGestioneFattureCount();
-    private static readonly string _offSet = GestioneFattureBuilder.OffSet();
+    private static readonly string _sqlSelectAll = GestioneFattureQueryBuilder.SelectGestioneFattureList();
+    private static readonly string _orderBy = GestioneFattureQueryBuilder.OrderByGestioneFatture();
+    private static readonly string _sqlSelectAllCount = GestioneFattureQueryBuilder.SelectGestioneFattureCount();
+    private static readonly string _offSet = GestioneFattureQueryBuilder.OffSet();
     public async Task<GestioneFattureListDto?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
     {
 

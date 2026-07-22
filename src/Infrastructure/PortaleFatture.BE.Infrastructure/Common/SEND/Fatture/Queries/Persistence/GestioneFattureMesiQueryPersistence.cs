@@ -12,8 +12,8 @@ public sealed class GestioneFattureMesiQueryPersistence(GestioneFattureMesiQuery
 {
 
     private readonly GestioneFattureMesiQuery _command = command;
-    private static readonly string _sqlSelectAll = GestioneFattureBuilder.SelectGestioneFattureMesi();
-    private static readonly string _orderBy = GestioneFattureBuilder.OrderByGestioneFattureMesi();
+    private static readonly string _sqlSelectAll = GestioneFattureQueryBuilder.SelectGestioneFattureMesi();
+    private static readonly string _orderBy = GestioneFattureQueryBuilder.OrderByGestioneFattureMesi();
     public async Task<IEnumerable<int>?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
     {
         var where = " WHERE anno=@anno";

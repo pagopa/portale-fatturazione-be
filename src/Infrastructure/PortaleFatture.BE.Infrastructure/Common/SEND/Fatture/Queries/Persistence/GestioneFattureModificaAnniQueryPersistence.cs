@@ -11,7 +11,7 @@ namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries.Persisten
 public class GestioneFattureModificaAnniQueryPersistence(GestioneFattureModificaAnniQuery command) : DapperBase, IQuery<IEnumerable<int>?>
 {
     private readonly GestioneFattureModificaAnniQuery _command = command;
-    private static readonly string _sqlSelectAll = GestioneFattureBuilder.SelectGestioneFattureModificaAnni();
+    private static readonly string _sqlSelectAll = GestioneFattureQueryBuilder.SelectGestioneFattureModificaAnni();
     public async Task<IEnumerable<int>?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
     {
         var where = " WHERE azione=@Azione and tipologia_fattura=@TipologiaFattura ORDER BY Anno DESC";

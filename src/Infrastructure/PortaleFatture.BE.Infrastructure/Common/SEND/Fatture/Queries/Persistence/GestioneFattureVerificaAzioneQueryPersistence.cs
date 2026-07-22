@@ -14,7 +14,7 @@ namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries.Persisten
 public class GestioneFattureVerificaAzioneQueryPersistence(GestioneFattureModificaVerificaQuery command, IStringLocalizer<Localization> localizer) : DapperBase, IQuery<bool>
 {
     private readonly GestioneFattureModificaVerificaQuery _command = command;
-    private static readonly string _sqlSelectAll = GestioneFattureBuilder.SelectGestioneFattureVerificaAzione();
+    private static readonly string _sqlSelectAll = GestioneFattureQueryBuilder.SelectGestioneFattureVerificaAzione();
     public async Task<bool> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
     {
         var where = " WHERE azione=@Azione and tipologia_fattura=@TipologiaFattura and anno=@Anno and mese=@Mese";

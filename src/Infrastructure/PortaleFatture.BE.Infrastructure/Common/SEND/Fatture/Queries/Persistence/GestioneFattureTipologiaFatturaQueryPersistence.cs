@@ -18,8 +18,8 @@ public sealed class GestioneFattureTipologiaFatturaQueryPersistence(GestioneFatt
 {
 
     private readonly GestioneFattureTipologiaFatturaQuery _command = command;
-    private static readonly string _sqlSelectAll = GestioneFattureBuilder.SelectGestioneFattureTipologiaFattura();
-    private static readonly string _sqlGroupOrder = GestioneFattureBuilder.SelectGestioneFattureTipologiaFatturaGroupOrder();
+    private static readonly string _sqlSelectAll = GestioneFattureQueryBuilder.SelectGestioneFattureTipologiaFattura();
+    private static readonly string _sqlGroupOrder = GestioneFattureQueryBuilder.SelectGestioneFattureTipologiaFatturaGroupOrder();
     public async Task<IEnumerable<string>?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
     {
         var conditions = new List<string>();

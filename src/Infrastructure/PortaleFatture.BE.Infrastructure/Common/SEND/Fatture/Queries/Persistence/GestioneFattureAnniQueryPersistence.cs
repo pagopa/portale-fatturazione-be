@@ -13,7 +13,7 @@ public sealed class GestioneFattureAnniQueryPersistence(GestioneFattureAnniQuery
 {
 
     private readonly GestioneFattureAnniQuery _command = command;
-    private static readonly string _sqlSelectAll = GestioneFattureBuilder.SelectGestioneFattureAnni();
+    private static readonly string _sqlSelectAll = GestioneFattureQueryBuilder.SelectGestioneFattureAnni();
     public async Task<IEnumerable<int>?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
     {
         return await ((IDatabase)this).SelectAsync<int>(

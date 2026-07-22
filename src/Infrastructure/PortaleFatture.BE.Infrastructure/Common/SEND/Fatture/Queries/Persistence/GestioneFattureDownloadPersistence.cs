@@ -15,9 +15,9 @@ public sealed class GestioneFattureDownloadPersistence(GestioneFattureDownloadQu
 {
     private readonly GestioneFattureDownloadQuery _command = command;
 
-    private static readonly string _sqlSelectAll = GestioneFattureBuilder.SelectGestioneFattureListDownload();
-    private static readonly string _orderBy = GestioneFattureBuilder.OrderByGestioneFatture();
-    private static readonly string _sqlSelectAllCount = GestioneFattureBuilder.SelectGestioneFattureCountDownload();
+    private static readonly string _sqlSelectAll = GestioneFattureQueryBuilder.SelectGestioneFattureListDownload();
+    private static readonly string _orderBy = GestioneFattureQueryBuilder.OrderByGestioneFatture();
+    private static readonly string _sqlSelectAllCount = GestioneFattureQueryBuilder.SelectGestioneFattureCountDownload();
    
     public async Task<GestioneFattureListDto?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
     {
