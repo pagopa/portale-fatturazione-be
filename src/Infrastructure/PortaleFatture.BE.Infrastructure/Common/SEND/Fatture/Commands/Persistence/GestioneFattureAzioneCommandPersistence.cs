@@ -22,30 +22,28 @@ public class GestioneFattureAzioneCommandPersistence(GestioneFattureAzioneComman
 
     public async Task<int?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
     {
-        string _sql_based_on_action = "";
-        string _action = _command.Azione.ToUpper();
-        if (_action == "POSTICIPA")
-        {
-            _sql_based_on_action = _sqlPosticipate;
-        }
-        else if (_action == "ELIMINA")
-        {
-            _sql_based_on_action = _sqlEliminate;
-        }
-        else if (_action == "RIPRISTINA")
-        {
-            _sql_based_on_action = _sqlRipristina;
-        }
-        else if (_action == "CANCELLA")
-        {
-            _sql_based_on_action = _sqlCancella;
-        }
-        else if(_action != "POSTICIPA" && _action != "ELIMINA" && _action != "RIPRISTINA" && _action != "CANCELLA")
-        {
-            throw new ArgumentException($"L'azione {_command.Azione} non esiste");
-        }
+        string sqlBasedOnAction;
 
+        string action = _command.Azione!.ToUpper();
 
+        switch (action)
+        {
+            case "POSTICIPA":
+                sqlBasedOnAction = _sqlPosticipate;
+                break;
+            case "ELIMINA":
+                sqlBasedOnAction = _sqlEliminate;
+                break;
+            case "RIPRISTINA":
+                sqlBasedOnAction = _sqlRipristina;
+                break;
+            case "CANCELLA":
+                sqlBasedOnAction = _sqlCancella;
+                break;
+            default:
+                throw new ArgumentException($"L'azione {_command.Azione} non esiste");
+        }
+            
         var parameters = new DynamicParameters();
 
         parameters.Add("@IdEnte", dbType: DbType.Guid, direction: ParameterDirection.Input, value: Guid.Parse(_command.IdEnte!));
@@ -58,7 +56,7 @@ public class GestioneFattureAzioneCommandPersistence(GestioneFattureAzioneComman
 
         parameters.Add("@ReturnValue", dbType: DbType.Int32, direction: ParameterDirection.ReturnValue);
 
-        return await ((IDatabase)this).ExecuteAsync<int>(connection!, _sql_based_on_action, parameters, transaction, CommandType.StoredProcedure);
+        return await ((IDatabase)this).ExecuteAsync<int>(connection!, sqlBasedOnAction, parameters, transaction, CommandType.StoredProcedure);
 
     }
 }
