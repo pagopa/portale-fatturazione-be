@@ -12,7 +12,7 @@ using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries.Persistence.B
 
 namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries.Persistence;
 
-public sealed class GestioneFattureQueryPersistance(GestioneFattureQuery command) : DapperBase, IQuery<GestioneFattureListDto?>
+public sealed class GestioneFattureQueryPersistence(GestioneFattureQuery command) : DapperBase, IQuery<GestioneFattureListDto?>
 {
 
     private readonly GestioneFattureQuery _command = command;

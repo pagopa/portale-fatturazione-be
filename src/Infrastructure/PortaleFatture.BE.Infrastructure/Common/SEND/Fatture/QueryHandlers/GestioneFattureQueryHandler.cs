@@ -24,7 +24,7 @@ ILogger<GestioneFattureQueryHandler> logger) : IRequestHandler<GestioneFattureQu
     public async Task<GestioneFattureListDto?> Handle(GestioneFattureQuery request, CancellationToken ct)
     {
         using var rs = await _factory.Create(cancellationToken: ct);
-        return await rs.Query(new GestioneFattureQueryPersistance(request), ct);
+        return await rs.Query(new GestioneFattureQueryPersistence(request), ct);
     }
 }
 
