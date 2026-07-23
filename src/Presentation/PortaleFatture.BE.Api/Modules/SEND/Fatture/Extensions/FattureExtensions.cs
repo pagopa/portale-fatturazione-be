@@ -727,6 +727,7 @@ public static class FattureExtensions
                         var relNonFirmate = await handler.Send(new RelNonFatturateQuery(authInfo));
                         relNonFirmate = relNonFirmate!.Where(x => x.TipologiaFattura == tipologia && x.Anno == request.Anno && x.Mese == request.Mese).ToList();
                         reports.Add($"Lista {tipologia} {year} {month}", fatture!.ReportFattureRel(fattureSospese, relNonFirmate, month, tipologia));
+                        // TODO: "Fatture Posicipate {tipologia}" sheet dedicato => [vwReportFatturePosticipate]
                     }
                     break;
                 case TipologiaFattura.SECONDOSALDO:
@@ -737,6 +738,7 @@ public static class FattureExtensions
                         var relNonFirmate = await handler.Send(new RelNonFatturateQuery(authInfo));
                         relNonFirmate = relNonFirmate!.Where(x => x.TipologiaFattura == tipologia && x.Anno == request.Anno && x.Mese == request.Mese).ToList();
                         reports.Add($"Lista {tipologia} {year} {month}", fatture!.ReportFattureRel(fattureSospese, relNonFirmate, request.Mese.GetMonth(), tipologia));
+                        // TODO: "Fatture Posicipate {tipologia}" sheet dedicato => [vwReportFatturePosticipate]
                     }
                     break;
                 case TipologiaFattura.VAR_SEMESTRALE:
@@ -748,6 +750,7 @@ public static class FattureExtensions
                         var relNonFirmate = await handler.Send(new RelNonFatturateQuery(authInfo));
                         relNonFirmate = relNonFirmate!.Where(x => x.TipologiaFattura == tipologia && x.Anno == request.Anno && x.Mese == request.Mese).ToList();
                         reports.Add($"Lista {tipologia} {year} {month}", fatture!.ReportFattureRel(fattureSospese, relNonFirmate, request.Mese.GetMonth(), tipologia));
+                        // TODO: "Fatture Posicipate {tipologia}" sheet dedicato => [vwReportFatturePosticipate]
                     }
                     break;
                 case TipologiaFattura.ANTICIPO:
@@ -827,7 +830,7 @@ public static class FattureExtensions
     }
 
 
-    public static async Task<Dictionary<string, byte[]>> ReportNonFatturate(this NonFatturateRicercaRequest request, IMediator handler, AuthenticationInfo authInfo)
+    public static async Task<Dictionary<string, byte[]>> ReportNonInviate(this NonFatturateRicercaRequest request, IMediator handler, AuthenticationInfo authInfo)
     {
         Dictionary<string, byte[]> reports = [];
 

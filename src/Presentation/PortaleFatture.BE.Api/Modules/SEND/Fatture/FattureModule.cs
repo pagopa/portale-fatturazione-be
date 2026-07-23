@@ -1668,7 +1668,7 @@ public partial class FattureModule
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    private async Task<IResult> PostNonFatturateReportByRicercaAsync(
+    private async Task<IResult> PostNonInviateReportByRicercaAsync(
         HttpContext context,
         [FromBody] NonFatturateRicercaRequest request,
         [FromServices] IStringLocalizer<Localization> localizer,
@@ -1677,7 +1677,7 @@ public partial class FattureModule
     {
         var authInfo = context.GetAuthInfo();
 
-        var reports = await request.ReportNonFatturate(handler, authInfo);
+        var reports = await request.ReportNonInviate(handler, authInfo);
 
         if (reports.Count > 0)
         {
