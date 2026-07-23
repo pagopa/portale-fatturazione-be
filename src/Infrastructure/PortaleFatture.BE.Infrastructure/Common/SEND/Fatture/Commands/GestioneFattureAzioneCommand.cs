@@ -18,7 +18,7 @@ namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Commands;
     public string? IdUtente { get; set; }
     public NoteCommand? Nota { get; set; }
 
-    public string? IdFattura { get; set; }
+    public int? IdFattura { get; set; }
 }
 
 public class NoteCommand
