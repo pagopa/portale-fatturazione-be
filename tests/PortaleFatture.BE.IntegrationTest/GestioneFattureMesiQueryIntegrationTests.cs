@@ -16,7 +16,7 @@ public class GestioneFattureMesiQueryIntegrationTests
     [SetUp]
     public void Setup()
     {
-        _handler = ServiceProvider.GetRequiredService<IMediator>();
+        _handler = ServiceProvider.GetRequiredService<IMediator>(LocalTestDb.ConnectionString);
     }
 
     private static AuthenticationInfo AdminAuth() => new()

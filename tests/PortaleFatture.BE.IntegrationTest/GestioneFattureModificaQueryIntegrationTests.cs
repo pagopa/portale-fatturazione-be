@@ -18,7 +18,7 @@ public class GestioneFattureModificaQueryIntegrationTests
     [SetUp]
     public void Setup()
     {
-        _handler = ServiceProvider.GetRequiredService<IMediator>();
+        _handler = ServiceProvider.GetRequiredService<IMediator>(LocalTestDb.ConnectionString);
     }
 
     private static AuthenticationInfo AdminAuth() => new()
@@ -29,29 +29,25 @@ public class GestioneFattureModificaQueryIntegrationTests
         IdTipoContratto = 1
     };
 
+    // La vista vwGestioneFattureFormAnniMesi usa Azione all'IMPERATIVO ('POSTICIPA'/'ELIMINA'),
+    // NON al passato come la griglia ('POSTICIPATA'). Per un tipo SALDO l'azione ammessa e' POSTICIPA.
+    // (Il test originale prendeva il seed dalla griglia: cross-vocabolario errato, mascherato su UAT
+    //  dalla griglia vuota che faceva scattare Assert.Ignore.)
+    private const string SeedTipologia = "SECONDO SALDO";
+    private const string SeedAzione = "POSTICIPA";
+
     [Test]
     /// <summary>
-    /// Verifica che la query modifica/anni filtri per Azione + TipologiaFattura
-    /// e includa l'anno del seed selezionato dal dataset reale.
+    /// modifica/anni per una coppia (TipologiaFattura, Azione) valida in FormAnniMesi:
+    /// deve tornare anni non vuoti, ordinati desc, e includere l'anno corrente (coperto dalla vista).
     /// </summary>
-    public async Task GestioneFattureModificaAnniQuery_WithSeedFilters_ShouldContainSeedYear()
+    public async Task GestioneFattureModificaAnniQuery_WithValidPair_ShouldReturnDescendingYears()
     {
-        var seedRows = await ExecuteQueryOrIgnoreMissingView(() =>
-            _handler.Send(new GestioneFattureQuery(AdminAuth()) { Page = 1, Size = 200 }));
-
-        var rows = seedRows?.GestioneFatture?.ToList() ?? [];
-        var seed = rows.FirstOrDefault(x =>
-            !string.IsNullOrWhiteSpace(x.TipologiaFattura) &&
-            !string.IsNullOrWhiteSpace(x.Azione));
-
-        if (seed == null)
-            Assert.Ignore("Nessun seed con TipologiaFattura/Azione disponibile nel dataset corrente.");
-
         var years = await ExecuteQueryOrIgnoreMissingView(() =>
             _handler.Send(new GestioneFattureModificaAnniQuery(AdminAuth())
             {
-                TipologiaFattura = seed.TipologiaFattura!,
-                Azione = seed.Azione!
+                TipologiaFattura = SeedTipologia,
+                Azione = SeedAzione
             }));
 
         var list = years?.ToList() ?? [];
@@ -59,35 +55,24 @@ public class GestioneFattureModificaQueryIntegrationTests
         Assert.Multiple(() =>
         {
             Assert.That(list, Is.Not.Empty);
-            Assert.That(list.Contains(seed.Anno), Is.True);
+            Assert.That(list.Contains(DateTime.Now.Year), Is.True, "La vista copre l'anno corrente.");
             Assert.That(list, Is.Ordered.Descending);
         });
     }
 
     [Test]
     /// <summary>
-    /// Verifica che la query modifica/mesi filtri per Azione + TipologiaFattura + Anno
-    /// e includa il mese del seed reale.
+    /// modifica/mesi per (TipologiaFattura, Azione, Anno corrente) valida in FormAnniMesi:
+    /// deve tornare mesi non vuoti (1..12), ordinati desc.
     /// </summary>
-    public async Task GestioneFattureModificaMesiQuery_WithSeedFilters_ShouldContainSeedMonth()
+    public async Task GestioneFattureModificaMesiQuery_WithValidPair_ShouldReturnDescendingMonths()
     {
-        var seedRows = await ExecuteQueryOrIgnoreMissingView(() =>
-            _handler.Send(new GestioneFattureQuery(AdminAuth()) { Page = 1, Size = 200 }));
-
-        var rows = seedRows?.GestioneFatture?.ToList() ?? [];
-        var seed = rows.FirstOrDefault(x =>
-            !string.IsNullOrWhiteSpace(x.TipologiaFattura) &&
-            !string.IsNullOrWhiteSpace(x.Azione));
-
-        if (seed == null)
-            Assert.Ignore("Nessun seed con TipologiaFattura/Azione disponibile nel dataset corrente.");
-
         var months = await ExecuteQueryOrIgnoreMissingView(() =>
             _handler.Send(new GestioneFattureModificaMesiQuery(AdminAuth())
             {
-                Anno = seed.Anno.ToString(),
-                TipologiaFattura = seed.TipologiaFattura!,
-                Azione = seed.Azione!
+                Anno = DateTime.Now.Year.ToString(),
+                TipologiaFattura = SeedTipologia,
+                Azione = SeedAzione
             }));
 
         var list = months?.ToList() ?? [];
@@ -95,7 +80,7 @@ public class GestioneFattureModificaQueryIntegrationTests
         Assert.Multiple(() =>
         {
             Assert.That(list, Is.Not.Empty);
-            Assert.That(list.Contains(seed.Mese), Is.True);
+            Assert.That(list.All(m => m is >= 1 and <= 12), Is.True);
             Assert.That(list, Is.Ordered.Descending);
         });
     }

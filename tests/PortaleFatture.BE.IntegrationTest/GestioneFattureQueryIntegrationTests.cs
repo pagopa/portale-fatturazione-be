@@ -22,7 +22,7 @@ public class GestioneFattureQueryIntegrationTests
     [SetUp]
     public void Setup()
     {
-        _handler = ServiceProvider.GetRequiredService<IMediator>();
+        _handler = ServiceProvider.GetRequiredService<IMediator>(LocalTestDb.ConnectionString);
         _conf = ServiceProvider.GetRequiredService<IConfiguration>();
     }
 

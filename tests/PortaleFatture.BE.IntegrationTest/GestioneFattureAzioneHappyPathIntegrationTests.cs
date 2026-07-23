@@ -8,33 +8,32 @@ namespace PortaleFatture.BE.IntegrationTest;
 
 /// <summary>
 /// Happy-path delle azioni GestioneFatture (endpoint POST /api/fatture/pagopa/gestione-fatture/azione):
-/// eseguono davvero le stored procedure be.spGestioneFattura* su dati UAT e verificano l'esito + la
-/// transizione di stato in [cfg].[GestioneFatture], poi RIPULISCONO.
+/// eseguono davvero le stored procedure be.spGestioneFattura* e verificano l'esito + la transizione di
+/// stato in [cfg].[GestioneFatture], poi RIPULISCONO.
+///
+/// Girano contro il **DB locale seeded** (container tests/docker-compose.yml, immagine SQL Server 2025
+/// per il tipo nativo json), NON su UAT: dati deterministici (fatture seed 1001/1002/2001), niente VPN,
+/// ELIMINA testabile in sicurezza. Se il container non e' su, i test si auto-ignorano (errore di rete).
 ///
 /// Stati GestioneFatture: 0 = POSTICIPATA, 1 = RIPRISTINATA, 2 = CANCELLATA, 3 = ELIMINATA.
-///
-/// A differenza dei GestioneFatture*IntegrationTests di sola lettura, questi test SCRIVONO su UAT,
-/// quindi [Explicit]: NON partono in una run normale ne' in CI. Vanno lanciati a mano con VPN attiva.
-///
-/// ELIMINA e' volutamente ESCLUSA dai test di scrittura automatici: la sua SP chiama
-/// EXEC [pfd].[EliminaFattura], che elimina realmente la fattura (ANTICIPO/ACCONTO) dal DB — non
-/// e' ripristinabile con un semplice cleanup. Va provata solo manualmente su una fattura sacrificabile.
 /// </summary>
-[Explicit("Scrive su UAT: eseguire a mano con VPN attiva.")]
 public class GestioneFattureAzioneHappyPathIntegrationTests
 {
+    // Connessione al container locale (SA/porta noti, gia' nei file docker); override da config se serve.
+    private const string DefaultLocalDb =
+        "Server=localhost,1433;Database=master;User Id=sa;Password=52JdGnzZaANhf;TrustServerCertificate=True";
+
     private IMediator _handler;
     private IConfiguration _conf;
 
     [SetUp]
     public void Setup()
     {
-        _handler = ServiceProvider.GetRequiredService<IMediator>();
         _conf = ServiceProvider.GetRequiredService<IConfiguration>();
+        _handler = ServiceProvider.GetRequiredService<IMediator>(ConnectionString);
     }
 
-    private string ConnectionString => _conf["PortaleFattureOptions:ConnectionString"]
-        ?? throw new IgnoreException("ConnectionString non configurata: test valido solo in UAT.");
+    private string ConnectionString => _conf["IntegrationTest:LocalDbConnectionString"] ?? DefaultLocalDb;
 
     private static AuthenticationInfo AdminAuth() => new()
     {
@@ -185,17 +184,26 @@ public class GestioneFattureAzioneHappyPathIntegrationTests
     // Lasciato [Ignore]: abilitare a mano SOLO su una fattura ANTICIPO/ACCONTO sacrificabile.
     // -------------------------------------------------------------------------------------------
     [Test]
-    [Ignore("DISTRUTTIVO: elimina realmente una fattura via pfd.EliminaFattura. Abilitare a mano su dato sacrificabile.")]
     public async Task Elimina_OnNonSentAnticipoAccontoInvoice_ShouldReturn1_AndCreateStato3()
     {
         var seed = TryFindNonSentEliminabileSeed();
         if (seed is null)
-            Assert.Ignore("Nessuna fattura ANTICIPO/ACCONTO non-inviata sacrificabile disponibile.");
+            Assert.Ignore("Nessuna fattura ANTICIPO/ACCONTO non-inviata disponibile nel seed.");
 
-        var result = await SendAzione(seed!.Value, "ELIMINA");
-        Assert.That(result, Is.EqualTo(1), "ELIMINA doveva restituire Result = 1.");
-        Assert.That(ReadStato(seed.Value.IdFattura), Is.EqualTo(3), "La riga doveva essere in Stato = 3 (ELIMINATA).");
-        // Nota: nessun cleanup automatico: la fattura reale e' stata eliminata.
+        try
+        {
+            var result = await SendAzione(seed!.Value, "ELIMINA");
+            Assert.That(result, Is.EqualTo(1), "ELIMINA doveva restituire Result = 1.");
+            Assert.That(ReadStato(seed.Value.IdFattura), Is.EqualTo(3), "La riga doveva essere in Stato = 3 (ELIMINATA).");
+        }
+        catch (SqlException ex) when (IsNetworkDenied(ex)) { Assert.Ignore(NetworkMsg); }
+        catch (SqlException ex) when (ex.Number == 2812) { Assert.Ignore(SpMissingMsg(ex)); }
+        finally
+        {
+            // ripristina il seed: rimuovi la riga GestioneFatture, ripristina la fattura in FattureTestata
+            // e svuota FattureTestata_Eliminate (lo stub locale l'aveva spostata li').
+            RestoreEliminaSeed(seed!.Value);
+        }
     }
 
     // ---- invocazione azione (command reale via MediatR) ----
@@ -269,6 +277,30 @@ public class GestioneFattureAzioneHappyPathIntegrationTests
             Assert.Ignore(NetworkMsg);
             return null;
         }
+    }
+
+    /// <summary>Ripristina il seed dopo un ELIMINA (DB locale usa-e-getta): rimette la fattura in
+    /// FattureTestata, svuota _Eliminate e la riga GestioneFatture creata.</summary>
+    private void RestoreEliminaSeed(Seed s)
+    {
+        try
+        {
+            using var conn = new SqlConnection(ConnectionString);
+            conn.Open();
+            using var cmd = new SqlCommand(@"
+                DELETE FROM cfg.GestioneFatture WHERE FkIdFattura = @id;
+                DELETE FROM pfd.FattureTestata_Eliminate WHERE IdFattura = @id;
+                IF NOT EXISTS (SELECT 1 FROM pfd.FattureTestata WHERE IdFattura = @id)
+                    INSERT INTO pfd.FattureTestata (IdFattura, FkIdEnte, FkTipologiaFattura, AnnoRiferimento, MeseRiferimento, FatturaInviata)
+                    VALUES (@id, @ente, @tipo, @anno, @mese, 0);", conn);
+            cmd.Parameters.AddWithValue("@id", s.IdFattura);
+            cmd.Parameters.AddWithValue("@ente", s.IdEnte);
+            cmd.Parameters.AddWithValue("@tipo", s.TipologiaFattura);
+            cmd.Parameters.AddWithValue("@anno", s.Anno);
+            cmd.Parameters.AddWithValue("@mese", s.Mese);
+            cmd.ExecuteNonQuery();
+        }
+        catch (SqlException) { /* best-effort */ }
     }
 
     /// <summary>Conta le righe GestioneFatture per la fattura (per documentare i doppioni).</summary>
