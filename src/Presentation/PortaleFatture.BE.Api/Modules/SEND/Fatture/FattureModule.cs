@@ -1838,19 +1838,23 @@ public partial class FattureModule
     [FromServices] IMediator handler)
     {
         var authInfo = context.GetAuthInfo();
+
+        if (request.Nota is null || string.IsNullOrWhiteSpace(request.Nota.Testo))
+            return BadRequest("La nota è obbligatoria.");
+
         try
         {
-        var result = await handler.Send(new GestioneFattureAzioneCommand(authInfo)
-        {
-            IdEnte = request.IdEnte,
-            Azione = request.Azione,
-            TipologiaFattura = request.TipologiaFattura,
-            Anno = request.Anno,
-            Mese = request.Mese,
-            IdUtente = authInfo!.Id,
-            Nota = request.Nota,
-            IdFattura = request.IdFattura
-        });
+            var result = await handler.Send(new GestioneFattureAzioneCommand(authInfo)
+            {
+                IdEnte = request.IdEnte,
+                Azione = request.Azione,
+                TipologiaFattura = request.TipologiaFattura,
+                Anno = request.Anno,
+                Mese = request.Mese,
+                IdUtente = authInfo!.Id,
+                Nota = request.Nota,
+                IdFattura = request.IdFattura
+            });
 
             if(!result.HasValue)
                 return BadRequest("Risultato non valido.");
