@@ -1839,8 +1839,20 @@ public partial class FattureModule
     {
         var authInfo = context.GetAuthInfo();
 
+        // nota obbligatoria 
         if (request.Nota is null || string.IsNullOrWhiteSpace(request.Nota.Testo))
             return BadRequest("La nota è obbligatoria.");
+
+        // azione: obbligatoria + whitelist (trim/upper tollera spazi e case)
+        if (string.IsNullOrWhiteSpace(request.Azione))
+            return BadRequest("L'azione è obbligatoria.");
+        var azione = request.Azione.Trim().ToUpperInvariant();
+        if (azione is not ("POSTICIPA" or "ELIMINA" or "RIPRISTINA" or "CANCELLA"))
+            return BadRequest($"Azione non valida: {request.Azione}.");
+
+        // ente: obbligatorio e GUID valido (la persistence fa Guid.Parse incondizionato)
+        if (string.IsNullOrWhiteSpace(request.IdEnte) || !Guid.TryParse(request.IdEnte, out _))
+            return BadRequest("IdEnte mancante o non in formato GUID.");
 
         try
         {
