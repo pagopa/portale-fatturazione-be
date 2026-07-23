@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Security;
 using System.Security.Claims;
+using System.Collections;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 using Moq;
@@ -287,6 +288,221 @@ public class GestioneFattureEndpointUnitTests
             await InvokeGetGestioneFattureAnniAsync(module, context, mediator.Object));
     }
 
+    [Test]
+    /// <summary>
+    /// Verifica che l'endpoint POST /api/fatture/pagopa/gestione-fatture/mesi
+    /// inoltri correttamente l'anno alla query e ritorni Ok con mesi mappati.
+    /// </summary>
+    public async Task PostPagoPAGestioneFatturazioneMesiAsync_ShouldMapAnno_AndReturnOk()
+    {
+        var mediator = new Mock<IMediator>();
+        var module = new FattureModule();
+        var context = BuildAuthenticatedHttpContext();
+        var request = new GestioneFattureMesiRequest { Anno = 2026 };
+
+        mediator
+            .Setup(x => x.Send(It.IsAny<GestioneFattureMesiQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[] { 2, 12 });
+
+        var endpointResult = await InvokePostGestioneFattureMesiAsync(module, context, request, mediator.Object);
+        var innerResult = GetInnerResult(endpointResult);
+
+        Assert.That(innerResult, Is.Not.Null);
+        Assert.That(innerResult!.GetType().Name, Is.EqualTo("Ok`1"));
+
+        mediator.Verify(x => x.Send(
+            It.Is<GestioneFattureMesiQuery>(q =>
+                q.Anno == request.Anno &&
+                q.AuthenticationInfo != null &&
+                q.AuthenticationInfo.Ruolo == Ruolo.ADMIN),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        var value = innerResult.GetType().GetProperty("Value")?.GetValue(innerResult);
+        Assert.That(value, Is.Not.Null);
+
+        var items = ((IEnumerable)value!).Cast<object>().ToList();
+        Assert.That(items.Count, Is.EqualTo(2));
+
+        var mesi = items
+            .Select(x => x.GetType().GetProperty("Mese")?.GetValue(x)?.ToString())
+            .ToList();
+
+        var descrizioni = items
+            .Select(x => x.GetType().GetProperty("Descrizione")?.GetValue(x)?.ToString())
+            .ToList();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(mesi, Is.EqualTo(new[] { "2", "12" }));
+            Assert.That(descrizioni.All(d => !string.IsNullOrWhiteSpace(d)), Is.True);
+        });
+    }
+
+    [Test]
+    /// <summary>
+    /// Verifica che l'endpoint POST /api/fatture/pagopa/gestione-fatture/mesi ritorni NotFound
+    /// quando il layer query ritorna null.
+    /// </summary>
+    public async Task PostPagoPAGestioneFatturazioneMesiAsync_WhenMediatorReturnsNull_ShouldReturnNotFound()
+    {
+        var mediator = new Mock<IMediator>();
+        var module = new FattureModule();
+        var context = BuildAuthenticatedHttpContext();
+        var request = new GestioneFattureMesiRequest { Anno = 2026 };
+
+        mediator
+            .Setup(x => x.Send(It.IsAny<GestioneFattureMesiQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IEnumerable<int>?)null);
+
+        var endpointResult = await InvokePostGestioneFattureMesiAsync(module, context, request, mediator.Object);
+        var innerResult = GetInnerResult(endpointResult);
+
+        Assert.That(innerResult, Is.Not.Null);
+        Assert.That(innerResult!.GetType().Name, Is.EqualTo("NotFound"));
+    }
+
+    [Test]
+    /// <summary>
+    /// Verifica che l'endpoint POST /api/fatture/pagopa/gestione-fatture/mesi ritorni NotFound
+    /// quando il layer query ritorna una lista vuota.
+    /// </summary>
+    public async Task PostPagoPAGestioneFatturazioneMesiAsync_WhenMediatorReturnsEmpty_ShouldReturnNotFound()
+    {
+        var mediator = new Mock<IMediator>();
+        var module = new FattureModule();
+        var context = BuildAuthenticatedHttpContext();
+        var request = new GestioneFattureMesiRequest { Anno = 2026 };
+
+        mediator
+            .Setup(x => x.Send(It.IsAny<GestioneFattureMesiQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<int>());
+
+        var endpointResult = await InvokePostGestioneFattureMesiAsync(module, context, request, mediator.Object);
+        var innerResult = GetInnerResult(endpointResult);
+
+        Assert.That(innerResult, Is.Not.Null);
+        Assert.That(innerResult!.GetType().Name, Is.EqualTo("NotFound"));
+    }
+
+    [Test]
+    /// <summary>
+    /// Verifica che l'endpoint POST /api/fatture/pagopa/gestione-fatture/mesi propaghi
+    /// la SecurityException quando il principal non è autenticato.
+    /// </summary>
+    public void PostPagoPAGestioneFatturazioneMesiAsync_WhenUserIsNotAuthenticated_ShouldThrowSecurityException()
+    {
+        var mediator = new Mock<IMediator>();
+        var module = new FattureModule();
+        var context = new DefaultHttpContext
+        {
+            User = new ClaimsPrincipal(new ClaimsIdentity())
+        };
+
+        Assert.ThrowsAsync<SecurityException>(async () =>
+            await InvokePostGestioneFattureMesiAsync(module, context, new GestioneFattureMesiRequest { Anno = 2026 }, mediator.Object));
+    }
+
+    [Test]
+    /// <summary>
+    /// Verifica che l'endpoint POST /api/fatture/pagopa/gestione-fatture/tipologia-fattura
+    /// inoltri correttamente i filtri Anno/Mesi alla query e ritorni Ok.
+    /// </summary>
+    public async Task GetPagoPAGestioneFatturazioneTipologiaFatturaAsync_ShouldMapFilters_AndReturnOk()
+    {
+        var mediator = new Mock<IMediator>();
+        var module = new FattureModule();
+        var context = BuildAuthenticatedHttpContext();
+        var request = new GestioneFattureTipologiaFatturaRequest
+        {
+            Anno = 2026,
+            Mesi = new[] { 2, 3 }
+        };
+
+        mediator
+            .Setup(x => x.Send(It.IsAny<GestioneFattureTipologiaFatturaQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[] { "ANTICIPO", "SECONDO SALDO" });
+
+        var endpointResult = await InvokePostGestioneFattureTipologiaAsync(module, context, request, mediator.Object);
+        var innerResult = GetInnerResult(endpointResult);
+
+        Assert.That(innerResult, Is.Not.Null);
+        Assert.That(innerResult!.GetType().Name, Is.EqualTo("Ok`1"));
+
+        mediator.Verify(x => x.Send(
+            It.Is<GestioneFattureTipologiaFatturaQuery>(q =>
+                q.AuthenticationInfo != null &&
+                q.Anno == request.Anno &&
+                q.Mesi != null && q.Mesi.SequenceEqual(request.Mesi!)),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Test]
+    /// <summary>
+    /// Verifica che l'endpoint POST /api/fatture/pagopa/gestione-fatture/tipologia-fattura
+    /// ritorni NotFound quando il layer query ritorna null.
+    /// </summary>
+    public async Task GetPagoPAGestioneFatturazioneTipologiaFatturaAsync_WhenMediatorReturnsNull_ShouldReturnNotFound()
+    {
+        var mediator = new Mock<IMediator>();
+        var module = new FattureModule();
+        var context = BuildAuthenticatedHttpContext();
+        var request = new GestioneFattureTipologiaFatturaRequest { Anno = 2026, Mesi = new[] { 2 } };
+
+        mediator
+            .Setup(x => x.Send(It.IsAny<GestioneFattureTipologiaFatturaQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IEnumerable<string>?)null);
+
+        var endpointResult = await InvokePostGestioneFattureTipologiaAsync(module, context, request, mediator.Object);
+        var innerResult = GetInnerResult(endpointResult);
+
+        Assert.That(innerResult, Is.Not.Null);
+        Assert.That(innerResult!.GetType().Name, Is.EqualTo("NotFound"));
+    }
+
+    [Test]
+    /// <summary>
+    /// Verifica che l'endpoint POST /api/fatture/pagopa/gestione-fatture/tipologia-fattura
+    /// ritorni NotFound quando il layer query ritorna una lista vuota.
+    /// </summary>
+    public async Task GetPagoPAGestioneFatturazioneTipologiaFatturaAsync_WhenMediatorReturnsEmpty_ShouldReturnNotFound()
+    {
+        var mediator = new Mock<IMediator>();
+        var module = new FattureModule();
+        var context = BuildAuthenticatedHttpContext();
+        var request = new GestioneFattureTipologiaFatturaRequest { Anno = 2026, Mesi = new[] { 2 } };
+
+        mediator
+            .Setup(x => x.Send(It.IsAny<GestioneFattureTipologiaFatturaQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<string>());
+
+        var endpointResult = await InvokePostGestioneFattureTipologiaAsync(module, context, request, mediator.Object);
+        var innerResult = GetInnerResult(endpointResult);
+
+        Assert.That(innerResult, Is.Not.Null);
+        Assert.That(innerResult!.GetType().Name, Is.EqualTo("NotFound"));
+    }
+
+    [Test]
+    /// <summary>
+    /// Verifica che l'endpoint POST /api/fatture/pagopa/gestione-fatture/tipologia-fattura
+    /// propaghi la SecurityException quando il principal non è autenticato.
+    /// </summary>
+    public void GetPagoPAGestioneFatturazioneTipologiaFatturaAsync_WhenUserIsNotAuthenticated_ShouldThrowSecurityException()
+    {
+        var mediator = new Mock<IMediator>();
+        var module = new FattureModule();
+        var context = new DefaultHttpContext
+        {
+            User = new ClaimsPrincipal(new ClaimsIdentity())
+        };
+        var request = new GestioneFattureTipologiaFatturaRequest { Anno = 2026, Mesi = new[] { 2 } };
+
+        Assert.ThrowsAsync<SecurityException>(async () =>
+            await InvokePostGestioneFattureTipologiaAsync(module, context, request, mediator.Object));
+    }
+
 
     /// <summary>
     /// Costruisce un HttpContext con un utente autenticato e i claim necessari per l'endpoint.
@@ -367,6 +583,52 @@ public class GestioneFattureEndpointUnitTests
 
         var taskResult = task.GetType().GetProperty("Result")?.GetValue(task);
         Assert.That(taskResult, Is.Not.Null, "Il task dell'endpoint anni non ha prodotto risultato.");
+        return taskResult!;
+    }
+
+    /// <summary>
+    /// Invoca l'endpoint POST /api/fatture/pagopa/gestione-fatture/mesi tramite reflection.
+    /// </summary>
+    private static async Task<object> InvokePostGestioneFattureMesiAsync(
+        FattureModule module,
+        HttpContext context,
+        GestioneFattureMesiRequest request,
+        IMediator mediator)
+    {
+        var method = typeof(FattureModule).GetMethod(
+            "PostPagoPAGestioneFatturazioneMesiAsync",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+
+        Assert.That(method, Is.Not.Null, "Metodo endpoint mesi non trovato via reflection.");
+
+        var task = (Task)method!.Invoke(module, new object[] { context, request, mediator })!;
+        await task;
+
+        var taskResult = task.GetType().GetProperty("Result")?.GetValue(task);
+        Assert.That(taskResult, Is.Not.Null, "Il task dell'endpoint mesi non ha prodotto risultato.");
+        return taskResult!;
+    }
+
+    /// <summary>
+    /// Invoca l'endpoint POST /api/fatture/pagopa/gestione-fatture/tipologia-fattura tramite reflection.
+    /// </summary>
+    private static async Task<object> InvokePostGestioneFattureTipologiaAsync(
+        FattureModule module,
+        HttpContext context,
+        GestioneFattureTipologiaFatturaRequest request,
+        IMediator mediator)
+    {
+        var method = typeof(FattureModule).GetMethod(
+            "GetPagoPAGestioneFatturazioneTipologiaFatturaAsync",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+
+        Assert.That(method, Is.Not.Null, "Metodo endpoint tipologia non trovato via reflection.");
+
+        var task = (Task)method!.Invoke(module, new object[] { context, request, mediator })!;
+        await task;
+
+        var taskResult = task.GetType().GetProperty("Result")?.GetValue(task);
+        Assert.That(taskResult, Is.Not.Null, "Il task dell'endpoint tipologia non ha prodotto risultato.");
         return taskResult!;
     }
 
