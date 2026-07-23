@@ -959,7 +959,8 @@ public class GestioneFattureEndpointUnitTests
             Anno = 2026,
             Mese = 7,
             TipologiaFattura = "SECONDO SALDO",
-            IdFattura = 123
+            IdFattura = 123,
+            Nota = new NoteCommand { Data = new DateTime(2026, 7, 1), Testo = "nota test" } // obbligatoria
         };
 
         mediator
@@ -978,6 +979,52 @@ public class GestioneFattureEndpointUnitTests
             Times.Once);
     }
 
+    /// <summary>
+    /// La nota e' obbligatoria: con Nota null o con Testo vuoto/spazi l'endpoint deve restituire
+    /// BadRequest "La nota e' obbligatoria." SENZA invocare il mediator (validazione a monte).
+    /// </summary>
+    [Test]
+    public async Task PostPagoPAGestioneFattureAzioneAsync_WithNullNota_ShouldReturnBadRequest_AndNotCallMediator()
+    {
+        await AssertNotaObbligatoria(nota: null);
+    }
+
+    [Test]
+    public async Task PostPagoPAGestioneFattureAzioneAsync_WithEmptyNotaTesto_ShouldReturnBadRequest_AndNotCallMediator()
+    {
+        await AssertNotaObbligatoria(nota: new NoteCommand { Data = new DateTime(2026, 7, 1), Testo = "   " });
+    }
+
+    private async Task AssertNotaObbligatoria(NoteCommand? nota)
+    {
+        var mediator = new Mock<IMediator>();
+        var logger = new Mock<ILogger<FattureModule>>();
+        var module = new FattureModule();
+        var context = BuildAuthenticatedHttpContext();
+        var request = new GestioneFattureAzioneRequest
+        {
+            IdEnte = "11111111-1111-1111-1111-111111111111",
+            Azione = "POSTICIPA",
+            Anno = 2026,
+            Mese = 7,
+            TipologiaFattura = "SECONDO SALDO",
+            IdFattura = 123,
+            Nota = nota
+        };
+
+        var endpointResult = await InvokePostGestioneFattureAzioneAsync(module, context, request, logger.Object, mediator.Object);
+        var innerResult = GetInnerResult(endpointResult);
+
+        Assert.That(innerResult, Is.Not.Null);
+        Assert.That(innerResult!.GetType().Name, Is.EqualTo("BadRequest`1"));
+
+        var value = innerResult.GetType().GetProperty("Value")?.GetValue(innerResult)?.ToString();
+        Assert.That(value, Is.EqualTo("La nota è obbligatoria."));
+
+        mediator.Verify(x => x.Send(It.IsAny<GestioneFattureAzioneCommand>(), It.IsAny<CancellationToken>()),
+            Times.Never, "Con nota mancante il mediator non deve essere invocato.");
+    }
+
     [Test]
     /// <summary>
     /// Verifica che l'endpoint POST /api/fatture/pagopa/gestione-fatture/azione ritorni NotFound
@@ -992,7 +1039,8 @@ public class GestioneFattureEndpointUnitTests
         var request = new GestioneFattureAzioneRequest
         {
             IdEnte = "11111111-1111-1111-1111-111111111111",
-            Azione = "ELIMINA"
+            Azione = "ELIMINA",
+            Nota = new NoteCommand { Data = new DateTime(2026, 7, 1), Testo = "nota test" } // obbligatoria
         };
 
         mediator
@@ -1020,7 +1068,8 @@ public class GestioneFattureEndpointUnitTests
         var request = new GestioneFattureAzioneRequest
         {
             IdEnte = "11111111-1111-1111-1111-111111111111",
-            Azione = "ELIMINA"
+            Azione = "ELIMINA",
+            Nota = new NoteCommand { Data = new DateTime(2026, 7, 1), Testo = "nota test" } // obbligatoria
         };
 
         mediator
@@ -1051,7 +1100,8 @@ public class GestioneFattureEndpointUnitTests
         var request = new GestioneFattureAzioneRequest
         {
             IdEnte = "11111111-1111-1111-1111-111111111111",
-            Azione = "AZIONE_NON_VALIDA"
+            Azione = "AZIONE_NON_VALIDA",
+            Nota = new NoteCommand { Data = new DateTime(2026, 7, 1), Testo = "nota test" } // obbligatoria
         };
 
         mediator
@@ -1082,7 +1132,8 @@ public class GestioneFattureEndpointUnitTests
         var request = new GestioneFattureAzioneRequest
         {
             IdEnte = "11111111-1111-1111-1111-111111111111",
-            Azione = "ELIMINA"
+            Azione = "ELIMINA",
+            Nota = new NoteCommand { Data = new DateTime(2026, 7, 1), Testo = "nota test" } // obbligatoria
         };
 
         mediator
