@@ -14,11 +14,10 @@ public class GestioneFattureAzioneCommandPersistence(GestioneFattureAzioneComman
     IStringLocalizer<Localization> _localizer = localizer;
 
 
-    private static readonly string _sqlEliminate = $"be.GestioneFattureElimina";
-
-    private static readonly string _sqlPosticipate = $"be.GestioneFatturePosticipa";
-    private static readonly string _sqlRipristina = $"be.GestioneFattureRipristina";
-    private static readonly string _sqlCancella = $"be.GestioneFattureCancella";
+    private static readonly string _sqlEliminate = $"be.spGestioneFattureElimina";
+    private static readonly string _sqlPosticipate = $"be.spGestioneFatturePosticipa";
+    private static readonly string _sqlRipristina = $"be.spGestioneFattureRipristina";
+    private static readonly string _sqlCancella = $"be.spGestioneFattureCancella";
 
     public async Task<int?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
     {
