@@ -26,7 +26,12 @@ public class GestioneFattureDownloadQuery(IAuthenticationInfo authenticationInfo
     public string? TipologiaFattura { get; set; }
 
     public int? Anno { get; set; }
-    public int[]? Mesi { get; set; }
+    private int[]? _mesi;
+    public int[]? Mesi
+    {
+        get { return _mesi; }
+        set { _mesi = value!.IsNullNotAny() ? null : value; }
+    }
 
     public string? Azione { get; set; }
 
