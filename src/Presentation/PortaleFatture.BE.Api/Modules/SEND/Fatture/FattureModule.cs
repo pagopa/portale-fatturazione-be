@@ -1834,6 +1834,7 @@ public partial class FattureModule
     private async Task<Results<Ok<int>, BadRequest<string>, Conflict, NotFound>> PostPagoPAGestioneFattureAzioneAsync(
     HttpContext context,
     [FromBody] GestioneFattureAzioneRequest request,
+    [FromServices] ILogger<FattureModule> logger,
     [FromServices] IMediator handler)
     {
         var authInfo = context.GetAuthInfo();
@@ -1861,12 +1862,12 @@ public partial class FattureModule
         }
         catch (ArgumentException aex)
         {
+            logger.LogError(aex, aex.Message);
             return BadRequest(aex.Message);
         }
         catch (Exception ex)
         {
-            var x = ex.Message;
-            Console.WriteLine(x);
+            logger.LogError(ex, ex.Message);
             return BadRequest("Impossibile completare l'operazione.");
         }
     }

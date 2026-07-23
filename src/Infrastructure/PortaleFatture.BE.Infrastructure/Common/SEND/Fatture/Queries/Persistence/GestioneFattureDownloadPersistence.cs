@@ -1,8 +1,6 @@
 ﻿
 using System.Data;
 using Dapper;
-using DocumentFormat.OpenXml.Drawing;
-using MailKit.Search;
 using PortaleFatture.BE.Core.Entities.SEND.DatiRel;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
