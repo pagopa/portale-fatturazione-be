@@ -1025,6 +1025,65 @@ public class GestioneFattureEndpointUnitTests
             Times.Never, "Con nota mancante il mediator non deve essere invocato.");
     }
 
+    // --- validazione Azione / IdEnte a monte: 400 pulito senza invocare il mediator ---
+
+    [TestCase(null, "L'azione è obbligatoria.")]
+    [TestCase("", "L'azione è obbligatoria.")]
+    [TestCase("   ", "L'azione è obbligatoria.")]
+    [TestCase("PIPPO", "Azione non valida: PIPPO.")]
+    [TestCase("posticip", "Azione non valida: posticip.")]
+    public async Task PostPagoPAGestioneFattureAzioneAsync_WithInvalidAzione_ShouldReturnBadRequest(string? azione, string expected)
+        => await AssertAzioneEnteBadRequest(azione, "11111111-1111-1111-1111-111111111111", expected);
+
+    [TestCase(null)]
+    [TestCase("")]
+    [TestCase("NOT-A-GUID")]
+    [TestCase("12345")]
+    public async Task PostPagoPAGestioneFattureAzioneAsync_WithInvalidIdEnte_ShouldReturnBadRequest(string? idEnte)
+        => await AssertAzioneEnteBadRequest("POSTICIPA", idEnte, "IdEnte mancante o non in formato GUID.");
+
+    [TestCase("posticipa")]     // case-insensitive
+    [TestCase(" POSTICIPA ")]   // spazi tollerati (trim)
+    public async Task PostPagoPAGestioneFattureAzioneAsync_WithNormalizableAzione_ShouldPassValidation(string azione)
+    {
+        var (inner, mediator) = await InvokeAzione(azione, "11111111-1111-1111-1111-111111111111");
+        // deve superare la validazione e arrivare al mediator (mock -> Ok)
+        Assert.That(inner!.GetType().Name, Is.EqualTo("Ok`1"), $"'{azione}' doveva superare la validazione (trim/upper).");
+        mediator.Verify(x => x.Send(It.IsAny<GestioneFattureAzioneCommand>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    private async Task AssertAzioneEnteBadRequest(string? azione, string? idEnte, string expectedMsg)
+    {
+        var (inner, mediator) = await InvokeAzione(azione, idEnte);
+        Assert.That(inner, Is.Not.Null);
+        Assert.That(inner!.GetType().Name, Is.EqualTo("BadRequest`1"));
+        var value = inner.GetType().GetProperty("Value")?.GetValue(inner)?.ToString();
+        Assert.That(value, Is.EqualTo(expectedMsg));
+        mediator.Verify(x => x.Send(It.IsAny<GestioneFattureAzioneCommand>(), It.IsAny<CancellationToken>()),
+            Times.Never, "Input non valido: il mediator non deve essere invocato.");
+    }
+
+    private async Task<(object? inner, Mock<IMediator> mediator)> InvokeAzione(string? azione, string? idEnte)
+    {
+        var mediator = new Mock<IMediator>();
+        var logger = new Mock<ILogger<FattureModule>>();
+        var module = new FattureModule();
+        var context = BuildAuthenticatedHttpContext();
+        mediator.Setup(x => x.Send(It.IsAny<GestioneFattureAzioneCommand>(), It.IsAny<CancellationToken>())).ReturnsAsync(1);
+        var request = new GestioneFattureAzioneRequest
+        {
+            IdEnte = idEnte,
+            Azione = azione,
+            Anno = 2026,
+            Mese = 7,
+            TipologiaFattura = "SECONDO SALDO",
+            IdFattura = 123,
+            Nota = new NoteCommand { Data = new DateTime(2026, 7, 1), Testo = "nota test" }
+        };
+        var endpointResult = await InvokePostGestioneFattureAzioneAsync(module, context, request, logger.Object, mediator.Object);
+        return (GetInnerResult(endpointResult), mediator);
+    }
+
     [Test]
     /// <summary>
     /// Verifica che l'endpoint POST /api/fatture/pagopa/gestione-fatture/azione ritorni NotFound
@@ -1100,13 +1159,15 @@ public class GestioneFattureEndpointUnitTests
         var request = new GestioneFattureAzioneRequest
         {
             IdEnte = "11111111-1111-1111-1111-111111111111",
-            Azione = "AZIONE_NON_VALIDA",
+            Azione = "POSTICIPA", // azione valida: supera la validazione a monte e raggiunge il mediator
             Nota = new NoteCommand { Data = new DateTime(2026, 7, 1), Testo = "nota test" } // obbligatoria
         };
 
+        // il mediator (persistence, difesa in profondita') puo' comunque lanciare ArgumentException:
+        // l'endpoint deve inoltrarne il messaggio come BadRequest.
         mediator
             .Setup(x => x.Send(It.IsAny<GestioneFattureAzioneCommand>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new ArgumentException("L'azione AZIONE_NON_VALIDA non esiste"));
+            .ThrowsAsync(new ArgumentException("Errore di dominio dal comando"));
 
         var endpointResult = await InvokePostGestioneFattureAzioneAsync(module, context, request, logger.Object, mediator.Object);
         var innerResult = GetInnerResult(endpointResult);
@@ -1115,7 +1176,7 @@ public class GestioneFattureEndpointUnitTests
         Assert.That(innerResult!.GetType().Name, Is.EqualTo("BadRequest`1"));
 
         var value = innerResult.GetType().GetProperty("Value")?.GetValue(innerResult)?.ToString();
-        Assert.That(value, Is.EqualTo("L'azione AZIONE_NON_VALIDA non esiste"));
+        Assert.That(value, Is.EqualTo("Errore di dominio dal comando"));
     }
 
     [Test]
