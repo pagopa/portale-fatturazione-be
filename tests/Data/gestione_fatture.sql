@@ -65,10 +65,9 @@ CREATE PROCEDURE pfd.EliminaFattura @IdFattura INT
 AS
 BEGIN
     SET NOCOUNT ON;
-    INSERT INTO pfd.FattureTestata_Eliminate (IdFattura, FkIdEnte, FkTipologiaFattura, AnnoRiferimento, MeseRiferimento)
-    SELECT IdFattura, FkIdEnte, FkTipologiaFattura, AnnoRiferimento, MeseRiferimento
-    FROM pfd.FattureTestata WHERE IdFattura = @IdFattura;
-    DELETE FROM pfd.FattureTestata WHERE IdFattura = @IdFattura;
+    -- Stub: simula solo l'esito di successo. NON popola pfd.FattureTestata_Eliminate: nel flusso reale
+    -- lo spostamento in _Eliminate avviene lato processo DATA (dopo il calcolo), non in questa SP sincrona.
+    -- Questo e' coerente con RF06 (una pre-eliminata, prima del calcolo DATA, resta cancellabile).
     RETURN 1; -- successo (>0)
 END
 GO
@@ -76,12 +75,14 @@ GO
 -- Seed deterministico: fatture non inviate.
 -- 1001-1002 SALDO  -> per POSTICIPA / RIPRISTINA / CANCELLA
 -- 2001      ANTICIPO -> per ELIMINA (percorso distruttivo, ora sicuro su DB usa-e-getta)
-IF NOT EXISTS (SELECT 1 FROM pfd.FattureTestata WHERE IdFattura IN (1001,1002,2001))
+IF NOT EXISTS (SELECT 1 FROM pfd.FattureTestata WHERE IdFattura IN (1001,1002,2001,2002,3001))
 INSERT INTO pfd.FattureTestata (IdFattura, FkIdEnte, FkTipologiaFattura, AnnoRiferimento, MeseRiferimento, FatturaInviata)
 VALUES
  (1001, '11111111-1111-1111-1111-111111111111', 'SECONDO SALDO', 2026, 7, 0),
  (1002, '22222222-2222-2222-2222-222222222222', 'PRIMO SALDO',   2026, 6, NULL),
- (2001, '33333333-3333-3333-3333-333333333333', 'ANTICIPO',      2026, 5, 0);
+ (2001, '33333333-3333-3333-3333-333333333333', 'ANTICIPO',      2026, 5, 0),
+ (2002, '33333333-3333-3333-3333-333333333333', 'ACCONTO',       2026, 5, 0),  -- ELIMINA ok, POSTICIPA no
+ (3001, '53b40136-65f2-424b-acfb-7fae17e35c60', 'PRIMO SALDO',   2026, 6, 0);  -- ente INPS: ELIMINA ok (eccezione)
 GO
 
 -- Enti/Contratti seed per i JOIN delle viste be.vwGestioneFatture* (le tabelle esistono da setup.sql)
@@ -89,13 +90,15 @@ IF NOT EXISTS (SELECT 1 FROM pfd.Enti WHERE InternalIstitutionId = '11111111-111
 INSERT INTO pfd.Enti (InternalIstitutionId, description) VALUES
  ('11111111-1111-1111-1111-111111111111', 'Ente Test 1'),
  ('22222222-2222-2222-2222-222222222222', 'Ente Test 2'),
- ('33333333-3333-3333-3333-333333333333', 'Ente Test 3');
+ ('33333333-3333-3333-3333-333333333333', 'Ente Test 3'),
+ ('53b40136-65f2-424b-acfb-7fae17e35c60', 'Ente INPS');
 
 IF NOT EXISTS (SELECT 1 FROM pfd.Contratti WHERE internalistitutionid = '11111111-1111-1111-1111-111111111111')
 INSERT INTO pfd.Contratti (internalistitutionid, FkIdTipoContratto) VALUES
  ('11111111-1111-1111-1111-111111111111', 2),  -- PAC
  ('22222222-2222-2222-2222-222222222222', 2),  -- PAC
- ('33333333-3333-3333-3333-333333333333', 1);  -- PAL
+ ('33333333-3333-3333-3333-333333333333', 1),  -- PAL
+ ('53b40136-65f2-424b-acfb-7fae17e35c60', 2);  -- INPS = PAC
 GO
 
 -- Righe PERSISTENTI in cfg.GestioneFatture per i test di LETTURA (griglia/download/modifica).
