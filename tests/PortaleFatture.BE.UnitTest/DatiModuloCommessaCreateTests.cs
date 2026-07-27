@@ -13,7 +13,6 @@ using PortaleFatture.BE.UnitTest.Common;
 
 namespace PortaleFatture.BE.UnitTest;
 
-[Ignore("Pregresso: richiede DB seedato e/o allineamento agli handler attuali. Vedi PF-705")]
 public class DatiModuloCommessaCreateTests
 {
     private IDbContextFactory _factory;
@@ -24,13 +23,17 @@ public class DatiModuloCommessaCreateTests
     [SetUp]
     public void Setup()
     {
-        _factory = ServiceProvider.GetRequiredService<IFattureDbContextFactory>();
-        _logger = ServiceProvider.GetRequiredService<ILogger<DatiModuloCommessaCreateTests>>();
-        _localizer = ServiceProvider.GetRequiredService<IStringLocalizer<Localization>>();
-        _handler = ServiceProvider.GetRequiredService<IMediator>();
+        _factory = ServiceProvider.GetRequiredService<IFattureDbContextFactory>(LocalTestDb.ConnectionString);
+        _logger = ServiceProvider.GetRequiredService<ILogger<DatiModuloCommessaCreateTests>>(LocalTestDb.ConnectionString);
+        _localizer = ServiceProvider.GetRequiredService<IStringLocalizer<Localization>>(LocalTestDb.ConnectionString);
+        _handler = ServiceProvider.GetRequiredService<IMediator>(LocalTestDb.ConnectionString);
     }
 
     [Test]
+    [Ignore("OBSOLETO: il controllo di ruolo non e' piu' nell'handler (nessuna ValidationException) ma "
+          + "dichiarativo sull'endpoint: [Authorize(Roles = ADMIN, Policy = PagoPAPolicy)] in "
+          + "DatiModuloCommessaModule. Da eliminare, o sostituire con un test di autorizzazione a livello "
+          + "endpoint (pattern GestioneFattureEndpointUnitTests).")]
     public void CreateCommand_ShouldFailNoAdmin_True()
     {
         string? expectedIdEnte = TestExtensions.GetRandomIdEnte();
@@ -57,6 +60,10 @@ public class DatiModuloCommessaCreateTests
         }
         var command = new DatiModuloCommessaCreateListCommand(authInfo)
         {
+            // Anno/Mese a livello di list command: l'handler li usa per la scrittura e per la
+            // rilettura. Senza, le righe finiscono con anno=0/mese=0 (contratto cambiato, PF-705).
+            Anno = anno,
+            Mese = mese,
             DatiModuloCommessaListCommand = cmds
         };
 
@@ -91,6 +98,10 @@ public class DatiModuloCommessaCreateTests
         }
         var command = new DatiModuloCommessaCreateListCommand(authInfo)
         {
+            // Anno/Mese a livello di list command: l'handler li usa per la scrittura e per la
+            // rilettura. Senza, le righe finiscono con anno=0/mese=0 (contratto cambiato, PF-705).
+            Anno = anno,
+            Mese = mese,
             DatiModuloCommessaListCommand = cmds
         }; 
 

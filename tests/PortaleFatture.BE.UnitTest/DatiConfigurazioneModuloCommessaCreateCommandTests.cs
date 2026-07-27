@@ -9,7 +9,12 @@ using PortaleFatture.BE.UnitTest.Common;
 
 namespace PortaleFatture.BE.UnitTest;
 
-[Ignore("Pregresso: richiede DB seedato e/o allineamento agli handler attuali. Vedi PF-705")]
+/// <summary>
+/// Richiede un DB reale: gira contro il **DB locale seeded** (container tests/docker-compose.yml),
+/// che contiene le tabelle lette (Prodotti, CategoriaSpedizione, TipoSpedizione, TipoContratto)
+/// e quelle scritte dalla create (pfw.CostoNotifiche, pfw.PercentualeAnticipo).
+/// Era [Ignore] PF-705 "richiede DB seedato": ora il DB seedato c'è.
+/// </summary>
 public class DatiConfigurazioneModuloCommessaCreateCommandTests
 {
     private IDbContextFactory _factory;
@@ -20,10 +25,10 @@ public class DatiConfigurazioneModuloCommessaCreateCommandTests
     [SetUp]
     public void Setup()
     {
-        _factory = ServiceProvider.GetRequiredService<IFattureDbContextFactory>();
-        _logger = ServiceProvider.GetRequiredService<ILogger<DatiConfigurazioneModuloCommessaCreateCommandTests>>();
-        _localizer = ServiceProvider.GetRequiredService<IStringLocalizer<Localization>>();
-        _handler = ServiceProvider.GetRequiredService<IMediator>();
+        _factory = ServiceProvider.GetRequiredService<IFattureDbContextFactory>(LocalTestDb.ConnectionString);
+        _logger = ServiceProvider.GetRequiredService<ILogger<DatiConfigurazioneModuloCommessaCreateCommandTests>>(LocalTestDb.ConnectionString);
+        _localizer = ServiceProvider.GetRequiredService<IStringLocalizer<Localization>>(LocalTestDb.ConnectionString);
+        _handler = ServiceProvider.GetRequiredService<IMediator>(LocalTestDb.ConnectionString);
     }
 
     [Test]

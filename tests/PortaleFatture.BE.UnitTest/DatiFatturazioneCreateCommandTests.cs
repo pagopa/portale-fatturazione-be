@@ -13,22 +13,46 @@ namespace PortaleFatture.BE.UnitTest;
 
 public class DatiFatturazioneCreateCommandTests
 {
+    /// <summary>
+    /// Ente presente nel seed (tests/Data/dati_fatturazione.sql) con il relativo contratto: serve
+    /// perche' l'handler legge il contratto per verificare il codice SDI e con un Guid casuale
+    /// otterrebbe null (NullReferenceException su contratto.CodiceSDI).
+    /// </summary>
+    private const string IdEnteSeed = "44444444-4444-4444-4444-444444444444";
+
+    /// <summary>Stesso valore del contratto seedato: l'handler imposta skipVerifica = true.</summary>
+    private const string CodiceSdiSeed = "ABCDEF1";
+
     private IDbContextFactory _factory;
     private ILogger<DatiFatturazioneCreateCommandTests> _logger;
     private IStringLocalizer<Localization> _localizer;
     private IMediator _handler;
 
     [SetUp]
-    public void Setup()
+    public async Task Setup()
     {
-        _factory = ServiceProvider.GetRequiredService<IFattureDbContextFactory>();
-        _logger = ServiceProvider.GetRequiredService<ILogger<DatiFatturazioneCreateCommandTests>>();
-        _localizer = ServiceProvider.GetRequiredService<IStringLocalizer<Localization>>();
-        _handler = ServiceProvider.GetRequiredService<IMediator>();
+        _factory = ServiceProvider.GetRequiredService<IFattureDbContextFactory>(LocalTestDb.ConnectionString);
+        _logger = ServiceProvider.GetRequiredService<ILogger<DatiFatturazioneCreateCommandTests>>(LocalTestDb.ConnectionString);
+        _localizer = ServiceProvider.GetRequiredService<IStringLocalizer<Localization>>(LocalTestDb.ConnectionString);
+        _handler = ServiceProvider.GetRequiredService<IMediator>(LocalTestDb.ConnectionString);
+        await PulisciDatiFatturazioneEnteSeed();
     }
 
+    [TearDown]
+    public async Task TearDown() => await PulisciDatiFatturazioneEnteSeed();
+
+    /// <summary>
+    /// DatiFatturazione e' unico per ente: se resta la riga della run precedente l'handler solleva
+    /// DomainException("DatiFatturazioneIdEnteExistent") e il test diventa verde-una-volta-sola.
+    /// </summary>
+    private static Task PulisciDatiFatturazioneEnteSeed() => LocalTestDb.ExecuteAsync($@"
+        DELETE c FROM pfw.DatiFatturazioneContatti c
+          INNER JOIN pfw.DatiFatturazione d ON d.IdDatiFatturazione = c.FkIdDatiFatturazione
+         WHERE d.FkIdEnte = '{IdEnteSeed}';
+        DELETE FROM pfw.DatiFatturazione WHERE FkIdEnte = '{IdEnteSeed}';
+        DELETE FROM pfw.[Log] WHERE FkIdEnte = '{IdEnteSeed}';");
+
     [Test]
-    [Ignore("Pregresso: richiede DB seedato e/o allineamento agli handler attuali (CodiceSDI/SDI). Vedi PF-705")]
     public async Task CreateCommand_ShouldSucceed_True()
     {
         string? expectedCup = null;
@@ -40,7 +64,7 @@ public class DatiFatturazioneCreateCommandTests
         string? expectedIdDocumento = "eiddocumento";
         string? expectedMap = null;
         DateTime expectedDataCreazione = DateTime.UtcNow;
-        string? expectedIdEnte = TestExtensions.GetRandomIdEnte();
+        string? expectedIdEnte = IdEnteSeed;
         string? expectedPec = "pippo@pec.it";
         string? expectedProdotto = "prod-pn";
         var authInfo = TestExtensions.GetAuthInfo(expectedIdEnte, expectedProdotto);
@@ -68,7 +92,10 @@ public class DatiFatturazioneCreateCommandTests
             TipoCommessa = expectedTipoCommessa,
             IdDocumento = expectedIdDocumento,
             Map = expectedMap,
-            SplitPayment = expectedSplitPayment
+            SplitPayment = expectedSplitPayment,
+            // Obbligatorio dal contratto attuale dell'handler: senza, ValidationException
+            // "Attenzione, devi validare il codice SDI".
+            CodiceSDI = CodiceSdiSeed
         };
         var datiFatturazione = await _handler.Send(req);
 
@@ -112,7 +139,6 @@ public class DatiFatturazioneCreateCommandTests
     }
 
     [Test]
-    [Ignore("Pregresso: richiede DB seedato e/o allineamento agli handler attuali (CodiceSDI/SDI). Vedi PF-705")]
     public async Task CreateCommand_ShouldSucceed_WithContatti()
     {
         string? expectedCup = "ecup";
@@ -124,7 +150,7 @@ public class DatiFatturazioneCreateCommandTests
         string? expectedIdDocumento = "eiddocumento";
         string? expectedMap = "emap";
         DateTime expectedDataCreazione = DateTime.UtcNow;
-        string? expectedIdEnte = TestExtensions.GetRandomIdEnte();
+        string? expectedIdEnte = IdEnteSeed;
         string? expectedPec = "pippo@pec.it";
         string? expectedProdotto = "prod-pn";
         var authInfo = TestExtensions.GetAuthInfo(expectedIdEnte, expectedProdotto);
@@ -148,9 +174,10 @@ public class DatiFatturazioneCreateCommandTests
             DataDocumento = expectedDataDocumento,
             Pec = expectedPec, 
             TipoCommessa = expectedTipoCommessa,
-            IdDocumento = expectedIdDocumento, 
+            IdDocumento = expectedIdDocumento,
             Map = expectedMap,
-            SplitPayment = expectedSplitPayment
+            SplitPayment = expectedSplitPayment,
+            CodiceSDI = CodiceSdiSeed
         };
 
         var actualDatiFatturazione = await _handler.Send(req);
