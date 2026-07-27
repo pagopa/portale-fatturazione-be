@@ -131,20 +131,29 @@ public class GestioneFattureAzioneHappyPathIntegrationTests
     }
 
     // -------------------------------------------------------------------------------------------
-    // POSTICIPA su fattura inesistente -> Result = 0 (nessun match, nessuna scrittura).
+    // POSTICIPA su fattura inesistente -> AMMESSA (pre-generazione).
+    //
+    // ATTENZIONE, l'aspettativa e' stata INVERTITA il 2026-07-24: questo test asseriva Result = 0.
+    // Il requisito e' cambiato (si posticipa un PERIODO, anche prima che la fattura esista: PAC in
+    // attesa di firma REL) e la SP spGestioneFatturePosticipa e' stata adeguata di conseguenza.
+    // Il caso "per periodo, senza IdFattura" e' coperto da
+    // GestioneFattureRequisitiIntegrationTests.Posticipa_PreGeneration_NoInvoiceYet_ShouldSucceed_ByPeriod;
+    // qui si copre la variante con un IdFattura che non esiste in pfd.FattureTestata.
     // -------------------------------------------------------------------------------------------
     [Test]
-    public async Task Posticipa_OnNonExistingInvoice_ShouldReturn0()
+    public async Task Posticipa_OnNonExistingInvoice_ShouldSucceed_PreGeneration()
     {
         // id nel range int ma inesistente (evita l'overflow del cast checked in SendAzione)
         var fake = new Seed(int.MaxValue, Guid.NewGuid().ToString(), 1900, 1, "SECONDO SALDO");
         try
         {
             var result = await SendAzione(fake, "POSTICIPA");
-            Assert.That(result, Is.EqualTo(0), "POSTICIPA su fattura inesistente doveva restituire Result = 0.");
+            Assert.That(result, Is.EqualTo(1),
+                "POSTICIPA su fattura non ancora esistente deve riuscire (pre-generazione).");
         }
         catch (SqlException ex) when (IsNetworkDenied(ex)) { Assert.Ignore(NetworkMsg); }
         catch (SqlException ex) when (ex.Number == 2812) { Assert.Ignore(SpMissingMsg(ex)); }
+        finally { CleanupByIdFattura(fake.IdFattura); }
     }
 
     // -------------------------------------------------------------------------------------------
@@ -287,12 +296,21 @@ public class GestioneFattureAzioneHappyPathIntegrationTests
         {
             using var conn = new SqlConnection(ConnectionString);
             conn.Open();
+            // IdFattura e' IDENTITY (DDL reale): per rimettere la riga con lo stesso id serve
+            // IDENTITY_INSERT, e vanno valorizzate le colonne NOT NULL della tabella vera.
             using var cmd = new SqlCommand(@"
                 DELETE FROM cfg.GestioneFatture WHERE FkIdFattura = @id;
                 DELETE FROM pfd.FattureTestata_Eliminate WHERE IdFattura = @id;
                 IF NOT EXISTS (SELECT 1 FROM pfd.FattureTestata WHERE IdFattura = @id)
-                    INSERT INTO pfd.FattureTestata (IdFattura, FkIdEnte, FkTipologiaFattura, AnnoRiferimento, MeseRiferimento, FatturaInviata)
-                    VALUES (@id, @ente, @tipo, @anno, @mese, 0);", conn);
+                BEGIN
+                    SET IDENTITY_INSERT pfd.FattureTestata ON;
+                    INSERT INTO pfd.FattureTestata
+                        (IdFattura, FkIdEnte, FkTipologiaFattura, AnnoRiferimento, MeseRiferimento, FatturaInviata,
+                         FkProdotto, FkIdTipoDocumento, DataFattura, IdentificativoFattura, TotaleFattura, Divisa, MetodoPagamento, Progressivo)
+                    VALUES (@id, @ente, @tipo, @anno, @mese, 0,
+                         'prod-pn', 'TD01', '2026-01-01', CONCAT('IT-', @id), 100.00, 'EUR', 'MP5', @id);
+                    SET IDENTITY_INSERT pfd.FattureTestata OFF;
+                END", conn);
             cmd.Parameters.AddWithValue("@id", s.IdFattura);
             cmd.Parameters.AddWithValue("@ente", s.IdEnte);
             cmd.Parameters.AddWithValue("@tipo", s.TipologiaFattura);

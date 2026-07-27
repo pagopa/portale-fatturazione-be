@@ -36,6 +36,15 @@ public class GestioneFattureRequisitiIntegrationTests
 
     [TestCase(2001, "ANTICIPO", Ente3)]  // ANTICIPO non posticipabile
     [TestCase(2002, "ACCONTO", Ente3)]   // ACCONTO non posticipabile
+    [Ignore("REQUISITO DA CHIARIRE (non basta il fix del bug): questi test erano VERDI con la SP "
+          + "precedente. La spGestioneFatturePosticipa del 2026-07-24 abilita la pre-generazione e con "
+          + "essa rifiuta UNA SOLA cosa: la fattura gia' inviata. La tipologia compare solo dentro quella "
+          + "query di controllo, quindi una POSTICIPA su ANTICIPO/ACCONTO non trova nulla e finisce nel "
+          + "ramo ELSE che inserisce. Attenzione: rimuovere la riga che azzera @countFatture (vedi "
+          + "Posticipa_OnAlreadySentInvoice_ShouldBeRejected) NON fa ripassare questi test, perche' il "
+          + "vincolo di tipologia non e' piu' espresso da nessuna parte. Domanda per PO/owner SP: la "
+          + "posticipa deve restare limitata alle tipologie di saldo? Se si', il controllo va aggiunto "
+          + "(in SP o come validazione dell'endpoint, dove gia' vive la whitelist delle azioni).")]
     public async Task Posticipa_OnNonSaldoTipologia_ShouldBeRejected(int idFattura, string tipologia, string ente)
     {
         try
@@ -44,6 +53,34 @@ public class GestioneFattureRequisitiIntegrationTests
             Assert.That(r, Is.EqualTo(0), $"POSTICIPA su {tipologia} doveva essere rifiutata (Result 0).");
         }
         finally { Cleanup(idFattura); }
+    }
+
+    [Test]
+    [Ignore("BUG be.spGestioneFatturePosticipa (versione 2026-07-24): la guardia 'fattura gia' inviata' e' "
+          + "codice morto. La SP calcola @countFatture su pfd.FattureTestata e SUBITO DOPO lo sovrascrive "
+          + "con 'SELECT @countFatture = COUNT(*) FROM @tmpGestioneFatture'; quella tabella variabile viene "
+          + "solo DELETE-ata e mai popolata, quindi @countFatture vale sempre 0 e il ramo di rifiuto non "
+          + "viene mai preso. Verificato sul container: con FatturaInviata=1 la SP torna Result 1 e crea la "
+          + "riga. Fix: eliminare la riga che sovrascrive, nient'altro: la condizione @countFatture = 1 "
+          + "resta corretta perche' per una data chiave (ente, tipologia, anno, mese) esiste una sola "
+          + "fattura, quindi il conteggio vale 0 oppure 1.")]
+    public async Task Posticipa_OnAlreadySentInvoice_ShouldBeRejected()
+    {
+        // La SP dichiara di voler rifiutare la posticipa di una fattura gia' inviata (cerca in
+        // pfd.FattureTestata le righe con FatturaInviata = 1). Questo test esercita quella intenzione.
+        try
+        {
+            Exec("UPDATE pfd.FattureTestata SET FatturaInviata = 1 WHERE IdFattura = 1001");
+
+            var r = await Send("POSTICIPA", 1001, 2026, 7, Ente1, "SECONDO SALDO");
+            Assert.That(r, Is.EqualTo(0), "POSTICIPA su fattura gia' INVIATA doveva essere rifiutata (Result 0).");
+            Assert.That(ReadStato(1001), Is.EqualTo(-1), "Non deve essere creata alcuna riga in cfg.GestioneFatture.");
+        }
+        finally
+        {
+            Exec("UPDATE pfd.FattureTestata SET FatturaInviata = 0 WHERE IdFattura = 1001");
+            Cleanup(1001);
+        }
     }
 
     [Test]
@@ -127,15 +164,16 @@ public class GestioneFattureRequisitiIntegrationTests
         finally { RestoreEliminata(seed); }
     }
 
-    // ---------- 3) CARATTERIZZAZIONE: posticipa PRE-GENERAZIONE (scostamento dal Q&A) ----------
+    // ---------- 3) REQUISITO: posticipa PRE-GENERAZIONE ----------
 
     [Test]
-    [Ignore("ACCETTAZIONE requisito aggiornato: la posticipa e' ammessa anche su fatture NON ancora esistenti (pre-generazione, chiave Anno/Mese/Ente/Tipologia). La SP attuale richiede la fattura in FattureTestata -> da adeguare. Riabilitare dopo il fix SP.")]
     public async Task Posticipa_PreGeneration_NoInvoiceYet_ShouldSucceed_ByPeriod()
     {
         // Requisito AGGIORNATO: l'admin puo' posticipare un periodo (Ente/Tipologia/Anno/Mese) anche se la
         // fattura non esiste ancora in FattureTestata (PAC in attesa firma REL). Deve creare la riga
-        // cfg.GestioneFatture con Stato=0 (POSTICIPATA) e FkIdFattura NULL. Criterio di accettazione del fix SP.
+        // cfg.GestioneFatture con Stato=0 (POSTICIPATA) e FkIdFattura NULL.
+        // Sbloccato dalla SP spGestioneFatturePosticipa del 2026-07-24, che non pretende piu' la fattura
+        // esistente: cerca solo una fattura GIA' INVIATA da rifiutare, e in assenza inserisce.
         try
         {
             var r = await Send("POSTICIPA", idFattura: null, anno: 1999, mese: 1, ente: Ente1, tipologia: "SECONDO SALDO");
@@ -144,6 +182,117 @@ public class GestioneFattureRequisitiIntegrationTests
                 "Deve essere creata la riga POSTICIPATA (Stato=0) per periodo, senza fattura esistente.");
         }
         finally { CleanupByPeriod(Ente1, "SECONDO SALDO", 1999, 1); }
+    }
+
+    // ---------- 3-ter) MACCHINA A STATI a livello MediatR (handler -> SP) ----------
+    //
+    // Stessi 4 scenari coperti via HTTP in Http/GestioneFattureHttpTests, ma qui il contratto e' il
+    // valore di Result restituito dalla SP (0 = rifiutata, 1 = eseguita), non lo status code.
+    // Tenerli su entrambi i livelli non e' ridondante: separa "la SP applica la regola" da "l'endpoint
+    // la traduce bene per il client". Oggi il primo e' corretto e il secondo no (Result 0 -> 404).
+    // Chiave per PERIODO (senza IdFattura), come le chiamate reali del frontend.
+
+    private const int AnnoSm = 2026;
+    private const int MeseSm = 9;
+    private const string TipSm = "SECONDO SALDO";
+
+    [Test]
+    public async Task Sm_PosticipaSuGiaPosticipata_ShouldReturn0()
+    {
+        try
+        {
+            Assert.That(await Send("POSTICIPA", null, AnnoSm, MeseSm, Ente1, TipSm), Is.EqualTo(1));
+            Assert.That(await Send("POSTICIPA", null, AnnoSm, MeseSm, Ente1, TipSm), Is.EqualTo(0),
+                "Posticipare una gia' POSTICIPATA va rifiutato (Result 0).");
+            Assert.That(ContaRighe(Ente1, TipSm, AnnoSm, MeseSm), Is.EqualTo(1),
+                "e non deve lasciare righe in piu'.");
+        }
+        finally { CleanupByPeriod(Ente1, TipSm, AnnoSm, MeseSm); }
+    }
+
+    [Test]
+    public async Task Sm_RipristinaSuGiaRipristinata_ShouldReturn0()
+    {
+        try
+        {
+            Assert.That(await Send("POSTICIPA", null, AnnoSm, MeseSm, Ente1, TipSm), Is.EqualTo(1));
+            Assert.That(await Send("RIPRISTINA", null, AnnoSm, MeseSm, Ente1, TipSm), Is.EqualTo(1));
+            Assert.That(await Send("RIPRISTINA", null, AnnoSm, MeseSm, Ente1, TipSm), Is.EqualTo(0),
+                "Ripristinare una gia' RIPRISTINATA va rifiutato (Result 0).");
+        }
+        finally { CleanupByPeriod(Ente1, TipSm, AnnoSm, MeseSm); }
+    }
+
+    [Test]
+    public async Task Sm_RipristinaSuPosticipata_ShouldReturn1()
+    {
+        try
+        {
+            Assert.That(await Send("POSTICIPA", null, AnnoSm, MeseSm, Ente1, TipSm), Is.EqualTo(1));
+            Assert.That(await Send("RIPRISTINA", null, AnnoSm, MeseSm, Ente1, TipSm), Is.EqualTo(1),
+                "Una POSTICIPATA deve poter essere ripristinata.");
+            Assert.That(ContaRighe(Ente1, TipSm, AnnoSm, MeseSm), Is.EqualTo(1),
+                "la transizione aggiorna la riga esistente, non ne aggiunge una.");
+        }
+        finally { CleanupByPeriod(Ente1, TipSm, AnnoSm, MeseSm); }
+    }
+
+    [Test]
+    [Ignore("DIFETTO CONFERMATO, stesso di PosticipaRipristina_Ripetuto_ShouldKeepOneRowPerPeriod: la "
+          + "transizione RIPRISTINATA -> POSTICIPATA riesce (Result 1) ma INSERISCE una seconda riga per "
+          + "lo stesso periodo invece di riportare a Stato 0 quella esistente. Da li' in poi il periodo "
+          + "ha due righe e il ripristino successivo viola la PK. Rimedio: Fix 8 in "
+          + "segnalazione-sp-gestione-fatture.md.")]
+    public async Task Sm_PosticipaSuRipristinata_ShouldReturn1_AndKeepOneRow()
+    {
+        try
+        {
+            Assert.That(await Send("POSTICIPA", null, AnnoSm, MeseSm, Ente1, TipSm), Is.EqualTo(1));
+            Assert.That(await Send("RIPRISTINA", null, AnnoSm, MeseSm, Ente1, TipSm), Is.EqualTo(1));
+            Assert.That(await Send("POSTICIPA", null, AnnoSm, MeseSm, Ente1, TipSm), Is.EqualTo(1),
+                "Una RIPRISTINATA deve poter essere posticipata di nuovo.");
+            Assert.That(ContaRighe(Ente1, TipSm, AnnoSm, MeseSm), Is.EqualTo(1),
+                "e deve restare UNA riga per periodo.");
+        }
+        finally { CleanupByPeriod(Ente1, TipSm, AnnoSm, MeseSm); }
+    }
+
+    // ---------- 3-bis) CICLO POSTICIPA / RIPRISTINA RIPETUTO ----------
+
+    [Test]
+    [Ignore("DIFETTO CONFERMATO (riproducibile da UI con click normali). Alternando POSTICIPA e "
+          + "RIPRISTINA sullo stesso periodo: il 1o giro va (1,1), la 2a POSTICIPA torna 1 ma crea una "
+          + "SECONDA riga per lo stesso periodo (Stato 0 accanto a Stato 1), e la 2a RIPRISTINA fallisce "
+          + "con 'Violation of PRIMARY KEY constraint PK_GestioneFatture ... (ente, tipologia, anno, mese, 1)'. "
+          + "Causa: Stato fa parte della PK, RIPRISTINA fa UPDATE dello Stato in place e il suo MERGE "
+          + "matcha su (Anno, Mese, Tipologia, Ente) SENZA Stato, quindi non distingue le righe. "
+          + "Lo stato intermedio a due righe e' gia' incoerente di suo: la griglia ne mostrerebbe due per "
+          + "lo stesso periodo. Rimedio in segnalazione-sp-gestione-fatture.md (Fix 8).")]
+    public async Task PosticipaRipristina_Ripetuto_ShouldKeepOneRowPerPeriod()
+    {
+        try
+        {
+            Assert.That(await Send("POSTICIPA", null, 2026, 8, Ente1, "PRIMO SALDO"), Is.EqualTo(1), "1a posticipa");
+            Assert.That(await Send("RIPRISTINA", null, 2026, 8, Ente1, "PRIMO SALDO"), Is.EqualTo(1), "1o ripristino");
+            Assert.That(await Send("POSTICIPA", null, 2026, 8, Ente1, "PRIMO SALDO"), Is.EqualTo(1), "2a posticipa");
+
+            Assert.That(ContaRighe(Ente1, "PRIMO SALDO", 2026, 8), Is.EqualTo(1),
+                "Per un periodo deve esistere UNA riga: la seconda posticipa non deve affiancarne una nuova.");
+
+            Assert.That(await Send("RIPRISTINA", null, 2026, 8, Ente1, "PRIMO SALDO"), Is.EqualTo(1),
+                "2o ripristino: oggi fallisce con violazione di PK.");
+        }
+        finally { CleanupByPeriod(Ente1, "PRIMO SALDO", 2026, 8); }
+    }
+
+    private int ContaRighe(string ente, string tip, int anno, int mese)
+    {
+        using var conn = new SqlConnection(Conn); conn.Open();
+        using var cmd = new SqlCommand(
+            "SELECT COUNT(*) FROM cfg.GestioneFatture WHERE FkIdEnte=@e AND FkTipologiaFattura=@t AND Anno=@a AND Mese=@m", conn);
+        cmd.Parameters.AddWithValue("@e", ente); cmd.Parameters.AddWithValue("@t", tip);
+        cmd.Parameters.AddWithValue("@a", anno); cmd.Parameters.AddWithValue("@m", mese);
+        return Convert.ToInt32(cmd.ExecuteScalar());
     }
 
     // ---------- 4) CARATTERIZZAZIONE: Nota multipla (scostamento dal modello a array) ----------
@@ -240,9 +389,18 @@ public class GestioneFattureRequisitiIntegrationTests
         if (f.Id == 0) return;
         Cleanup(f.Id);
         Exec("DELETE FROM pfd.FattureTestata_Eliminate WHERE IdFattura=@id", ("@id", f.Id));
+        // IdFattura e' IDENTITY (DDL reale): serve IDENTITY_INSERT per rimettere lo stesso id, e vanno
+        // valorizzate le colonne NOT NULL della tabella vera.
         Exec(@"IF NOT EXISTS (SELECT 1 FROM pfd.FattureTestata WHERE IdFattura=@id)
-               INSERT INTO pfd.FattureTestata(IdFattura,FkIdEnte,FkTipologiaFattura,AnnoRiferimento,MeseRiferimento,FatturaInviata)
-               VALUES(@id,@e,@t,@a,@m,0)",
+               BEGIN
+                 SET IDENTITY_INSERT pfd.FattureTestata ON;
+                 INSERT INTO pfd.FattureTestata
+                    (IdFattura,FkIdEnte,FkTipologiaFattura,AnnoRiferimento,MeseRiferimento,FatturaInviata,
+                     FkProdotto,FkIdTipoDocumento,DataFattura,IdentificativoFattura,TotaleFattura,Divisa,MetodoPagamento,Progressivo)
+                 VALUES(@id,@e,@t,@a,@m,0,
+                     'prod-pn','TD01','2026-01-01',CONCAT('IT-',@id),100.00,'EUR','MP5',@id);
+                 SET IDENTITY_INSERT pfd.FattureTestata OFF;
+               END",
             ("@id", f.Id), ("@e", f.Ente), ("@t", f.Tip), ("@a", f.Anno), ("@m", f.Mese));
     }
 }
