@@ -712,6 +712,10 @@ public static class FattureExtensions
         if (tipologie.IsNullNotAny())
             return reports;
 
+
+        // Recupero da Gestione Fatture le fatture per tipologia e creo un report per ogni tipologia nel ciclo sottostane
+       var gestioneFattureReport = await handler.Send(new GestioneFattureReportQuery(authInfo) { TipologiaFattura  = tipologie });
+
         foreach (var tipologia in tipologie!)
         {
             var month = request.Mese.GetMonth();
@@ -726,7 +730,10 @@ public static class FattureExtensions
                         var fattureSospese = await handler.Send(request.MapSospesev2(authInfo, tipologia));
                         var relNonFirmate = await handler.Send(new RelNonFatturateQuery(authInfo));
                         relNonFirmate = relNonFirmate!.Where(x => x.TipologiaFattura == tipologia && x.Anno == request.Anno && x.Mese == request.Mese).ToList();
-                        reports.Add($"Lista {tipologia} {year} {month}", fatture!.ReportFattureRel(fattureSospese, relNonFirmate, month, tipologia));
+
+                        var gestioneFattureTipologia = gestioneFattureReport?.Where(x => x.TipologiaFattura == tipologia).MapExport();
+
+                        reports.Add($"Lista {tipologia} {year} {month}", fatture!.ReportFattureRel(fattureSospese, relNonFirmate, gestioneFattureTipologia, month, tipologia));
                         // TODO: "Fatture Posicipate {tipologia}" sheet dedicato => [vwReportFatturePosticipate]
                     }
                     break;
@@ -737,7 +744,10 @@ public static class FattureExtensions
                         var fattureSospese = await handler.Send(request.MapSospesev2(authInfo, tipologia));
                         var relNonFirmate = await handler.Send(new RelNonFatturateQuery(authInfo));
                         relNonFirmate = relNonFirmate!.Where(x => x.TipologiaFattura == tipologia && x.Anno == request.Anno && x.Mese == request.Mese).ToList();
-                        reports.Add($"Lista {tipologia} {year} {month}", fatture!.ReportFattureRel(fattureSospese, relNonFirmate, request.Mese.GetMonth(), tipologia));
+
+                        var gestioneFattureTipologia = gestioneFattureReport?.Where(x => x.TipologiaFattura == tipologia).MapExport();
+
+                        reports.Add($"Lista {tipologia} {year} {month}", fatture!.ReportFattureRel(fattureSospese, relNonFirmate, gestioneFattureTipologia, request.Mese.GetMonth(), tipologia));
                         // TODO: "Fatture Posicipate {tipologia}" sheet dedicato => [vwReportFatturePosticipate]
                     }
                     break;
@@ -749,7 +759,10 @@ public static class FattureExtensions
                         var fattureSospese = await handler.Send(request.MapSospesev2(authInfo, tipologia));
                         var relNonFirmate = await handler.Send(new RelNonFatturateQuery(authInfo));
                         relNonFirmate = relNonFirmate!.Where(x => x.TipologiaFattura == tipologia && x.Anno == request.Anno && x.Mese == request.Mese).ToList();
-                        reports.Add($"Lista {tipologia} {year} {month}", fatture!.ReportFattureRel(fattureSospese, relNonFirmate, request.Mese.GetMonth(), tipologia));
+
+                        var gestioneFattureTipologia = gestioneFattureReport?.Where(x => x.TipologiaFattura == tipologia).MapExport();
+
+                        reports.Add($"Lista {tipologia} {year} {month}", fatture!.ReportFattureRel(fattureSospese, relNonFirmate, gestioneFattureTipologia, request.Mese.GetMonth(), tipologia));
                         // TODO: "Fatture Posicipate {tipologia}" sheet dedicato => [vwReportFatturePosticipate]
                     }
                     break;
@@ -1076,7 +1089,7 @@ public static class FattureExtensions
 
             reports.Add(
                 $"Lista {tipologia}",
-                fattureForReport.ReportFattureRel(sospeseForReport, relNonFirmateTipologia, "", tipologia));
+                fattureForReport.ReportFattureRel(sospeseForReport, relNonFirmateTipologia, null, "", tipologia));
         }
 
         foreach (var kvp in dictAnticipo)
@@ -1203,7 +1216,7 @@ public static byte[] ReportFattureSospeseModuloCommessa(this List<IEnumerable<Fa
         return memory.ToArray();
     }
 
-    public static byte[] ReportFattureRel(this List<IEnumerable<FattureRelExcelDto>> fatture, List<IEnumerable<FattureRelSospeseExcelDto>>? fattureSospese, IEnumerable<RelNonFatturataDto>? relNonFirmate, string month, string tipologia)
+    public static byte[] ReportFattureRel(this List<IEnumerable<FattureRelExcelDto>> fatture, List<IEnumerable<FattureRelSospeseExcelDto>>? fattureSospese, IEnumerable<RelNonFatturataDto>? relNonFirmate, IEnumerable<GestioneFattureReportExcelDto>? gestioneFatture, string month, string tipologia)
     {
         DataSet? dataSet = new();
         for (var i = 0; i < fatture.Count; i++)
@@ -1233,6 +1246,12 @@ public static byte[] ReportFattureSospeseModuloCommessa(this List<IEnumerable<Fa
                     if (!entiFattSospesiNonZero.IsNullNotAny())
                         dataSet.Tables.Add(entiFattSospesiNonZero!.FillTableWithTotalsRel(9, $"Enti Fatt. {month} Sospesi"));
                 }
+
+
+            }else
+            {
+                if(gestioneFatture != null && gestioneFatture.Count() > 0)
+                    dataSet.Tables.Add(gestioneFatture!.FillOneTable($"Non Fatturate"));
             }
             //else
             //    dataSet.Tables.Add(fatture[i]!.FillTableWithTotalsRel(9, $"Note di Credito {month}"));
@@ -1567,6 +1586,34 @@ public static byte[] ReportFattureSospeseModuloCommessa(this List<IEnumerable<Fa
             TipoREL = x.TipoREL,
             AnnoREL = x.AnnoREL,
             MeseREL = x.MeseREL
+        });
+    }
+
+    public static IEnumerable<GestioneFattureReportExcelDto> MapExport(this IEnumerable<GestioneFattureReportDto> dtos)
+    {
+        return dtos.Select(x => new GestioneFattureReportExcelDto
+        {
+            IdEnte = x.IdEnte,
+            RagioneSociale = x.RagioneSociale,
+            IdContratto = x.IdContratto,
+            TipoContratto = x.TipoContratto,
+            TipologiaFattura = x.TipologiaFattura,
+            NumeroFattura = x.NumeroFattura,
+            TipoDocumento = x.TipoDocumento,
+            Anno = x.Anno,
+            Mese = x.Mese,
+            TotaleNotificheAnalogiche = x.TotaleNotificheAnalogiche,
+            TotaleNotificheDigitali = x.TotaleNotificheDigitali,
+            TotaleNotifiche = x.TotaleNotifiche,
+            TotaleImponibileAnalogico = x.TotaleImponibileAnalogico,
+            TotaleImponibileDigitale = x.TotaleImponibileDigitale,
+            TotaleImponibile = x.TotaleImponibile,
+            TotaleIvatoAnalogico = x.TotaleIvatoAnalogico,
+            TotaleIvatoDigitale = x.TotaleIvatoDigitale,
+            TotaleIvato = x.TotaleIvato,
+            Firmata = x.Firmata,
+            TotaleFatturaImponibile = x.TotaleFatturaImponibile,
+            Stato = x.Stato
         });
     }
 

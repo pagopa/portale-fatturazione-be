@@ -193,10 +193,42 @@ FROM [be].[vwGestioneFattureGriglia]
         return $@"
           SELECT DISTINCT Anno, Mese
            FROM[be].[vwGestioneFattureFormAnniMesi]
-    ";
+        ";
     }
 
-    
+    /// <summary>
+    /// Query per la generazione del report di gestione fatture
+    /// </summary>
+    private static readonly string _sqlReport = @"
+        SELECT [IdEnte]
+            ,[Ragione Sociale] AS RagioneSociale
+            ,[IdContratto]
+            ,[TipologiaFattura]
+            ,[NumeroFattura]
+            ,[TipoDocumento]
+            ,[Anno]
+            ,[Mese]
+            ,[TotaleNotificheAnalogiche]
+            ,[TotaleNotificheDigitali]
+            ,[TotaleNotifiche]
+            ,[TotaleImponibileAnalogico]
+            ,[TotaleImponibileDigitale]
+            ,[TotaleImponibile]
+            ,[TotaleIvatoAnalogico]
+            ,[TotaleIvatoDigitale]
+            ,[TotaleIvato]
+            ,[Firmata]
+            ,[TotaleFatturaImponibile]
+            ,[TipoContratto]
+            ,[Stato]
+        FROM [be].[vwGestioneFattureReport]
+        WHERE (@FilterByTipologia = 0 OR [TipologiaFattura] IN @TipologiaFattura)
+    ";
 
+    /// <summary>
+    /// Query per la selezione del report di gestione fatture
+    /// </summary>
+    /// <returns>La query SQL per selezionare il report di gestione fatture</returns>
+    public static string SelectReport() => _sqlReport;
 
 }
