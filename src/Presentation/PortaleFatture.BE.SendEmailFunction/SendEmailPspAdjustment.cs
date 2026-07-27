@@ -124,7 +124,7 @@ public class SendEmailPspAdjustment(ILoggerFactory loggerFactory)
             //psps = emailService.GetSenderEmailAdjustment(risposta.Trimestre);
 
            var apiKeyFilePath = builder.ApiKeyFilePath();
-            _logger.LogInformation(psps.Serialize());
+           _logger.LogInformation("PSP adjustment recipients loaded: {RecipientCount}", psps!.Count());
 
 
             foreach (var psp in psps!)
