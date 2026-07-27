@@ -1,11 +1,11 @@
-/****** Oggetto: StoredProcedure [be].[spGestioneFattureElimina]    Data dello script 23/07/2026 15:26:18 ******/
+/****** Oggetto: StoredProcedure [be].[spGestioneFattureElimina]    Data dello script 24/07/2026 14:35:59 ******/
+-- Script autorevole estratto dal DB reale. Nel DB e' un ALTER: qui CREATE OR ALTER, cosi' funziona
+-- sia su container appena creato sia riapplicato a caldo su uno gia' avviato.
 SET ANSI_NULLS ON
 GO
 
 SET QUOTED_IDENTIFIER ON
 GO
-
-
 
 -- =============================================
 /*
@@ -16,11 +16,11 @@ GO
   Versione:              1.0
 */
 -- =============================================
-CREATE PROCEDURE [be].[spGestioneFattureElimina]
+CREATE OR ALTER PROCEDURE [be].[spGestioneFattureElimina]
 (
     -- parameters for the stored procedure
     @IdFattura int null,
-	@Anno int, 
+	@Anno int,
 	@Mese int,
 	@IdEnte uniqueidentifier,
 	@TipologiaFattura nvarchar(50),
@@ -61,7 +61,7 @@ BEGIN
 				[Duration] [int] NULL,
 				[Status] [varchar](10) NULL,
 				[Description] varchar(500) NULL
-			 CONSTRAINT [PK_JobId_LOG] PRIMARY KEY CLUSTERED 
+			 CONSTRAINT [PK_JobId_LOG] PRIMARY KEY CLUSTERED
 			(
 				[JobId] ASC
 			)WITH (STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
@@ -114,7 +114,7 @@ BEGIN
 				Duration = DATEDIFF(SECOND,  @StartTime, @EndTime),
 				Description = 'I parametri indicati sono NULL, non sono corretti oppure insufficienti. Specificare almeno IdFattura oppure Anno/Mese/Ente/Tipologia Fattura.'
 			WHERE JobId = @JobId
-			
+
 			PRINT('Parametri non corretti o insufficienti.');
 
 			-- Interrompo procedura con errore
@@ -145,16 +145,16 @@ BEGIN
 			'ELIMINATA' as Azione,
 			@Note as Note
 		FROM pfd.FattureTestata ft
-		WHERE 
-			(ft.FkTipologiaFattura in ('ANTICIPO','ACCONTO') 
+		WHERE
+			(ft.FkTipologiaFattura in ('ANTICIPO','ACCONTO')
 			-- TODO: rimuovere eccezione per fattura INPS - PRIMO SALDO
-			or (ft.FkIdEnte='53b40136-65f2-424b-acfb-7fae17e35c60' and ft.FkTipologiaFattura='PRIMO SALDO') 
+			or (ft.FkIdEnte='53b40136-65f2-424b-acfb-7fae17e35c60' and ft.FkTipologiaFattura='PRIMO SALDO')
 			)
 			AND
 			(@IdFattura IS NULL OR ft.IdFattura = @IdFattura)
 			AND
 			(
-				(@Anno IS NULL AND @Mese IS NULL AND @TipologiaFattura IS NULL AND @IdEnte IS NULL) 
+				(@Anno IS NULL AND @Mese IS NULL AND @TipologiaFattura IS NULL AND @IdEnte IS NULL)
 				OR (ft.AnnoRiferimento = @Anno
 					AND ft.MeseRiferimento = @Mese
 					AND ft.FkTipologiaFattura = @TipologiaFattura
@@ -170,19 +170,19 @@ BEGIN
 		IF (
 			@countFatture = 1
 		)
-		BEGIN            
+		BEGIN
 			-- La fattura esiste ed è in stato NON INVIATA
-            
+
 			-- Se l'IdFattura è valorizzato allora procedo con l'eliminazione della fattura
 			IF (@IdFattura IS NOT NULL)
 				BEGIN
 					-- Richiama SP Elimina Fattura
 					declare @rc int
 					EXEC @rc = [pfd].[EliminaFattura] @IdFattura;
-					
+
 					IF(@rc <= 0)
 					BEGIN
-						
+
 						-- Log interruzione per Errore
 						SET @EndTime = GETDATE()
 
@@ -194,7 +194,7 @@ BEGIN
 							Duration = DATEDIFF(SECOND,  @StartTime, @EndTime),
 							Description = @err_description
 						WHERE JobId = @JobId
-			
+
 						PRINT(@err_description);
 
 						-- Interrompo procedura con errore
@@ -206,23 +206,21 @@ BEGIN
 			ELSE
 				BEGIN
 
-						-- Log interruzione per Errore
-						SET @EndTime = GETDATE()
+					-- La fattura non esiste in pfd.FattureTestata quindi non è necessario eseguire ulteriori operazioni
 
-						set @err_description = 'La fattura non può essere eliminata in quanto non è stato specificato il parametro IdFattura';
+					--LOG completamento stored procedure
+					SET @EndTime = GETDATE()
 
-						UPDATE pfw.ProceduresLog
-						SET EndTime = @EndTime,
-							Status = @ProcedureStatus_Error,
-							Duration = DATEDIFF(SECOND,  @StartTime, @EndTime),
-							Description = @err_description
-						WHERE JobId = @JobId
-			
-						PRINT(@err_description);
+					UPDATE pfw.ProceduresLog
+					SET EndTime = @EndTime,
+						Status = @ProcedureStatus_End,
+						Description = CONCAT('La fattura non esiste in pfd.FattureTestata: ',@stringFattura),
+						Duration = DATEDIFF(SECOND,  @StartTime, @EndTime)
+					WHERE JobId = @JobId
 
-						-- Interrompo procedura con errore
-						SELECT 0 as Result;
-						RETURN -1;
+					-- Procedura eseguita correttamente
+					SELECT 1 as Result;
+					RETURN;
 				END
 
 
@@ -283,15 +281,15 @@ BEGIN
 				Duration = DATEDIFF(SECOND,  @StartTime, @EndTime),
 				Description = @err_description
 			WHERE JobId = @JobId
-			
+
 			PRINT(@err_description);
 
 			-- Interrompo procedura con errore
 			SELECT 0 as Result;
 			RETURN -1;
-		END		
+		END
 
-		
+
 
     END TRY
     BEGIN CATCH
@@ -299,7 +297,7 @@ BEGIN
 		IF @@TRANCOUNT > 0
 		BEGIN
 			ROLLBACK TRANSACTION;
-		
+
 			--LOG Errore e rollback
 			SET @EndTime = GETDATE()
 
@@ -320,5 +318,3 @@ BEGIN
 
 END
 GO
-
-

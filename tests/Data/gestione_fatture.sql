@@ -13,47 +13,152 @@
 IF SCHEMA_ID('cfg') IS NULL EXEC ('CREATE SCHEMA cfg;');
 IF SCHEMA_ID('be')  IS NULL EXEC ('CREATE SCHEMA be;');
 
--- pfd.FattureTestata: solo le colonne usate dalle SP azione
+-- pfd.FattureTestata: DDL REALE (estratto dal DB il 2026-07-24), non piu' uno stub.
+-- Due scelte deliberate rispetto all'originale:
+--  1) le 4 FOREIGN KEY sono omesse. Due puntano a tabelle che nel seed non esistono
+--     (pfd.FattureTipoDocumento, pfd.FattureTipologia) e di cui non abbiamo il DDL; quella verso
+--     pfd.Enti bloccherebbe i test che usano enti sintetici (Guid casuali) di proposito.
+--  2) IDENTITY e' mantenuta perche' e' reale e cambia il comportamento degli insert: gli id
+--     deterministici del seed richiedono SET IDENTITY_INSERT (v. sotto e negli helper dei test).
+-- Nota di fedelta': FkTipologiaFattura e' nvarchar(15) qui e nvarchar(30) in _Eliminate,
+-- FkIdEnte nvarchar(50) qui e nvarchar(100) in _Eliminate. L'asimmetria e' del DB reale.
 IF OBJECT_ID('pfd.FattureTestata', 'U') IS NULL
-CREATE TABLE pfd.FattureTestata (
-    IdFattura           BIGINT        NOT NULL PRIMARY KEY, -- bigint sul DB reale (finding overflow lato C#)
-    FkIdEnte            NVARCHAR(50)  NOT NULL,             -- nvarchar sul DB reale (la SP lo vuole uniqueidentifier)
-    FkTipologiaFattura  NVARCHAR(50)  NOT NULL,
-    AnnoRiferimento     INT           NOT NULL,
-    MeseRiferimento     INT           NOT NULL,
-    FatturaInviata      BIT           NULL
+CREATE TABLE [pfd].[FattureTestata](
+	[IdFattura] [bigint] IDENTITY(1,1) NOT NULL,
+	[FkProdotto] [nvarchar](15) NOT NULL,
+	[FkIdTipoDocumento] [nvarchar](4) NOT NULL,
+	[FkTipologiaFattura] [nvarchar](15) NOT NULL,
+	[FkIdEnte] [nvarchar](50) NOT NULL,
+	[FkIdDatiFatturazione] [bigint] NULL,
+	[DataFattura] [datetime2](7) NOT NULL,
+	[IdentificativoFattura] [nvarchar](50) NOT NULL,
+	[TotaleFattura] [float] NOT NULL,
+	[Divisa] [nvarchar](3) NOT NULL,
+	[MetodoPagamento] [nvarchar](3) NOT NULL,
+	[AnnoRiferimento] [int] NOT NULL,
+	[MeseRiferimento] [int] NOT NULL,
+	[CausaleFattura] [nvarchar](250) NULL,
+	[Sollecito] [nvarchar](250) NULL,
+	[CodiceContratto] [nvarchar](50) NULL,
+	[SplitPayment] [bit] NULL,
+	[Cup] [nvarchar](15) NULL,
+	[Cig] [nvarchar](10) NULL,
+	[IdDocumento] [nvarchar](20) NULL,
+	[DataDocumento] [datetime] NULL,
+	[NumItem] [nvarchar](50) NULL,
+	[CodCommessa] [nvarchar](100) NULL,
+	[Progressivo] [bigint] NULL,
+	[FatturaInviata] [bit] NULL CONSTRAINT [DF_FattureTestata_FatturaInviata] DEFAULT ((0)),
+	[Semestre] [nvarchar](15) NULL,
+	[FaseFatturazione] [int] NULL,
+ CONSTRAINT [PK__FattureT__A29CBA9F4CB91487] PRIMARY KEY CLUSTERED ([IdFattura] ASC)
 );
 
--- pfd.FattureTestata_Eliminate: controllata da CANCELLA
+-- pfd.RelTestata: DDL reale (estratto dal DB il 2026-07-24). Serve alla vista
+-- be.vwGestioneFattureReport, che ci prende totali notifiche/imponibili/IVA e il flag Caricata.
+IF OBJECT_ID('pfd.RelTestata', 'U') IS NULL
+CREATE TABLE [pfd].[RelTestata](
+	[internal_organization_id] [nvarchar](100) NOT NULL,
+	[contract_id] [nvarchar](400) NOT NULL,
+	[TipologiaFattura] [nvarchar](40) NOT NULL,
+	[year] [int] NOT NULL,
+	[month] [int] NOT NULL,
+	[TotaleAnalogico] [decimal](9, 2) NULL,
+	[TotaleDigitale] [decimal](9, 2) NULL,
+	[TotaleNotificheAnalogiche] [int] NULL,
+	[TotaleNotificheDigitali] [int] NULL,
+	[Totale] [decimal](9, 2) NULL,
+	[Iva] [decimal](4, 2) NOT NULL CONSTRAINT [DF_RelTestata_Iva] DEFAULT ((22)),
+	[TotaleAnalogicoIva] [decimal](9, 2) NULL,
+	[TotaleDigitaleIva] [decimal](9, 2) NULL,
+	[TotaleIva] [decimal](9, 2) NULL,
+	[Caricata] [tinyint] NULL CONSTRAINT [DF_RelTestata_Caricata] DEFAULT ((0)),
+	[AsseverazioneTotaleAnalogico] [decimal](9, 2) NULL,
+	[AsseverazioneTotaleDigitale] [decimal](9, 2) NULL,
+	[AsseverazioneTotaleNotificheAnalogiche] [int] NULL,
+	[AsseverazioneTotaleNotificheDigitali] [int] NULL,
+	[AsseverazioneTotale] [decimal](9, 2) NULL,
+	[AsseverazioneTotaleAnalogicoIva] [decimal](9, 2) NULL,
+	[AsseverazioneTotaleDigitaleIva] [decimal](9, 2) NULL,
+	[AsseverazioneTotaleIva] [decimal](9, 2) NULL,
+	[RelFatturata] [bit] NOT NULL CONSTRAINT [DF_RelTestata_RelFatturata] DEFAULT ((0)),
+	[FlagConguaglio] [nvarchar](50) NULL,
+ CONSTRAINT [PK_RelTestata] PRIMARY KEY CLUSTERED
+(
+	[internal_organization_id] ASC,
+	[contract_id] ASC,
+	[TipologiaFattura] ASC,
+	[year] ASC,
+	[month] ASC
+)
+);
+GO
+
+-- pfd.FattureTestata_Eliminate: DDL REALE (estratto dal DB il 2026-07-24). Controllata da CANCELLA.
+-- Nel DB reale NON ha chiave primaria ne' IDENTITY (a differenza di FattureTestata): la stessa
+-- fattura puo' quindi comparirci piu' volte. Riprodotto fedelmente.
 IF OBJECT_ID('pfd.FattureTestata_Eliminate', 'U') IS NULL
-CREATE TABLE pfd.FattureTestata_Eliminate (
-    IdFattura           BIGINT        NOT NULL PRIMARY KEY,
-    FkIdEnte            NVARCHAR(50)  NOT NULL,
-    FkTipologiaFattura  NVARCHAR(50)  NOT NULL,
-    AnnoRiferimento     INT           NOT NULL,
-    MeseRiferimento     INT           NOT NULL
+CREATE TABLE [pfd].[FattureTestata_Eliminate](
+	[IdFattura] [bigint] NOT NULL,
+	[FkProdotto] [nvarchar](15) NOT NULL,
+	[FkIdTipoDocumento] [nvarchar](4) NOT NULL,
+	[FkTipologiaFattura] [nvarchar](30) NOT NULL,
+	[FkIdEnte] [nvarchar](100) NOT NULL,
+	[FkIdDatiFatturazione] [bigint] NULL,
+	[DataFattura] [datetime2](7) NOT NULL,
+	[IdentificativoFattura] [nvarchar](50) NOT NULL,
+	[TotaleFattura] [float] NOT NULL,
+	[Divisa] [nvarchar](3) NOT NULL,
+	[MetodoPagamento] [nvarchar](3) NOT NULL,
+	[AnnoRiferimento] [int] NOT NULL,
+	[MeseRiferimento] [int] NOT NULL,
+	[CausaleFattura] [nvarchar](250) NULL,
+	[Sollecito] [nvarchar](250) NULL,
+	[CodiceContratto] [nvarchar](50) NULL,
+	[SplitPayment] [bit] NULL,
+	[Cup] [nvarchar](15) NULL,
+	[Cig] [nvarchar](10) NULL,
+	[IdDocumento] [nvarchar](20) NULL,
+	[DataDocumento] [datetime] NULL,
+	[NumItem] [nvarchar](50) NULL,
+	[CodCommessa] [nvarchar](100) NULL,
+	[Progressivo] [bigint] NULL,
+	[FlagProceduraWhiteList] [bit] NOT NULL CONSTRAINT [DF_FattureTestata_Eliminate_FlagProceduraWhiteList] DEFAULT ((0)),
+	[Semestre] [nvarchar](15) NULL,
+	[FatturaInviata] [bit] NULL,
+	[FaseFatturazione] [int] NULL
 );
 
 -- cfg.GestioneFatture: tutte le colonne scritte/lette dalle SP
 IF OBJECT_ID('cfg.GestioneFatture', 'U') IS NULL
-CREATE TABLE cfg.GestioneFatture (
-    Id                      INT IDENTITY(1,1) PRIMARY KEY,
-    FkIdFattura             BIGINT        NULL,
-    FkIdEnte                NVARCHAR(50)  NOT NULL,
-    FkTipologiaFattura      NVARCHAR(50)  NOT NULL,
-    Anno                    INT           NOT NULL,
-    Mese                    INT           NOT NULL,
-    DataInserimento         DATETIME      NULL,
-    DataCancellazione       DATETIME      NULL,
-    DataRipristino          DATETIME      NULL,
-    DataEliminazione        DATETIME      NULL,
-    IdUtenteInserimento     NVARCHAR(50)  NULL,
-    IdUtenteCancellazione   NVARCHAR(50)  NULL,
-    IdUtenteRipristino      NVARCHAR(50)  NULL,
-    IdUtenteEliminazione    NVARCHAR(50)  NULL,
-    Stato                   INT           NOT NULL, -- 0=POSTICIPATA 1=RIPRISTINATA 2=CANCELLATA 3=ELIMINATA
-    Azione                  NVARCHAR(50)  NULL,
-    Note                    JSON          NULL      -- tipo nativo: richiede SQL Server 2025
+-- DDL REALE (estratto dal DB il 2026-07-24). Sostituisce la versione ipotizzata, che era sbagliata
+-- su tre punti sostanziali:
+--   1) NON esiste una chiave surrogata Id IDENTITY. La PRIMARY KEY e' COMPOSTA su
+--      (FkIdEnte, FkTipologiaFattura, Anno, Mese, Stato): due righe con lo stesso stato per lo stesso
+--      periodo sono IMPOSSIBILI. Il seed precedente, senza questo vincolo, faceva sembrare possibili
+--      dei doppioni che nella realta' il DB rifiuta.
+--   2) NON esistono DataEliminazione ne' IdUtenteEliminazione. Compaiono solo nella tabella variabile
+--      @tmpGestioneFatture interna alle SP, non in questa tabella.
+--   3) FkIdFattura e' int, mentre pfd.FattureTestata.IdFattura e' bigint: il disallineamento di tipo
+--      e' nel DB stesso, non solo nel mapping C#.
+IF OBJECT_ID('cfg.GestioneFatture', 'U') IS NULL
+CREATE TABLE [cfg].[GestioneFatture](
+	[FkIdEnte] [nvarchar](50) NOT NULL,
+	[FkTipologiaFattura] [nvarchar](50) NOT NULL,
+	[Anno] [int] NOT NULL,
+	[Mese] [int] NOT NULL,
+	[FkIdFattura] [int] NULL,
+	[DataInserimento] [datetime] NOT NULL CONSTRAINT [DF_GestioneFatture_DataInserimento] DEFAULT (getdate()),
+	[DataCancellazione] [datetime] NULL,
+	[DataRipristino] [datetime] NULL,
+	[IdUtenteInserimento] [nvarchar](50) NOT NULL,
+	[IdUtenteCancellazione] [nvarchar](50) NULL,
+	[IdUtenteRipristino] [nvarchar](50) NULL,
+	[Stato] [int] NOT NULL,           -- 0=POSTICIPATA 1=RIPRISTINATA 2=CANCELLATA 3=ELIMINATA
+	[Azione] [nvarchar](50) NOT NULL,
+	[Note] [json] NULL,               -- tipo nativo: richiede SQL Server 2025
+ CONSTRAINT [PK_GestioneFatture] PRIMARY KEY CLUSTERED
+	([FkIdEnte] ASC, [FkTipologiaFattura] ASC, [Anno] ASC, [Mese] ASC, [Stato] ASC)
 );
 GO
 
@@ -76,13 +181,29 @@ GO
 -- 1001-1002 SALDO  -> per POSTICIPA / RIPRISTINA / CANCELLA
 -- 2001      ANTICIPO -> per ELIMINA (percorso distruttivo, ora sicuro su DB usa-e-getta)
 IF NOT EXISTS (SELECT 1 FROM pfd.FattureTestata WHERE IdFattura IN (1001,1002,2001,2002,3001))
-INSERT INTO pfd.FattureTestata (IdFattura, FkIdEnte, FkTipologiaFattura, AnnoRiferimento, MeseRiferimento, FatturaInviata)
+-- IdFattura e' IDENTITY sul DB reale, ma i test si appoggiano a id deterministici (1001, 2002, ...):
+-- servono quindi IDENTITY_INSERT e la lista colonne esplicita. Le colonne NOT NULL che non
+-- interessano gli scenari di Gestione Fatture (prodotto, tipo documento, importi, divisa...) sono
+-- riempite con valori plausibili e costanti: contano solo perche' la tabella non le accetta NULL.
+SET IDENTITY_INSERT pfd.FattureTestata ON;
+INSERT INTO pfd.FattureTestata
+ (IdFattura, FkIdEnte, FkTipologiaFattura, AnnoRiferimento, MeseRiferimento, FatturaInviata,
+  FkProdotto, FkIdTipoDocumento, DataFattura, IdentificativoFattura, TotaleFattura, Divisa, MetodoPagamento,
+  Progressivo)
 VALUES
- (1001, '11111111-1111-1111-1111-111111111111', 'SECONDO SALDO', 2026, 7, 0),
- (1002, '22222222-2222-2222-2222-222222222222', 'PRIMO SALDO',   2026, 6, NULL),
- (2001, '33333333-3333-3333-3333-333333333333', 'ANTICIPO',      2026, 5, 0),
- (2002, '33333333-3333-3333-3333-333333333333', 'ACCONTO',       2026, 5, 0),  -- ELIMINA ok, POSTICIPA no
- (3001, '53b40136-65f2-424b-acfb-7fae17e35c60', 'PRIMO SALDO',   2026, 6, 0);  -- ente INPS: ELIMINA ok (eccezione)
+ (1001, '11111111-1111-1111-1111-111111111111', 'SECONDO SALDO', 2026, 7, 0,
+  'prod-pn', 'TD01', '2026-07-01', 'IT-1001', 1220.00, 'EUR', 'MP5', 1001),
+ (1002, '22222222-2222-2222-2222-222222222222', 'PRIMO SALDO',   2026, 6, NULL,
+  'prod-pn', 'TD01', '2026-06-01', 'IT-1002', 610.00,  'EUR', 'MP5', 1002),
+ (2001, '33333333-3333-3333-3333-333333333333', 'ANTICIPO',      2026, 5, 0,
+  'prod-pn', 'TD01', '2026-05-01', 'IT-2001', 305.00,  'EUR', 'MP5', 2001),
+ -- ELIMINA ok, POSTICIPA no
+ (2002, '33333333-3333-3333-3333-333333333333', 'ACCONTO',       2026, 5, 0,
+  'prod-pn', 'TD01', '2026-05-01', 'IT-2002', 122.00,  'EUR', 'MP5', 2002),
+ -- ente INPS: ELIMINA ok (eccezione)
+ (3001, '53b40136-65f2-424b-acfb-7fae17e35c60', 'PRIMO SALDO',   2026, 6, 0,
+  'prod-pn', 'TD01', '2026-06-01', 'IT-3001', 9999.00, 'EUR', 'MP5', 3001);
+SET IDENTITY_INSERT pfd.FattureTestata OFF;
 GO
 
 -- Enti/Contratti seed per i JOIN delle viste be.vwGestioneFatture* (le tabelle esistono da setup.sql)
@@ -105,10 +226,15 @@ GO
 -- Id 900x: dedicate alle letture, distinte dalle 100x/200x usate (e ripulite) dai test azione.
 -- Stato 2 (CANCELLATA) e' escluso dalle viste: ne mettiamo una per verificarlo.
 IF NOT EXISTS (SELECT 1 FROM cfg.GestioneFatture WHERE FkIdFattura IN (9001,9002,9003,9004))
+-- ATTENZIONE al periodo: con la PRIMARY KEY reale (FkIdEnte, FkTipologiaFattura, Anno, Mese, Stato)
+-- queste righe persistenti OCCUPANO una chiave. Se stessero sullo stesso periodo delle fatture usate
+-- dai test di scrittura (2026/5-7), una POSTICIPA di quel periodo violerebbe la PK e la SP
+-- risponderebbe 0 -- facendo fallire i test happy path per un motivo che non c'entra col codice.
+-- Percio' stanno tutte sul 2025: i test di lettura non filtrano per anno, quelli di scrittura sul 2026.
 INSERT INTO cfg.GestioneFatture (FkIdFattura, FkIdEnte, FkTipologiaFattura, Anno, Mese, DataInserimento, DataRipristino, IdUtenteInserimento, Stato, Azione, Note)
 VALUES
- (9001, '11111111-1111-1111-1111-111111111111', 'SECONDO SALDO', 2026, 7, GETDATE(), NULL,     'seed', 0, 'POSTICIPATA',  N'{"Data":"2026-07-01T00:00:00","Testo":"seed-posticipata"}'),
- (9002, '22222222-2222-2222-2222-222222222222', 'PRIMO SALDO',   2026, 6, GETDATE(), GETDATE(), 'seed', 1, 'RIPRISTINATA', N'{"Data":"2026-06-01T00:00:00","Testo":"seed-ripristinata"}'),
- (9003, '33333333-3333-3333-3333-333333333333', 'ANTICIPO',      2026, 5, GETDATE(), NULL,     'seed', 3, 'ELIMINATA',    N'{"Data":"2026-05-01T00:00:00","Testo":"seed-eliminata"}'),
- (9004, '11111111-1111-1111-1111-111111111111', 'SECONDO SALDO', 2026, 4, GETDATE(), NULL,     'seed', 2, 'CANCELLATA',   N'{"Data":"2026-04-01T00:00:00","Testo":"seed-cancellata-esclusa"}');
+ (9001, '11111111-1111-1111-1111-111111111111', 'SECONDO SALDO', 2025, 1, GETDATE(), NULL,      'seed', 0, 'POSTICIPATA',  N'{"Data":"2025-01-01T00:00:00","Testo":"seed-posticipata"}'),
+ (9002, '22222222-2222-2222-2222-222222222222', 'PRIMO SALDO',   2025, 2, GETDATE(), GETDATE(), 'seed', 1, 'RIPRISTINATA', N'{"Data":"2025-02-01T00:00:00","Testo":"seed-ripristinata"}'),
+ (9003, '33333333-3333-3333-3333-333333333333', 'ANTICIPO',      2025, 3, GETDATE(), NULL,      'seed', 3, 'ELIMINATA',    N'{"Data":"2025-03-01T00:00:00","Testo":"seed-eliminata"}'),
+ (9004, '11111111-1111-1111-1111-111111111111', 'SECONDO SALDO', 2025, 4, GETDATE(), NULL,      'seed', 2, 'CANCELLATA',   N'{"Data":"2025-04-01T00:00:00","Testo":"seed-cancellata-esclusa"}');
 GO

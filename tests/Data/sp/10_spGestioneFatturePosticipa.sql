@@ -1,14 +1,11 @@
-/****** Oggetto: StoredProcedure [be].[spGestioneFatturePosticipa]    Data dello script 23/07/2026 15:23:19 ******/
+/****** Oggetto: StoredProcedure [be].[spGestioneFatturePosticipa]    Data dello script 24/07/2026 14:36:23 ******/
+-- Script autorevole estratto dal DB reale. Nel DB e' un ALTER: qui CREATE OR ALTER, cosi' funziona
+-- sia su container appena creato sia riapplicato a caldo su uno gia' avviato.
 SET ANSI_NULLS ON
 GO
 
 SET QUOTED_IDENTIFIER ON
 GO
-
-
-
-
-
 
 -- =============================================
 /*
@@ -19,11 +16,11 @@ GO
   Versione:              1.0
 */
 -- =============================================
-CREATE PROCEDURE [be].[spGestioneFatturePosticipa]
+CREATE OR ALTER PROCEDURE [be].[spGestioneFatturePosticipa]
 (
     -- parameters for the stored procedure
     @IdFattura int null,
-	@Anno int, 
+	@Anno int,
 	@Mese int,
 	@IdEnte uniqueidentifier,
 	@TipologiaFattura nvarchar(50),
@@ -62,7 +59,7 @@ BEGIN
 				[Duration] [int] NULL,
 				[Status] [varchar](10) NULL,
 				[Description] varchar(500) NULL
-			 CONSTRAINT [PK_JobId_LOG] PRIMARY KEY CLUSTERED 
+			 CONSTRAINT [PK_JobId_LOG] PRIMARY KEY CLUSTERED
 			(
 				[JobId] ASC
 			)WITH (STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
@@ -115,7 +112,7 @@ BEGIN
 				Duration = DATEDIFF(SECOND,  @StartTime, @EndTime),
 				Description = 'I parametri indicati sono NULL, non sono corretti oppure insufficienti. Specificare almeno IdFattura oppure Anno/Mese/Ente/Tipologia Fattura.'
 			WHERE JobId = @JobId
-			
+
 			PRINT('Parametri non corretti o insufficienti.');
 
 			-- Interrompo procedura con errore
@@ -126,56 +123,63 @@ BEGIN
 		-- reset tabella temporanea
 		DELETE FROM @tmpGestioneFatture;
 
-		-- recupera la fattura e storicizza temporaneamente
-		INSERT INTO @tmpGestioneFatture(
-			 [FkIdFattura]
-			,[FkIdEnte]
-			,[FkTipologiaFattura]
-			,[Anno]
-			,[Mese]
-			,[Stato]
-			,[IdUtenteInserimento]
-			,[Azione]
-			,[Note]
-		)
-		SELECT
-			ft.IdFattura as FkIdFattura,
-			ft.FkIdEnte,
-			ft.FkTipologiaFattura,
-			ft.AnnoRiferimento as Anno,
-			ft.MeseRiferimento as Mese,
-			0 as Stato, -- POSTICIPATA
-			@IdUtente as IdUtenteInserimento,
-			'POSTICIPATA' as Azione,
-			@Note as Note
+
+		-- Veirfica se esiste la fattura ed è in stato = INVIATA
+		DECLARE @countFatture int = 0;
+
+		SELECT @countFatture = COUNT(ft.IdFattura)
 		FROM pfd.FattureTestata ft
-		WHERE 
+		WHERE
 			ft.FkTipologiaFattura in ('PRIMO SALDO','SECONDO SALDO','VAR. SEMESTRALE', 'SEM. SOSPESI')
 			AND
 			(@IdFattura IS NULL OR ft.IdFattura = @IdFattura)
 			AND
 			(
-				(@Anno IS NULL AND @Mese IS NULL AND @TipologiaFattura IS NULL AND @IdEnte IS NULL) 
+				(@Anno IS NULL AND @Mese IS NULL AND @TipologiaFattura IS NULL AND @IdEnte IS NULL)
 				OR (ft.AnnoRiferimento = @Anno
 					AND ft.MeseRiferimento = @Mese
 					AND ft.FkTipologiaFattura = @TipologiaFattura
 					AND ft.FkIdEnte = @IdEnte
 					)
 			)
-			AND (ft.FatturaInviata IS NULL OR ft.FatturaInviata = 0) -- Esclusione fatture già inviate
+			AND (ft.FatturaInviata = 1)
 
-		DECLARE @countFatture int = 0;
 		SELECT @countFatture = COUNT(*) FROM @tmpGestioneFatture
 
-		-- Controlla se esiste la fattura ed è in stato NON INVIATA
+		-- Controlla se esiste la fattura ed è in stato INVIATA
 		IF (
 			@countFatture = 1
 		)
-		BEGIN            
-			-- La fattura esiste ed è in stato NON INVIATA
-            
+		BEGIN
+			-- la fattura esiste ed è in stato INVIATA
+			-- stop procedura con errore
+
+			SET @EndTime = GETDATE()
+
+			declare @message nvarchar(max) = CONCAT('La Fattura: ',@stringFattura,' è già stata inviata.')
+
+			UPDATE pfw.ProceduresLog
+			SET EndTime = @EndTime,
+				Status = @ProcedureStatus_Error,
+				Duration = DATEDIFF(SECOND,  @StartTime, @EndTime),
+				Description = @message
+			WHERE JobId = @JobId
+
+			PRINT(@message);
+
+			-- Interrompo procedura con errore
+			SELECT 0 as Result;
+			RETURN;
+
+
+		END
+		ELSE
+		BEGIN
+			-- La fattura non esiste oppure è in stato = NON INVIATA
+			-- procedi con inserimento in tabella GestioneFatture
+
 			BEGIN TRANSACTION;
-			-- Crea record per Gestione Fatture
+
 			INSERT INTO cfg.GestioneFatture(
 				[FkIdFattura]
 				,[FkIdEnte]
@@ -187,21 +191,21 @@ BEGIN
 				,[Azione]
 				,[Note]
 			)
-			SELECT TOP(1)
-				[FkIdFattura]
-				,[FkIdEnte]
-				,[FkTipologiaFattura]
-				,[Anno]
-				,[Mese]
-				,[IdUtenteInserimento]
-				,[Stato]
-				,[Azione]
-				,[Note]
-			FROM @tmpGestioneFatture
+			VALUES(
+				@IdFattura
+				,@IdEnte
+				,@TipologiaFattura
+				,@Anno
+				,@Mese
+				,@IdUtente
+				,0
+				,'POSTICIPATA'
+				,@Note
+			)
 
 			COMMIT TRANSACTION
 
-			--LOG completamento stored procedure
+			-- LOG completamento stored procedure
 			SET @EndTime = GETDATE()
 
 			UPDATE pfw.ProceduresLog
@@ -216,27 +220,6 @@ BEGIN
 			RETURN;
 
 		END
-		ELSE
-		BEGIN
-			-- La fattura non esiste oppure è già stata inviata, termina procedura
-
-			SET @EndTime = GETDATE()
-
-			UPDATE pfw.ProceduresLog
-			SET EndTime = @EndTime,
-				Status = @ProcedureStatus_Error,
-				Duration = DATEDIFF(SECOND,  @StartTime, @EndTime),
-				Description = CONCAT('La Fattura: ',@stringFattura,' non esiste oppure è già stata inviata.')
-			WHERE JobId = @JobId
-			
-			PRINT(CONCAT('La Fattura: ',@stringFattura,' non esiste oppure è già stata inviata.'));
-
-			-- Interrompo procedura con errore
-			SELECT 0 as Result;
-			RETURN;
-		END		
-
-		
 
     END TRY
     BEGIN CATCH
@@ -244,7 +227,7 @@ BEGIN
 		IF @@TRANCOUNT > 0
 		BEGIN
 			ROLLBACK TRANSACTION;
-		
+
 			--LOG Errore e rollback
 			SET @EndTime = GETDATE()
 
@@ -265,5 +248,3 @@ BEGIN
 
 END
 GO
-
-
