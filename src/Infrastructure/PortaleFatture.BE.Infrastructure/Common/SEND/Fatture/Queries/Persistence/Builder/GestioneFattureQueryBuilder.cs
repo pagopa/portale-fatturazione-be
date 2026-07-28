@@ -21,6 +21,7 @@ internal class GestioneFattureQueryBuilder
       ,[Note]
       ,[TipoContratto] 
       ,[IdTipoContratto]
+      ,[IdFattura]
      FROM [be].[vwGestioneFattureGriglia]";
 
     public static string SelectGestioneFattureList()
@@ -167,6 +168,7 @@ FROM [be].[vwGestioneFattureGriglia]
       ,[TipoContratto] 
       ,[IdTipoContratto]
       ,[Note]
+      ,[IdFattura]
      FROM [be].[vwGestioneFattureDownload]";
 
     public static string SelectGestioneFattureListDownload()

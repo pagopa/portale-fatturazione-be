@@ -46,6 +46,8 @@ public class SimpleGestioneFattureDto
     [HeaderAttributev2(caption: "Azione", Order = 3)]
     public string? Azione { get; set; }
 
+    [HeaderAttributev2(caption: "Id Fattura", Order = 11)]
+    public long? IdFattura { get; set; }
 
 }
 
