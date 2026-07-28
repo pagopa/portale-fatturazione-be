@@ -210,11 +210,15 @@ public class GestioneFattureAdversarialIntegrationTests
     [Test]
     public async Task ConcurrentPosticipa_SameInvoice_ShouldNotCreateDuplicates()
     {
-        // Doppio click, retry del client, due tab aperte: due POSTICIPA contemporanee sulla stessa
-        // chiave. A impedire il doppione non e' la SP (che non ha ne' lock ne' controllo di esistenza)
-        // ma la PRIMARY KEY composta di cfg.GestioneFatture su
-        // (FkIdEnte, FkTipologiaFattura, Anno, Mese, Stato): la seconda insert viola il vincolo,
-        // finisce nel BEGIN CATCH e la SP risponde 0.
+        // Doppio click, retry del client, due tab aperte: due POSTICIPA contemporanee sulla stessa chiave.
+        // Dal 2026-07-28 la Posticipa usa MERGE (idempotente), quindi gli esiti concorrenti NON sono
+        // deterministici:
+        //   - (1,1) se il MERGE le serializza (idempotenza), oppure
+        //   - (1,0) se cadono nella race del MERGE senza HOLDLOCK (una INSERT vince, l'altra viola la PK
+        //     composta e finisce nel CATCH -> 0).
+        // L'INVARIANTE robusta, garantita dalla PK, e' UNA sola riga per periodo + almeno una riuscita.
+        // NB: la variabilita' (1,1)/(1,0) e' essa stessa un finding: il MERGE dovrebbe usare HOLDLOCK
+        // per essere thread-safe. Segnalato in coverage/segnalazione-sp-gestione-fatture.md.
         try
         {
             var t1 = Send("POSTICIPA", Ente1, 2026, 7, "SECONDO SALDO", 1001, "concorrente-1");
@@ -222,11 +226,9 @@ public class GestioneFattureAdversarialIntegrationTests
             var esiti = await Task.WhenAll(t1, t2);
 
             Assert.That(Scalar("SELECT COUNT(*) FROM cfg.GestioneFatture WHERE FkIdFattura=1001", -1),
-                Is.EqualTo(1), "Una sola riga: il doppione e' impedito dalla PK composta.");
-            Assert.That(esiti.Count(e => e == 1), Is.EqualTo(1),
-                "Esattamente una delle due chiamate deve riuscire...");
-            Assert.That(esiti.Count(e => e == 0), Is.EqualTo(1),
-                "...e l'altra deve essere respinta (Result 0), non riuscire in silenzio.");
+                Is.EqualTo(1), "Una sola riga per periodo (PK composta): mai un doppione.");
+            Assert.That(esiti.Count(e => e == 1), Is.GreaterThanOrEqualTo(1),
+                "Almeno una posticipa deve riuscire (non entrambe respinte in silenzio).");
         }
         finally { Cleanup(1001); }
     }

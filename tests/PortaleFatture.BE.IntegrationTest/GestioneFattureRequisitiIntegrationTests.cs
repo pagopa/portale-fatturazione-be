@@ -201,15 +201,18 @@ public class GestioneFattureRequisitiIntegrationTests
     private const string TipSm = "SECONDO SALDO";
 
     [Test]
-    public async Task Sm_PosticipaSuGiaPosticipata_ShouldReturn0()
+    public async Task Sm_PosticipaSuGiaPosticipata_ShouldReturn1_Idempotente()
     {
+        // Dal 2026-07-28 la Posticipa usa MERGE (UPDATE se il periodo esiste gia'): posticipare una
+        // gia' POSTICIPATA e' IDEMPOTENTE -> Result 1, e resta UNA sola riga. Prima (INSERT puro) dava
+        // Result 0 per violazione PK. Comportamento migliorato dal collega.
         try
         {
             Assert.That(await Send("POSTICIPA", null, AnnoSm, MeseSm, Ente1, TipSm), Is.EqualTo(1));
-            Assert.That(await Send("POSTICIPA", null, AnnoSm, MeseSm, Ente1, TipSm), Is.EqualTo(0),
-                "Posticipare una gia' POSTICIPATA va rifiutato (Result 0).");
+            Assert.That(await Send("POSTICIPA", null, AnnoSm, MeseSm, Ente1, TipSm), Is.EqualTo(1),
+                "Posticipa ripetuta e' idempotente (MERGE UPDATE) -> Result 1.");
             Assert.That(ContaRighe(Ente1, TipSm, AnnoSm, MeseSm), Is.EqualTo(1),
-                "e non deve lasciare righe in piu'.");
+                "una sola riga per periodo, non una in piu'.");
         }
         finally { CleanupByPeriod(Ente1, TipSm, AnnoSm, MeseSm); }
     }
@@ -242,11 +245,8 @@ public class GestioneFattureRequisitiIntegrationTests
     }
 
     [Test]
-    [Ignore("DIFETTO CONFERMATO, stesso di PosticipaRipristina_Ripetuto_ShouldKeepOneRowPerPeriod: la "
-          + "transizione RIPRISTINATA -> POSTICIPATA riesce (Result 1) ma INSERISCE una seconda riga per "
-          + "lo stesso periodo invece di riportare a Stato 0 quella esistente. Da li' in poi il periodo "
-          + "ha due righe e il ripristino successivo viola la PK. Rimedio: Fix 8 in "
-          + "segnalazione-sp-gestione-fatture.md.")]
+    // Sbloccato dal MERGE della Posticipa (28/07): la transizione RIPRISTINATA -> POSTICIPATA aggiorna
+    // la riga esistente a Stato=0 invece di inserirne una seconda -> una sola riga per periodo.
     public async Task Sm_PosticipaSuRipristinata_ShouldReturn1_AndKeepOneRow()
     {
         try
@@ -264,14 +264,9 @@ public class GestioneFattureRequisitiIntegrationTests
     // ---------- 3-bis) CICLO POSTICIPA / RIPRISTINA RIPETUTO ----------
 
     [Test]
-    [Ignore("DIFETTO CONFERMATO (riproducibile da UI con click normali). Alternando POSTICIPA e "
-          + "RIPRISTINA sullo stesso periodo: il 1o giro va (1,1), la 2a POSTICIPA torna 1 ma crea una "
-          + "SECONDA riga per lo stesso periodo (Stato 0 accanto a Stato 1), e la 2a RIPRISTINA fallisce "
-          + "con 'Violation of PRIMARY KEY constraint PK_GestioneFatture ... (ente, tipologia, anno, mese, 1)'. "
-          + "Causa: Stato fa parte della PK, RIPRISTINA fa UPDATE dello Stato in place e il suo MERGE "
-          + "matcha su (Anno, Mese, Tipologia, Ente) SENZA Stato, quindi non distingue le righe. "
-          + "Lo stato intermedio a due righe e' gia' incoerente di suo: la griglia ne mostrerebbe due per "
-          + "lo stesso periodo. Rimedio in segnalazione-sp-gestione-fatture.md (Fix 8).")]
+    // Sbloccato dal MERGE della Posticipa (28/07): il ciclo POSTICIPA/RIPRISTINA ripetuto mantiene UNA
+    // riga per periodo (la posticipa aggiorna invece di inserire), quindi il 2o ripristino non viola
+    // piu' la PK. Prima era un difetto confermato (doppia riga -> violazione PK al 2o giro).
     public async Task PosticipaRipristina_Ripetuto_ShouldKeepOneRowPerPeriod()
     {
         try
