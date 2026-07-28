@@ -25,7 +25,11 @@ public class GestioneFattureRequisitiIntegrationTests
     private IMediator _handler;
 
     [SetUp]
-    public void Setup() => _handler = ServiceProvider.GetRequiredService<IMediator>(LocalTestDb.ConnectionString);
+    public void Setup()
+    {
+        TestDb.SkipIfUnavailable(LocalTestDb.ConnectionString); // container spento -> ignora, non fallisce
+        _handler = ServiceProvider.GetRequiredService<IMediator>(LocalTestDb.ConnectionString);
+    }
 
     private string Conn => LocalTestDb.ConnectionString;
 
@@ -312,6 +316,81 @@ public class GestioneFattureRequisitiIntegrationTests
         }
         finally { Cleanup(1001); }
     }
+
+    // ---------- 3-quater) CANCELLA rifiutata: RF06 (già calcolata) e mismatch IdFattura ----------
+    //
+    // Casi diagnosticati da una segnalazione reale (CANCELLA su ANTICIPO che "dava errore"). La SP non
+    // lancia: restituisce Result 0. L'endpoint oggi lo traduce in 404 muto (finding #9). Questi test
+    // fissano i due modi legittimi/insidiosi in cui la CANCELLA torna 0, cosi' che:
+    //   - la correzione SP in corso (colonna @err_message nel result set) abbia un criterio di verifica;
+    //   - la fix endpoint (Result 0 -> 400 con messaggio) sia testabile.
+
+    [Test]
+    public async Task Cancella_QuandoFatturaGiaInEliminate_ShouldReturn0_PerRF06()
+    {
+        // RF06: una pre-eliminata e' cancellabile SOLO finche' non e' calcolata lato processo DATA.
+        // Se la fattura del periodo e' gia' in pfd.FattureTestata_Eliminate, la SP rifiuta (Result 0).
+        const int anno = 2026, mese = 2; const string tip = "ANTICIPO";
+        try
+        {
+            InsertInEliminate(Ente3, tip, anno, mese, idFattura: 62865);
+            var r = await Send("CANCELLA", idFattura: null, anno, mese, Ente3, tip);
+            Assert.That(r, Is.EqualTo(0),
+                "Fattura gia' in FattureTestata_Eliminate (calcolata lato DATA): CANCELLA rifiutata (RF06).");
+        }
+        finally { CleanupInEliminate(Ente3, tip, anno, mese); CleanupByPeriod(Ente3, tip, anno, mese); }
+    }
+
+    [Test]
+    public async Task Cancella_PerPeriodo_SuStagingConFkIdFatturaNull_ShouldReturn1()
+    {
+        // La chiave del sistema e' il PERIODO (Q&A): un ANTICIPO messo in staging per periodo ha
+        // FkIdFattura NULL. La CANCELLA per periodo (senza IdFattura) lo trova e riesce.
+        const int anno = 2026, mese = 3; const string tip = "ANTICIPO";
+        try
+        {
+            InsertStaging(Ente3, tip, anno, mese, stato: 3, azione: "ELIMINATA", fkIdFattura: null);
+            var r = await Send("CANCELLA", idFattura: null, anno, mese, Ente3, tip);
+            Assert.That(r, Is.EqualTo(1), "CANCELLA per periodo su record staging valido: Result 1.");
+        }
+        finally { CleanupByPeriod(Ente3, tip, anno, mese); }
+    }
+
+    [Test]
+    public async Task Cancella_ConIdFattura_SuStagingConFkIdFatturaNull_ShouldReturn0_Caratterizzazione()
+    {
+        // CARATTERIZZAZIONE del difetto di contratto: se il chiamante passa un IdFattura ma il record
+        // staging ha FkIdFattura NULL (creato per periodo), il filtro 'AND gf.FkIdFattura = @IdFattura'
+        // esclude il record -> Result 0. Il filtro contraddice la chiave-di-periodo dei requisiti.
+        // Se un domani la SP togliera'/tollerera' quel filtro, questo test diventera' rosso: e' il segnale.
+        const int anno = 2026, mese = 4; const string tip = "ANTICIPO";
+        try
+        {
+            InsertStaging(Ente3, tip, anno, mese, stato: 3, azione: "ELIMINATA", fkIdFattura: null);
+            var r = await Send("CANCELLA", idFattura: 62899, anno, mese, Ente3, tip);
+            Assert.That(r, Is.EqualTo(0),
+                "Comportamento attuale: IdFattura valorizzato + record per-periodo (FkIdFattura NULL) -> no match -> 0.");
+        }
+        finally { CleanupByPeriod(Ente3, tip, anno, mese); }
+    }
+
+    private void InsertStaging(string ente, string tip, int anno, int mese, int stato, string azione, int? fkIdFattura) => Exec(@"
+        INSERT INTO cfg.GestioneFatture
+            (FkIdEnte, FkTipologiaFattura, Anno, Mese, DataInserimento, IdUtenteInserimento, Stato, Azione, FkIdFattura, Note)
+        VALUES (@e, @t, @a, @m, GETDATE(), 'itest', @s, @az, @f, N'{""Data"":""2026-01-01T00:00:00"",""Testo"":""seed""}')",
+        ("@e", ente), ("@t", tip), ("@a", anno), ("@m", mese), ("@s", stato), ("@az", azione),
+        ("@f", (object?)fkIdFattura ?? DBNull.Value));
+
+    private void InsertInEliminate(string ente, string tip, int anno, int mese, int idFattura) => Exec(@"
+        INSERT INTO pfd.FattureTestata_Eliminate
+            (IdFattura, FkProdotto, FkIdTipoDocumento, FkTipologiaFattura, FkIdEnte, DataFattura,
+             IdentificativoFattura, TotaleFattura, Divisa, MetodoPagamento, AnnoRiferimento, MeseRiferimento, FlagProceduraWhiteList)
+        VALUES (@id, 'prod-pn', 'TD01', @t, @e, '2026-01-01', CONCAT('IT-', @id), 100, 'EUR', 'MP5', @a, @m, 0)",
+        ("@id", idFattura), ("@t", tip), ("@e", ente), ("@a", anno), ("@m", mese));
+
+    private void CleanupInEliminate(string ente, string tip, int anno, int mese) => Exec(
+        "DELETE FROM pfd.FattureTestata_Eliminate WHERE FkIdEnte=@e AND FkTipologiaFattura=@t AND AnnoRiferimento=@a AND MeseRiferimento=@m",
+        ("@e", ente), ("@t", tip), ("@a", anno), ("@m", mese));
 
     // ---------- helper ----------
 

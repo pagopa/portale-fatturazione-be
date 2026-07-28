@@ -16,6 +16,9 @@ public class GestioneFattureAzioneCommandIntegrationTests
     [SetUp]
     public void Setup()
     {
+        // Questi test puntano a UAT: senza VPN diventano 'ignorati' (warning), non 'falliti'.
+        TestDb.SkipIfUnavailable(ServiceProvider.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>()
+            ["PortaleFattureOptions:ConnectionString"]);
         _handler = ServiceProvider.GetRequiredService<IMediator>();
     }
 
