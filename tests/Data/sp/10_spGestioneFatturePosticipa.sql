@@ -1,6 +1,15 @@
-/****** Oggetto: StoredProcedure [be].[spGestioneFatturePosticipa]    Data dello script 24/07/2026 14:36:23 ******/
--- Script autorevole estratto dal DB reale. Nel DB e' un ALTER: qui CREATE OR ALTER, cosi' funziona
--- sia su container appena creato sia riapplicato a caldo su uno gia' avviato.
+/****** Oggetto: StoredProcedure [be].[spGestioneFatturePosticipa]    Data dello script 28/07/2026 ******/
+-- Script autorevole estratto dal DB reale (versione 28/07/2026). CREATE OR ALTER per idempotenza.
+-- NOVITA' 28/07:
+--   * ora usa MERGE su periodo (UPDATE se il record esiste, INSERT altrimenti) invece dell'INSERT
+--     puro -> il ciclo POSTICIPA/RIPRISTINA ripetuto non dovrebbe piu' duplicare la riga.
+--   * INSERT usa JSON_ARRAY(@Note) -> note come array.
+-- INVARIATO / ancora da correggere:
+--   * @IdFattura resta int;
+--   * la riga 'SELECT @countFatture = COUNT(*) FROM @tmpGestioneFatture' azzera ancora il conteggio
+--     calcolato su FattureTestata -> la guardia 'fattura gia' inviata' resta codice morto e la
+--     tipologia non viene validata (ANTICIPO/ACCONTO ancora posticipabili);
+--   * il MERGE ON non include [Stato].
 SET ANSI_NULLS ON
 GO
 
@@ -10,7 +19,7 @@ GO
 -- =============================================
 /*
   Data creazione:        29/06/2026
-  Data ultima modifica:  29/06/2026
+  Data ultima modifica:  28/07/2026
   Descrizione:           Creazione fattura posticipata
   Target utilizzo:       Pulsante Posticipa della pagina PF "GestioneFatture" / "DocumentiEmessi"
   Versione:              1.0
@@ -180,18 +189,17 @@ BEGIN
 
 			BEGIN TRANSACTION;
 
-			INSERT INTO cfg.GestioneFatture(
-				[FkIdFattura]
-				,[FkIdEnte]
-				,[FkTipologiaFattura]
-				,[Anno]
-				,[Mese]
-				,[IdUtenteInserimento]
-				,[Stato]
-				,[Azione]
-				,[Note]
-			)
-			VALUES(
+			SELECT @IdFattura = IdFattura
+			FROM pfd.FattureTestata ft
+			WHERE
+				ft.AnnoRiferimento = @Anno
+				AND ft.MeseRiferimento = @Mese
+				AND ft.FkIdEnte = @IdEnte
+				AND ft.FkTipologiaFattura = @TipologiaFattura
+
+
+			MERGE INTO cfg.GestioneFatture AS target
+			USING ( VALUES(
 				@IdFattura
 				,@IdEnte
 				,@TipologiaFattura
@@ -201,7 +209,60 @@ BEGIN
 				,0
 				,'POSTICIPATA'
 				,@Note
-			)
+				))
+			AS source (
+				FkIdFattura
+				,FkIdente
+				,FkTipologiaFattura
+				,Anno
+				,Mese
+				,IdUtente
+				,Stato
+				,Azione
+				,Note
+				)
+			 ON target.Anno = source.Anno
+				AND target.Mese = source.Mese
+				AND target.FkTipologiaFattura = source.FkTipologiaFattura
+				AND target.FkIdEnte = source.FkIdEnte
+
+			WHEN MATCHED THEN
+				UPDATE SET
+					DataInserimento = GETDATE(),
+					Stato = 0,
+					Azione = 'POSTICIPATA',
+					FkIdFattura = source.FkIdFattura,
+					DataCancellazione = NULL,
+					IdUtenteInserimento = source.IdUtente,
+					IdUtenteCancellazione = NULL,
+					[Note] = JSON_MODIFY(
+									target.Note,
+									'append $',
+									JSON_QUERY(source.[Note])
+					)
+
+			WHEN NOT MATCHED THEN
+				INSERT (
+				FkIdFattura
+				,FkIdente
+				,FkTipologiaFattura
+				,Anno
+				,Mese
+				,IdUtenteInserimento
+				,Stato
+				,Azione
+				,Note
+				) VALUES(
+				@IdFattura
+				,@IdEnte
+				,@TipologiaFattura
+				,@Anno
+				,@Mese
+				,@IdUtente
+				,0
+				,'POSTICIPATA'
+				,JSON_ARRAY(@Note)
+				);
 
 			COMMIT TRANSACTION
 

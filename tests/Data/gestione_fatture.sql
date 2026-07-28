@@ -129,25 +129,25 @@ CREATE TABLE [pfd].[FattureTestata_Eliminate](
 	[FaseFatturazione] [int] NULL
 );
 
--- cfg.GestioneFatture: tutte le colonne scritte/lette dalle SP
-IF OBJECT_ID('cfg.GestioneFatture', 'U') IS NULL
--- DDL REALE (estratto dal DB il 2026-07-24). Sostituisce la versione ipotizzata, che era sbagliata
--- su tre punti sostanziali:
+-- cfg.GestioneFatture: DDL REALE. Note importanti sullo schema:
 --   1) NON esiste una chiave surrogata Id IDENTITY. La PRIMARY KEY e' COMPOSTA su
 --      (FkIdEnte, FkTipologiaFattura, Anno, Mese, Stato): due righe con lo stesso stato per lo stesso
---      periodo sono IMPOSSIBILI. Il seed precedente, senza questo vincolo, faceva sembrare possibili
---      dei doppioni che nella realta' il DB rifiuta.
---   2) NON esistono DataEliminazione ne' IdUtenteEliminazione. Compaiono solo nella tabella variabile
---      @tmpGestioneFatture interna alle SP, non in questa tabella.
---   3) FkIdFattura e' int, mentre pfd.FattureTestata.IdFattura e' bigint: il disallineamento di tipo
---      e' nel DB stesso, non solo nel mapping C#.
+--      periodo sono IMPOSSIBILI (il DB le rifiuta).
+--   2) NON esistono DataEliminazione ne' IdUtenteEliminazione: l'eliminazione (Stato=3) traccia su
+--      IdUtenteInserimento/DataInserimento (il record nasce eliminato).
+--   3) Aggiornamento 2026-07-28: FkIdFattura ora e' BIGINT (era int) -> allineato a
+--      pfd.FattureTestata.IdFattura, chiuso il disallineamento di tipo. Il lato C# resta da allineare:
+--      GestioneFattureAzioneCommandPersistence passa @IdFattura come DbType.Int32 e il command lo
+--      tiene come int? -> un IdFattura oltre int.MaxValue non sarebbe rappresentabile.
+--   4) Aggiornamento 2026-07-28: Note ha DEFAULT ('[]') -> nasce come ARRAY JSON vuoto, cosi' il
+--      JSON_MODIFY(..., 'append $', ...) delle SP concatena correttamente in array anche alla prima nota.
 IF OBJECT_ID('cfg.GestioneFatture', 'U') IS NULL
 CREATE TABLE [cfg].[GestioneFatture](
 	[FkIdEnte] [nvarchar](50) NOT NULL,
 	[FkTipologiaFattura] [nvarchar](50) NOT NULL,
 	[Anno] [int] NOT NULL,
 	[Mese] [int] NOT NULL,
-	[FkIdFattura] [int] NULL,
+	[FkIdFattura] [bigint] NULL,
 	[DataInserimento] [datetime] NOT NULL CONSTRAINT [DF_GestioneFatture_DataInserimento] DEFAULT (getdate()),
 	[DataCancellazione] [datetime] NULL,
 	[DataRipristino] [datetime] NULL,
@@ -156,7 +156,7 @@ CREATE TABLE [cfg].[GestioneFatture](
 	[IdUtenteRipristino] [nvarchar](50) NULL,
 	[Stato] [int] NOT NULL,           -- 0=POSTICIPATA 1=RIPRISTINATA 2=CANCELLATA 3=ELIMINATA
 	[Azione] [nvarchar](50) NOT NULL,
-	[Note] [json] NULL,               -- tipo nativo: richiede SQL Server 2025
+	[Note] [json] NULL CONSTRAINT [DF_GestioneFatture_Note] DEFAULT ('[]'),  -- tipo nativo, richiede SQL Server 2025
  CONSTRAINT [PK_GestioneFatture] PRIMARY KEY CLUSTERED
 	([FkIdEnte] ASC, [FkTipologiaFattura] ASC, [Anno] ASC, [Mese] ASC, [Stato] ASC)
 );

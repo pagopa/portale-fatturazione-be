@@ -12,7 +12,8 @@ SELECT
     gf.DataRipristino     AS DataRipristino,
     gf.Note               AS Note,
     tc.Descrizione        AS TipoContratto,
-    tc.IdTipoContratto    AS IdTipoContratto
+    tc.IdTipoContratto    AS IdTipoContratto,
+    gf.FkIdFattura        AS IdFattura   -- aggiunta 2026-07-28 (bigint)
 FROM cfg.GestioneFatture gf
     INNER JOIN pfd.Enti e         ON gf.FkIdEnte = e.InternalIstitutionId
     INNER JOIN pfd.Contratti c    ON c.internalistitutionid = e.InternalIstitutionId

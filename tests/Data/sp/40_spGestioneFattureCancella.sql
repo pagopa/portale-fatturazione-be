@@ -1,30 +1,32 @@
-/****** Oggetto: StoredProcedure [be].[spGestioneFattureCancella]    Data dello script 23/07/2026 15:27:10 ******/
+/****** Oggetto: StoredProcedure [be].[spGestioneFattureCancella]    Data dello script 28/07/2026 ******/
+-- Script autorevole estratto dal DB reale (versione 28/07/2026). CREATE OR ALTER per idempotenza.
+-- NOTA (28/07): questa versione NON risolve ancora i 4 difetti segnalati in
+-- coverage/segnalazione-sp-gestione-fatture.md:
+--   1) @IdFattura resta 'int' (non bigint) -> troncamento per valori > int.MaxValue;
+--   2) filtro 'AND gf.FkIdFattura = @IdFattura' resta -> mismatch con record per-periodo (FkIdFattura NULL);
+--   3) MERGE ON senza [Stato] -> con due record (Stato 0 e 3) sullo stesso periodo viola la PK;
+--   4) @err_message resta solo in ProceduresLog/PRINT, non nel SELECT -> l'endpoint non riceve il motivo.
+-- I test di caratterizzazione restano quindi verdi (comportamento invariato).
 SET ANSI_NULLS ON
 GO
 
 SET QUOTED_IDENTIFIER ON
 GO
 
-
-
-
-
-
-
 -- =============================================
 /*
   Data creazione:        30/06/2026
-  Data ultima modifica:  30/06/2026
+  Data ultima modifica:  28/07/2026
   Descrizione:           Cancella fattura da Gestione Fatture, se l'utente admin ha sbagliato a Eliminare/Posticipare la fattura
   Target utilizzo:       Pulsante Cancella della pagina PF "GestioneFatture"
   Versione:              1.0
 */
 -- =============================================
-CREATE PROCEDURE [be].[spGestioneFattureCancella]
+CREATE OR ALTER PROCEDURE [be].[spGestioneFattureCancella]
 (
     -- parameters for the stored procedure
     @IdFattura int null,
-	@Anno int, 
+	@Anno int,
 	@Mese int,
 	@IdEnte uniqueidentifier,
 	@TipologiaFattura nvarchar(50),
@@ -63,7 +65,7 @@ BEGIN
 				[Duration] [int] NULL,
 				[Status] [varchar](10) NULL,
 				[Description] varchar(500) NULL
-			 CONSTRAINT [PK_JobId_LOG] PRIMARY KEY CLUSTERED 
+			 CONSTRAINT [PK_JobId_LOG] PRIMARY KEY CLUSTERED
 			(
 				[JobId] ASC
 			)WITH (STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
@@ -115,7 +117,7 @@ BEGIN
 				Duration = DATEDIFF(SECOND,  @StartTime, @EndTime),
 				Description = 'I parametri indicati sono NULL, non sono corretti oppure insufficienti. Specificare almeno IdFattura oppure Anno/Mese/Ente/Tipologia Fattura.'
 			WHERE JobId = @JobId
-			
+
 			PRINT('Parametri non corretti o insufficienti.');
 
 			-- Interrompo procedura con errore
@@ -124,21 +126,21 @@ BEGIN
 		END
 
 
-		-- Controllo fattura eliminata se già presente in FattureTestata
+		-- Controllo fattura eliminata se già presente in FattureTestata_Eliminate
 		IF EXISTS (
 			SELECT 1
 			FROM pfd.FattureTestata_Eliminate fte
-			WHERE 
+			WHERE
 				fte.AnnoRiferimento = @Anno
 				AND fte.MeseRiferimento = @Mese
 				AND fte.FkTipologiaFattura = @TipologiaFattura
 				AND fte.FkIdEnte = @IdEnte
 		)
 		BEGIN
-			-- I parametri passati sono NULL pertanto stoppo esecuzione
+			-- La fattura è già stata eliminata
 			SET @EndTime = GETDATE()
 
-			declare @err_message nvarchar(500) = 'La fattura è già stata eliminata pertanto non si può procedere con la cancellazione. '
+			declare @err_message nvarchar(500) = concat('Fattura:', @stringFattura, ' è già stata eliminata, non si può cancellare.')
 
 			UPDATE pfw.ProceduresLog
 			SET EndTime = @EndTime,
@@ -146,7 +148,7 @@ BEGIN
 				Duration = DATEDIFF(SECOND,  @StartTime, @EndTime),
 				Description = @err_message
 			WHERE JobId = @JobId
-			
+
 			PRINT(@err_message);
 
 			-- Interrompo procedura con errore
@@ -166,7 +168,7 @@ BEGIN
 			,[DataCancellazione]
 			,[Note]
 		)
-		SELECT 
+		SELECT
 			gf.FkIdEnte,
 			gf.FkTipologiaFattura,
 			gf.Anno,
@@ -177,19 +179,19 @@ BEGIN
 			GETDATE() as DataCancellazione,
 			@Note as Note
 		FROM cfg.GestioneFatture gf
-		WHERE 
+		WHERE
 		(
 			( -- controllo le Posticipate
-				gf.Stato = 0 
+				gf.Stato = 0
 				AND gf.FkTipologiaFattura in ('PRIMO SALDO','SECONDO SALDO','VAR. SEMESTRALE', 'SEM. SOSPESI')
 			)
-			OR 
+			OR
 			( -- controllo le Eliminate
-				gf.Stato = 3 
-				AND 
-				(gf.FkTipologiaFattura in ('ANTICIPO','ACCONTO') 
+				gf.Stato = 3
+				AND
+				(gf.FkTipologiaFattura in ('ANTICIPO','ACCONTO')
 				-- TODO: rimuovere eccezione per fattura INPS - PRIMO SALDO
-				or (gf.FkIdEnte='53b40136-65f2-424b-acfb-7fae17e35c60' and gf.FkTipologiaFattura='PRIMO SALDO') 
+				or (gf.FkIdEnte='53b40136-65f2-424b-acfb-7fae17e35c60' and gf.FkTipologiaFattura='PRIMO SALDO')
 				)
 			)
 		) -- Prendi solo le fatture posticipate=0 oppure eliminate=3
@@ -197,7 +199,7 @@ BEGIN
 		(@IdFattura IS NULL OR gf.FkIdFattura = @IdFattura)
 		AND
 		(
-			(@Anno IS NULL AND @Mese IS NULL AND @TipologiaFattura IS NULL AND @IdEnte IS NULL) 
+			(@Anno IS NULL AND @Mese IS NULL AND @TipologiaFattura IS NULL AND @IdEnte IS NULL)
 			OR (gf.Anno = @Anno
 				AND gf.Mese = @Mese
 				AND gf.FkTipologiaFattura = @TipologiaFattura
@@ -205,7 +207,7 @@ BEGIN
 				)
 		)
 
-		
+
 		DECLARE @countFatture int = 0;
 		SELECT @countFatture = COUNT(*) FROM @tmpGestioneFatture
 
@@ -213,13 +215,13 @@ BEGIN
 		IF (
 			@countFatture = 1
 		)
-		BEGIN            
+		BEGIN
 			-- La fattura esiste ed è in stato POSTICIPATA/Eliminata
-            
+
 			BEGIN TRANSACTION;
 			-- Aggiorna record Gestione Fatture
 
-			MERGE INTO cfg.GestioneFatture AS target
+			MERGE cfg.GestioneFatture AS target
 			USING (
 				SELECT
 					[FkIdEnte]
@@ -238,7 +240,7 @@ BEGIN
 					AND target.[FkTipologiaFattura] = source.[FkTipologiaFattura]
 					AND target.[FkIdEnte] = source.[FkIdEnte]
 			WHEN MATCHED THEN
-				UPDATE 
+				UPDATE
 					SET Stato = source.Stato
 						,[DataCancellazione] = source.[DataCancellazione]
 						,[IdUtenteCancellazione] = source.[IdUtenteCancellazione]
@@ -271,7 +273,7 @@ BEGIN
 			-- La fattura non esiste in GestioneFatture, termina procedura
 
 			declare @err_description nvarchar(100) = CONCAT('La Fattura: ',@stringFattura,' non esiste in gestione fatture oppure non ha uno stato corretto (Stato Eliminata = 3 oppure Stato Posticipata = 0).')
-			
+
 			SET @EndTime = GETDATE()
 
 			UPDATE pfw.ProceduresLog
@@ -280,15 +282,15 @@ BEGIN
 				Duration = DATEDIFF(SECOND,  @StartTime, @EndTime),
 				Description = @err_description
 			WHERE JobId = @JobId
-			
+
 			PRINT(@err_description);
 
 			-- Interrompo procedura con errore
 			SELECT 0 as Result;
 			RETURN;
-		END		
+		END
 
-		
+
 
     END TRY
     BEGIN CATCH
@@ -296,7 +298,7 @@ BEGIN
 		IF @@TRANCOUNT > 0
 		BEGIN
 			ROLLBACK TRANSACTION;
-		
+
 			--LOG Errore e rollback
 			SET @EndTime = GETDATE()
 
@@ -317,5 +319,3 @@ BEGIN
 
 END
 GO
-
-
