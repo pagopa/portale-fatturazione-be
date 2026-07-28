@@ -1,9 +1,12 @@
-/****** Oggetto: View [be].[vwGestioneFattureReport]    Data dello script 24/07/2026 14:37:36 ******/
+/****** Oggetto: View [be].[vwGestioneFattureReport]    Data dello script 27/07/2026 12:40:10 ******/
 -- Script autorevole estratto dal DB reale. CREATE OR ALTER per essere riapplicabile a caldo.
--- NOTA: al 2026-07-24 questa vista NON e' ancora referenziata da nessun builder C#
--- (GestioneFattureQueryBuilder cita solo Griglia/Download/FormAnniMesi/FormPosticipa/FormElimina):
--- esiste nel DB in anticipo rispetto al backend, per lo sheet "fatture posticipate" del report
--- documenti emessi. Aggiornare docs/viste-endpoint.md quando verra' agganciata a una rotta.
+-- 2026-07-27: aggiunta la colonna [Stato] = gf.Azione (stringa POSTICIPATA/ELIMINATA...), consumata
+-- da GestioneFattureQueryBuilder.SelectReport() -> GestioneFattureReportDto per il foglio Excel del
+-- report documenti emessi (agganciata in FattureExtensions.ReportFatture).
+-- ATTENZIONE ambiguita': il SELECT aliasa gf.Azione come "Stato", ma il WHERE "Stato IN (0,3)" NON usa
+-- quell'alias -> in T-SQL il WHERE risolve "Stato" sulla COLONNA FISICA cfg.GestioneFatture.Stato
+-- (int 0/3). Sono due cose diverse con lo stesso nome: la colonna esposta e' la stringa Azione, il
+-- filtro e' l'int Stato. Funziona ma e' fragile; e' del DB reale, riprodotto fedelmente.
 SET ANSI_NULLS ON
 GO
 
@@ -44,7 +47,8 @@ select
 		ELSE 'Non Caricata'
 	END as Firmata,
 	ft.TotaleFattura as [TotaleFatturaImponibile],
-	tc.Descrizione as TipoContratto
+	tc.Descrizione as TipoContratto,
+	gf.Azione as Stato
 
 from cfg.GestioneFatture gf
 	INNER JOIN pfd.enti e ON e.InternalIstitutionId = gf.FkIdEnte
