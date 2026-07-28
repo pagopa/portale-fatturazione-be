@@ -1246,16 +1246,14 @@ public static byte[] ReportFattureSospeseModuloCommessa(this List<IEnumerable<Fa
                     if (!entiFattSospesiNonZero.IsNullNotAny())
                         dataSet.Tables.Add(entiFattSospesiNonZero!.FillTableWithTotalsRel(9, $"Enti Fatt. {month} Sospesi"));
                 }
-
-
-            }else
-            {
-                if(gestioneFatture != null && gestioneFatture.Count() > 0)
-                    dataSet.Tables.Add(gestioneFatture!.FillOneTable($"Non Fatturate"));
             }
-            //else
-            //    dataSet.Tables.Add(fatture[i]!.FillTableWithTotalsRel(9, $"Note di Credito {month}"));
         }
+
+        // Sheet "Non Fatturate" (posticipate + eliminate): dipende SOLO dai dati, non dal numero di
+        // gruppi in 'fatture'. Prima era nel ramo else del loop (indice >= 2), quindi compariva solo
+        // con >= 3 gruppi e spariva silenziosamente con meno. Spostato fuori dal loop.
+        if (gestioneFatture is not null && gestioneFatture.Any())
+            dataSet.Tables.Add(gestioneFatture.FillOneTable("Non Fatturate"));
 
         using var memory = dataSet!.ToExcel();
         return memory.ToArray();
