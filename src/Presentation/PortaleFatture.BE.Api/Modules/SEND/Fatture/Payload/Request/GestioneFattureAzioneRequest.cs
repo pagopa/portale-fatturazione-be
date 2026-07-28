@@ -13,7 +13,7 @@ namespace PortaleFatture.BE.Api.Modules.SEND.Fatture.Payload.Request;
     //public string IdUtente { get; set; }
 
     public NoteCommand? Nota { get; set; }
-    public int? IdFattura { get; set; }
+    public long? IdFattura { get; set; }   // bigint a DB (cfg.GestioneFatture.FkIdFattura / FattureTestata.IdFattura)
 
 
 

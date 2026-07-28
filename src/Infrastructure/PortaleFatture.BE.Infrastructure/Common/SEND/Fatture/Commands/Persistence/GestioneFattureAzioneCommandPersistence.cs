@@ -46,7 +46,7 @@ public class GestioneFattureAzioneCommandPersistence(GestioneFattureAzioneComman
         var parameters = new DynamicParameters();
 
         parameters.Add("@IdEnte", dbType: DbType.Guid, direction: ParameterDirection.Input, value: Guid.Parse(_command.IdEnte!));
-        parameters.Add("@IdFattura", dbType: DbType.Int32, direction: ParameterDirection.Input, value: _command.IdFattura);
+        parameters.Add("@IdFattura", dbType: DbType.Int64, direction: ParameterDirection.Input, value: _command.IdFattura);
         parameters.Add("@Anno", dbType: DbType.Int32, direction: ParameterDirection.Input, value: _command.Anno);
         parameters.Add("@Mese", dbType: DbType.Int32, direction: ParameterDirection.Input, value: _command.Mese);
         parameters.Add("@TipologiaFattura", dbType: DbType.String, direction: ParameterDirection.Input, value: _command.TipologiaFattura);
