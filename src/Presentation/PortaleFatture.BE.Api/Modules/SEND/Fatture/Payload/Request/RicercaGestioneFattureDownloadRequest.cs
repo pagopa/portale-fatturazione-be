@@ -11,7 +11,7 @@ public class RicercaGestioneFattureDownloadRequest
         set { _idEnti = value!.IsNullNotAny() ? null : value; }
     }
 
-    public int? TipologiaContratto { get; set; }
+    public int? IdTipoContratto { get; set; }
     public string? TipologiaFattura { get; set; }
 
     public int? Anno { get; set; }

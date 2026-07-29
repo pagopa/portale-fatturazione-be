@@ -1725,7 +1725,7 @@ public partial class FattureModule
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     private async Task<Results<Ok<GestioneFattureListDto>, BadRequest, NotFound>> PostPagoPAGestioneFatturazioneAsync(
     HttpContext context,
-    RicercaGestioneFatture request,
+    [FromBody] RicercaGestioneFatture request,
     [FromQuery] int page,
     [FromQuery] int pageSize,
     [FromServices] IMediator handler)
@@ -1737,7 +1737,7 @@ public partial class FattureModule
             Anno = request.Anno,
             IdEnti = request.IdEnti,
             Mesi = request.Mesi,
-            TipologiaContratto = request.TipologiaContratto,
+            IdTipoContratto = request.IdTipoContratto,
             TipologiaFattura = request.TipologiaFattura,
             Azione = request.Azione,
             Note = request.Note,
@@ -1945,7 +1945,7 @@ public partial class FattureModule
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     private async Task<IResult> PostPagoPAGestioneFattureDownloadAsync(
     HttpContext context,
-    RicercaGestioneFattureDownloadRequest? request,
+    [FromBody] RicercaGestioneFattureDownloadRequest? request,
     [FromServices] IMediator handler)
     {
         var authInfo = context.GetAuthInfo();
@@ -1957,7 +1957,7 @@ public partial class FattureModule
             Anno = request.Anno,
             IdEnti = request.IdEnti,
             Mesi = request.Mesi,
-            TipologiaContratto = request.TipologiaContratto,
+            IdTipoContratto = request.IdTipoContratto,
             TipologiaFattura = request.TipologiaFattura,
         });
 

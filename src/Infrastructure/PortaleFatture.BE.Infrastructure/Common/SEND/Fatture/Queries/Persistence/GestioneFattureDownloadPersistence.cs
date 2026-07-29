@@ -25,8 +25,8 @@ public sealed class GestioneFattureDownloadPersistence(GestioneFattureDownloadQu
         if (!_command.IdEnti!.IsNullNotAny())
             conditions.Add("Ente IN @identi");
 
-        if (_command.TipologiaContratto.HasValue)
-            conditions.Add("IdTipoContratto = @tipocontratto");
+        if (_command.IdTipoContratto.HasValue)
+            conditions.Add("IdTipoContratto = @idTipoContratto");
 
         if (_command.Anno.HasValue)
             conditions.Add("Anno = @anno");
@@ -56,7 +56,7 @@ public sealed class GestioneFattureDownloadPersistence(GestioneFattureDownloadQu
         var query = new
         {
             IdEnti = _command.IdEnti,
-            Tipocontratto = _command.TipologiaContratto,
+            IdTipocontratto = _command.IdTipoContratto,
             Anno = _command.Anno,
             Mesi = _command.Mesi,
             TipologiaFattura = _command.TipologiaFattura

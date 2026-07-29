@@ -32,8 +32,8 @@ public sealed class GestioneFattureQueryPersistence(GestioneFattureQuery command
         if (!_command.IdEnti!.IsNullNotAny())
             conditions.Add("Ente IN @identi");
 
-        if (_command.TipologiaContratto.HasValue)
-            conditions.Add("IdTipoContratto = @tipocontratto");
+        if (_command.IdTipoContratto.HasValue)
+            conditions.Add("IdTipoContratto = @idTipoContratto");
 
         if (_command.Anno.HasValue)
             conditions.Add("Anno = @anno");
@@ -67,7 +67,7 @@ public sealed class GestioneFattureQueryPersistence(GestioneFattureQuery command
             Size = size,
             Page = page,
             IdEnti = _command.IdEnti,
-            Tipocontratto = _command.TipologiaContratto,
+            IdTipocontratto = _command.IdTipoContratto,
             Anno = _command.Anno,
             Mesi = _command.Mesi,
             TipologiaFattura = _command.TipologiaFattura,
