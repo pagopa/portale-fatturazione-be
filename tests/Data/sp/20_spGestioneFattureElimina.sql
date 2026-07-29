@@ -1,11 +1,14 @@
-/****** Oggetto: StoredProcedure [be].[spGestioneFattureElimina]    Data dello script 28/07/2026 ******/
--- Script autorevole estratto dal DB reale (versione 28/07/2026). CREATE OR ALTER per idempotenza.
--- NOVITA' 28/07 rispetto alla versione precedente:
---   * gestisce la PRE-ELIMINAZIONE per periodo (fattura non ancora in pfd.FattureTestata -> INSERT
---     cfg.GestioneFatture con Stato=3 e FkIdFattura NULL); prima usciva con "non esiste".
---   * usa JSON_ARRAY(@Note) all'INSERT -> le note nascono come array [{Data,Testo}] (coerente col
---     DEFAULT '[]' della tabella).
--- INVARIATO: @IdFattura resta int; il MERGE ON non include [Stato].
+/****** Oggetto: StoredProcedure [be].[spGestioneFattureElimina]    Data dello script 29/07/2026 ******/
+-- Script autorevole estratto dal DB reale (versione 29/07/2026). CREATE OR ALTER per idempotenza.
+-- NOVITA' 29/07 rispetto alla versione 28/07 (risolve Bug A e Bug B della Elimina):
+--   * Bug A (falso "gia' eliminata"): RIMOSSO il ramo 'IF (SELECT FkIdFattura FROM @tmp) IS NOT NULL'
+--     che era sempre vero e faceva tornare Result 0 dopo un EXEC pfd.EliminaFattura riuscito. Ora dopo
+--     EliminaFattura con @rc>0 si procede al MERGE e si torna Result 1.
+--   * Bug B (ELSE eliminava qualsiasi tipologia): il ramo ELSE ora valida la whitelist di tipologia
+--     (ANTICIPO/ACCONTO oppure PRIMO SALDO solo per l'ente INPS); le altre tornano Result 0
+--     ("Non e' possibile eliminare fatture di SALDO").
+-- INVARIATO: @IdFattura resta int; dopo l'eliminazione il record cfg.GestioneFatture ha FkIdFattura NULL
+--            (la chiave logica e' il periodo Ente/Tipologia/Anno/Mese).
 SET ANSI_NULLS ON
 GO
 
@@ -15,7 +18,7 @@ GO
 -- =============================================
 /*
   Data creazione:        30/06/2026
-  Data ultima modifica:  28/07/2026
+  Data ultima modifica:  29/07/2026
   Descrizione:           Elimina fattura emessa
   Target utilizzo:       Pulsante Elimina della pagina PF "GestioneFatture" / "DocumentiEmessi"
   Versione:              1.0
@@ -184,121 +187,91 @@ BEGIN
 
 			-- Se l'IdFattura è valorizzato allora procedo con l'eliminazione della fattura
 			IF (@IdFattura IS NOT NULL)
+			BEGIN
+				-- Richiama SP Elimina Fattura
+				declare @rc int
+				EXEC @rc = [pfd].[EliminaFattura] @IdFattura;
+
+				IF(@rc <= 0)
 				BEGIN
-					-- Richiama SP Elimina Fattura
-					declare @rc int
-					EXEC @rc = [pfd].[EliminaFattura] @IdFattura;
 
-					IF(@rc <= 0)
-					BEGIN
+					-- Log interruzione per Errore
+					SET @EndTime = GETDATE()
 
-						-- Log interruzione per Errore
-						SET @EndTime = GETDATE()
+					set @err_description = 'SP [pfd].[EliminaFattura] riporta errori di esecuzione.';
 
-						set @err_description = 'SP [pfd].[EliminaFattura] riporta errori di esecuzione.';
+					UPDATE pfw.ProceduresLog
+					SET EndTime = @EndTime,
+						Status = @ProcedureStatus_Error,
+						Duration = DATEDIFF(SECOND,  @StartTime, @EndTime),
+						Description = @err_description
+					WHERE JobId = @JobId
 
-						UPDATE pfw.ProceduresLog
-						SET EndTime = @EndTime,
-							Status = @ProcedureStatus_Error,
-							Duration = DATEDIFF(SECOND,  @StartTime, @EndTime),
-							Description = @err_description
-						WHERE JobId = @JobId
+					PRINT(@err_description);
 
-						PRINT(@err_description);
+					-- Interrompo procedura con errore
+					SELECT 0 as Result;
+					RETURN -1;
 
-						-- Interrompo procedura con errore
-						SELECT 0 as Result;
-						RETURN -1;
-
-					END
 				END
-
+			END
 
 
 			-- Crea/Aggiorna record in Gestione Fatture
 
-			IF (
-				(SELECT FkIdFattura
-				FROM @tmpGestioneFatture) IS NOT NULL
-			)
-			BEGIN
-				-- La fattura emessa è stata eliminata quindi non posso più annullarla
+			-- è stata PRE-Eliminata la fattura quindi posso annullarla (non c'è l'ID_Fattura)
+			BEGIN TRANSACTION;
 
-				-- Log interruzione per Errore
-				SET @EndTime = GETDATE()
+			MERGE INTO cfg.GestioneFatture as target
+			USING (
+				SELECT *
+				FROM @tmpGestioneFatture
+			) as source
+			ON
+				target.Anno = source.Anno
+				AND target.Mese = source.Mese
+				AND target.FkIdEnte = source.FkIdEnte
+				AND target.FkTipologiaFattura = source.FkTipologiaFattura
 
-				set @err_description = CONCAT('Fattura: ',@stringFattura,' già eliminata.');
+			WHEN NOT MATCHED THEN
 
-				UPDATE pfw.ProceduresLog
-				SET EndTime = @EndTime,
-					Status = @ProcedureStatus_Error,
-					Duration = DATEDIFF(SECOND,  @StartTime, @EndTime),
-					Description = @err_description
-				WHERE JobId = @JobId
+				INSERT (
+					[FkIdFattura]
+					,[FkIdEnte]
+					,[FkTipologiaFattura]
+					,[Anno]
+					,[Mese]
+					,[IdUtenteInserimento]
+					,[Stato]
+					,[Azione]
+					,[Note]
+				)VALUES (
+					NULL
+					,@IdEnte
+					,@TipologiaFattura
+					,@Anno
+					,@Mese
+					,@IdUtente
+					,3
+					,'ELIMINATA'
+					,JSON_ARRAY(@Note)
+				)
 
-				PRINT(@err_description);
+			WHEN MATCHED THEN	-- Esiste già il record in GestioneFatture quindi lo aggiorno
+				UPDATE SET
+					DataInserimento = GETDATE(),
+					Stato = 3,
+					Azione = 'ELIMINATA',
+					FkIdFattura = NULL,
+					IdUtenteCancellazione = NULL,
+					DataCancellazione = NULL,
+					[Note] = JSON_MODIFY(
+								target.Note,
+								'append $',
+								JSON_QUERY(source.[Note])
+					);
 
-				-- Interrompo procedura con errore
-				SELECT 0 as Result;
-				RETURN -1;
-			END
 
-			ELSE
-			BEGIN
-
-				-- è stata PRE-Eliminata la fattura quindi posso annullarla (non c'è l'ID_Fattura)
-				BEGIN TRANSACTION;
-
-				MERGE INTO cfg.GestioneFatture as target
-				USING (
-					SELECT *
-					FROM @tmpGestioneFatture
-				) as source
-				ON
-					target.Anno = source.Anno
-					AND target.Mese = source.Mese
-					AND target.FkIdEnte = source.FkIdEnte
-					AND target.FkTipologiaFattura = source.FkTipologiaFattura
-
-				WHEN NOT MATCHED THEN
-
-					INSERT (
-						[FkIdFattura]
-						,[FkIdEnte]
-						,[FkTipologiaFattura]
-						,[Anno]
-						,[Mese]
-						,[IdUtenteInserimento]
-						,[Stato]
-						,[Azione]
-						,[Note]
-					)VALUES (
-						NULL
-						,@IdEnte
-						,@TipologiaFattura
-						,@Anno
-						,@Mese
-						,@IdUtente
-						,3
-						,'ELIMINATA'
-						,JSON_ARRAY(@Note)
-					)
-
-				WHEN MATCHED THEN	-- Esiste già il record in GestioneFatture quindi lo aggiorno
-					UPDATE SET
-						DataInserimento = GETDATE(),
-						Stato = 3,
-						Azione = 'ELIMINATA',
-						FkIdFattura = NULL,
-						IdUtenteCancellazione = NULL,
-						DataCancellazione = NULL,
-						[Note] = JSON_MODIFY(
-									target.Note,
-									'append $',
-									JSON_QUERY(source.[Note])
-						);
-
-			END
 
 			COMMIT TRANSACTION
 
@@ -322,7 +295,37 @@ BEGIN
 		BEGIN
 			-- La fattura non esiste in pfd.FattureTestata
 
-			-- TODO controllare che la fattura non esiste nella tabella pfd.FattureTestata_Eliminate
+			-- Controlla che l'eliminazione della fattura sia coerente con la tipologia fattura
+			IF (
+				NOT (
+					@TipologiaFattura in ('ANTICIPO','ACCONTO')
+					OR
+					-- TODO: rimuovere eccezione per fattura INPS - PRIMO SALDO
+					(@TipologiaFattura = 'PRIMO SALDO' AND @IdEnte='53b40136-65f2-424b-acfb-7fae17e35c60')
+				)
+			)
+			BEGIN
+				-- Interrompo la procedura perchè la tipologia fattura non è corretta
+				-- Log interruzione per Errore
+				SET @EndTime = GETDATE()
+
+				set @err_description = CONCAT('Non è possibile eliminare fatture di SALDO. TipologiaFattura: ',@TipologiaFattura);
+
+				UPDATE pfw.ProceduresLog
+				SET EndTime = @EndTime,
+					Status = @ProcedureStatus_Error,
+					Duration = DATEDIFF(SECOND,  @StartTime, @EndTime),
+					Description = @err_description
+				WHERE JobId = @JobId
+
+				PRINT(@err_description);
+
+				-- Interrompo procedura con errore
+				SELECT 0 as Result;
+				RETURN -1;
+			END
+
+			-- Controlla che la fattura non esiste nella tabella pfd.FattureTestata_Eliminate
 			IF EXISTS (
 				SELECT 1
 				FROM pfd.FattureTestata_Eliminate
@@ -349,7 +352,7 @@ BEGIN
 
 				-- Interrompo procedura con errore
 				SELECT 0 as Result;
-				RETURN -1;
+				RETURN 0;
 			END
 
 
