@@ -26,5 +26,6 @@ public class NoteCommand
     //public Guid IdNota { get; set; } = Guid.NewGuid();
     public DateTime Data { get; set; }
     public string? Testo { get; set; }
+    public string? Azione { get; set; }
 }
 

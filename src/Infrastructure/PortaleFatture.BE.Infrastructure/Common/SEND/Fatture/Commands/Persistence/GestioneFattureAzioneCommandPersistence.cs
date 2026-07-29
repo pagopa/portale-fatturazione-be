@@ -25,6 +25,8 @@ public class GestioneFattureAzioneCommandPersistence(GestioneFattureAzioneComman
 
         string action = _command.Azione!.ToUpper();
 
+        _command.Nota!.Azione = action;
+
         switch (action)
         {
             case "POSTICIPA":
