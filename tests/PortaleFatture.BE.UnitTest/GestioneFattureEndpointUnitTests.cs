@@ -33,7 +33,7 @@ public class GestioneFattureEndpointUnitTests
             Anno = 2026,
             IdEnti = new[] { "ENTE-1", "ENTE-2" },
             Mesi = new[] { 2, 3 },
-            TipologiaContratto = 7,
+            IdTipoContratto = 7,
             TipologiaFattura = "SECONDO SALDO",
             Azione = "POSTICIPA",
             Note = "nota test"
@@ -63,7 +63,7 @@ public class GestioneFattureEndpointUnitTests
                 q.Anno == request.Anno &&
                 q.IdEnti != null && q.IdEnti.SequenceEqual(request.IdEnti!) &&
                 q.Mesi != null && q.Mesi.SequenceEqual(request.Mesi!) &&
-                q.TipologiaContratto == request.TipologiaContratto &&
+                q.IdTipoContratto == request.IdTipoContratto &&
                 q.TipologiaFattura == request.TipologiaFattura &&
                 q.Azione == request.Azione &&
                 q.Note == request.Note &&
@@ -134,6 +134,37 @@ public class GestioneFattureEndpointUnitTests
 
         Assert.That(request.IdEnti, Is.Null);
         Assert.That(request.Mesi, Is.Null);
+    }
+
+    [Test]
+    /// <summary>
+    /// Fix rename TipologiaContratto -> IdTipoContratto su RicercaGestioneFatture: il campo del filtro per
+    /// tipo contratto ora si chiama come la colonna DB. Il body inviato dal FE con "idTipoContratto" deve
+    /// legarsi alla proprieta' IdTipoContratto. Simula il binding minimal-API (JsonSerializerDefaults.Web).
+    /// </summary>
+    public void RicercaGestioneFatture_DeserializeIdTipoContratto_ShouldBind()
+    {
+        const string json = """{ "idTipoContratto": 7, "anno": 2026 }""";
+        var req = JsonSerializer.Deserialize<RicercaGestioneFatture>(json, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+
+        Assert.That(req, Is.Not.Null);
+        Assert.That(req!.IdTipoContratto, Is.EqualTo(7),
+            "Il campo 'idTipoContratto' del FE deve legarsi a RicercaGestioneFatture.IdTipoContratto.");
+    }
+
+    [Test]
+    /// <summary>
+    /// Regressione del rename: il vecchio nome di campo "tipologiaContratto" NON deve piu' popolare il
+    /// filtro (la proprieta' ora e' IdTipoContratto). Era il bug: il FE mandava idTipoContratto ma il DTO
+    /// esponeva TipologiaContratto, quindi il valore non combaciava e il filtro veniva ignorato in silenzio.
+    /// </summary>
+    public void RicercaGestioneFatture_DeserializeVecchioNome_NonPopolaIdTipoContratto()
+    {
+        const string json = """{ "tipologiaContratto": 7, "anno": 2026 }""";
+        var req = JsonSerializer.Deserialize<RicercaGestioneFatture>(json, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+
+        Assert.That(req!.IdTipoContratto, Is.Null,
+            "Il campo obsoleto 'tipologiaContratto' non deve piu' essere legato ad alcun filtro.");
     }
 
     [Test]
@@ -673,7 +704,7 @@ public class GestioneFattureEndpointUnitTests
             Anno = 2026,
             IdEnti = new[] { "ENTE-1", "ENTE-2" },
             Mesi = new[] { 2, 3 },
-            TipologiaContratto = 7,
+            IdTipoContratto = 7,
             TipologiaFattura = "SECONDO SALDO"
         };
 
@@ -720,7 +751,7 @@ public class GestioneFattureEndpointUnitTests
                 q.Anno == request.Anno &&
                 q.IdEnti != null && q.IdEnti.SequenceEqual(request.IdEnti!) &&
                 q.Mesi != null && q.Mesi.SequenceEqual(request.Mesi!) &&
-                q.TipologiaContratto == request.TipologiaContratto &&
+                q.IdTipoContratto == request.IdTipoContratto &&
                 q.TipologiaFattura == request.TipologiaFattura &&
                 q.Azione == null &&
                 q.Note == null),
@@ -822,7 +853,7 @@ public class GestioneFattureEndpointUnitTests
                 q.Anno == null &&
                 q.IdEnti == null &&
                 q.Mesi == null &&
-                q.TipologiaContratto == null &&
+                q.IdTipoContratto == null &&
                 string.IsNullOrEmpty(q.TipologiaFattura)),
             It.IsAny<CancellationToken>()),
             Times.Once);
@@ -851,7 +882,7 @@ public class GestioneFattureEndpointUnitTests
         const string json = """
         {
             "idEnti": [],
-            "tipologiaContratto": null,
+            "idTipoContratto": null,
             "tipologiaFattura": null,
             "anno": null,
             "mesi": [],
@@ -871,7 +902,7 @@ public class GestioneFattureEndpointUnitTests
             Assert.That(request!.Anno, Is.Null);
             Assert.That(request.IdEnti, Is.Null, "array vuoto -> null (setter)");
             Assert.That(request.Mesi, Is.Null, "array vuoto -> null (setter)");
-            Assert.That(request.TipologiaContratto, Is.Null);
+            Assert.That(request.IdTipoContratto, Is.Null);
             Assert.That(request.TipologiaFattura, Is.Null);
         });
     }
