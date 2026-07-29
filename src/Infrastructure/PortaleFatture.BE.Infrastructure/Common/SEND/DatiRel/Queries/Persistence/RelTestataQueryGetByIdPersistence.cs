@@ -57,6 +57,8 @@ public class RelTestataQueryGetByIdPersistence(RelTestataQueryGetById command) :
             IdContratto = idContratto
         };
 
+        // SingleAsync (non SingleOrDefault): per una chiave valida il dettaglio DEVE esistere, quindi
+        // 0 righe e' un'anomalia reale -> 500, non un 404 "risorsa assente". Il 500 attuale andrebbe individuato indagando la vista be.vwRelDettaglio
         return await ((IDatabase)this).SingleAsync<RelTestataDettaglioDto>(
             connection!,
             sqlEnte,
