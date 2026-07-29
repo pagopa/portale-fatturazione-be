@@ -1966,7 +1966,7 @@ public partial class FattureModule
         var mime = "application/vnd.ms-excel";
         var filename = $"{Guid.NewGuid()}.xlsx";
 
-        var dataSet = lista.GestioneFatture!.FillOneSheetv2();
+        var dataSet = lista.GestioneFatture!.FillOneSheetv2("Gestione Fatture");
         var content = dataSet.ToExcel();
         var result = new DisposableStreamResult(content, mime)
         {
