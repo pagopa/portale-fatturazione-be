@@ -1065,6 +1065,8 @@ public static class FattureExtensions
             }
         }
 
+        var gestioneFattureReport = await handler.Send(new GestioneFattureReportQuery(authInfo));
+
         foreach (var kvp in dictFatture)
         {
             var tipologia = kvp.Key;
@@ -1087,9 +1089,11 @@ public static class FattureExtensions
                 .Where(x => x.TipologiaFattura == tipologia)
                 .ToList();
 
+            var gestioneFattureTipologia = gestioneFattureReport?.Where(x => x.TipologiaFattura == tipologia).MapExport();
+
             reports.Add(
                 $"Lista {tipologia}",
-                fattureForReport.ReportFattureRel(sospeseForReport, relNonFirmateTipologia, null, "", tipologia));
+                fattureForReport.ReportFattureRel(sospeseForReport, relNonFirmateTipologia, gestioneFattureTipologia, "", tipologia));
         }
 
         foreach (var kvp in dictAnticipo)
