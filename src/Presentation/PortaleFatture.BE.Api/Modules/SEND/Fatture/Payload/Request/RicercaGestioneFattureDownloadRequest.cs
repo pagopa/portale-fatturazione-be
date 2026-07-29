@@ -2,8 +2,8 @@
 
 namespace PortaleFatture.BE.Api.Modules.SEND.Fatture.Payload.Request;
 
-    public class RicercaGestioneFattureDownloadRequest
-    {
+public class RicercaGestioneFattureDownloadRequest
+{
     private string[]? _idEnti;
     public string[]? IdEnti
     {
@@ -14,7 +14,7 @@ namespace PortaleFatture.BE.Api.Modules.SEND.Fatture.Payload.Request;
     public int? TipologiaContratto { get; set; }
     public string? TipologiaFattura { get; set; }
 
-    public int Anno { get; set; }
+    public int? Anno { get; set; }
 
     private int[]? _mesi;
     public int[]? Mesi

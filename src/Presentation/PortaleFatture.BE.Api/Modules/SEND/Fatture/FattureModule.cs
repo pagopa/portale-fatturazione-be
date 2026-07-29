@@ -1945,10 +1945,12 @@ public partial class FattureModule
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     private async Task<IResult> PostPagoPAGestioneFattureDownloadAsync(
     HttpContext context,
-    RicercaGestioneFattureDownloadRequest request,
+    RicercaGestioneFattureDownloadRequest? request,
     [FromServices] IMediator handler)
     {
         var authInfo = context.GetAuthInfo();
+
+        request ??= new();
 
         var lista = await handler.Send(new GestioneFattureDownloadQuery(authInfo)
         {

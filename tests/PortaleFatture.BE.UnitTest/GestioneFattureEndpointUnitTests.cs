@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Security;
 using System.Security.Claims;
 using System.Collections;
+using System.Text.Json;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
@@ -792,6 +793,91 @@ public class GestioneFattureEndpointUnitTests
 
     [Test]
     /// <summary>
+    /// "SENZA parametri": simula il body vuoto (request null). Il fix (parametro body nullable +
+    /// request ??= new()) evita l'NRE e invia una query SENZA filtri (tutti null) -> con dati risponde
+    /// con lo stream Excel. Prima, con body required (parametro non-nullable), questo scenario dava 400
+    /// in fase di binding; e comunque Anno int=0 avrebbe generato WHERE Anno=0 -> 404.
+    /// </summary>
+    public async Task PostPagoPAGestioneFattureDownloadAsync_WithNullBody_ShouldSendUnfilteredQuery_AndReturnStream()
+    {
+        var mediator = new Mock<IMediator>();
+        var module = new FattureModule();
+        var context = BuildAuthenticatedHttpContext();
+
+        mediator
+            .Setup(x => x.Send(It.IsAny<GestioneFattureDownloadQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GestioneFattureListDto
+            {
+                GestioneFatture = [new SimpleGestioneFattureDto { Ente = "ENTE-1", Anno = 2026, Mese = 2 }],
+                Count = 1
+            });
+
+        var result = await InvokePostGestioneFattureDownloadAsync(module, context, request: null, mediator.Object);
+
+        Assert.That(result.GetType().Name, Does.Contain("Stream"),
+            "Body vuoto deve produrre lo stream Excel, non un errore.");
+
+        mediator.Verify(x => x.Send(
+            It.Is<GestioneFattureDownloadQuery>(q =>
+                q.Anno == null &&
+                q.IdEnti == null &&
+                q.Mesi == null &&
+                q.TipologiaContratto == null &&
+                string.IsNullOrEmpty(q.TipologiaFattura)),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Test]
+    /// <summary>
+    /// Regressione del fix int -> int? su RicercaGestioneFattureDownloadRequest.Anno: senza valorizzarlo,
+    /// Anno deve essere null (non 0). Con int non-nullable la persistence filtrava WHERE Anno=0 -> 404.
+    /// </summary>
+    public void RicercaGestioneFattureDownloadRequest_DefaultAnno_ShouldBeNull()
+    {
+        var request = new RicercaGestioneFattureDownloadRequest();
+        Assert.That(request.Anno, Is.Null);
+    }
+
+    [Test]
+    /// <summary>
+    /// Payload REALE inviato dal FE quando non ci sono filtri selezionati: array vuoti e "anno": null.
+    /// E' la causa del 400: con Anno int non-nullable, System.Text.Json non converte null nel value type
+    /// e lancia in fase di binding. Con int? deve deserializzare senza errori, e gli array vuoti sono
+    /// normalizzati a null dai setter. Simula il binding minimal-API (JsonSerializerDefaults.Web).
+    /// </summary>
+    public void RicercaGestioneFattureDownloadRequest_DeserializeFeEmptyFilters_ShouldNotThrow_AndNormalizeToNull()
+    {
+        const string json = """
+        {
+            "idEnti": [],
+            "tipologiaContratto": null,
+            "tipologiaFattura": null,
+            "anno": null,
+            "mesi": [],
+            "azione": null
+        }
+        """;
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+
+        RicercaGestioneFattureDownloadRequest? request = null;
+        Assert.DoesNotThrow(
+            () => request = JsonSerializer.Deserialize<RicercaGestioneFattureDownloadRequest>(json, options),
+            "Il payload FE con 'anno': null e array vuoti deve deserializzare senza 400.");
+
+        Assert.That(request, Is.Not.Null);
+        Assert.Multiple(() =>
+        {
+            Assert.That(request!.Anno, Is.Null);
+            Assert.That(request.IdEnti, Is.Null, "array vuoto -> null (setter)");
+            Assert.That(request.Mesi, Is.Null, "array vuoto -> null (setter)");
+            Assert.That(request.TipologiaContratto, Is.Null);
+            Assert.That(request.TipologiaFattura, Is.Null);
+        });
+    }
+
+    [Test]
+    /// <summary>
     /// Verifica che l'endpoint POST /api/fatture/pagopa/gestione-fatture/tipologia-fattura
     /// inoltri correttamente i filtri Anno/Mesi alla query e ritorni Ok.
     /// </summary>
@@ -1392,7 +1478,7 @@ public class GestioneFattureEndpointUnitTests
     private static async Task<object> InvokePostGestioneFattureDownloadAsync(
         FattureModule module,
         HttpContext context,
-        RicercaGestioneFattureDownloadRequest request,
+        RicercaGestioneFattureDownloadRequest? request,
         IMediator mediator)
     {
         var method = typeof(FattureModule).GetMethod(
@@ -1401,7 +1487,7 @@ public class GestioneFattureEndpointUnitTests
 
         Assert.That(method, Is.Not.Null, "Metodo endpoint download non trovato via reflection.");
 
-        var task = (Task)method!.Invoke(module, new object[] { context, request, mediator })!;
+        var task = (Task)method!.Invoke(module, new object?[] { context, request, mediator })!;
         await task;
 
         var taskResult = task.GetType().GetProperty("Result")?.GetValue(task);
