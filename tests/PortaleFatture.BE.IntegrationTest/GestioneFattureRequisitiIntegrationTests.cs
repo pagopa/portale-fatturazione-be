@@ -118,7 +118,9 @@ public class GestioneFattureRequisitiIntegrationTests
         {
             var r = await Send("ELIMINA", idFattura, 2026, mese, ente, tipologia);
             Assert.That(r, Is.EqualTo(1), $"ELIMINA su {tipologia} ({ente}) doveva riuscire (Result 1).");
-            Assert.That(ReadStato(idFattura), Is.EqualTo(3), "Stato atteso = 3 (ELIMINATA).");
+            // Dopo il fix ELIMINA la riga cfg.GestioneFatture ha FkIdFattura NULL (chiave = periodo):
+            // si legge lo Stato per PERIODO, non per FkIdFattura.
+            Assert.That(ReadStatoByPeriod(ente, tipologia, 2026, mese), Is.EqualTo(3), "Stato atteso = 3 (ELIMINATA).");
         }
         finally { RestoreEliminata(seed); }
     }
@@ -160,10 +162,12 @@ public class GestioneFattureRequisitiIntegrationTests
         try
         {
             Assert.That(await Send("ELIMINA", 2002, 2026, 5, Ente3, "ACCONTO"), Is.EqualTo(1));
-            Assert.That(ReadStato(2002), Is.EqualTo(3));
-            var r = await Send("CANCELLA", 2002, 2026, 5, Ente3, "ACCONTO");
+            // Dopo ELIMINA la riga ha FkIdFattura NULL: lettura e CANCELLA per PERIODO (idFattura null),
+            // altrimenti il filtro 'gf.FkIdFattura = @IdFattura' della Cancella non troverebbe la riga.
+            Assert.That(ReadStatoByPeriod(Ente3, "ACCONTO", 2026, 5), Is.EqualTo(3));
+            var r = await Send("CANCELLA", idFattura: null, 2026, 5, Ente3, "ACCONTO");
             Assert.That(r, Is.EqualTo(1), "CANCELLA su una ELIMINATA (Stato=3) deve riuscire (RF06).");
-            Assert.That(ReadStato(2002), Is.EqualTo(2), "Stato atteso = 2 (CANCELLATA).");
+            Assert.That(ReadStatoByPeriod(Ente3, "ACCONTO", 2026, 5), Is.EqualTo(2), "Stato atteso = 2 (CANCELLATA).");
         }
         finally { RestoreEliminata(seed); }
     }
@@ -547,6 +551,8 @@ public class GestioneFattureRequisitiIntegrationTests
     {
         if (f.Id == 0) return;
         Cleanup(f.Id);
+        // Dopo ELIMINA la riga cfg ha FkIdFattura NULL: Cleanup(f.Id) non la rimuove -> pulizia per periodo.
+        CleanupByPeriod(f.Ente, f.Tip, f.Anno, f.Mese);
         Exec("DELETE FROM pfd.FattureTestata_Eliminate WHERE IdFattura=@id", ("@id", f.Id));
         // IdFattura e' IDENTITY (DDL reale): serve IDENTITY_INSERT per rimettere lo stesso id, e vanno
         // valorizzate le colonne NOT NULL della tabella vera.

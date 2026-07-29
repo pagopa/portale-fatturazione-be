@@ -203,7 +203,9 @@ public class GestioneFattureAzioneHappyPathIntegrationTests
         {
             var result = await SendAzione(seed!.Value, "ELIMINA");
             Assert.That(result, Is.EqualTo(1), "ELIMINA doveva restituire Result = 1.");
-            Assert.That(ReadStato(seed.Value.IdFattura), Is.EqualTo(3), "La riga doveva essere in Stato = 3 (ELIMINATA).");
+            // Dopo il fix ELIMINA la riga cfg ha FkIdFattura NULL (chiave = periodo): lettura per periodo.
+            Assert.That(ReadStatoByPeriod(seed.Value.IdEnte, seed.Value.TipologiaFattura, seed.Value.Anno, seed.Value.Mese),
+                Is.EqualTo(3), "La riga doveva essere in Stato = 3 (ELIMINATA).");
         }
         catch (SqlException ex) when (IsNetworkDenied(ex)) { Assert.Ignore(NetworkMsg); }
         catch (SqlException ex) when (ex.Number == 2812) { Assert.Ignore(SpMissingMsg(ex)); }
@@ -300,6 +302,8 @@ public class GestioneFattureAzioneHappyPathIntegrationTests
             // IDENTITY_INSERT, e vanno valorizzate le colonne NOT NULL della tabella vera.
             using var cmd = new SqlCommand(@"
                 DELETE FROM cfg.GestioneFatture WHERE FkIdFattura = @id;
+                -- dopo ELIMINA la riga ha FkIdFattura NULL: rimuovo anche per periodo
+                DELETE FROM cfg.GestioneFatture WHERE FkIdEnte=@ente AND FkTipologiaFattura=@tipo AND Anno=@anno AND Mese=@mese;
                 DELETE FROM pfd.FattureTestata_Eliminate WHERE IdFattura = @id;
                 IF NOT EXISTS (SELECT 1 FROM pfd.FattureTestata WHERE IdFattura = @id)
                 BEGIN
@@ -340,6 +344,21 @@ public class GestioneFattureAzioneHappyPathIntegrationTests
         using var cmd = new SqlCommand(
             "SELECT TOP(1) Stato FROM cfg.GestioneFatture WHERE FkIdFattura = @id ORDER BY Stato;", conn);
         cmd.Parameters.AddWithValue("@id", idFattura);
+        var v = cmd.ExecuteScalar();
+        return v is null or DBNull ? -1 : Convert.ToInt32(v);
+    }
+
+    /// <summary>Legge lo Stato per chiave di PERIODO: necessario dopo ELIMINA, che azzera FkIdFattura.</summary>
+    private int ReadStatoByPeriod(string ente, string tipologia, int anno, int mese)
+    {
+        using var conn = new SqlConnection(ConnectionString);
+        conn.Open();
+        using var cmd = new SqlCommand(
+            "SELECT TOP(1) Stato FROM cfg.GestioneFatture WHERE FkIdEnte=@e AND FkTipologiaFattura=@t AND Anno=@a AND Mese=@m;", conn);
+        cmd.Parameters.AddWithValue("@e", ente);
+        cmd.Parameters.AddWithValue("@t", tipologia);
+        cmd.Parameters.AddWithValue("@a", anno);
+        cmd.Parameters.AddWithValue("@m", mese);
         var v = cmd.ExecuteScalar();
         return v is null or DBNull ? -1 : Convert.ToInt32(v);
     }
