@@ -307,9 +307,66 @@ public class GestioneFattureRequisitiIntegrationTests
 
             var note = ReadNote(1001);
             TestContext.Out.WriteLine($"Note: {note}");
-            Assert.That(note, Does.Contain("nota-1"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(note, Does.Contain("nota-1"), "Il Testo della nota deve essere persistito.");
+                // NoteCommand.Azione (campo aggiunto 2026): la persistence valorizza la nota con l'azione
+                // che l'ha generata, quindi il JSON persistito deve contenerla.
+                Assert.That(note, Does.Contain("POSTICIPA"), "La nota deve riportare l'Azione che l'ha generata.");
+            });
         }
         finally { Cleanup(1001); }
+    }
+
+    // NoteCommand.Azione (nuovo campo 2026): la persistence GestioneFattureAzioneCommandPersistence
+    // valorizza Nota.Azione con l'azione (uppercase) prima di serializzare il JSON @Note. Questi test
+    // verificano che il campo venga effettivamente PERSISTITO nella nota e sia rileggibile SUBITO dopo
+    // l'inserimento (il JSON Note e' un array [{Data,Testo,Azione}]).
+
+    [Test]
+    public async Task Nota_DopoAzione_SalvaCampoAzione_RiletturaImmediata()
+    {
+        // Auto-isolamento per periodo: i test Elimina (Bug B) lasciano una riga con FkIdFattura NULL sul
+        // periodo 1001/SECONDO SALDO/2026/7 che Cleanup(1001) (per FkIdFattura) non rimuove; senza questa
+        // pulizia il MERGE-per-periodo del POSTICIPA aggiornerebbe quella riga e $[0] non sarebbe la nota attesa.
+        CleanupByPeriod(Ente1, "SECONDO SALDO", 2026, 7);
+        try
+        {
+            Assert.That(await Send("POSTICIPA", 1001, 2026, 7, Ente1, "SECONDO SALDO", "nota-azione"), Is.EqualTo(1));
+
+            // rilettura immediata del singolo elemento nota
+            var azione = ReadNotaValue(1001, "$[0].Azione");
+            var testo = ReadNotaValue(1001, "$[0].Testo");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(azione, Is.EqualTo("POSTICIPA"),
+                    "La nota inserita deve salvare Azione = azione che l'ha generata (settata dalla persistence).");
+                Assert.That(testo, Is.EqualTo("nota-azione"), "Il Testo della nota deve essere persistito.");
+            });
+        }
+        finally { Cleanup(1001); CleanupByPeriod(Ente1, "SECONDO SALDO", 2026, 7); }
+    }
+
+    [Test]
+    public async Task Nota_OgniAzione_RegistraLaPropriaAzione_NellArray()
+    {
+        // Su transizione la SP APPENDE la nota (JSON_MODIFY 'append'): ogni elemento porta la SUA azione.
+        CleanupByPeriod(Ente1, "SECONDO SALDO", 2026, 7); // parte pulito (v. Nota_DopoAzione)
+        try
+        {
+            Assert.That(await Send("POSTICIPA", 1001, 2026, 7, Ente1, "SECONDO SALDO", "n-post"), Is.EqualTo(1));
+            Assert.That(await Send("CANCELLA", 1001, 2026, 7, Ente1, "SECONDO SALDO", "n-canc"), Is.EqualTo(1));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(ReadNotaValue(1001, "$[0].Azione"), Is.EqualTo("POSTICIPA"),
+                    "La prima nota deve registrare POSTICIPA.");
+                Assert.That(ReadNotaValue(1001, "$[1].Azione"), Is.EqualTo("CANCELLA"),
+                    "La seconda nota (append) deve registrare la propria azione, CANCELLA.");
+            });
+        }
+        finally { Cleanup(1001); CleanupByPeriod(Ente1, "SECONDO SALDO", 2026, 7); }
     }
 
     // ---------- 3-quater) CANCELLA rifiutata: RF06 (già calcolata) e mismatch IdFattura ----------
@@ -420,6 +477,18 @@ public class GestioneFattureRequisitiIntegrationTests
     private string ReadNote(long idFattura) => Scalar<string>(
         "SELECT TOP(1) CAST(Note AS nvarchar(max)) FROM cfg.GestioneFatture WHERE FkIdFattura=@id", ("@id", idFattura), "");
 
+    // Legge un valore scalare dal JSON Note via path (es. "$[0].Azione"). Path come variabile: OK da SQL 2017+.
+    private string? ReadNotaValue(long idFattura, string jsonPath)
+    {
+        using var conn = new SqlConnection(Conn); conn.Open();
+        using var cmd = new SqlCommand(
+            "SELECT TOP(1) JSON_VALUE(Note, @path) FROM cfg.GestioneFatture WHERE FkIdFattura=@id", conn);
+        cmd.Parameters.AddWithValue("@path", jsonPath);
+        cmd.Parameters.AddWithValue("@id", idFattura);
+        var v = cmd.ExecuteScalar();
+        return v is null or DBNull ? null : Convert.ToString(v);
+    }
+
     private T Scalar<T>(string sql, (string, object) p, T fallback)
     {
         using var conn = new SqlConnection(Conn); conn.Open();
@@ -440,14 +509,30 @@ public class GestioneFattureRequisitiIntegrationTests
         catch (SqlException) { /* best-effort */ }
     }
 
+    /// <summary>
+    /// Rimuove la riga di cfg.GestioneFatture per la fattura specificata (chiave FkIdFattura). Best-effort: ignora errori SQL.
+    /// </summary>
+    /// <param name="idFattura">L'identificativo della fattura da rimuovere.</param>
     private void Cleanup(long idFattura) => Exec("DELETE FROM cfg.GestioneFatture WHERE FkIdFattura=@id", ("@id", idFattura));
 
+    /// <summary>
+    /// Rimuove la riga di cfg.GestioneFatture per il periodo specificato (chiave Ente/Tipologia/Anno/Mese). Best-effort: ignora errori SQL.
+    /// </summary>
+    /// <param name="ente">L'identificativo dell'ente.</param>
+    /// <param name="tip">La tipologia di fattura.</param>
+    /// <param name="anno">L'anno di riferimento.</param>
+    /// <param name="mese">Il mese di riferimento.</param>
     private void CleanupByPeriod(string ente, string tip, int anno, int mese) => Exec(
         "DELETE FROM cfg.GestioneFatture WHERE FkIdEnte=@e AND FkTipologiaFattura=@t AND Anno=@a AND Mese=@m",
         ("@e", ente), ("@t", tip), ("@a", anno), ("@m", mese));
 
     private record struct Fatt(long Id, string Ente, string Tip, int Anno, int Mese);
 
+    /// <summary>
+    /// Crea un'istantanea della fattura specificata, leggendo i campi chiave da pfd.FattureTestata. Se la fattura non esiste, restituisce default (Id=0).
+    /// </summary>
+    /// <param name="id">L'identificativo della fattura.</param>
+    /// <returns>Un'istantanea della fattura.</returns>
     private Fatt SnapshotFattura(long id)
     {
         using var conn = new SqlConnection(Conn); conn.Open();
