@@ -17,7 +17,7 @@ GO
   Versione:              1.0
 */
 -- =============================================
-CREATE PROCEDURE [be].[spGestioneFattureRipristina]
+CREATE OR ALTER PROCEDURE [be].[spGestioneFattureRipristina]
 (
     -- parameters for the stored procedure
     @IdFattura int null,
