@@ -25,7 +25,11 @@ public class GestioneFattureAzioneCommandPersistence(GestioneFattureAzioneComman
 
         string action = _command.Azione!.ToUpper();
 
-        _command.Nota!.Azione = action;
+        // La nota è opzionale a livello di command (l'endpoint la rende obbligatoria a monte): se presente,
+        // le si imposta l'azione che l'ha generata; se assente NON deve far esplodere la persistence
+        // (altrimenti l'NRE precede — e maschera — le validazioni azione/IdEnte).
+        if (_command.Nota is not null)
+            _command.Nota.Azione = action;
 
         switch (action)
         {
