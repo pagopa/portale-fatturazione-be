@@ -529,22 +529,21 @@ order by AnnoRiferimento, MeseRiferimento desc
 
 
     private static string _sqlFattureInvioMultiploSapPeriodo = @"
-SELECT 
-    [IdFattura] as IdFattura,
-    [FkProdotto], 
-    [FkTipologiaFattura] as TipologiaFattura, 
-    [FkIdEnte] as IdEnte, 
-	e.description as RagioneSociale,
-    [DataFattura] as DataFattura, 
-    [TotaleFattura] as Importo, 
-    [AnnoRiferimento],
-    [MeseRiferimento]
-  FROM [pfd].[FattureTestata] f
-  inner join pfd.Enti e
-  ON e.InternalIstitutionId = f.FkIdEnte
-WHERE (fatturainviata = 0 OR fatturainviata is NULL)
-and FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865' 
-";
+        SELECT 
+            [IdFattura]
+            ,[FkProdotto]
+            ,[TipologiaFattura]
+            ,[IdEnte]
+            ,[RagioneSociale]
+            ,[DataFattura]
+            ,[Importo]
+            ,[AnnoRiferimento]
+            ,[MeseRiferimento]
+            FROM [be].[vwDettaglioFattureDaInviare]
+            WHERE (@AnnoRiferimento IS NULL OR [AnnoRiferimento] = @AnnoRiferimento)
+            AND (@MeseRiferimento IS NULL OR  MeseRiferimento = @MeseRiferimento)
+            AND (@TipologiaFattura IS NULL OR TipologiaFattura = @TipologiaFattura)
+        ";
 
     public static string OrderByYear()
     {
@@ -1019,10 +1018,7 @@ OPTION (MAXRECURSION 12);
     {
         return _sqlFattureInvioMultiploSap;
     }
-    public static string SelectFattureInvioMultiploSapPeriodo()
-    {
-        return _sqlFattureInvioMultiploSapPeriodo;
-    }
+    public static string SelectFattureInvioMultiploSapPeriodo() => _sqlFattureInvioMultiploSapPeriodo;
 
     public static string SelectFattureDate()
     {
