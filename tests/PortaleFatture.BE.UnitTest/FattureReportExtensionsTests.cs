@@ -450,4 +450,261 @@ public class FattureReportExtensionsTests
 
         mediator.Verify(m => m.Send(It.IsAny<FattureTipologiaAnniMeseQuery>(), It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    // =================== ReportNonInviate (/api/fatture/pagopa/non-inviate/report) ===================
+    // Copre lo sheet "Non Fatturate" (posticipate + eliminate, per tipologia) — la modifica — e il
+    // pregresso del wiring (rami SALDO/ANTICIPO, filtro per tipologia, casi vuoti, tipologie multiple).
+
+    private static IEnumerable<AnniMesiTipologiaDto> Amt(params string[] tipologie) =>
+        tipologie.Select(t => new AnniMesiTipologiaDto { Anno = 2026, Mese = 2, TipologiaFattura = t }).ToList();
+
+    private static GestioneFattureReportDto GfRow(string tipologia, string stato, string ragione) => new()
+    {
+        IdEnte = "11111111-1111-1111-1111-111111111111",
+        RagioneSociale = ragione,
+        IdContratto = "c1",
+        TipoContratto = "PAC",
+        TipologiaFattura = tipologia,
+        Anno = 2026,
+        Mese = 2,
+        Stato = stato
+    };
+
+    // Mock per il ramo SALDO: tipologie da NonFatturateTipologiaQueryRicerca, dati rel non vuoti (cosi'
+    // il report della tipologia viene prodotto) e la lista gestioneFatture (posticipate/eliminate).
+    private static Mock<IMediator> MediatorForSaldo(string[] tipologie, IEnumerable<GestioneFattureReportDto>? gestione)
+    {
+        var m = new Mock<IMediator>();
+        m.Setup(x => x.Send(It.IsAny<NonFatturateTipologiaQueryRicerca>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IEnumerable<AnniMesiTipologiaDto>?)Amt(tipologie));
+        m.Setup(x => x.Send(It.IsAny<FattureRelExcelQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((List<IEnumerable<FattureRelExcelDto>>?)NonSospeseData());
+        m.Setup(x => x.Send(It.IsAny<RelNonFatturateQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IEnumerable<RelNonFatturataDto>?)new List<RelNonFatturataDto>());
+        m.Setup(x => x.Send(It.IsAny<GestioneFattureReportQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IEnumerable<GestioneFattureReportDto>?)gestione?.ToList());
+        return m;
+    }
+
+    private static List<string> SheetNames(byte[] xlsx)
+    {
+        using var wb = new XLWorkbook(new MemoryStream(xlsx));
+        return wb.Worksheets.Select(w => w.Name).ToList();
+    }
+
+    private static bool SheetContains(byte[] xlsx, string sheetName, string text)
+    {
+        using var wb = new XLWorkbook(new MemoryStream(xlsx));
+        var ws = wb.Worksheets.FirstOrDefault(w => string.Equals(w.Name, sheetName, StringComparison.OrdinalIgnoreCase));
+        return ws != null && ws.CellsUsed().Any(c => c.GetString().Contains(text, StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>Modifica: il report SALDO deve includere lo sheet "Non Fatturate" quando ci sono posticipate/eliminate.</summary>
+    [Test]
+    public async Task ReportNonInviate_SaldoConGestioneFatture_IncludeSheetNonFatturate()
+    {
+        var gestione = new[]
+        {
+            GfRow("SECONDO SALDO", "POSTICIPATA", "Ente-POST"),
+            GfRow("SECONDO SALDO", "ELIMINATA",   "Ente-ELIM"),
+        };
+        var mediator = MediatorForSaldo(new[] { "SECONDO SALDO" }, gestione);
+        var request = new NonFatturateRicercaRequest { TipologiaFattura = new[] { "SECONDO SALDO" } };
+
+        var reports = await request.ReportNonInviate(mediator.Object, AdminAuth());
+
+        Assert.That(reports.ContainsKey("Lista SECONDO SALDO"), Is.True, "Il report della tipologia deve essere prodotto.");
+        Assert.That(SheetNames(reports["Lista SECONDO SALDO"]), Does.Contain("Non Fatturate"),
+            "Il report SALDO deve includere lo sheet 'Non Fatturate'.");
+    }
+
+    /// <summary>Modifica: lo sheet "Non Fatturate" contiene SIA posticipate SIA eliminate.</summary>
+    [Test]
+    public async Task ReportNonInviate_SheetNonFatturate_ContieneSiaPosticipateCheEliminate()
+    {
+        var gestione = new[]
+        {
+            GfRow("SECONDO SALDO", "POSTICIPATA", "Ente-POST"),
+            GfRow("SECONDO SALDO", "ELIMINATA",   "Ente-ELIM"),
+        };
+        var mediator = MediatorForSaldo(new[] { "SECONDO SALDO" }, gestione);
+        var request = new NonFatturateRicercaRequest { TipologiaFattura = new[] { "SECONDO SALDO" } };
+
+        var reports = await request.ReportNonInviate(mediator.Object, AdminAuth());
+        var xlsx = reports["Lista SECONDO SALDO"];
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(SheetContains(xlsx, "Non Fatturate", "Ente-POST"), Is.True, "Deve contenere la posticipata.");
+            Assert.That(SheetContains(xlsx, "Non Fatturate", "Ente-ELIM"), Is.True, "Deve contenere l'eliminata.");
+            Assert.That(SheetContains(xlsx, "Non Fatturate", "POSTICIPATA"), Is.True, "Stato POSTICIPATA presente.");
+            Assert.That(SheetContains(xlsx, "Non Fatturate", "ELIMINATA"), Is.True, "Stato ELIMINATA presente.");
+        });
+    }
+
+    /// <summary>Pregresso: senza posticipate/eliminate il report SALDO c'e' ma NON lo sheet "Non Fatturate".</summary>
+    [Test]
+    public async Task ReportNonInviate_SenzaGestioneFatture_NessunSheetNonFatturate()
+    {
+        var mediator = MediatorForSaldo(new[] { "SECONDO SALDO" }, gestione: new List<GestioneFattureReportDto>());
+        var request = new NonFatturateRicercaRequest { TipologiaFattura = new[] { "SECONDO SALDO" } };
+
+        var reports = await request.ReportNonInviate(mediator.Object, AdminAuth());
+
+        Assert.That(reports.ContainsKey("Lista SECONDO SALDO"), Is.True, "Il report SALDO deve comunque essere prodotto.");
+        Assert.That(SheetNames(reports["Lista SECONDO SALDO"]), Does.Not.Contain("Non Fatturate"),
+            "Senza posticipate/eliminate NON deve esserci lo sheet 'Non Fatturate'.");
+    }
+
+    /// <summary>Correttezza: le righe di un'ALTRA tipologia non finiscono nel report SECONDO SALDO.</summary>
+    [Test]
+    public async Task ReportNonInviate_SheetNonFatturate_FiltraPerTipologia()
+    {
+        var gestione = new[]
+        {
+            GfRow("SECONDO SALDO", "POSTICIPATA", "Ente-SS"),
+            GfRow("PRIMO SALDO",   "ELIMINATA",   "Ente-PS-altrui"),
+        };
+        var mediator = MediatorForSaldo(new[] { "SECONDO SALDO" }, gestione);
+        var request = new NonFatturateRicercaRequest { TipologiaFattura = new[] { "SECONDO SALDO" } };
+
+        var reports = await request.ReportNonInviate(mediator.Object, AdminAuth());
+        var xlsx = reports["Lista SECONDO SALDO"];
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(SheetContains(xlsx, "Non Fatturate", "Ente-SS"), Is.True);
+            Assert.That(SheetContains(xlsx, "Non Fatturate", "Ente-PS-altrui"), Is.False,
+                "Le righe di altra tipologia non devono comparire nel report SECONDO SALDO.");
+        });
+    }
+
+    /// <summary>Pregresso: piu' tipologie SALDO -> un report per tipologia, ciascuno col proprio "Non Fatturate".</summary>
+    [Test]
+    public async Task ReportNonInviate_MultipleSaldo_UnReportPerTipologia_SenzaMescolare()
+    {
+        var gestione = new[]
+        {
+            GfRow("SECONDO SALDO", "POSTICIPATA", "Ente-SS"),
+            GfRow("PRIMO SALDO",   "ELIMINATA",   "Ente-PS"),
+        };
+        var mediator = MediatorForSaldo(new[] { "SECONDO SALDO", "PRIMO SALDO" }, gestione);
+        var request = new NonFatturateRicercaRequest { TipologiaFattura = new[] { "SECONDO SALDO", "PRIMO SALDO" } };
+
+        var reports = await request.ReportNonInviate(mediator.Object, AdminAuth());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(reports.ContainsKey("Lista SECONDO SALDO"), Is.True);
+            Assert.That(reports.ContainsKey("Lista PRIMO SALDO"), Is.True);
+            Assert.That(SheetContains(reports["Lista SECONDO SALDO"], "Non Fatturate", "Ente-SS"), Is.True);
+            Assert.That(SheetContains(reports["Lista PRIMO SALDO"], "Non Fatturate", "Ente-PS"), Is.True);
+            Assert.That(SheetContains(reports["Lista SECONDO SALDO"], "Non Fatturate", "Ente-PS"), Is.False,
+                "I 'Non Fatturate' non devono mescolarsi tra tipologie.");
+        });
+    }
+
+    /// <summary>Pregresso: ramo ANTICIPO produce il report ma senza "Non Fatturate" (non esistono sospese).</summary>
+    [Test]
+    public async Task ReportNonInviate_Anticipo_ProduceReport_SenzaNonFatturate()
+    {
+        var m = new Mock<IMediator>();
+        m.Setup(x => x.Send(It.IsAny<NonFatturateTipologiaQueryRicerca>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IEnumerable<AnniMesiTipologiaDto>?)Amt("ANTICIPO"));
+        m.Setup(x => x.Send(It.IsAny<FattureCommessaExcelQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((List<IEnumerable<FattureCommessaExcelDto>>?)CommessaData());
+        m.Setup(x => x.Send(It.IsAny<GestioneFattureReportQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IEnumerable<GestioneFattureReportDto>?)new List<GestioneFattureReportDto>());
+
+        var request = new NonFatturateRicercaRequest { TipologiaFattura = new[] { "ANTICIPO" } };
+        var reports = await request.ReportNonInviate(m.Object, AdminAuth());
+
+        Assert.That(reports.ContainsKey("Lista ANTICIPO"), Is.True);
+        Assert.That(SheetNames(reports["Lista ANTICIPO"]), Does.Not.Contain("Non Fatturate"),
+            "Per ANTICIPO non esistono sospese: nessuno sheet 'Non Fatturate' (comportamento pregresso).");
+    }
+
+    /// <summary>Pregresso: nessuna tipologia da elaborare -> nessun report.</summary>
+    [Test]
+    public async Task ReportNonInviate_NessunaTipologia_ReturnsEmpty()
+    {
+        var m = new Mock<IMediator>();
+        m.Setup(x => x.Send(It.IsAny<NonFatturateTipologiaQueryRicerca>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IEnumerable<AnniMesiTipologiaDto>?)new List<AnniMesiTipologiaDto>());
+        m.Setup(x => x.Send(It.IsAny<GestioneFattureReportQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IEnumerable<GestioneFattureReportDto>?)new List<GestioneFattureReportDto>());
+
+        var request = new NonFatturateRicercaRequest();
+        var reports = await request.ReportNonInviate(m.Object, AdminAuth());
+
+        Assert.That(reports, Is.Empty);
+    }
+
+    // =================== Regressione DIRETTA su ReportFattureRel: sheet "Non Fatturate" fuori dal loop ===
+    // Bug originale: lo sheet era nel ramo else (indice >= 2), quindi compariva SOLO con >= 3 gruppi in
+    // 'fatture' e spariva silenziosamente con 1-2 gruppi. Ora e' fuori dal loop: dipende solo da
+    // gestioneFatture, non dal numero di gruppi.
+
+    private static GestioneFattureReportExcelDto GfExcel(string ragione, string stato) => new()
+    {
+        IdEnte = "11111111-1111-1111-1111-111111111111",
+        RagioneSociale = ragione,
+        TipoContratto = "PAC",
+        TipologiaFattura = "SECONDO SALDO",
+        Anno = 2026,
+        Mese = 2,
+        Stato = stato
+    };
+
+    private static List<IEnumerable<FattureRelExcelDto>> RelGroups(int n)
+    {
+        var groups = new List<IEnumerable<FattureRelExcelDto>>();
+        for (int i = 0; i < n; i++)
+            groups.Add(new List<FattureRelExcelDto> { NonSospesaRow() });
+        return groups;
+    }
+
+    private static byte[] CallReportFattureRel(int groups, IEnumerable<GestioneFattureReportExcelDto>? gestione) =>
+        RelGroups(groups).ReportFattureRel(
+            fattureSospese: null,
+            relNonFirmate: new List<RelNonFatturataDto>(),
+            gestioneFatture: gestione,
+            month: "",
+            tipologia: "SECONDO SALDO");
+
+    /// <summary>
+    /// Con gestioneFatture non vuota lo sheet "Non Fatturate" deve esserci con 1, 2 o 3+ gruppi. Il caso
+    /// a 1 gruppo e' esattamente cio' che il bug rompeva (prima serviva >= 3 gruppi).
+    /// </summary>
+    [TestCase(1)]
+    [TestCase(2)]
+    [TestCase(3)]
+    public void ReportFattureRel_ConGestioneFatture_IncludeNonFatturate_IndipendenteDalNumeroDiGruppi(int groups)
+    {
+        var gestione = new[] { GfExcel("Ente-POST", "POSTICIPATA"), GfExcel("Ente-ELIM", "ELIMINATA") };
+
+        var xlsx = CallReportFattureRel(groups, gestione);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(SheetNames(xlsx), Does.Contain("Non Fatturate"),
+                $"Con {groups} gruppo/i lo sheet 'Non Fatturate' deve esserci (bug: prima compariva solo con >= 3 gruppi).");
+            Assert.That(SheetContains(xlsx, "Non Fatturate", "POSTICIPATA"), Is.True, "Posticipata presente.");
+            Assert.That(SheetContains(xlsx, "Non Fatturate", "ELIMINATA"), Is.True, "Eliminata presente.");
+        });
+    }
+
+    /// <summary>Con gestioneFatture null o vuota lo sheet "Non Fatturate" NON deve essere generato.</summary>
+    [Test]
+    public void ReportFattureRel_SenzaGestioneFatture_NessunNonFatturate()
+    {
+        var xlsxNull = CallReportFattureRel(2, gestione: null);
+        var xlsxEmpty = CallReportFattureRel(2, gestione: new List<GestioneFattureReportExcelDto>());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(SheetNames(xlsxNull), Does.Not.Contain("Non Fatturate"), "gestioneFatture null -> nessuno sheet.");
+            Assert.That(SheetNames(xlsxEmpty), Does.Not.Contain("Non Fatturate"), "gestioneFatture vuota -> nessuno sheet.");
+        });
+    }
 }

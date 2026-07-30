@@ -13,7 +13,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 
 public static class ServiceProvider
 {
-    private static IServiceProvider Provider()
+    private static IServiceProvider Provider(string? connectionStringOverride = null)
     {
         var services = new ServiceCollection();
         var configurationBuilder = new ConfigurationBuilder()
@@ -40,7 +40,7 @@ public static class ServiceProvider
             o.SelfCareUri = configuration.GetSection("PortaleFattureOptions:SelfCareUri").Value;
         });
  
-        var dbConnectionString = options.ConnectionString ??
+        var dbConnectionString = connectionStringOverride ?? options.ConnectionString ??
                       throw new ConfigurationException("Db connection string not configured");
 
         services.AddSingleton<IDbContextFactory>(new DbContextFactory(dbConnectionString, "pfw"));
@@ -66,6 +66,16 @@ public static class ServiceProvider
     public static T GetRequiredService<T>() where T : class
     {
         var provider = Provider();
+        return provider.GetRequiredService<T>();
+    }
+
+    /// <summary>
+    /// Come GetRequiredService, ma con una connection string alternativa (es. il DB locale seeded
+    /// avviato da tests/docker-compose.yml) invece di UAT. Usato dai test CRUD di Gestione Fatture.
+    /// </summary>
+    public static T GetRequiredService<T>(string connectionString) where T : class
+    {
+        var provider = Provider(connectionString);
         return provider.GetRequiredService<T>();
     }
 }

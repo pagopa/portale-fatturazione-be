@@ -1,4 +1,4 @@
-using MediatR;
+﻿using MediatR;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework.Legacy;
@@ -12,22 +12,36 @@ using PortaleFatture.BE.UnitTest.Common;
 
 namespace PortaleFatture.BE.UnitTest;
 
-[Ignore("Pregresso: richiede DB seedato e/o allineamento agli handler attuali (CodiceSDI/SDI). Vedi PF-705")]
 public class DatiFatturazioneGetByIdQueryTests
 {
+    /// <summary>Ente dedicato a questa fixture nel seed (tests/Data/dati_fatturazione.sql).</summary>
+    private const string IdEnteSeed = "55555555-5555-5555-5555-555555555555";
+    private const string CodiceSdiSeed = "ABCDEF1";
+
     private IDbContextFactory _factory;
     private ILogger<DatiFatturazioneCreateCommandTests> _logger;
     private IStringLocalizer<Localization> _localizer;
     private IMediator _handler;
 
     [SetUp]
-    public void Setup()
+    public async Task Setup()
     {
-        _factory = ServiceProvider.GetRequiredService<IFattureDbContextFactory>();
-        _logger = ServiceProvider.GetRequiredService<ILogger<DatiFatturazioneCreateCommandTests>>();
-        _localizer = ServiceProvider.GetRequiredService<IStringLocalizer<Localization>>();
-        _handler = ServiceProvider.GetRequiredService<IMediator>();
+        _factory = ServiceProvider.GetRequiredService<IFattureDbContextFactory>(LocalTestDb.ConnectionString);
+        _logger = ServiceProvider.GetRequiredService<ILogger<DatiFatturazioneCreateCommandTests>>(LocalTestDb.ConnectionString);
+        _localizer = ServiceProvider.GetRequiredService<IStringLocalizer<Localization>>(LocalTestDb.ConnectionString);
+        _handler = ServiceProvider.GetRequiredService<IMediator>(LocalTestDb.ConnectionString);
+        await Pulisci();
     }
+
+    [TearDown]
+    public async Task TearDown() => await Pulisci();
+
+    private static Task Pulisci() => LocalTestDb.ExecuteAsync($@"
+        DELETE c FROM pfw.DatiFatturazioneContatti c
+          INNER JOIN pfw.DatiFatturazione d ON d.IdDatiFatturazione = c.FkIdDatiFatturazione
+         WHERE d.FkIdEnte = '{IdEnteSeed}';
+        DELETE FROM pfw.DatiFatturazione WHERE FkIdEnte = '{IdEnteSeed}';
+        DELETE FROM pfw.[Log] WHERE FkIdEnte = '{IdEnteSeed}';");
 
     [Test]
     public async Task GetById_ShouldFail_WithoutContatti()
@@ -41,7 +55,7 @@ public class DatiFatturazioneGetByIdQueryTests
         string? expectedIdDocumento = "eiddocumento";
         string? expectedMap = "emap";
         DateTime  expectedDataCreazione = DateTime.UtcNow;
-        string? expectedIdEnte = TestExtensions.GetRandomIdEnte();
+        string? expectedIdEnte = IdEnteSeed;
         string? expectedPec = "pippo@pec.it";
         string? expectedProdotto = "prod-pn";
         var authInfo = TestExtensions.GetAuthInfo(expectedIdEnte, expectedProdotto);
@@ -57,7 +71,8 @@ public class DatiFatturazioneGetByIdQueryTests
             TipoCommessa = expectedTipoCommessa,
             IdDocumento = expectedIdDocumento, 
             Map = expectedMap,
-            SplitPayment = expectedSplitPayment             
+            SplitPayment = expectedSplitPayment,
+            CodiceSDI = CodiceSdiSeed
         };
 
         ClassicAssert.ThrowsAsync<ValidationException>(async () => await _handler.Send(req));
@@ -102,7 +117,7 @@ public class DatiFatturazioneGetByIdQueryTests
         string? expectedIdDocumento = "eiddocumento";
         string? expectedMap = "emap";
         DateTime  expectedDataCreazione = DateTime.UtcNow;
-        string? expectedIdEnte = TestExtensions.GetRandomIdEnte();
+        string? expectedIdEnte = IdEnteSeed;
         string? expectedPec = "pippo@pec.it";
         string? expectedProdotto = "prod-pn";
         var authInfo = TestExtensions.GetAuthInfo(expectedIdEnte, expectedProdotto);
@@ -128,7 +143,8 @@ public class DatiFatturazioneGetByIdQueryTests
             TipoCommessa = expectedTipoCommessa,
             IdDocumento = expectedIdDocumento, 
             Map = expectedMap,
-            SplitPayment = expectedSplitPayment
+            SplitPayment = expectedSplitPayment,
+            CodiceSDI = CodiceSdiSeed
         };
 
         var actualDatiFatturazione = await _handler.Send(req);

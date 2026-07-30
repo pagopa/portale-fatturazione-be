@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/mssql/server
+FROM mcr.microsoft.com/mssql/server:2025-latest
 
 ENV ACCEPT_EULA=Y
 ENV SA_PASSWORD=52JdGnzZaANhf;
