@@ -16,10 +16,11 @@ public class GestioneFattureAzioneCommandIntegrationTests
     [SetUp]
     public void Setup()
     {
-        // Questi test puntano a UAT: senza VPN diventano 'ignorati' (warning), non 'falliti'.
-        TestDb.SkipIfUnavailable(ServiceProvider.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>()
-            ["PortaleFattureOptions:ConnectionString"]);
-        _handler = ServiceProvider.GetRequiredService<IMediator>();
+        // Test di sola VALIDAZIONE (azione non valida -> ArgumentException; IdEnte non-GUID -> FormatException):
+        // lanciano PRIMA di toccare il DB, quindi non serve UAT. Puntati al container seedato locale (sempre
+        // disponibile), così sono deterministici e non 'ignorati' per VPN giù. Se il container è spento -> Ignore.
+        TestDb.SkipIfUnavailable(LocalTestDb.ConnectionString);
+        _handler = ServiceProvider.GetRequiredService<IMediator>(LocalTestDb.ConnectionString);
     }
 
     private static AuthenticationInfo AdminAuth() => new()
