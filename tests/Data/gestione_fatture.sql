@@ -162,6 +162,67 @@ CREATE TABLE [cfg].[GestioneFatture](
 );
 GO
 
+-- Tabelle richieste dalla vista be.vwDocumentiEmessiNonFatturati (righe + config + codici materiali).
+-- DDL reali forniti dal team DB; qui SENZA foreign key (convenzione del seed: no parent tables non usate).
+IF OBJECT_ID('pfd.FattureRighe', 'U') IS NULL
+CREATE TABLE [pfd].[FattureRighe](
+	[FkIdFattura] [bigint] NOT NULL,
+	[NumeroLinea] [int] NOT NULL,
+	[Testo] [nvarchar](max) NULL,
+	[CodiceMateriale] [nvarchar](100) NOT NULL,
+	[Quantita] [int] NOT NULL,
+	[PrezzoUnitario] [float] NOT NULL,
+	[Imponibile] [float] NOT NULL,
+	[RigaBollo] [bit] NOT NULL,
+	[PeriodoRiferimento] [nvarchar](7) NULL,
+	[PeriodoFatturazione] [nvarchar](7) NULL
+);
+GO
+
+IF OBJECT_ID('pfd.FattureRighe_Eliminate', 'U') IS NULL
+CREATE TABLE [pfd].[FattureRighe_Eliminate](
+	[FkIdFattura] [bigint] NOT NULL,
+	[NumeroLinea] [int] NOT NULL,
+	[Testo] [nvarchar](max) NULL,
+	[CodiceMateriale] [nvarchar](100) NOT NULL,
+	[Quantita] [int] NOT NULL,
+	[PrezzoUnitario] [float] NOT NULL,
+	[Imponibile] [float] NOT NULL,
+	[RigaBollo] [bit] NOT NULL,
+	[PeriodoRiferimento] [nvarchar](7) NULL,
+	[PeriodoFatturazione] [nvarchar](7) NULL
+);
+GO
+
+IF OBJECT_ID('pfw.FatturaTestataConfig', 'U') IS NULL
+CREATE TABLE [pfw].[FatturaTestataConfig](
+	[FKProdotto] [nvarchar](15) NOT NULL,
+	[FKIdTipoContratto] [bigint] NOT NULL,
+	[FkTipologiaFattura] [nvarchar](15) NOT NULL,
+	[FKTipoDocumentoFattura] [nvarchar](4) NOT NULL,
+	[FKTipoDocumentoNotaCredito] [nvarchar](4) NOT NULL,
+	[FKIdMetodoPagamento] [int] NOT NULL,
+	[PercentualeAnticipo] [int] NULL,
+	[Divisa] [nvarchar](3) NOT NULL,
+	[ProceduraSollecito] [nvarchar](5) NULL,
+	[DataCreazione] [datetime] NULL,
+	[DataModifica] [datetime] NULL,
+	[Causale] [nvarchar](50) NULL,
+ CONSTRAINT [PK_FatturaTestataConfig] PRIMARY KEY CLUSTERED
+	([FKProdotto] ASC, [FKIdTipoContratto] ASC, [FkTipologiaFattura] ASC)
+);
+GO
+
+IF OBJECT_ID('pfw.CodiciMateriali', 'U') IS NULL
+CREATE TABLE [pfw].[CodiciMateriali](
+	[IdCodiceMateriale] [int] IDENTITY(1,1) NOT NULL,
+	[CodiceMateriale] [nvarchar](100) NOT NULL,
+	[Descrizione] [nvarchar](max) NOT NULL,
+	[Ordinamento] [int] NULL,
+ CONSTRAINT [PK_CodiciMateriali] PRIMARY KEY CLUSTERED ([IdCodiceMateriale] ASC)
+);
+GO
+
 -- Stub di pfd.EliminaFattura: la SP ELIMINA fa EXEC @rc = pfd.EliminaFattura @IdFattura
 -- e prosegue solo se @rc > 0. Qui simuliamo il successo spostando la fattura in _Eliminate.
 IF OBJECT_ID('pfd.EliminaFattura', 'P') IS NOT NULL DROP PROCEDURE pfd.EliminaFattura;
@@ -237,4 +298,70 @@ VALUES
  (9002, '22222222-2222-2222-2222-222222222222', 'PRIMO SALDO',   2025, 2, GETDATE(), GETDATE(), 'seed', 1, 'RIPRISTINATA', N'{"Data":"2025-02-01T00:00:00","Testo":"seed-ripristinata"}'),
  (9003, '33333333-3333-3333-3333-333333333333', 'ANTICIPO',      2025, 3, GETDATE(), NULL,      'seed', 3, 'ELIMINATA',    N'{"Data":"2025-03-01T00:00:00","Testo":"seed-eliminata"}'),
  (9004, '11111111-1111-1111-1111-111111111111', 'SECONDO SALDO', 2025, 4, GETDATE(), NULL,      'seed', 2, 'CANCELLATA',   N'{"Data":"2025-04-01T00:00:00","Testo":"seed-cancellata-esclusa"}');
+GO
+
+-- =============================================================================================
+-- Dati per la vista be.vwDocumentiEmessiNonFatturati (Non Fatturate = Eliminate + Posticipate).
+-- Periodi/id DEDICATI (Anno 2024, IdFattura 4001/5001/5002) per non interferire con gli altri test.
+-- =============================================================================================
+
+IF NOT EXISTS (SELECT 1 FROM pfw.CodiciMateriali WHERE CodiceMateriale IN ('MAT-A','MAT-B'))
+INSERT INTO pfw.CodiciMateriali (CodiceMateriale, Descrizione, Ordinamento) VALUES
+ ('MAT-A', 'Materiale A', 1),
+ ('MAT-B', 'Materiale B', 2);
+
+IF NOT EXISTS (SELECT 1 FROM pfw.FatturaTestataConfig WHERE FKProdotto='prod-pn' AND FkTipologiaFattura IN ('ANTICIPO','ACCONTO','SECONDO SALDO'))
+INSERT INTO pfw.FatturaTestataConfig
+ (FKProdotto, FKIdTipoContratto, FkTipologiaFattura, FKTipoDocumentoFattura, FKTipoDocumentoNotaCredito, FKIdMetodoPagamento, PercentualeAnticipo, Divisa, Causale)
+VALUES
+ ('prod-pn', 1, 'ANTICIPO',      'TD01', 'TD04', 5, NULL, 'EUR', 'Anticipo'),
+ ('prod-pn', 1, 'ACCONTO',       'TD01', 'TD04', 5, NULL, 'EUR', 'Acconto'),
+ ('prod-pn', 2, 'SECONDO SALDO', 'TD01', 'TD04', 5, NULL, 'EUR', 'Secondo saldo');
+
+UPDATE pfd.Contratti SET onboardingtokenid = 'TOKEN-E3'
+ WHERE internalistitutionid = '33333333-3333-3333-3333-333333333333' AND onboardingtokenid IS NULL;
+GO
+
+-- Ramo ELIMINATE: 5001 CON righe (posizioni valorizzate), 5002 SENZA righe (posizioni NULL).
+IF NOT EXISTS (SELECT 1 FROM pfd.FattureTestata_Eliminate WHERE IdFattura IN (5001,5002))
+INSERT INTO pfd.FattureTestata_Eliminate
+ (IdFattura, FkProdotto, FkIdTipoDocumento, FkTipologiaFattura, FkIdEnte, DataFattura, IdentificativoFattura,
+  TotaleFattura, Divisa, MetodoPagamento, AnnoRiferimento, MeseRiferimento, CodiceContratto, SplitPayment, Progressivo, FatturaInviata)
+VALUES
+ (5001, 'prod-pn', 'TD01', 'ANTICIPO', '33333333-3333-3333-3333-333333333333', '2024-02-01', 'IT-5001',
+  500.00, 'EUR', 'MP5', 2024, 2, 'TOKEN-E3', 0, 5001, 0),
+ (5002, 'prod-pn', 'TD01', 'ACCONTO',  '33333333-3333-3333-3333-333333333333', '2024-02-01', 'IT-5002',
+  200.00, 'EUR', 'MP5', 2024, 2, 'TOKEN-E3', 0, 5002, 0);
+
+IF NOT EXISTS (SELECT 1 FROM pfd.FattureRighe_Eliminate WHERE FkIdFattura = 5001)
+INSERT INTO pfd.FattureRighe_Eliminate
+ (FkIdFattura, NumeroLinea, Testo, CodiceMateriale, Quantita, PrezzoUnitario, Imponibile, RigaBollo, PeriodoRiferimento)
+VALUES
+ (5001, 1, 'riga elim 1', 'MAT-A', 1, 300.00, 300.00, 0, '02/2024'),
+ (5001, 2, 'riga elim 2', 'MAT-B', 1, 200.00, 200.00, 0, '02/2024');
+-- 5002: NESSUNA riga -> [fattura.posizioni] sara' NULL nella vista.
+GO
+
+-- Ramo POSTICIPATE: fattura 4001 (ente1/SECONDO SALDO/2024/1) + riga Stato=0 + righe.
+SET IDENTITY_INSERT pfd.FattureTestata ON;
+IF NOT EXISTS (SELECT 1 FROM pfd.FattureTestata WHERE IdFattura = 4001)
+INSERT INTO pfd.FattureTestata
+ (IdFattura, FkIdEnte, FkTipologiaFattura, AnnoRiferimento, MeseRiferimento, FatturaInviata,
+  FkProdotto, FkIdTipoDocumento, DataFattura, IdentificativoFattura, TotaleFattura, Divisa, MetodoPagamento, Progressivo, CodiceContratto)
+VALUES
+ (4001, '11111111-1111-1111-1111-111111111111', 'SECONDO SALDO', 2024, 1, 0,
+  'prod-pn', 'TD01', '2024-01-01', 'IT-4001', 800.00, 'EUR', 'MP5', 4001, 'TOKEN-E1');
+SET IDENTITY_INSERT pfd.FattureTestata OFF;
+
+IF NOT EXISTS (SELECT 1 FROM cfg.GestioneFatture WHERE FkIdFattura = 4001)
+INSERT INTO cfg.GestioneFatture (FkIdFattura, FkIdEnte, FkTipologiaFattura, Anno, Mese, DataInserimento, IdUtenteInserimento, Stato, Azione, Note)
+VALUES
+ (4001, '11111111-1111-1111-1111-111111111111', 'SECONDO SALDO', 2024, 1, GETDATE(), 'seed', 0, 'POSTICIPATA', N'[]');
+
+IF NOT EXISTS (SELECT 1 FROM pfd.FattureRighe WHERE FkIdFattura = 4001)
+INSERT INTO pfd.FattureRighe
+ (FkIdFattura, NumeroLinea, Testo, CodiceMateriale, Quantita, PrezzoUnitario, Imponibile, RigaBollo, PeriodoRiferimento)
+VALUES
+ (4001, 1, 'riga post 1', 'MAT-A', 1, 500.00, 500.00, 0, '01/2024'),
+ (4001, 2, 'riga post 2', 'MAT-B', 1, 300.00, 300.00, 0, '01/2024');
 GO
