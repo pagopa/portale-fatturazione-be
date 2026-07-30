@@ -26,10 +26,14 @@ public class FattureQueryRicercaPersistence(FattureQueryRicerca command) : Dappe
         var sqlFatture = _command.Cancellata ? _sqlSelectAllCancellate : _sqlSelectAll;
         var sqlEnti = _sqlSelectEnti.Add(schema); 
 
+        // La query "Cancellate" (Non Fatturate) wrappa la vista be.vwDocumentiEmessiNonFatturati che
+        // espone la tipologia come [fattura.tipologiaFattura]; la view normale usa FT.FkTipologiaFattura.
+        // Il placeholder va risolto sulla colonna giusta per la query scelta.
+        var tipologiaCol = _command.Cancellata ? "[fattura.tipologiaFattura]" : "FT.FkTipologiaFattura";
         if (!tipoFattura.IsNullNotAny())
-            sqlFatture = sqlFatture.Replace("[condition_tipologiafattura]", "and FT.FkTipologiaFattura IN @TipologiaFattura"); 
+            sqlFatture = sqlFatture.Replace("[condition_tipologiafattura]", $"and {tipologiaCol} IN @TipologiaFattura");
         else
-            sqlFatture = sqlFatture.Replace("[condition_tipologiafattura]", string.Empty); 
+            sqlFatture = sqlFatture.Replace("[condition_tipologiafattura]", string.Empty);
 
         var sql = string.Join(";", sqlEnti, sqlFatture); 
         

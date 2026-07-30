@@ -198,73 +198,19 @@ FROM
 ";
 
     private static string _sqlViewCancellate = @"
-SELECT
-     listaFatture =    ( 
-    SELECT 
-        CAST(FT.TotaleFattura AS DECIMAL(10, 2)) AS 'fattura.totale', 
-        FT.Progressivo AS 'fattura.numero', 
-		FT.IdFattura AS 'fattura.idfattura',
-        CONVERT(VARCHAR, FT.DataFattura, 23) AS 'fattura.dataFattura',
-        FT.FkProdotto AS 'fattura.prodotto',
-        CAST(FT.MeseRiferimento as varchar(2)) + '/' + CAST(FT.AnnoRiferimento as VARCHAR(4)) AS 'fattura.identificativo',
-        FT.FkTipologiaFattura AS 'fattura.tipologiaFattura', -- Changed this line
-        FT.FkIdEnte AS 'fattura.istitutioID',
-        FT.CodiceContratto AS 'fattura.onboardingTokenID',
-        FT.FkIdTipoDocumento AS 'fattura.tipoDocumento',
-        FT.Divisa AS 'fattura.divisa',
-        FT.MetodoPagamento AS 'fattura.metodoPagamento', 
-		CONCAT(REPLACE( ftc.Causale,'[percentuale]', ISNULL(ftc.PercentualeAnticipo,'')),' ' ,CAST(FT.MeseRiferimento as varchar(2)), '/' , CAST(FT.AnnoRiferimento as VARCHAR(4))) as 'fattura.causale',
-        FT.SplitPayment AS 'fattura.split', 
-		3 AS 'fattura.inviata',
-        ISNULL(FT.Sollecito, '') AS 'fattura.sollecito',
-        (
-            SELECT
-                ISNULL(tC.[Descrizione],'') AS 'tipologia',  
-                '' AS 'riferimentoNumeroLinea',
-                ISNULL(FTn.IdDocumento,'') AS 'idDocumento',
-                CONVERT(VARCHAR,FTn.DataDocumento, 23) AS 'data',
-                ISNULL(FTn.NumItem,'') AS 'numItem',
-                ISNULL(FTn.CodCommessa,'') AS 'codiceCommessaConvenzione',
-                ISNULL(FTn.Cup,'') AS 'CUP',
-                ISNULL(FTn.Cig,'') AS 'CIG'
-            FROM [pfd].[FattureTestata_Eliminate] FTn
-            LEFT JOIN [pfw].[DatiFatturazione] dF ON ISNULL(FTn.FkIdDatiFatturazione,'') = ISNULL(dF.IdDatiFatturazione,'')
-            LEFT JOIN [pfw].[TipoCommessa] tC ON dF.[FkTipoCommessa] = tC.[TipoCommessa]
-               where FTn.IdFattura = FT.IdFattura
-            FOR JSON PATH
-        ) AS 'fattura.datiGeneraliDocumento',
-        (
-            SELECT
-                FR.NumeroLinea AS 'numerolinea',
-                ISNULL(FR.Testo,'') AS 'testo',
-                FR.CodiceMateriale AS 'codiceMateriale',
-                FR.Quantita AS 'quantita',
-                CAST(FR.PrezzoUnitario AS DECIMAL(10, 2))  AS 'prezzoUnitario',
-                CAST(FR.Imponibile AS DECIMAL(10, 2))  AS 'imponibile',
-				FR.PeriodoRiferimento as 'periodoRiferimento'
-            FROM [pfd].[FattureRighe_Eliminate] FR
-			LEFT JOIN [pfw].[CodiciMateriali] CM
-			ON FR.CodiceMateriale = CM.CodiceMateriale
-            WHERE FT.IdFattura = FR.FkIdFattura
-			ORDER BY CM.Ordinamento
-            FOR JSON PATH
-        ) AS 'fattura.posizioni'
-    FROM
-        [pfd].[FattureTestata_Eliminate] FT 
-	INNER JOIN pfd.Contratti c ON c.onboardingtokenid = FT.CodiceContratto
-        AND c.internalistitutionid  = ft.FkIdEnte
-	INNER JOIN pfw.FatturaTestataConfig ftc ON ftc.FkTipologiaFattura = FT.FkTipologiaFattura AND ftc.FKIdTipoContratto = c.FkIdTipoContratto
-    where FT.AnnoRiferimento = @AnnoRiferimento
-	and FT.MeseRiferimento = @MeseRiferimento
-	[condition_tipologiafattura]
-	and FT.FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865' --esclusione pagopa
-    AND (@FkIdTipoContratto IS NULL OR c.FkIdTipoContratto = @FkIdTipoContratto)  
-    AND (
-        @FatturaInviata IS NULL  -- Se NULL, mostra tutte
-        OR (@FatturaInviata = 2 AND FT.FatturaInviata IS NULL)  -- In elaborazione
-        OR (FT.FatturaInviata = @FatturaInviata)  -- 0 o 1
-    )
-	ORDER BY FT.FkTipologiaFattura, FT.Progressivo
+SELECT listaFatture = (
+    SELECT
+        [fattura.totale], [fattura.numero], [fattura.idfattura], [fattura.dataFattura], [fattura.prodotto],
+        [fattura.identificativo], [fattura.tipologiaFattura], [fattura.istitutioID], [fattura.onboardingTokenID],
+        [fattura.tipoDocumento], [fattura.divisa], [fattura.metodoPagamento], [fattura.causale], [fattura.split],
+        [fattura.inviata], [fattura.sollecito],
+        JSON_QUERY([fattura.datiGeneraliDocumento]) AS [fattura.datiGeneraliDocumento],
+        JSON_QUERY([fattura.posizioni]) AS [fattura.posizioni]
+    FROM [be].[vwDocumentiEmessiNonFatturati]
+    WHERE [fattura.anno] = @AnnoRiferimento
+      AND [fattura.mese] = @MeseRiferimento
+      AND (@FkIdTipoContratto IS NULL OR [fattura.tipocontratto] = @FkIdTipoContratto)
+      [condition_tipologiafattura]
     FOR JSON PATH, INCLUDE_NULL_VALUES)";
 
     private static string _sqlView = @"SELECT
