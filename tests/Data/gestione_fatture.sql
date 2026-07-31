@@ -1,10 +1,10 @@
 -- =============================================================================
 -- Seed DB locale per i test CRUD/azione di Gestione Fatture (PF-672).
 -- Ricrea il SOTTOINSIEME di schema che le stored procedure be.spGestioneFattura*
--- toccano: schema cfg/be, pfd.FattureTestata(+_Eliminate), cfg.GestioneFatture,
--- uno stub di pfd.EliminaFattura, e alcune fatture seed deterministiche.
+-- toccano: schema cfg/be, pfd.FattureTestata(+_Eliminate), cfg.GestioneFatture, le tabelle
+-- *_Eliminate tmp e CreditoSospesoStorico toccate da pfd.EliminaFattura, e fatture seed deterministiche.
 --
--- Le 4 SP reali (be.spGestioneFattura{Posticipa,Elimina,Ripristina,Cancella}) NON
+-- Le SP reali (be.spGestioneFattura{Posticipa,Elimina,Ripristina,Cancella} e pfd.EliminaFattura) NON
 -- sono qui: vanno messe nei file tests/Data/sp/*.sql (script autorevoli), eseguiti
 -- dall'entrypoint DOPO questo file. Richiede SQL Server 2025 per il tipo nativo json.
 -- =============================================================================
@@ -223,19 +223,78 @@ CREATE TABLE [pfw].[CodiciMateriali](
 );
 GO
 
--- Stub di pfd.EliminaFattura: la SP ELIMINA fa EXEC @rc = pfd.EliminaFattura @IdFattura
--- e prosegue solo se @rc > 0. Qui simuliamo il successo spostando la fattura in _Eliminate.
-IF OBJECT_ID('pfd.EliminaFattura', 'P') IS NOT NULL DROP PROCEDURE pfd.EliminaFattura;
+-- pfd.EliminaFattura: NON piu' uno stub. La SP REALE (owner: team DB, versione 30/06/2026) vive ora in
+-- tests/Data/sp/05_pfdEliminaFattura.sql (script autorevole, CREATE OR ALTER), applicata dall'entrypoint
+-- DOPO questo file. La SP ELIMINA fa EXEC @rc = pfd.EliminaFattura @IdFattura e prosegue solo se @rc > 0.
+-- La SP reale sposta davvero la fattura in *_Eliminate e cancella da FattureTestata/tmp*/MesiFatture/
+-- CreditoSospesoStorico: le tabelle *_Eliminate tmp e CreditoSospesoStorico che le mancavano sono
+-- create qui sotto. I test (happy-path e requisiti) e i loro helper di restore erano gia' scritti per
+-- questo contratto (spostano in _Eliminate e re-inseriscono in FattureTestata).
+--
+-- pfd.tmpFattureTestata_Eliminate: destinazione del MERGE (ON 1=0 -> sempre INSERT) della SP reale.
+-- Modellata su pfd.tmpFattureTestata: IdFattura e' bigint SEMPLICE (la SP lo inserisce esplicitamente,
+-- niente IDENTITY/PK, come pfd.FattureTestata_Eliminate), SENZA FlagFatturata, CON FlagProceduraWhiteList
+-- (assume il default 0, coerente col commento nella SP).
+IF OBJECT_ID('pfd.tmpFattureTestata_Eliminate', 'U') IS NULL
+CREATE TABLE [pfd].[tmpFattureTestata_Eliminate](
+	[IdFattura] [bigint] NOT NULL,
+	[FkProdotto] [nvarchar](15) NOT NULL,
+	[FkIdTipoDocumento] [nvarchar](4) NOT NULL,
+	[FkTipologiaFattura] [nvarchar](15) NOT NULL,
+	[FkIdEnte] [nvarchar](50) NOT NULL,
+	[FkIdDatiFatturazione] [bigint] NULL,
+	[DataFattura] [datetime2](7) NOT NULL,
+	[IdentificativoFattura] [nvarchar](50) NOT NULL,
+	[TotaleFattura] [float] NOT NULL,
+	[Divisa] [nvarchar](3) NOT NULL,
+	[MetodoPagamento] [nvarchar](3) NOT NULL,
+	[AnnoRiferimento] [int] NOT NULL,
+	[MeseRiferimento] [int] NOT NULL,
+	[CausaleFattura] [nvarchar](250) NULL,
+	[Sollecito] [nvarchar](250) NULL,
+	[CodiceContratto] [nvarchar](50) NULL,
+	[SplitPayment] [bit] NULL,
+	[Cup] [nvarchar](15) NULL,
+	[Cig] [nvarchar](10) NULL,
+	[IdDocumento] [nvarchar](20) NULL,
+	[DataDocumento] [datetime] NULL,
+	[NumItem] [nvarchar](50) NULL,
+	[CodCommessa] [nvarchar](100) NULL,
+	[Progressivo] [bigint] NULL,
+	[FatturaInviata] [bit] NULL,
+	[Semestre] [nvarchar](15) NULL,
+	[FlagProceduraWhiteList] [bit] NOT NULL CONSTRAINT [DF_tmpFattureTestata_Eliminate_FlagProceduraWhiteList] DEFAULT ((0))
+);
 GO
-CREATE PROCEDURE pfd.EliminaFattura @IdFattura INT
-AS
-BEGIN
-    SET NOCOUNT ON;
-    -- Stub: simula solo l'esito di successo. NON popola pfd.FattureTestata_Eliminate: nel flusso reale
-    -- lo spostamento in _Eliminate avviene lato processo DATA (dopo il calcolo), non in questa SP sincrona.
-    -- Questo e' coerente con RF06 (una pre-eliminata, prima del calcolo DATA, resta cancellabile).
-    RETURN 1; -- successo (>0)
-END
+
+-- pfd.tmpFattureRighe_Eliminate: destinazione dell'INSERT righe tmp della SP reale (mirror di tmpFattureRighe).
+IF OBJECT_ID('pfd.tmpFattureRighe_Eliminate', 'U') IS NULL
+CREATE TABLE [pfd].[tmpFattureRighe_Eliminate](
+	[FkIdFattura] [bigint] NOT NULL,
+	[NumeroLinea] [int] NOT NULL,
+	[Testo] [nvarchar](max) NULL,
+	[CodiceMateriale] [nvarchar](100) NOT NULL,
+	[Quantita] [int] NOT NULL,
+	[PrezzoUnitario] [float] NOT NULL,
+	[Imponibile] [float] NOT NULL,
+	[RigaBollo] [bit] NOT NULL,
+	[PeriodoRiferimento] [nvarchar](7) NULL
+);
+GO
+
+-- pfd.CreditoSospesoStorico: la SP reale la usa SOLO in "DELETE ... WHERE FkIdFattura = @IdFattura".
+-- DDL minimale plausibile (il team DB non ha ancora fornito quello reale): basta FkIdFattura per la DELETE;
+-- le altre colonne sono indicative. SENZA vincoli/righe seed -> la DELETE trova 0 righe, nessun errore.
+IF OBJECT_ID('pfd.CreditoSospesoStorico', 'U') IS NULL
+CREATE TABLE [pfd].[CreditoSospesoStorico](
+	[FkIdEnte] [nvarchar](100) NULL,
+	[AnnoRiferimento] [int] NULL,
+	[MeseRiferimento] [int] NULL,
+	[FKTipologiaFattura] [nvarchar](15) NULL,
+	[FkIdFattura] [bigint] NULL,
+	[Importo] [decimal](9, 2) NULL,
+	[DataMovimento] [datetime] NULL
+);
 GO
 
 -- Seed deterministico: fatture non inviate.
