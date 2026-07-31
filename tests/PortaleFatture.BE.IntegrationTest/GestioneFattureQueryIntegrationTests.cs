@@ -65,7 +65,7 @@ public class GestioneFattureQueryIntegrationTests
 
         var result = await ExecuteQueryOrIgnoreMissingView(() => _handler.Send(new GestioneFattureQuery(AdminAuth())
         {
-            Anno = ConfAnno,
+            Anno = 2025, // griglia seedata: 3 righe deterministiche (niente più dipendenza da dati UAT)
             Page = page,
             Size = pageSize
         }));
@@ -73,8 +73,8 @@ public class GestioneFattureQueryIntegrationTests
         Assert.That(result, Is.Not.Null);
 
         var rows = result!.GestioneFatture?.ToList() ?? [];
-        Assume.That(result.Count, Is.GreaterThan(0),
-            "Nessun dato trovato per il periodo configurato: impossibile verificare l'invariante di paginazione.");
+        Assert.That(result.Count, Is.GreaterThan(0),
+            "Il seed griglia 2025 deve contenere righe: invariante di paginazione verificabile.");
 
         Assert.Multiple(() =>
         {
@@ -155,7 +155,7 @@ public class GestioneFattureQueryIntegrationTests
     {
         var baseline = await ExecuteQueryOrIgnoreMissingView(() => _handler.Send(new GestioneFattureQuery(AdminAuth())
         {
-            Anno = ConfAnno,
+            Anno = 2025, // griglia seedata deterministica
             Page = 1,
             Size = 300
         }));
@@ -164,7 +164,7 @@ public class GestioneFattureQueryIntegrationTests
 
         var filtered = await ExecuteQueryOrIgnoreMissingView(() => _handler.Send(new GestioneFattureQuery(AdminAuth())
         {
-            Anno = ConfAnno,
+            Anno = 2025,
             Mesi = new[] { seed.Mese },
             TipologiaFattura = seed.TipologiaFattura,
             Azione = seed.Azione,
@@ -174,12 +174,12 @@ public class GestioneFattureQueryIntegrationTests
         }));
 
         var rows = filtered!.GestioneFatture?.ToList() ?? [];
-        Assume.That(rows.Count, Is.GreaterThan(0),
-            "Nessuna riga con filtri combinati: dataset UAT non copre il seed nel periodo configurato.");
+        Assert.That(rows.Count, Is.GreaterThan(0),
+            "Con i filtri combinati sul seed 2025 la riga target deve comparire.");
 
         Assert.Multiple(() =>
         {
-            Assert.That(rows.All(r => r.Anno == ConfAnno), Is.True);
+            Assert.That(rows.All(r => r.Anno == 2025), Is.True);
             Assert.That(rows.All(r => r.Mese == seed.Mese), Is.True);
             Assert.That(rows.All(r => string.Equals(r.TipologiaFattura, seed.TipologiaFattura, StringComparison.OrdinalIgnoreCase)), Is.True);
             Assert.That(rows.All(r => string.Equals(r.Azione, seed.Azione, StringComparison.OrdinalIgnoreCase)), Is.True);
@@ -196,7 +196,7 @@ public class GestioneFattureQueryIntegrationTests
     {
         var baseline = await ExecuteQueryOrIgnoreMissingView(() => _handler.Send(new GestioneFattureQuery(AdminAuth())
         {
-            Anno = ConfAnno,
+            Anno = 2025, // griglia seedata deterministica
             Page = 1,
             Size = 500
         }));
@@ -226,7 +226,7 @@ public class GestioneFattureQueryIntegrationTests
 
         var single = await ExecuteQueryOrIgnoreMissingView(() => _handler.Send(new GestioneFattureQuery(AdminAuth())
         {
-            Anno = ConfAnno,
+            Anno = 2025,
             Mesi = new[] { seed.Mese },
             IdEnti = new[] { seed.Ente! },
             TipologiaFattura = seed.TipologiaFattura,
@@ -237,7 +237,7 @@ public class GestioneFattureQueryIntegrationTests
 
         var multi = await ExecuteQueryOrIgnoreMissingView(() => _handler.Send(new GestioneFattureQuery(AdminAuth())
         {
-            Anno = ConfAnno,
+            Anno = 2025,
             Mesi = candidateMonths.ToArray(),
             IdEnti = candidateEnti.ToArray(),
             TipologiaFattura = seed.TipologiaFattura,
@@ -247,12 +247,12 @@ public class GestioneFattureQueryIntegrationTests
         }));
 
         var rows = multi!.GestioneFatture?.ToList() ?? [];
-        Assume.That(rows.Count, Is.GreaterThan(0),
-            "Nessuna riga con filtri AND multi-value: dataset UAT non copre combinazioni utili nel periodo configurato.");
+        Assert.That(rows.Count, Is.GreaterThan(0),
+            "Con i filtri AND multi-value sul seed 2025 devono comparire righe.");
 
         Assert.Multiple(() =>
         {
-            Assert.That(rows.All(r => r.Anno == ConfAnno), Is.True);
+            Assert.That(rows.All(r => r.Anno == 2025), Is.True);
             Assert.That(rows.All(r => candidateMonths.Contains(r.Mese)), Is.True);
             Assert.That(rows.All(r => candidateEnti.Contains(r.Ente!, StringComparer.OrdinalIgnoreCase)), Is.True);
             Assert.That(rows.All(r => string.Equals(r.TipologiaFattura, seed.TipologiaFattura, StringComparison.OrdinalIgnoreCase)), Is.True);

@@ -7,17 +7,18 @@ using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries;
 namespace PortaleFatture.BE.IntegrationTest;
 
 /// <summary>
-/// Integration test end-to-end (handler MediatR -> DB) per il report Fatture Sospese,
-/// che legge la vista [be].[vwFattureSospeseReport] ed espone la colonna RelNonFirmata.
+/// Integration test end-to-end (handler MediatR -> DB seedato) per il report Fatture Sospese, che legge
+/// [be].[vwFattureSospeseReport] (ramo view/rel) e [be].[vwFattureSospeseNoteReport] (ramo note/storni)
+/// ed espone la colonna RelNonFirmata. L'handler restituisce 3 bucket: { view, union, note }.
 ///
-/// REQUISITI: i dati esistono solo in UAT. Impostare in appsettings.Development.json / user secrets:
-///   - PortaleFattureOptions:ConnectionString -> connessione UAT
-///   - IntegrationTest:Anno / IntegrationTest:Mese / IntegrationTest:TipologiaFattura -> periodo con dati
+/// Gira sul container seedato (LocalTestDb): le tabelle tmpFattureTestata/tmpFattureRighe/tmpRelTestata/
+/// MesiFatture e le due viste sono in tests/Data/. Seed DEDICATO su Anno 2026 / Mese 2 / 'SECONDO SALDO'
+/// (coincide coi default Conf*):
+///   - 7001 ente1 (PAC/tipo2) + MesiFatture -> ramo VIEW, RelNonFirmata='Rel in attesa di firma';
+///   - 7002 ente3 (PAL/tipo1) riga STORNO, senza MesiFatture, senza rel -> ramo NOTE, RelNonFirmata=''.
 ///
-/// Convenzioni:
-///   - I test "strutturali" (esecuzione query, periodo vuoto) richiedono solo connettivita' al DB
-///     (validano schema/colonna) e passano anche senza dati.
-///   - I test "data-dependent" usano Assume.That: senza dati per il periodo risultano Inconclusive, non falliti.
+/// I test "strutturali" (esecuzione, periodo vuoto, per-tipologia) validano schema/colonne e passano
+/// anche senza dati; quelli "data-dependent" ora asseriscono sul seed (niente piu' Inconclusive).
 /// </summary>
 public class FattureSospeseRelExcelQueryTests
 {
@@ -32,7 +33,8 @@ public class FattureSospeseRelExcelQueryTests
     [SetUp]
     public void Setup()
     {
-        _handler = ServiceProvider.GetRequiredService<IMediator>();
+        TestDb.SkipIfUnavailable(LocalTestDb.ConnectionString);
+        _handler = ServiceProvider.GetRequiredService<IMediator>(LocalTestDb.ConnectionString);
         _conf = ServiceProvider.GetRequiredService<IConfiguration>();
     }
 
@@ -138,8 +140,8 @@ public class FattureSospeseRelExcelQueryTests
         var result = await _handler.Send(BuildSospeseQuery());
         var viewRows = result![ViewBranch]?.ToList() ?? new List<FattureRelSospeseExcelDto>();
 
-        Assume.That(viewRows.Count, Is.GreaterThan(0),
-            "Nessun dato per il periodo: eseguire in UAT valorizzando IntegrationTest:Anno/Mese/TipologiaFattura.");
+        Assert.That(viewRows.Count, Is.GreaterThan(0),
+            "Il seed sospesi (7001/7002 su 2026/2/SECONDO SALDO) deve popolare il ramo view.");
 
         var fanOut = viewRows
             .GroupBy(x => x.IdFattura)
@@ -161,8 +163,8 @@ public class FattureSospeseRelExcelQueryTests
         var result = await _handler.Send(BuildSospeseQuery());
         var noteRows = result![NoteBranch]?.ToList() ?? new List<FattureRelSospeseExcelDto>();
 
-        Assume.That(noteRows.Count, Is.GreaterThan(0),
-            "Nessuna riga nel ramo note per il periodo: eseguire in UAT.");
+        Assert.That(noteRows.Count, Is.GreaterThan(0),
+            "Il seed sospesi (7002 storno senza rel) deve popolare il ramo note.");
 
         Assert.That(noteRows.All(x => x.RelNonFirmata == string.Empty), Is.True,
             "Le righe del ramo note devono avere RelNonFirmata = '' (placeholder).");
@@ -180,8 +182,8 @@ public class FattureSospeseRelExcelQueryTests
         var note = result[NoteBranch]?.Count() ?? 0;
         var union = result[UnionBranch]?.Count() ?? 0;
 
-        Assume.That(view + note, Is.GreaterThan(0),
-            "Nessun dato per il periodo: eseguire in UAT.");
+        Assert.That(view + note, Is.GreaterThan(0),
+            "Il seed sospesi deve popolare view e/o note per il periodo 2026/2/SECONDO SALDO.");
 
         Assert.That(union, Is.LessThanOrEqualTo(view + note),
             "Il bucket union non deve contenere piu' righe della somma vista + note (no duplicazioni).");
