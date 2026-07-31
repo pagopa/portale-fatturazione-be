@@ -1,5 +1,15 @@
-/****** Oggetto: StoredProcedure [be].[spGestioneFattureElimina]    Data dello script 29/07/2026 ******/
--- Script autorevole estratto dal DB reale (versione 29/07/2026). CREATE OR ALTER per idempotenza.
+/****** Oggetto: StoredProcedure [be].[spGestioneFattureElimina]    Data dello script 31/07/2026 ******/
+-- Script autorevole estratto dal DB reale. CREATE OR ALTER per idempotenza (unica differenza voluta
+-- rispetto al CREATE PROCEDURE dell'originale: serve a ri-applicare lo script su un container gia' avviato).
+-- ALLINEAMENTO 31/07: recepita la versione fornita dal team DB. Rispetto alla 29/07 cambiano SOLO
+-- diagnostica e codici di uscita, la LOGICA e' identica:
+--   * aggiunta PRINT del valore di ritorno di [pfd].[EliminaFattura];
+--   * RETURN espliciti e coerenti: 1 sui due rami di successo, 0 su tutti i rami di errore e nel CATCH
+--     (prima: 'RETURN;' -> 0 sul successo e RETURN -1 su due rami di errore).
+--   NB: i RETURN sono ininfluenti per il backend, che legge il primo result set ('SELECT 0/1 as Result')
+--   via QueryFirstAsync<int>; il parametro @ReturnValue della persistence e' dichiarato ma mai letto.
+--   L'header della versione fornita riporta ancora 'Data ultima modifica: 30/06/2026' benche' il corpo
+--   contenga i fix del 29/07 (Bug A/B): header non aggiornato lato owner, non una versione precedente.
 -- NOVITA' 29/07 rispetto alla versione 28/07 (risolve Bug A e Bug B della Elimina):
 --   * Bug A (falso "gia' eliminata"): RIMOSSO il ramo 'IF (SELECT FkIdFattura FROM @tmp) IS NOT NULL'
 --     che era sempre vero e faceva tornare Result 0 dopo un EXEC pfd.EliminaFattura riuscito. Ora dopo
@@ -18,7 +28,7 @@ GO
 -- =============================================
 /*
   Data creazione:        30/06/2026
-  Data ultima modifica:  29/07/2026
+  Data ultima modifica:  30/06/2026
   Descrizione:           Elimina fattura emessa
   Target utilizzo:       Pulsante Elimina della pagina PF "GestioneFatture" / "DocumentiEmessi"
   Versione:              1.0
@@ -127,7 +137,7 @@ BEGIN
 
 			-- Interrompo procedura con errore
 			SELECT 0 as Result;
-			RETURN;
+			RETURN 0;
 		END
 
 		-- recupera la fattura e storicizza temporaneamente
@@ -192,6 +202,8 @@ BEGIN
 				declare @rc int
 				EXEC @rc = [pfd].[EliminaFattura] @IdFattura;
 
+				PRINT(CONCAT('VALORE DI RITORNO SP [pfd].[EliminaFattura]:',@rc))
+
 				IF(@rc <= 0)
 				BEGIN
 
@@ -211,7 +223,7 @@ BEGIN
 
 					-- Interrompo procedura con errore
 					SELECT 0 as Result;
-					RETURN -1;
+					RETURN 0;
 
 				END
 			END
@@ -288,7 +300,7 @@ BEGIN
 
 			-- Procedura eseguita correttamente
 			SELECT 1 as Result;
-			RETURN;
+			RETURN 1;
 
 		END
 		ELSE
@@ -322,7 +334,7 @@ BEGIN
 
 				-- Interrompo procedura con errore
 				SELECT 0 as Result;
-				RETURN -1;
+				RETURN 0;
 			END
 
 			-- Controlla che la fattura non esiste nella tabella pfd.FattureTestata_Eliminate
@@ -441,7 +453,7 @@ BEGIN
 
 			-- Procedura eseguita correttamente
 			SELECT 1 as Result;
-			RETURN;
+			RETURN 1;
 
 		END
 
@@ -468,6 +480,7 @@ BEGIN
 
 		-- Procedura terminata con errori
 		SELECT 0 as Result;
+		RETURN 0;
 
     END CATCH
 
