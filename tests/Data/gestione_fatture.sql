@@ -626,3 +626,45 @@ INSERT INTO pfd.RelTestata
 VALUES
  ('11111111-1111-1111-1111-111111111111', 'TOKEN-E1', 'SECONDO SALDO', 2026, 2, 100.00, 200.00, 10, 20, 300.00, 122.00, 244.00, 366.00, 0, 0);
 GO
+
+-- =============================================================================================
+-- Regressione CASING ente (fix match case-insensitive in FattureQueryRicercaPersistence).
+-- Posticipata 2026/7: cfg.GestioneFatture.FkIdEnte in MAIUSCOLO mentre pfd.Enti/FattureTestata/Contratti
+-- sono lowercase. Le JOIN SQL della vista sono case-insensitive -> la riga esce con istitutioID MAIUSCOLO;
+-- il match C# case-sensitive la scartava (404). GUID con lettere hex per rendere il casing significativo.
+-- =============================================================================================
+IF NOT EXISTS (SELECT 1 FROM pfd.Enti WHERE InternalIstitutionId = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee')
+INSERT INTO pfd.Enti (InternalIstitutionId, description) VALUES
+ ('aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', 'Ente Casing Test');
+
+IF NOT EXISTS (SELECT 1 FROM pfd.Contratti WHERE internalistitutionid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee')
+INSERT INTO pfd.Contratti (internalistitutionid, FkIdTipoContratto, onboardingtokenid) VALUES
+ ('aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', 2, 'TOKEN-CASE');
+GO
+
+-- FattureTestata lowercase (system-of-record) per il periodo della posticipata; la vista LEFT JOINa ft
+-- su gf.FkIdEnte=ft.FkIdEnte (case-insensitive) e ne serve l'INNER con FatturaTestataConfig.
+SET IDENTITY_INSERT pfd.FattureTestata ON;
+IF NOT EXISTS (SELECT 1 FROM pfd.FattureTestata WHERE IdFattura = 9101)
+INSERT INTO pfd.FattureTestata
+ (IdFattura, FkIdEnte, FkTipologiaFattura, AnnoRiferimento, MeseRiferimento, FatturaInviata,
+  FkProdotto, FkIdTipoDocumento, DataFattura, IdentificativoFattura, TotaleFattura, Divisa, MetodoPagamento, Progressivo, CodiceContratto)
+VALUES
+ (9101, 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', 'SECONDO SALDO', 2026, 7, 0,
+  'prod-pn', 'TD01', '2026-07-01', 'IT-9101', 700.00, 'EUR', 'MP5', 9101, 'TOKEN-CASE');
+SET IDENTITY_INSERT pfd.FattureTestata OFF;
+
+IF NOT EXISTS (SELECT 1 FROM pfd.FattureRighe WHERE FkIdFattura = 9101)
+INSERT INTO pfd.FattureRighe
+ (FkIdFattura, NumeroLinea, Testo, CodiceMateriale, Quantita, PrezzoUnitario, Imponibile, RigaBollo, PeriodoRiferimento)
+VALUES
+ (9101, 1, 'riga casing', 'MAT-A', 1, 700.00, 700.00, 0, '07/2026');
+GO
+
+-- cfg.GestioneFatture: FkIdEnte in MAIUSCOLO (il bug: casing diverso da pfd.Enti). Stato=0 (POSTICIPATA).
+-- La vista emette [fattura.istitutioID] = gf.FkIdEnte (MAIUSCOLO) e [fattura.idfattura] = gf.FkIdFattura (9101).
+IF NOT EXISTS (SELECT 1 FROM cfg.GestioneFatture WHERE FkIdFattura = 9101)
+INSERT INTO cfg.GestioneFatture (FkIdFattura, FkIdEnte, FkTipologiaFattura, Anno, Mese, DataInserimento, IdUtenteInserimento, Stato, Azione, Note)
+VALUES
+ (9101, 'AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE', 'SECONDO SALDO', 2026, 7, GETDATE(), 'seed', 0, 'POSTICIPATA', N'[]');
+GO
