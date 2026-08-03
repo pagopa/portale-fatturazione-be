@@ -515,6 +515,21 @@ order by AnnoRiferimento, MeseRiferimento desc
         return _sqlViewCancellate;
     }
 
+    /// <summary>
+    /// Costruisce la SELECT delle fatture per api/fatture (ramo scelto da <paramref name="cancellata"/>):
+    /// false -> SelectView (EMESSE, colonna tipologia FT.FkTipologiaFattura);
+    /// true  -> SelectViewCancellate (NON FATTURATE, vista con colonna [fattura.tipologiaFattura]).
+    /// Risolve il placeholder [condition_tipologiafattura] sulla colonna giusta (o lo rimuove se non c'e'
+    /// filtro tipologia). Metodo PURO (nessuna I/O) -> unit-testabile.
+    /// </summary>
+    public static string SelectFattureRicerca(bool cancellata, bool hasTipologia)
+    {
+        var sql = cancellata ? _sqlViewCancellate : _sqlView;
+        var tipologiaCol = cancellata ? "[fattura.tipologiaFattura]" : "FT.FkTipologiaFattura";
+        var condition = hasTipologia ? $"and {tipologiaCol} IN @TipologiaFattura" : string.Empty;
+        return sql.Replace("[condition_tipologiafattura]", condition);
+    }
+
     public static string SelectFattureInvioSap()
     {
         return _sqlFattureInvioSap;

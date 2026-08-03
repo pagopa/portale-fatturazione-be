@@ -8,20 +8,29 @@ using PortaleFatture.BE.Core.Auth;
 namespace PortaleFatture.BE.IntegrationTest;
 
 /// <summary>
-/// Integration test end-to-end (extension ReportFatture / ReportFattureSospese con IMediator reale -> DB):
-/// verificano l'invariante colonna sui report generati. Data-dependent: Assume.That -> Inconclusive senza dati (UAT).
-/// TipologiaFattura sempre esplicita (il fix NRE sull'auto-popolamento non è su questo branch).
+/// Integration test end-to-end (extension ReportFatture / ReportFattureSospese con IMediator reale):
+/// verificano l'invariante colonna 'Rel Non Firmata' sui report generati.
+/// I test data-dependent SECONDO SALDO girano su DB seedato (_seedHandler) col seed dedicato 2026/2/SECONDO SALDO:
+/// la fattura regolare 8001 (+ RelTestata) alimenta il ramo non-sospese (fogli "Regolari Esecuzioni"/"Enti Fatt."
+/// SENZA la colonna); il seed tmp* (7001/7002) alimenta il ramo sospese (fogli "Reg. Esec. Sospese"/"Enti Fatt.
+/// Sospese" CON la colonna). I test strutturali ANTICIPO/ACCONTO restano su connessione di default (_handler):
+/// leggono viste legacy pfd.vFattureAcconto / pfd.vModuloCommessaTotali non presenti nel seed.
 /// </summary>
 public class FattureReportEndpointE2ETests
 {
     private const string Caption = "Rel Non Firmata";
+    // Connessione di default (UAT): i test strutturali ANTICIPO/ACCONTO leggono viste legacy
+    // (pfd.vFattureAcconto / pfd.vModuloCommessaTotali) non presenti nel DB seedato.
     private IMediator _handler;
+    // DB seedato: per i test data-dependent SECONDO SALDO (rel emesse/sospese), deterministici sul seed.
+    private IMediator _seedHandler;
     private IConfiguration _conf;
 
     [SetUp]
     public void Setup()
     {
         _handler = ServiceProvider.GetRequiredService<IMediator>();
+        _seedHandler = ServiceProvider.GetRequiredService<IMediator>(LocalTestDb.ConnectionString);
         _conf = ServiceProvider.GetRequiredService<IConfiguration>();
     }
 
@@ -56,15 +65,16 @@ public class FattureReportEndpointE2ETests
     [Test]
     public async Task ReportFatture_NonSospeseSheets_ShouldNotHaveRelNonFirmata()
     {
+        TestDb.SkipIfUnavailable(LocalTestDb.ConnectionString);
         var request = new FatturaRicercaRequest { Anno = Anno, Mese = Mese, TipologiaFattura = new[] { Tipologia } };
-        var reports = await request.ReportFatture(_handler, AdminAuth());
+        var reports = await request.ReportFatture(_seedHandler, AdminAuth());
 
-        Assume.That(reports.Count, Is.GreaterThan(0), "Nessun report per il periodo: eseguire in UAT con dati.");
+        Assert.That(reports.Count, Is.GreaterThan(0), "Il seed 8001 (2026/2/SECONDO SALDO) deve generare il report emesse.");
 
         var nonSospese = InspectSheets(reports)
             .Where(s => s.Sheet.StartsWith("Regolari Esecuzioni", StringComparison.OrdinalIgnoreCase))
             .ToList();
-        Assume.That(nonSospese.Count, Is.GreaterThan(0), "Nessun foglio 'Regolari Esecuzioni': eseguire in UAT con dati.");
+        Assert.That(nonSospese.Count, Is.GreaterThan(0), "Il report emesse deve contenere il foglio 'Regolari Esecuzioni'.");
 
         Assert.That(nonSospese.All(s => !s.HasColumn), Is.True,
             "I fogli non-sospesi ('Regolari Esecuzioni') NON devono contenere 'Rel Non Firmata'.");
@@ -73,16 +83,17 @@ public class FattureReportEndpointE2ETests
     [Test]
     public async Task ReportFattureSospese_SospeseSheets_ShouldHaveRelNonFirmata()
     {
+        TestDb.SkipIfUnavailable(LocalTestDb.ConnectionString);
         var request = new FatturaSospeseRicercaRequest { Anno = Anno, Mese = Mese, TipologiaFattura = new[] { Tipologia } };
-        var reports = await request.ReportFattureSospese(_handler, AdminAuth());
+        var reports = await request.ReportFattureSospese(_seedHandler, AdminAuth());
 
-        Assume.That(reports.Count, Is.GreaterThan(0), "Nessun report per il periodo: eseguire in UAT con dati.");
+        Assert.That(reports.Count, Is.GreaterThan(0), "Il seed sospesi (7001/7002 su 2026/2/SECONDO SALDO) deve generare il report sospese.");
 
         var sospese = InspectSheets(reports)
             .Where(s => s.Sheet.StartsWith("Reg. Esec. Sospese", StringComparison.OrdinalIgnoreCase)
                      || s.Sheet.StartsWith("Enti Fatt. Sospese", StringComparison.OrdinalIgnoreCase))
             .ToList();
-        Assume.That(sospese.Count, Is.GreaterThan(0), "Nessun foglio rel sospese: eseguire in UAT con dati.");
+        Assert.That(sospese.Count, Is.GreaterThan(0), "Il report sospese deve contenere i fogli rel sospese.");
 
         Assert.That(sospese.All(s => s.HasColumn), Is.True,
             "I fogli rel sospesi devono contenere 'Rel Non Firmata'.");
@@ -94,6 +105,7 @@ public class FattureReportEndpointE2ETests
     [TestCase("ACCONTO")]
     public async Task ReportFatture_AnticipoAcconto_ShouldNotThrow(string tipologia)
     {
+        TestDb.SkipIfUnavailable(_conf["PortaleFattureOptions:ConnectionString"]);
         var request = new FatturaRicercaRequest { Anno = Anno, Mese = Mese, TipologiaFattura = new[] { tipologia } };
         var reports = await request.ReportFatture(_handler, AdminAuth());
         Assert.That(reports, Is.Not.Null);
@@ -103,6 +115,7 @@ public class FattureReportEndpointE2ETests
     [TestCase("ACCONTO")]
     public async Task ReportFattureSospese_AnticipoAcconto_ShouldNotThrow(string tipologia)
     {
+        TestDb.SkipIfUnavailable(_conf["PortaleFattureOptions:ConnectionString"]);
         var request = new FatturaSospeseRicercaRequest { Anno = Anno, Mese = Mese, TipologiaFattura = new[] { tipologia } };
         var reports = await request.ReportFattureSospese(_handler, AdminAuth());
         Assert.That(reports, Is.Not.Null);
@@ -113,6 +126,7 @@ public class FattureReportEndpointE2ETests
     [Test]
     public async Task ReportFatture_MultipleTipologie_ShouldNotThrow()
     {
+        TestDb.SkipIfUnavailable(_conf["PortaleFattureOptions:ConnectionString"]);
         var request = new FatturaRicercaRequest
         {
             Anno = Anno,
@@ -126,6 +140,7 @@ public class FattureReportEndpointE2ETests
     [Test]
     public async Task ReportFattureSospese_MultipleTipologie_ShouldNotThrow()
     {
+        TestDb.SkipIfUnavailable(_conf["PortaleFattureOptions:ConnectionString"]);
         var request = new FatturaSospeseRicercaRequest
         {
             Anno = Anno,

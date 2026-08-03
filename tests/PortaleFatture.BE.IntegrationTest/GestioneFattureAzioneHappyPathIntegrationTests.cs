@@ -188,9 +188,9 @@ public class GestioneFattureAzioneHappyPathIntegrationTests
     }
 
     // -------------------------------------------------------------------------------------------
-    // ELIMINA happy-path: DISTRUTTIVO e NON reversibile con un semplice cleanup
-    // (la SP chiama EXEC [pfd].[EliminaFattura], che sposta la fattura in FattureTestata_Eliminate).
-    // Lasciato [Ignore]: abilitare a mano SOLO su una fattura ANTICIPO/ACCONTO sacrificabile.
+    // ELIMINA happy-path: DISTRUTTIVO ma sicuro sul DB locale usa-e-getta (con RestoreEliminaSeed nel
+    // finally). La SP chiama EXEC [pfd].[EliminaFattura] (ora la SP REALE, non piu' lo stub): sposta la
+    // fattura in FattureTestata_Eliminate e la rimuove da FattureTestata. Verifichiamo entrambe le cose.
     // -------------------------------------------------------------------------------------------
     [Test]
     public async Task Elimina_OnNonSentAnticipoAccontoInvoice_ShouldReturn1_AndCreateStato3()
@@ -203,9 +203,17 @@ public class GestioneFattureAzioneHappyPathIntegrationTests
         {
             var result = await SendAzione(seed!.Value, "ELIMINA");
             Assert.That(result, Is.EqualTo(1), "ELIMINA doveva restituire Result = 1.");
-            // Dopo il fix ELIMINA la riga cfg ha FkIdFattura NULL (chiave = periodo): lettura per periodo.
-            Assert.That(ReadStatoByPeriod(seed.Value.IdEnte, seed.Value.TipologiaFattura, seed.Value.Anno, seed.Value.Mese),
-                Is.EqualTo(3), "La riga doveva essere in Stato = 3 (ELIMINATA).");
+            Assert.Multiple(() =>
+            {
+                // Dopo il fix ELIMINA la riga cfg ha FkIdFattura NULL (chiave = periodo): lettura per periodo.
+                Assert.That(ReadStatoByPeriod(seed.Value.IdEnte, seed.Value.TipologiaFattura, seed.Value.Anno, seed.Value.Mese),
+                    Is.EqualTo(3), "La riga doveva essere in Stato = 3 (ELIMINATA).");
+                // La SP reale sposta la fattura in _Eliminate e la toglie da FattureTestata (lo stub non lo faceva).
+                Assert.That(CountInEliminate(seed.Value.IdFattura), Is.EqualTo(1),
+                    "La fattura deve essere stata spostata in pfd.FattureTestata_Eliminate.");
+                Assert.That(CountInTestata(seed.Value.IdFattura), Is.EqualTo(0),
+                    "La fattura deve essere stata rimossa da pfd.FattureTestata.");
+            });
         }
         catch (SqlException ex) when (IsNetworkDenied(ex)) { Assert.Ignore(NetworkMsg); }
         catch (SqlException ex) when (ex.Number == 2812) { Assert.Ignore(SpMissingMsg(ex)); }
@@ -292,38 +300,14 @@ public class GestioneFattureAzioneHappyPathIntegrationTests
 
     /// <summary>Ripristina il seed dopo un ELIMINA (DB locale usa-e-getta): rimette la fattura in
     /// FattureTestata, svuota _Eliminate e la riga GestioneFatture creata.</summary>
-    private void RestoreEliminaSeed(Seed s)
-    {
-        try
-        {
-            using var conn = new SqlConnection(ConnectionString);
-            conn.Open();
-            // IdFattura e' IDENTITY (DDL reale): per rimettere la riga con lo stesso id serve
-            // IDENTITY_INSERT, e vanno valorizzate le colonne NOT NULL della tabella vera.
-            using var cmd = new SqlCommand(@"
-                DELETE FROM cfg.GestioneFatture WHERE FkIdFattura = @id;
-                -- dopo ELIMINA la riga ha FkIdFattura NULL: rimuovo anche per periodo
-                DELETE FROM cfg.GestioneFatture WHERE FkIdEnte=@ente AND FkTipologiaFattura=@tipo AND Anno=@anno AND Mese=@mese;
-                DELETE FROM pfd.FattureTestata_Eliminate WHERE IdFattura = @id;
-                IF NOT EXISTS (SELECT 1 FROM pfd.FattureTestata WHERE IdFattura = @id)
-                BEGIN
-                    SET IDENTITY_INSERT pfd.FattureTestata ON;
-                    INSERT INTO pfd.FattureTestata
-                        (IdFattura, FkIdEnte, FkTipologiaFattura, AnnoRiferimento, MeseRiferimento, FatturaInviata,
-                         FkProdotto, FkIdTipoDocumento, DataFattura, IdentificativoFattura, TotaleFattura, Divisa, MetodoPagamento, Progressivo)
-                    VALUES (@id, @ente, @tipo, @anno, @mese, 0,
-                         'prod-pn', 'TD01', '2026-01-01', CONCAT('IT-', @id), 100.00, 'EUR', 'MP5', @id);
-                    SET IDENTITY_INSERT pfd.FattureTestata OFF;
-                END", conn);
-            cmd.Parameters.AddWithValue("@id", s.IdFattura);
-            cmd.Parameters.AddWithValue("@ente", s.IdEnte);
-            cmd.Parameters.AddWithValue("@tipo", s.TipologiaFattura);
-            cmd.Parameters.AddWithValue("@anno", s.Anno);
-            cmd.Parameters.AddWithValue("@mese", s.Mese);
-            cmd.ExecuteNonQuery();
-        }
-        catch (SqlException) { /* best-effort */ }
-    }
+    // Il ripristino vive in FattureSeedRestore: ricopia la riga ORIGINALE da pfd.FattureTestata_Eliminate
+    // (dove la SP reale l'ha spostata) invece di ricrearla con valori segnaposto. Qui la fattura da
+    // eliminare viene SCELTA A RUNTIME fra le ANTICIPO/ACCONTO disponibili, quindi il vecchio ripristino
+    // "lossy" poteva alterare gli importi di una qualunque fattura del seed (e' cosi' che la 2001 e'
+    // passata da 305.00 a 100.00, rompendo FattureInvioSapMultiploPeriodoIntegrationTests).
+    private void RestoreEliminaSeed(Seed s) =>
+        FattureSeedRestore.RipristinaDopoElimina(
+            ConnectionString, s.IdFattura, s.IdEnte, s.TipologiaFattura, s.Anno, s.Mese);
 
     /// <summary>Conta le righe GestioneFatture per la fattura (per documentare i doppioni).</summary>
     private int CountRows(long idFattura)
@@ -361,6 +345,28 @@ public class GestioneFattureAzioneHappyPathIntegrationTests
         cmd.Parameters.AddWithValue("@m", mese);
         var v = cmd.ExecuteScalar();
         return v is null or DBNull ? -1 : Convert.ToInt32(v);
+    }
+
+    /// <summary>Righe della fattura in pfd.FattureTestata_Eliminate (spostamento operato dalla SP reale).</summary>
+    private int CountInEliminate(long idFattura)
+    {
+        using var conn = new SqlConnection(ConnectionString);
+        conn.Open();
+        using var cmd = new SqlCommand(
+            "SELECT COUNT(*) FROM pfd.FattureTestata_Eliminate WHERE IdFattura = @id;", conn);
+        cmd.Parameters.AddWithValue("@id", idFattura);
+        return Convert.ToInt32(cmd.ExecuteScalar());
+    }
+
+    /// <summary>Righe residue della fattura in pfd.FattureTestata (0 dopo un ELIMINA reale).</summary>
+    private int CountInTestata(long idFattura)
+    {
+        using var conn = new SqlConnection(ConnectionString);
+        conn.Open();
+        using var cmd = new SqlCommand(
+            "SELECT COUNT(*) FROM pfd.FattureTestata WHERE IdFattura = @id;", conn);
+        cmd.Parameters.AddWithValue("@id", idFattura);
+        return Convert.ToInt32(cmd.ExecuteScalar());
     }
 
     private void CleanupByIdFattura(long idFattura)
