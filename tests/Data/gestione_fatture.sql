@@ -668,3 +668,38 @@ INSERT INTO cfg.GestioneFatture (FkIdFattura, FkIdEnte, FkTipologiaFattura, Anno
 VALUES
  (9101, 'AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE', 'SECONDO SALDO', 2026, 7, GETDATE(), 'seed', 0, 'POSTICIPATA', N'[]');
 GO
+
+-- =============================================================================================
+-- Effetto azioni sulle liste: RIPRISTINATA (Stato=1) e CANCELLATA (Stato=2) devono RIENTRARE nella
+-- ricerca EMESSE (SelectView filtra gf.Stato <> 0 OR IS NULL), a differenza della POSTICIPATA (Stato=0).
+-- Inoltre servono a evidenziare la discrepanza col vwDettaglioFattureDaInviare (che esclude QUALUNQUE riga
+-- in cfg.GestioneFatture): una ripristinata compare in emesse ma resta esclusa dal "da inviare".
+-- Periodi dedicati ente1 2024/5 e 2024/6, FatturaInviata=0 (candidate anche a "da inviare"). TOKEN-E1.
+-- =============================================================================================
+SET IDENTITY_INSERT pfd.FattureTestata ON;
+IF NOT EXISTS (SELECT 1 FROM pfd.FattureTestata WHERE IdFattura IN (6002,6003))
+INSERT INTO pfd.FattureTestata
+ (IdFattura, FkIdEnte, FkTipologiaFattura, AnnoRiferimento, MeseRiferimento, FatturaInviata,
+  FkProdotto, FkIdTipoDocumento, DataFattura, IdentificativoFattura, TotaleFattura, Divisa, MetodoPagamento, Progressivo, CodiceContratto)
+VALUES
+ (6002, '11111111-1111-1111-1111-111111111111', 'SECONDO SALDO', 2024, 5, 0,
+  'prod-pn', 'TD01', '2024-05-01', 'IT-6002', 900.00, 'EUR', 'MP5', 6002, 'TOKEN-E1'),
+ (6003, '11111111-1111-1111-1111-111111111111', 'SECONDO SALDO', 2024, 6, 0,
+  'prod-pn', 'TD01', '2024-06-01', 'IT-6003', 950.00, 'EUR', 'MP5', 6003, 'TOKEN-E1');
+SET IDENTITY_INSERT pfd.FattureTestata OFF;
+
+IF NOT EXISTS (SELECT 1 FROM pfd.FattureRighe WHERE FkIdFattura IN (6002,6003))
+INSERT INTO pfd.FattureRighe
+ (FkIdFattura, NumeroLinea, Testo, CodiceMateriale, Quantita, PrezzoUnitario, Imponibile, RigaBollo, PeriodoRiferimento)
+VALUES
+ (6002, 1, 'riga ripristinata', 'MAT-A', 1, 900.00, 900.00, 0, '05/2024'),
+ (6003, 1, 'riga cancellata',   'MAT-A', 1, 950.00, 950.00, 0, '06/2024');
+GO
+
+-- cfg: 6002 RIPRISTINATA (Stato=1), 6003 CANCELLATA (Stato=2) sugli stessi periodi.
+IF NOT EXISTS (SELECT 1 FROM cfg.GestioneFatture WHERE FkIdFattura IN (6002,6003))
+INSERT INTO cfg.GestioneFatture (FkIdFattura, FkIdEnte, FkTipologiaFattura, Anno, Mese, DataInserimento, DataRipristino, DataCancellazione, IdUtenteInserimento, Stato, Azione, Note)
+VALUES
+ (6002, '11111111-1111-1111-1111-111111111111', 'SECONDO SALDO', 2024, 5, GETDATE(), GETDATE(), NULL,      'seed', 1, 'RIPRISTINATA', N'[]'),
+ (6003, '11111111-1111-1111-1111-111111111111', 'SECONDO SALDO', 2024, 6, GETDATE(), NULL,      GETDATE(), 'seed', 2, 'CANCELLATA',   N'[]');
+GO

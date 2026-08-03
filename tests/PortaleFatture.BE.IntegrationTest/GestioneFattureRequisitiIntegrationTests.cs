@@ -539,6 +539,69 @@ public class GestioneFattureRequisitiIntegrationTests
     /// Rimuove la riga di cfg.GestioneFatture per la fattura specificata (chiave FkIdFattura). Best-effort: ignora errori SQL.
     /// </summary>
     /// <param name="idFattura">L'identificativo della fattura da rimuovere.</param>
+    // ---------- Coesistenza PK: Posticipa + Elimina sullo stesso periodo ----------
+
+    [Test]
+    public async Task PosticipaPoiElimina_INPSPrimoSaldo_StessoPeriodo_EliminaSovrascriveLaPosticipata()
+    {
+        // La PRIMARY KEY (FkIdEnte, FkTipologiaFattura, Anno, Mese, Stato) PERMETTEREBBE due righe (Stato=0 e
+        // Stato=3) sullo stesso periodo, MA la logica delle SP no: il MERGE/UPSERT dell'Elimina e' chiavato sul
+        // periodo (Ente/Tipologia/Anno/Mese) SENZA Stato, quindi ELIMINA dopo POSTICIPA SOVRASCRIVE la riga
+        // (0 -> 3) invece di aggiungerne una. Non coesistono: resta UNA sola riga, Stato=3.
+        // Caso raggiungibile solo con INPS + PRIMO SALDO (unica tipologia posticipabile E eliminabile).
+        // Comportamento verificato eseguendo le SP direttamente sul container.
+        const int anno = 2027, mese = 11;
+        CleanupByPeriod(EnteInps, "PRIMO SALDO", anno, mese);
+        try
+        {
+            var post = await Send("POSTICIPA", null, anno, mese, EnteInps, "PRIMO SALDO");
+            Assert.Multiple(() =>
+            {
+                Assert.That(post, Is.EqualTo(1), "POSTICIPA su INPS/PRIMO SALDO riesce (Result 1).");
+                Assert.That(CountStato(EnteInps, "PRIMO SALDO", anno, mese, 0), Is.EqualTo(1), "Dopo la posticipa c'e' la riga Stato=0.");
+            });
+
+            var elim = await Send("ELIMINA", null, anno, mese, EnteInps, "PRIMO SALDO");
+            Assert.Multiple(() =>
+            {
+                Assert.That(elim, Is.EqualTo(1), "ELIMINA su INPS/PRIMO SALDO riesce (Result 1).");
+                Assert.That(CountStato(EnteInps, "PRIMO SALDO", anno, mese, 0), Is.EqualTo(0),
+                    "La posticipata (Stato=0) NON sopravvive: l'Elimina l'ha sovrascritta (MERGE per periodo, senza Stato).");
+                Assert.That(CountStato(EnteInps, "PRIMO SALDO", anno, mese, 3), Is.EqualTo(1), "Resta la sola riga Stato=3 (ELIMINATA).");
+                Assert.That(TotaleRighePeriodo(EnteInps, "PRIMO SALDO", anno, mese), Is.EqualTo(1),
+                    "Le due azioni NON coesistono: una sola riga (la PK lo permetterebbe, la logica SP no).");
+            });
+        }
+        finally { CleanupByPeriod(EnteInps, "PRIMO SALDO", anno, mese); }
+    }
+
+    private int CountStato(string ente, string tip, int anno, int mese, int stato)
+    {
+        using var conn = new SqlConnection(Conn);
+        conn.Open();
+        using var cmd = new SqlCommand(
+            "SELECT COUNT(*) FROM cfg.GestioneFatture WHERE FkIdEnte=@e AND FkTipologiaFattura=@t AND Anno=@a AND Mese=@m AND Stato=@s", conn);
+        cmd.Parameters.AddWithValue("@e", ente);
+        cmd.Parameters.AddWithValue("@t", tip);
+        cmd.Parameters.AddWithValue("@a", anno);
+        cmd.Parameters.AddWithValue("@m", mese);
+        cmd.Parameters.AddWithValue("@s", stato);
+        return Convert.ToInt32(cmd.ExecuteScalar());
+    }
+
+    private int TotaleRighePeriodo(string ente, string tip, int anno, int mese)
+    {
+        using var conn = new SqlConnection(Conn);
+        conn.Open();
+        using var cmd = new SqlCommand(
+            "SELECT COUNT(*) FROM cfg.GestioneFatture WHERE FkIdEnte=@e AND FkTipologiaFattura=@t AND Anno=@a AND Mese=@m", conn);
+        cmd.Parameters.AddWithValue("@e", ente);
+        cmd.Parameters.AddWithValue("@t", tip);
+        cmd.Parameters.AddWithValue("@a", anno);
+        cmd.Parameters.AddWithValue("@m", mese);
+        return Convert.ToInt32(cmd.ExecuteScalar());
+    }
+
     private void Cleanup(long idFattura) => Exec("DELETE FROM cfg.GestioneFatture WHERE FkIdFattura=@id", ("@id", idFattura));
 
     /// <summary>

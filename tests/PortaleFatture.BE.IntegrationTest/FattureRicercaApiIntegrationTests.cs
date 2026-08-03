@@ -280,4 +280,46 @@ public class FattureRicercaApiIntegrationTests
             Assert.That(rows.All(x => x.TipologiaFattura == "ANTICIPO"), Is.True, "Nessuna tipologia diversa.");
         });
     }
+
+    // =================== Effetto azioni sulle liste: Ripristina/Cancella re-inclusione ===================
+
+    [Test]
+    public async Task Emesse_DopoRipristino_RicompareNellaLista()
+    {
+        // 6002 (ente1/SECONDO SALDO/2024/5) e' RIPRISTINATA (cfg Stato=1): SelectView filtra
+        // (gf.Stato <> 0 OR IS NULL), quindi la ripristinata rientra tra le emesse (a differenza della posticipata).
+        var rows = await Query(false, 2024, 5);
+        Assert.That(rows.Any(x => x.IdFattura == 6002), Is.True, "Una RIPRISTINATA (Stato=1) rientra nelle emesse.");
+    }
+
+    [Test]
+    public async Task Emesse_DopoCancella_RicompareNellaLista()
+    {
+        // 6003 (ente1/SECONDO SALDO/2024/6) e' CANCELLATA (cfg Stato=2): anche questa rientra (Stato <> 0).
+        var rows = await Query(false, 2024, 6);
+        Assert.That(rows.Any(x => x.IdFattura == 6003), Is.True, "Una CANCELLATA (Stato=2) rientra nelle emesse.");
+    }
+
+    [Test]
+    public async Task DiscrepanzaDaInviare_RipristinataInEmesseMaNonInDaInviare()
+    {
+        // FINDING (non fix): due meccanismi di esclusione diversi. La ricerca EMESSE
+        // (FattureQueryRicercaBuilder) esclude solo Stato=0; il vwDettaglioFattureDaInviare esclude QUALUNQUE
+        // riga presente in cfg.GestioneFatture. Quindi la ripristinata 6002 compare in emesse ma resta esclusa
+        // dal "da inviare" -> le due viste danno risposte incoerenti sullo stesso periodo.
+        var emesse = await Query(false, 2024, 5);
+        var daInviare = (await _handler.Send(new FattureInvioSapMultiploPeriodoQuery(AdminAuth())
+        {
+            AnnoRiferimento = 2024,
+            MeseRiferimento = 5,
+            TipologiaFattura = "SECONDO SALDO"
+        }))?.ToList() ?? new List<FatturaInvioMultiploSapPeriodo>();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(emesse.Any(x => x.IdFattura == 6002), Is.True, "In emesse la ripristinata 6002 c'e'.");
+            Assert.That(daInviare.Any(x => x.IdFattura == 6002), Is.False,
+                "Nel 'da inviare' 6002 e' esclusa perche' ha una riga in cfg.GestioneFatture (qualunque stato).");
+        });
+    }
 }
