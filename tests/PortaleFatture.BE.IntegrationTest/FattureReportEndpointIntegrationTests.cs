@@ -13,9 +13,9 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// Coprono: auto-popolamento tipologia (body senza TipologiaFattura), filtri NULL, fix NRE,
 /// generazione Excel e presenza della colonna "Rel Non Firmata" (verificata con ClosedXML).
 ///
-/// REQUISITI dati (UAT): PortaleFattureOptions:ConnectionString + IntegrationTest:Anno/Mese/TipologiaFattura.
-/// I test "strutturali" richiedono solo connettivita' al DB; i "data-dependent" usano Assume.That
-/// (Inconclusive senza dati). I report sono restituiti come Dictionary&lt;nomeFile, bytesExcel&gt;.
+/// Girano su LocalTestDb (DB seedato): il seed 2026/2/SECONDO SALDO (fattura regolare 8001 + RelTestata per il
+/// ramo emesse; tmp* 7001/7002 per il ramo sospese) rende deterministici anche i test "data-dependent"
+/// (Assert, non piu' Assume/Inconclusive). I report sono restituiti come Dictionary&lt;nomeFile, bytesExcel&gt;.
 /// </summary>
 public class FattureReportEndpointIntegrationTests
 {
@@ -29,7 +29,8 @@ public class FattureReportEndpointIntegrationTests
     [SetUp]
     public void Setup()
     {
-        _handler = ServiceProvider.GetRequiredService<IMediator>();
+        TestDb.SkipIfUnavailable(LocalTestDb.ConnectionString);
+        _handler = ServiceProvider.GetRequiredService<IMediator>(LocalTestDb.ConnectionString);
         _conf = ServiceProvider.GetRequiredService<IConfiguration>();
     }
 
@@ -146,8 +147,8 @@ public class FattureReportEndpointIntegrationTests
     {
         var reports = await BuildSospeseRequest(ConfAnno, ConfMese, ConfTipologia).ReportFattureSospese(_handler, AdminAuth());
 
-        Assume.That(reports.Count, Is.GreaterThan(0),
-            "Nessun report per il periodo: eseguire in UAT valorizzando IntegrationTest:Anno/Mese/TipologiaFattura.");
+        Assert.That(reports.Count, Is.GreaterThan(0),
+            "Il seed sospesi (7001/7002 su 2026/2/SECONDO SALDO) deve generare il report sospese.");
 
         var results = new List<bool>();
         foreach (var bytes in reports.Values)
@@ -157,8 +158,8 @@ public class FattureReportEndpointIntegrationTests
                 results.Add(hasColumn);
         }
 
-        Assume.That(results.Count, Is.GreaterThan(0),
-            $"Nessun foglio '{EntiFattSospeseSheetPrefix}' generato: eseguire in UAT con dati.");
+        Assert.That(results.Count, Is.GreaterThan(0),
+            $"Il report sospese deve generare il foglio '{EntiFattSospeseSheetPrefix}'.");
         Assert.That(results.All(x => x), Is.True,
             $"Il foglio '{EntiFattSospeseSheetPrefix}' deve contenere la colonna '{RelNonFirmataCaption}'.");
     }
@@ -195,8 +196,8 @@ public class FattureReportEndpointIntegrationTests
     {
         var reports = await BuildReportRequest(ConfAnno, ConfMese, ConfTipologia).ReportFatture(_handler, AdminAuth());
 
-        Assume.That(reports.Count, Is.GreaterThan(0),
-            "Nessun report per il periodo: eseguire in UAT.");
+        Assert.That(reports.Count, Is.GreaterThan(0),
+            "Il seed 8001 (2026/2/SECONDO SALDO) deve generare il report emesse.");
 
         var nonSospese = new List<(string Sheet, bool HasColumn)>();
         var sospesi = new List<(string Sheet, bool HasColumn)>();
@@ -217,8 +218,8 @@ public class FattureReportEndpointIntegrationTests
             }
         }
 
-        Assume.That(nonSospese.Count, Is.GreaterThan(0),
-            "Nessun foglio non-sospeso generato: eseguire in UAT con dati.");
+        Assert.That(nonSospese.Count, Is.GreaterThan(0),
+            "Il report emesse deve generare i fogli non-sospesi.");
 
         Assert.Multiple(() =>
         {

@@ -1,10 +1,10 @@
 -- =============================================================================
 -- Seed DB locale per i test CRUD/azione di Gestione Fatture (PF-672).
 -- Ricrea il SOTTOINSIEME di schema che le stored procedure be.spGestioneFattura*
--- toccano: schema cfg/be, pfd.FattureTestata(+_Eliminate), cfg.GestioneFatture,
--- uno stub di pfd.EliminaFattura, e alcune fatture seed deterministiche.
+-- toccano: schema cfg/be, pfd.FattureTestata(+_Eliminate), cfg.GestioneFatture, le tabelle
+-- *_Eliminate tmp e CreditoSospesoStorico toccate da pfd.EliminaFattura, e fatture seed deterministiche.
 --
--- Le 4 SP reali (be.spGestioneFattura{Posticipa,Elimina,Ripristina,Cancella}) NON
+-- Le SP reali (be.spGestioneFattura{Posticipa,Elimina,Ripristina,Cancella} e pfd.EliminaFattura) NON
 -- sono qui: vanno messe nei file tests/Data/sp/*.sql (script autorevoli), eseguiti
 -- dall'entrypoint DOPO questo file. Richiede SQL Server 2025 per il tipo nativo json.
 -- =============================================================================
@@ -223,19 +223,78 @@ CREATE TABLE [pfw].[CodiciMateriali](
 );
 GO
 
--- Stub di pfd.EliminaFattura: la SP ELIMINA fa EXEC @rc = pfd.EliminaFattura @IdFattura
--- e prosegue solo se @rc > 0. Qui simuliamo il successo spostando la fattura in _Eliminate.
-IF OBJECT_ID('pfd.EliminaFattura', 'P') IS NOT NULL DROP PROCEDURE pfd.EliminaFattura;
+-- pfd.EliminaFattura: NON piu' uno stub. La SP REALE (owner: team DB, versione 30/06/2026) vive ora in
+-- tests/Data/sp/05_pfdEliminaFattura.sql (script autorevole, CREATE OR ALTER), applicata dall'entrypoint
+-- DOPO questo file. La SP ELIMINA fa EXEC @rc = pfd.EliminaFattura @IdFattura e prosegue solo se @rc > 0.
+-- La SP reale sposta davvero la fattura in *_Eliminate e cancella da FattureTestata/tmp*/MesiFatture/
+-- CreditoSospesoStorico: le tabelle *_Eliminate tmp e CreditoSospesoStorico che le mancavano sono
+-- create qui sotto. I test (happy-path e requisiti) e i loro helper di restore erano gia' scritti per
+-- questo contratto (spostano in _Eliminate e re-inseriscono in FattureTestata).
+--
+-- pfd.tmpFattureTestata_Eliminate: destinazione del MERGE (ON 1=0 -> sempre INSERT) della SP reale.
+-- Modellata su pfd.tmpFattureTestata: IdFattura e' bigint SEMPLICE (la SP lo inserisce esplicitamente,
+-- niente IDENTITY/PK, come pfd.FattureTestata_Eliminate), SENZA FlagFatturata, CON FlagProceduraWhiteList
+-- (assume il default 0, coerente col commento nella SP).
+IF OBJECT_ID('pfd.tmpFattureTestata_Eliminate', 'U') IS NULL
+CREATE TABLE [pfd].[tmpFattureTestata_Eliminate](
+	[IdFattura] [bigint] NOT NULL,
+	[FkProdotto] [nvarchar](15) NOT NULL,
+	[FkIdTipoDocumento] [nvarchar](4) NOT NULL,
+	[FkTipologiaFattura] [nvarchar](15) NOT NULL,
+	[FkIdEnte] [nvarchar](50) NOT NULL,
+	[FkIdDatiFatturazione] [bigint] NULL,
+	[DataFattura] [datetime2](7) NOT NULL,
+	[IdentificativoFattura] [nvarchar](50) NOT NULL,
+	[TotaleFattura] [float] NOT NULL,
+	[Divisa] [nvarchar](3) NOT NULL,
+	[MetodoPagamento] [nvarchar](3) NOT NULL,
+	[AnnoRiferimento] [int] NOT NULL,
+	[MeseRiferimento] [int] NOT NULL,
+	[CausaleFattura] [nvarchar](250) NULL,
+	[Sollecito] [nvarchar](250) NULL,
+	[CodiceContratto] [nvarchar](50) NULL,
+	[SplitPayment] [bit] NULL,
+	[Cup] [nvarchar](15) NULL,
+	[Cig] [nvarchar](10) NULL,
+	[IdDocumento] [nvarchar](20) NULL,
+	[DataDocumento] [datetime] NULL,
+	[NumItem] [nvarchar](50) NULL,
+	[CodCommessa] [nvarchar](100) NULL,
+	[Progressivo] [bigint] NULL,
+	[FatturaInviata] [bit] NULL,
+	[Semestre] [nvarchar](15) NULL,
+	[FlagProceduraWhiteList] [bit] NOT NULL CONSTRAINT [DF_tmpFattureTestata_Eliminate_FlagProceduraWhiteList] DEFAULT ((0))
+);
 GO
-CREATE PROCEDURE pfd.EliminaFattura @IdFattura INT
-AS
-BEGIN
-    SET NOCOUNT ON;
-    -- Stub: simula solo l'esito di successo. NON popola pfd.FattureTestata_Eliminate: nel flusso reale
-    -- lo spostamento in _Eliminate avviene lato processo DATA (dopo il calcolo), non in questa SP sincrona.
-    -- Questo e' coerente con RF06 (una pre-eliminata, prima del calcolo DATA, resta cancellabile).
-    RETURN 1; -- successo (>0)
-END
+
+-- pfd.tmpFattureRighe_Eliminate: destinazione dell'INSERT righe tmp della SP reale (mirror di tmpFattureRighe).
+IF OBJECT_ID('pfd.tmpFattureRighe_Eliminate', 'U') IS NULL
+CREATE TABLE [pfd].[tmpFattureRighe_Eliminate](
+	[FkIdFattura] [bigint] NOT NULL,
+	[NumeroLinea] [int] NOT NULL,
+	[Testo] [nvarchar](max) NULL,
+	[CodiceMateriale] [nvarchar](100) NOT NULL,
+	[Quantita] [int] NOT NULL,
+	[PrezzoUnitario] [float] NOT NULL,
+	[Imponibile] [float] NOT NULL,
+	[RigaBollo] [bit] NOT NULL,
+	[PeriodoRiferimento] [nvarchar](7) NULL
+);
+GO
+
+-- pfd.CreditoSospesoStorico: la SP reale la usa SOLO in "DELETE ... WHERE FkIdFattura = @IdFattura".
+-- DDL minimale plausibile (il team DB non ha ancora fornito quello reale): basta FkIdFattura per la DELETE;
+-- le altre colonne sono indicative. SENZA vincoli/righe seed -> la DELETE trova 0 righe, nessun errore.
+IF OBJECT_ID('pfd.CreditoSospesoStorico', 'U') IS NULL
+CREATE TABLE [pfd].[CreditoSospesoStorico](
+	[FkIdEnte] [nvarchar](100) NULL,
+	[AnnoRiferimento] [int] NULL,
+	[MeseRiferimento] [int] NULL,
+	[FKTipologiaFattura] [nvarchar](15) NULL,
+	[FkIdFattura] [bigint] NULL,
+	[Importo] [decimal](9, 2) NULL,
+	[DataMovimento] [datetime] NULL
+);
 GO
 
 -- Seed deterministico: fatture non inviate.
@@ -364,4 +423,283 @@ INSERT INTO pfd.FattureRighe
 VALUES
  (4001, 1, 'riga post 1', 'MAT-A', 1, 500.00, 500.00, 0, '01/2024'),
  (4001, 2, 'riga post 2', 'MAT-B', 1, 300.00, 300.00, 0, '01/2024');
+GO
+
+-- Emessa "normale" per il ramo SelectView (Documenti Emessi non cancellate): 6001, CodiceContratto che
+-- matcha onboardingtokenid ente1, TotaleFattura>0, FatturaInviata=1 (fuori da vwDettaglioFattureDaInviare),
+-- NON in cfg.GestioneFatture. Periodo dedicato 2024/3.
+UPDATE pfd.Contratti SET onboardingtokenid = 'TOKEN-E1'
+ WHERE internalistitutionid = '11111111-1111-1111-1111-111111111111' AND onboardingtokenid IS NULL;
+GO
+SET IDENTITY_INSERT pfd.FattureTestata ON;
+IF NOT EXISTS (SELECT 1 FROM pfd.FattureTestata WHERE IdFattura = 6001)
+INSERT INTO pfd.FattureTestata
+ (IdFattura, FkIdEnte, FkTipologiaFattura, AnnoRiferimento, MeseRiferimento, FatturaInviata,
+  FkProdotto, FkIdTipoDocumento, DataFattura, IdentificativoFattura, TotaleFattura, Divisa, MetodoPagamento, Progressivo, CodiceContratto)
+VALUES
+ (6001, '11111111-1111-1111-1111-111111111111', 'SECONDO SALDO', 2024, 3, 1,
+  'prod-pn', 'TD01', '2024-03-01', 'IT-6001', 1000.00, 'EUR', 'MP5', 6001, 'TOKEN-E1');
+SET IDENTITY_INSERT pfd.FattureTestata OFF;
+IF NOT EXISTS (SELECT 1 FROM pfd.FattureRighe WHERE FkIdFattura = 6001)
+INSERT INTO pfd.FattureRighe
+ (FkIdFattura, NumeroLinea, Testo, CodiceMateriale, Quantita, PrezzoUnitario, Imponibile, RigaBollo, PeriodoRiferimento)
+VALUES
+ (6001, 1, 'riga emessa 1', 'MAT-A', 1, 1000.00, 1000.00, 0, '03/2024');
+GO
+
+-- =============================================================================================
+-- Report Fatture Sospese: tabelle tmp* + MesiFatture per be.vwFattureSospeseReport e
+-- be.vwFattureSospeseNoteReport (lette da FattureSospeseRelExcelHandler, 3 bucket view/union/note).
+-- DDL REALI forniti dal team DB; qui SENZA foreign key (convenzione del seed: no parent tables non
+-- usate come pfd.FattureTipoDocumento/FattureTipologia/pfw.Prodotti).
+-- Le tmpFatture* sono ISOLATE dalle pfd.FattureTestata "normali": nessuna interferenza con gli altri test.
+-- Periodo DEDICATO: Anno 2026 / Mese 2 / 'SECONDO SALDO' (coincide coi default Conf del test sospesi).
+-- =============================================================================================
+IF OBJECT_ID('pfd.tmpFattureTestata', 'U') IS NULL
+CREATE TABLE [pfd].[tmpFattureTestata](
+	[IdFattura] [bigint] IDENTITY(1,1) NOT NULL,
+	[FkProdotto] [nvarchar](15) NOT NULL,
+	[FkIdTipoDocumento] [nvarchar](4) NOT NULL,
+	[FkTipologiaFattura] [nvarchar](15) NOT NULL,
+	[FkIdEnte] [nvarchar](50) NOT NULL,
+	[FkIdDatiFatturazione] [bigint] NULL,
+	[DataFattura] [datetime2](7) NOT NULL,
+	[IdentificativoFattura] [nvarchar](50) NOT NULL,
+	[TotaleFattura] [float] NOT NULL,
+	[Divisa] [nvarchar](3) NOT NULL,
+	[MetodoPagamento] [nvarchar](3) NOT NULL,
+	[AnnoRiferimento] [int] NOT NULL,
+	[MeseRiferimento] [int] NOT NULL,
+	[CausaleFattura] [nvarchar](250) NULL,
+	[Sollecito] [nvarchar](250) NULL,
+	[CodiceContratto] [nvarchar](50) NULL,
+	[SplitPayment] [bit] NULL,
+	[Cup] [nvarchar](15) NULL,
+	[Cig] [nvarchar](10) NULL,
+	[IdDocumento] [nvarchar](20) NULL,
+	[DataDocumento] [datetime] NULL,
+	[NumItem] [nvarchar](50) NULL,
+	[CodCommessa] [nvarchar](100) NULL,
+	[Progressivo] [bigint] NULL,
+	[FatturaInviata] [bit] NULL CONSTRAINT [DF_tmpFattureTestata_FatturaInviata] DEFAULT ((0)),
+	[Semestre] [nvarchar](15) NULL,
+	[FlagFatturata] [bit] NOT NULL CONSTRAINT [DF_tmpFattureTestata_FlagFatturata] DEFAULT ((0)),
+ CONSTRAINT [PK_tmpFatturaTestata] PRIMARY KEY CLUSTERED ([IdFattura] ASC),
+ CONSTRAINT [UQ_tmpFattureTestata_Ente_Periodo_Tipologia] UNIQUE NONCLUSTERED
+	([FkIdEnte] ASC, [AnnoRiferimento] ASC, [MeseRiferimento] ASC, [FkTipologiaFattura] ASC)
+);
+GO
+
+IF OBJECT_ID('pfd.tmpFattureRighe', 'U') IS NULL
+CREATE TABLE [pfd].[tmpFattureRighe](
+	[FkIdFattura] [bigint] NOT NULL,
+	[NumeroLinea] [int] NOT NULL,
+	[Testo] [nvarchar](max) NULL,
+	[CodiceMateriale] [nvarchar](100) NOT NULL,
+	[Quantita] [int] NOT NULL,
+	[PrezzoUnitario] [float] NOT NULL,
+	[Imponibile] [float] NOT NULL,
+	[RigaBollo] [bit] NOT NULL,
+	[PeriodoRiferimento] [nvarchar](7) NULL
+);
+GO
+
+-- tmpRelTestata: le colonne Asseverazione* (non referenziate dalle viste sospese) sono omesse; nel seed
+-- la tabella resta VUOTA per il periodo -> il "NOT IN (rel)" del ramo note e' soddisfatto per tutti.
+IF OBJECT_ID('pfd.tmpRelTestata', 'U') IS NULL
+CREATE TABLE [pfd].[tmpRelTestata](
+	[internal_organization_id] [nvarchar](50) NOT NULL,
+	[contract_id] [nvarchar](200) NOT NULL,
+	[TipologiaFattura] [nvarchar](20) NOT NULL,
+	[year] [int] NOT NULL,
+	[month] [int] NOT NULL,
+	[TotaleAnalogico] [decimal](9, 2) NULL,
+	[TotaleDigitale] [decimal](9, 2) NULL,
+	[TotaleNotificheAnalogiche] [int] NULL,
+	[TotaleNotificheDigitali] [int] NULL,
+	[Totale] [decimal](9, 2) NULL,
+	[Iva] [decimal](4, 2) NOT NULL CONSTRAINT [DF_tmpRelTestata_Iva] DEFAULT ((22)),
+	[TotaleAnalogicoIva] [decimal](9, 2) NULL,
+	[TotaleDigitaleIva] [decimal](9, 2) NULL,
+	[TotaleIva] [decimal](9, 2) NULL,
+	[Caricata] [tinyint] NULL CONSTRAINT [DF_tmpRelTestata_Caricata] DEFAULT ((0)),
+	[RelFatturata] [bit] NOT NULL CONSTRAINT [DF_tmpRelTestata_RelFatturata] DEFAULT ((0)),
+	[FlagConguaglio] [nvarchar](25) NULL,
+ CONSTRAINT [PK_tmpRelTestata] PRIMARY KEY CLUSTERED
+	([internal_organization_id] ASC, [contract_id] ASC, [TipologiaFattura] ASC, [year] ASC, [month] ASC)
+);
+GO
+
+IF OBJECT_ID('pfd.MesiFatture', 'U') IS NULL
+CREATE TABLE [pfd].[MesiFatture](
+	[FkIdEnte] [nvarchar](100) NOT NULL,
+	[AnnoRiferimento] [int] NOT NULL,
+	[MeseRiferimento] [int] NOT NULL,
+	[FKTipologiaFattura] [nvarchar](15) NOT NULL,
+	[FkIdFattura] [bigint] NULL,
+	[FkIdFatturaTmp] [bigint] NOT NULL,
+	[FlagEliminata] [bit] NOT NULL CONSTRAINT [DF_MesiFatture_FlagEliminata] DEFAULT ((0)),
+ CONSTRAINT [PK_MesiFatture] PRIMARY KEY CLUSTERED
+	([FkIdEnte] ASC, [AnnoRiferimento] ASC, [MeseRiferimento] ASC, [FKTipologiaFattura] ASC, [FkIdFatturaTmp] ASC)
+);
+GO
+
+-- Ramo VIEW: 7001 ente1 (TOKEN-E1, PAC/tipo2), 2 righe non-storno, CON MesiFatture -> RelNonFirmata='Rel in attesa di firma'.
+-- Ramo NOTE: 7002 ente3 (TOKEN-E3, PAL/tipo1), riga STORNO, SENZA MesiFatture, SENZA rel -> RelNonFirmata=''.
+-- Nota: 7002 (mf NULL) compare anche nel ramo VIEW (RelNonFirmata='') -- corretto: la UNION dedupa.
+SET IDENTITY_INSERT pfd.tmpFattureTestata ON;
+IF NOT EXISTS (SELECT 1 FROM pfd.tmpFattureTestata WHERE IdFattura IN (7001,7002))
+INSERT INTO pfd.tmpFattureTestata
+ (IdFattura, FkProdotto, FkIdTipoDocumento, FkTipologiaFattura, FkIdEnte, DataFattura, IdentificativoFattura,
+  TotaleFattura, Divisa, MetodoPagamento, AnnoRiferimento, MeseRiferimento, CodiceContratto, Progressivo, FatturaInviata, FlagFatturata)
+VALUES
+ (7001, 'prod-pn', 'TD01', 'SECONDO SALDO', '11111111-1111-1111-1111-111111111111', '2026-02-01', 'IT-7001',
+  1000.00, 'EUR', 'MP5', 2026, 2, 'TOKEN-E1', 7001, 0, 0),
+ (7002, 'prod-pn', 'TD01', 'SECONDO SALDO', '33333333-3333-3333-3333-333333333333', '2026-02-01', 'IT-7002',
+  250.00,  'EUR', 'MP5', 2026, 2, 'TOKEN-E3', 7002, 0, 0);
+SET IDENTITY_INSERT pfd.tmpFattureTestata OFF;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM pfd.tmpFattureRighe WHERE FkIdFattura IN (7001,7002))
+INSERT INTO pfd.tmpFattureRighe
+ (FkIdFattura, NumeroLinea, Testo, CodiceMateriale, Quantita, PrezzoUnitario, Imponibile, RigaBollo, PeriodoRiferimento)
+VALUES
+ (7001, 1, 'riga sosp 1', 'MAT-A',          1, 400.00, 400.00, 0, '02/2026'),
+ (7001, 2, 'riga sosp 2', 'MAT-B',          1, 600.00, 600.00, 0, '02/2026'),
+ (7002, 1, 'storno ant',  'STORNO ANT. NA', 1, 250.00, 250.00, 0, '02/2026');
+GO
+
+-- Solo 7001 ha la riga MesiFatture (marker "rel in attesa di firma" per il contratto PAC/tipo2).
+IF NOT EXISTS (SELECT 1 FROM pfd.MesiFatture WHERE FkIdFatturaTmp = 7001)
+INSERT INTO pfd.MesiFatture (FkIdEnte, AnnoRiferimento, MeseRiferimento, FKTipologiaFattura, FkIdFattura, FkIdFatturaTmp, FlagEliminata)
+VALUES
+ ('11111111-1111-1111-1111-111111111111', 2026, 2, 'SECONDO SALDO', NULL, 7001, 0);
+GO
+
+-- =============================================================================================
+-- Report EMESSE non-sospese (extension ReportFatture -> FattureRelExcelQuery, che legge pfd.FattureTestata
+-- + FattureRighe + RelTestata + Contratti + TipoContratto). Serve una fattura "regolare" con RelTestata
+-- MATCHATA nello stesso periodo del seed sospesi (2026/2/SECONDO SALDO), cosi' il report genera i fogli
+-- "Regolari Esecuzioni"/"Enti Fatt." (che NON devono contenere 'Rel Non Firmata') mentre il sotto-foglio
+-- "...Sospesi" (da FattureRelSospeseExcelDto, dal seed tmp*) la contiene. Test: FattureReportEndpoint{E2E,Integration}Tests.
+-- pfd.RelUpload (assente nel seed) e' richiesta da RelNonFatturateQuery (SelectAll): solo LEFT JOIN -> tabella
+-- vuota. DDL reale fornito dal team DB (le colonne NOT NULL non danno fastidio: nessuna riga seedata).
+IF OBJECT_ID('pfd.RelUpload', 'U') IS NULL
+CREATE TABLE [pfd].[RelUpload](
+	[FkIdEnte] [nvarchar](50) NOT NULL,
+	[contract_id] [nvarchar](200) NOT NULL,
+	[TipologiaFattura] [nvarchar](20) NOT NULL,
+	[year] [int] NOT NULL,
+	[month] [int] NOT NULL,
+	[DataEvento] [datetime] NOT NULL,
+	[IdUtente] [nvarchar](255) NOT NULL,
+	[Azione] [nvarchar](5) NOT NULL,
+	[Hash] [nvarchar](128) NOT NULL
+);
+GO
+
+-- Fattura regolare 8001 (ente1/SECONDO SALDO/2026/2, TOKEN-E1). FatturaInviata=1 per NON finire in
+-- vwDettaglioFattureDaInviare. La riga NON e' storno -> non tocca i bucket storno.
+SET IDENTITY_INSERT pfd.FattureTestata ON;
+IF NOT EXISTS (SELECT 1 FROM pfd.FattureTestata WHERE IdFattura = 8001)
+INSERT INTO pfd.FattureTestata
+ (IdFattura, FkIdEnte, FkTipologiaFattura, AnnoRiferimento, MeseRiferimento, FatturaInviata,
+  FkProdotto, FkIdTipoDocumento, DataFattura, IdentificativoFattura, TotaleFattura, Divisa, MetodoPagamento, Progressivo, CodiceContratto)
+VALUES
+ (8001, '11111111-1111-1111-1111-111111111111', 'SECONDO SALDO', 2026, 2, 1,
+  'prod-pn', 'TD01', '2026-02-01', 'IT-8001', 1500.00, 'EUR', 'MP5', 8001, 'TOKEN-E1');
+SET IDENTITY_INSERT pfd.FattureTestata OFF;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM pfd.FattureRighe WHERE FkIdFattura = 8001)
+INSERT INTO pfd.FattureRighe
+ (FkIdFattura, NumeroLinea, Testo, CodiceMateriale, Quantita, PrezzoUnitario, Imponibile, RigaBollo, PeriodoRiferimento)
+VALUES
+ (8001, 1, 'riga report ss', 'MAT-A', 1, 1500.00, 1500.00, 0, '02/2026');
+GO
+
+-- RelTestata MATCHATA (org+contract+tipologia+anno+mese) richiesta dal WHERE di _sqlRel; caricata=0/relfatturata=0.
+IF NOT EXISTS (SELECT 1 FROM pfd.RelTestata WHERE internal_organization_id='11111111-1111-1111-1111-111111111111' AND [year]=2026 AND [month]=2 AND TipologiaFattura='SECONDO SALDO')
+INSERT INTO pfd.RelTestata
+ (internal_organization_id, contract_id, TipologiaFattura, [year], [month], TotaleAnalogico, TotaleDigitale,
+  TotaleNotificheAnalogiche, TotaleNotificheDigitali, Totale, TotaleAnalogicoIva, TotaleDigitaleIva, TotaleIva, Caricata, RelFatturata)
+VALUES
+ ('11111111-1111-1111-1111-111111111111', 'TOKEN-E1', 'SECONDO SALDO', 2026, 2, 100.00, 200.00, 10, 20, 300.00, 122.00, 244.00, 366.00, 0, 0);
+GO
+
+-- =============================================================================================
+-- Regressione CASING ente (fix match case-insensitive in FattureQueryRicercaPersistence).
+-- Posticipata 2026/7: cfg.GestioneFatture.FkIdEnte in MAIUSCOLO mentre pfd.Enti/FattureTestata/Contratti
+-- sono lowercase. Le JOIN SQL della vista sono case-insensitive -> la riga esce con istitutioID MAIUSCOLO;
+-- il match C# case-sensitive la scartava (404). GUID con lettere hex per rendere il casing significativo.
+-- =============================================================================================
+IF NOT EXISTS (SELECT 1 FROM pfd.Enti WHERE InternalIstitutionId = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee')
+INSERT INTO pfd.Enti (InternalIstitutionId, description) VALUES
+ ('aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', 'Ente Casing Test');
+
+IF NOT EXISTS (SELECT 1 FROM pfd.Contratti WHERE internalistitutionid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee')
+INSERT INTO pfd.Contratti (internalistitutionid, FkIdTipoContratto, onboardingtokenid) VALUES
+ ('aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', 2, 'TOKEN-CASE');
+GO
+
+-- FattureTestata lowercase (system-of-record) per il periodo della posticipata; la vista LEFT JOINa ft
+-- su gf.FkIdEnte=ft.FkIdEnte (case-insensitive) e ne serve l'INNER con FatturaTestataConfig.
+SET IDENTITY_INSERT pfd.FattureTestata ON;
+IF NOT EXISTS (SELECT 1 FROM pfd.FattureTestata WHERE IdFattura = 9101)
+INSERT INTO pfd.FattureTestata
+ (IdFattura, FkIdEnte, FkTipologiaFattura, AnnoRiferimento, MeseRiferimento, FatturaInviata,
+  FkProdotto, FkIdTipoDocumento, DataFattura, IdentificativoFattura, TotaleFattura, Divisa, MetodoPagamento, Progressivo, CodiceContratto)
+VALUES
+ (9101, 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', 'SECONDO SALDO', 2026, 7, 0,
+  'prod-pn', 'TD01', '2026-07-01', 'IT-9101', 700.00, 'EUR', 'MP5', 9101, 'TOKEN-CASE');
+SET IDENTITY_INSERT pfd.FattureTestata OFF;
+
+IF NOT EXISTS (SELECT 1 FROM pfd.FattureRighe WHERE FkIdFattura = 9101)
+INSERT INTO pfd.FattureRighe
+ (FkIdFattura, NumeroLinea, Testo, CodiceMateriale, Quantita, PrezzoUnitario, Imponibile, RigaBollo, PeriodoRiferimento)
+VALUES
+ (9101, 1, 'riga casing', 'MAT-A', 1, 700.00, 700.00, 0, '07/2026');
+GO
+
+-- cfg.GestioneFatture: FkIdEnte in MAIUSCOLO (il bug: casing diverso da pfd.Enti). Stato=0 (POSTICIPATA).
+-- La vista emette [fattura.istitutioID] = gf.FkIdEnte (MAIUSCOLO) e [fattura.idfattura] = gf.FkIdFattura (9101).
+IF NOT EXISTS (SELECT 1 FROM cfg.GestioneFatture WHERE FkIdFattura = 9101)
+INSERT INTO cfg.GestioneFatture (FkIdFattura, FkIdEnte, FkTipologiaFattura, Anno, Mese, DataInserimento, IdUtenteInserimento, Stato, Azione, Note)
+VALUES
+ (9101, 'AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE', 'SECONDO SALDO', 2026, 7, GETDATE(), 'seed', 0, 'POSTICIPATA', N'[]');
+GO
+
+-- =============================================================================================
+-- Effetto azioni sulle liste: RIPRISTINATA (Stato=1) e CANCELLATA (Stato=2) devono RIENTRARE nella
+-- ricerca EMESSE (SelectView filtra gf.Stato <> 0 OR IS NULL), a differenza della POSTICIPATA (Stato=0).
+-- Inoltre servono a evidenziare la discrepanza col vwDettaglioFattureDaInviare (che esclude QUALUNQUE riga
+-- in cfg.GestioneFatture): una ripristinata compare in emesse ma resta esclusa dal "da inviare".
+-- Periodi dedicati ente1 2024/5 e 2024/6, FatturaInviata=0 (candidate anche a "da inviare"). TOKEN-E1.
+-- =============================================================================================
+SET IDENTITY_INSERT pfd.FattureTestata ON;
+IF NOT EXISTS (SELECT 1 FROM pfd.FattureTestata WHERE IdFattura IN (6002,6003))
+INSERT INTO pfd.FattureTestata
+ (IdFattura, FkIdEnte, FkTipologiaFattura, AnnoRiferimento, MeseRiferimento, FatturaInviata,
+  FkProdotto, FkIdTipoDocumento, DataFattura, IdentificativoFattura, TotaleFattura, Divisa, MetodoPagamento, Progressivo, CodiceContratto)
+VALUES
+ (6002, '11111111-1111-1111-1111-111111111111', 'SECONDO SALDO', 2024, 5, 0,
+  'prod-pn', 'TD01', '2024-05-01', 'IT-6002', 900.00, 'EUR', 'MP5', 6002, 'TOKEN-E1'),
+ (6003, '11111111-1111-1111-1111-111111111111', 'SECONDO SALDO', 2024, 6, 0,
+  'prod-pn', 'TD01', '2024-06-01', 'IT-6003', 950.00, 'EUR', 'MP5', 6003, 'TOKEN-E1');
+SET IDENTITY_INSERT pfd.FattureTestata OFF;
+
+IF NOT EXISTS (SELECT 1 FROM pfd.FattureRighe WHERE FkIdFattura IN (6002,6003))
+INSERT INTO pfd.FattureRighe
+ (FkIdFattura, NumeroLinea, Testo, CodiceMateriale, Quantita, PrezzoUnitario, Imponibile, RigaBollo, PeriodoRiferimento)
+VALUES
+ (6002, 1, 'riga ripristinata', 'MAT-A', 1, 900.00, 900.00, 0, '05/2024'),
+ (6003, 1, 'riga cancellata',   'MAT-A', 1, 950.00, 950.00, 0, '06/2024');
+GO
+
+-- cfg: 6002 RIPRISTINATA (Stato=1), 6003 CANCELLATA (Stato=2) sugli stessi periodi.
+IF NOT EXISTS (SELECT 1 FROM cfg.GestioneFatture WHERE FkIdFattura IN (6002,6003))
+INSERT INTO cfg.GestioneFatture (FkIdFattura, FkIdEnte, FkTipologiaFattura, Anno, Mese, DataInserimento, DataRipristino, DataCancellazione, IdUtenteInserimento, Stato, Azione, Note)
+VALUES
+ (6002, '11111111-1111-1111-1111-111111111111', 'SECONDO SALDO', 2024, 5, GETDATE(), GETDATE(), NULL,      'seed', 1, 'RIPRISTINATA', N'[]'),
+ (6003, '11111111-1111-1111-1111-111111111111', 'SECONDO SALDO', 2024, 6, GETDATE(), NULL,      GETDATE(), 'seed', 2, 'CANCELLATA',   N'[]');
 GO

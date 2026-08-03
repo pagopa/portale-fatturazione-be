@@ -121,6 +121,15 @@ public class GestioneFattureRequisitiIntegrationTests
             // Dopo il fix ELIMINA la riga cfg.GestioneFatture ha FkIdFattura NULL (chiave = periodo):
             // si legge lo Stato per PERIODO, non per FkIdFattura.
             Assert.That(ReadStatoByPeriod(ente, tipologia, 2026, mese), Is.EqualTo(3), "Stato atteso = 3 (ELIMINATA).");
+            // Con la SP reale pfd.EliminaFattura (non piu' lo stub RETURN 1) la fattura ESISTENTE viene
+            // spostata fisicamente in pfd.FattureTestata_Eliminate e rimossa da pfd.FattureTestata.
+            Assert.Multiple(() =>
+            {
+                Assert.That(CountInEliminate(idFattura), Is.EqualTo(1),
+                    "La fattura deve essere stata spostata in pfd.FattureTestata_Eliminate.");
+                Assert.That(CountInTestata(idFattura), Is.EqualTo(0),
+                    "La fattura deve essere stata rimossa da pfd.FattureTestata.");
+            });
         }
         finally { RestoreEliminata(seed); }
     }
@@ -157,19 +166,25 @@ public class GestioneFattureRequisitiIntegrationTests
     [Test]
     public async Task Cancella_OnEliminata_ShouldSucceed_PerRF06()
     {
-        // RF06: una fattura pre-ELIMINATA puo' essere CANCELLATA (rimedio a errore admin).
-        var seed = SnapshotFattura(2002);
+        // RF06: una fattura PRE-ELIMINATA (riga cfg.GestioneFatture con Stato=3 ma NON ancora spostata in
+        // pfd.FattureTestata_Eliminate) puo' essere CANCELLATA (rimedio a errore admin).
+        // NB (aggiornato alla SP reale pfd.EliminaFattura, che rimpiazza lo stub): ELIMINARE una fattura
+        // ESISTENTE la sposta SUBITO in _Eliminate, e allora la Cancella la rifiuta (Result 0) -- e' il
+        // contratto corretto, verificato da Cancella_QuandoFatturaGiaInEliminate_ShouldReturn0_PerRF06.
+        // Lo stato "pre-eliminata NON in _Eliminate" si ottiene percio' ELIMINANDO un PERIODO SENZA fattura
+        // ancora generata: e' il ramo ELSE di be.spGestioneFattureElimina, che NON chiama pfd.EliminaFattura
+        // e inserisce solo la riga cfg Stato=3 (nessuno spostamento fisico).
+        const int anno = 1998, mese = 12; // periodo dedicato: nessuna FattureTestata ne' riga _Eliminate nel seed
         try
         {
-            Assert.That(await Send("ELIMINA", 2002, 2026, 5, Ente3, "ACCONTO"), Is.EqualTo(1));
-            // Dopo ELIMINA la riga ha FkIdFattura NULL: lettura e CANCELLA per PERIODO (idFattura null),
-            // altrimenti il filtro 'gf.FkIdFattura = @IdFattura' della Cancella non troverebbe la riga.
-            Assert.That(ReadStatoByPeriod(Ente3, "ACCONTO", 2026, 5), Is.EqualTo(3));
-            var r = await Send("CANCELLA", idFattura: null, 2026, 5, Ente3, "ACCONTO");
-            Assert.That(r, Is.EqualTo(1), "CANCELLA su una ELIMINATA (Stato=3) deve riuscire (RF06).");
-            Assert.That(ReadStatoByPeriod(Ente3, "ACCONTO", 2026, 5), Is.EqualTo(2), "Stato atteso = 2 (CANCELLATA).");
+            Assert.That(await Send("ELIMINA", idFattura: null, anno, mese, Ente3, "ACCONTO"), Is.EqualTo(1),
+                "ELIMINA pre-generazione (periodo senza fattura) deve creare la riga Stato=3.");
+            Assert.That(ReadStatoByPeriod(Ente3, "ACCONTO", anno, mese), Is.EqualTo(3));
+            var r = await Send("CANCELLA", idFattura: null, anno, mese, Ente3, "ACCONTO");
+            Assert.That(r, Is.EqualTo(1), "CANCELLA su una pre-ELIMINATA (Stato=3, non in _Eliminate) deve riuscire (RF06).");
+            Assert.That(ReadStatoByPeriod(Ente3, "ACCONTO", anno, mese), Is.EqualTo(2), "Stato atteso = 2 (CANCELLATA).");
         }
-        finally { RestoreEliminata(seed); }
+        finally { CleanupByPeriod(Ente3, "ACCONTO", anno, mese); }
     }
 
     // ---------- 3) REQUISITO: posticipa PRE-GENERAZIONE ----------
@@ -448,6 +463,13 @@ public class GestioneFattureRequisitiIntegrationTests
         "DELETE FROM pfd.FattureTestata_Eliminate WHERE FkIdEnte=@e AND FkTipologiaFattura=@t AND AnnoRiferimento=@a AND MeseRiferimento=@m",
         ("@e", ente), ("@t", tip), ("@a", anno), ("@m", mese));
 
+    // Verifica dello spostamento fisico operato dalla SP reale pfd.EliminaFattura.
+    private int CountInEliminate(long idFattura) => Scalar<int>(
+        "SELECT COUNT(*) FROM pfd.FattureTestata_Eliminate WHERE IdFattura=@id", ("@id", idFattura), 0);
+
+    private int CountInTestata(long idFattura) => Scalar<int>(
+        "SELECT COUNT(*) FROM pfd.FattureTestata WHERE IdFattura=@id", ("@id", idFattura), 0);
+
     // ---------- helper ----------
 
     private Task<int?> Send(string azione, int? idFattura, int anno, int mese, string ente, string tipologia, string testo = "itest") =>
@@ -517,6 +539,69 @@ public class GestioneFattureRequisitiIntegrationTests
     /// Rimuove la riga di cfg.GestioneFatture per la fattura specificata (chiave FkIdFattura). Best-effort: ignora errori SQL.
     /// </summary>
     /// <param name="idFattura">L'identificativo della fattura da rimuovere.</param>
+    // ---------- Coesistenza PK: Posticipa + Elimina sullo stesso periodo ----------
+
+    [Test]
+    public async Task PosticipaPoiElimina_INPSPrimoSaldo_StessoPeriodo_EliminaSovrascriveLaPosticipata()
+    {
+        // La PRIMARY KEY (FkIdEnte, FkTipologiaFattura, Anno, Mese, Stato) PERMETTEREBBE due righe (Stato=0 e
+        // Stato=3) sullo stesso periodo, MA la logica delle SP no: il MERGE/UPSERT dell'Elimina e' chiavato sul
+        // periodo (Ente/Tipologia/Anno/Mese) SENZA Stato, quindi ELIMINA dopo POSTICIPA SOVRASCRIVE la riga
+        // (0 -> 3) invece di aggiungerne una. Non coesistono: resta UNA sola riga, Stato=3.
+        // Caso raggiungibile solo con INPS + PRIMO SALDO (unica tipologia posticipabile E eliminabile).
+        // Comportamento verificato eseguendo le SP direttamente sul container.
+        const int anno = 2027, mese = 11;
+        CleanupByPeriod(EnteInps, "PRIMO SALDO", anno, mese);
+        try
+        {
+            var post = await Send("POSTICIPA", null, anno, mese, EnteInps, "PRIMO SALDO");
+            Assert.Multiple(() =>
+            {
+                Assert.That(post, Is.EqualTo(1), "POSTICIPA su INPS/PRIMO SALDO riesce (Result 1).");
+                Assert.That(CountStato(EnteInps, "PRIMO SALDO", anno, mese, 0), Is.EqualTo(1), "Dopo la posticipa c'e' la riga Stato=0.");
+            });
+
+            var elim = await Send("ELIMINA", null, anno, mese, EnteInps, "PRIMO SALDO");
+            Assert.Multiple(() =>
+            {
+                Assert.That(elim, Is.EqualTo(1), "ELIMINA su INPS/PRIMO SALDO riesce (Result 1).");
+                Assert.That(CountStato(EnteInps, "PRIMO SALDO", anno, mese, 0), Is.EqualTo(0),
+                    "La posticipata (Stato=0) NON sopravvive: l'Elimina l'ha sovrascritta (MERGE per periodo, senza Stato).");
+                Assert.That(CountStato(EnteInps, "PRIMO SALDO", anno, mese, 3), Is.EqualTo(1), "Resta la sola riga Stato=3 (ELIMINATA).");
+                Assert.That(TotaleRighePeriodo(EnteInps, "PRIMO SALDO", anno, mese), Is.EqualTo(1),
+                    "Le due azioni NON coesistono: una sola riga (la PK lo permetterebbe, la logica SP no).");
+            });
+        }
+        finally { CleanupByPeriod(EnteInps, "PRIMO SALDO", anno, mese); }
+    }
+
+    private int CountStato(string ente, string tip, int anno, int mese, int stato)
+    {
+        using var conn = new SqlConnection(Conn);
+        conn.Open();
+        using var cmd = new SqlCommand(
+            "SELECT COUNT(*) FROM cfg.GestioneFatture WHERE FkIdEnte=@e AND FkTipologiaFattura=@t AND Anno=@a AND Mese=@m AND Stato=@s", conn);
+        cmd.Parameters.AddWithValue("@e", ente);
+        cmd.Parameters.AddWithValue("@t", tip);
+        cmd.Parameters.AddWithValue("@a", anno);
+        cmd.Parameters.AddWithValue("@m", mese);
+        cmd.Parameters.AddWithValue("@s", stato);
+        return Convert.ToInt32(cmd.ExecuteScalar());
+    }
+
+    private int TotaleRighePeriodo(string ente, string tip, int anno, int mese)
+    {
+        using var conn = new SqlConnection(Conn);
+        conn.Open();
+        using var cmd = new SqlCommand(
+            "SELECT COUNT(*) FROM cfg.GestioneFatture WHERE FkIdEnte=@e AND FkTipologiaFattura=@t AND Anno=@a AND Mese=@m", conn);
+        cmd.Parameters.AddWithValue("@e", ente);
+        cmd.Parameters.AddWithValue("@t", tip);
+        cmd.Parameters.AddWithValue("@a", anno);
+        cmd.Parameters.AddWithValue("@m", mese);
+        return Convert.ToInt32(cmd.ExecuteScalar());
+    }
+
     private void Cleanup(long idFattura) => Exec("DELETE FROM cfg.GestioneFatture WHERE FkIdFattura=@id", ("@id", idFattura));
 
     /// <summary>
@@ -547,25 +632,11 @@ public class GestioneFattureRequisitiIntegrationTests
         return r.Read() ? new Fatt(r.GetInt64(0), r.GetString(1), r.GetString(2), r.GetInt32(3), r.GetInt32(4)) : default;
     }
 
-    private void RestoreEliminata(Fatt f)
-    {
-        if (f.Id == 0) return;
-        Cleanup(f.Id);
-        // Dopo ELIMINA la riga cfg ha FkIdFattura NULL: Cleanup(f.Id) non la rimuove -> pulizia per periodo.
-        CleanupByPeriod(f.Ente, f.Tip, f.Anno, f.Mese);
-        Exec("DELETE FROM pfd.FattureTestata_Eliminate WHERE IdFattura=@id", ("@id", f.Id));
-        // IdFattura e' IDENTITY (DDL reale): serve IDENTITY_INSERT per rimettere lo stesso id, e vanno
-        // valorizzate le colonne NOT NULL della tabella vera.
-        Exec(@"IF NOT EXISTS (SELECT 1 FROM pfd.FattureTestata WHERE IdFattura=@id)
-               BEGIN
-                 SET IDENTITY_INSERT pfd.FattureTestata ON;
-                 INSERT INTO pfd.FattureTestata
-                    (IdFattura,FkIdEnte,FkTipologiaFattura,AnnoRiferimento,MeseRiferimento,FatturaInviata,
-                     FkProdotto,FkIdTipoDocumento,DataFattura,IdentificativoFattura,TotaleFattura,Divisa,MetodoPagamento,Progressivo)
-                 VALUES(@id,@e,@t,@a,@m,0,
-                     'prod-pn','TD01','2026-01-01',CONCAT('IT-',@id),100.00,'EUR','MP5',@id);
-                 SET IDENTITY_INSERT pfd.FattureTestata OFF;
-               END",
-            ("@id", f.Id), ("@e", f.Ente), ("@t", f.Tip), ("@a", f.Anno), ("@m", f.Mese));
-    }
+    // Il ripristino vive in FattureSeedRestore: ricopia la riga ORIGINALE da pfd.FattureTestata_Eliminate
+    // (dove la SP reale l'ha spostata) invece di ricrearla con valori segnaposto. La versione precedente
+    // reinseriva TotaleFattura=100.00/DataFattura='2026-01-01', quindi ogni ELIMINA su una fattura seed ne
+    // alterava in modo permanente gli importi e faceva fallire le fixture che li asseriscono
+    // (es. FattureInvioSapMultiploPeriodoIntegrationTests, che si aspetta 305.00 sulla 2001).
+    private void RestoreEliminata(Fatt f) =>
+        FattureSeedRestore.RipristinaDopoElimina(Conn, f.Id, f.Ente, f.Tip, f.Anno, f.Mese);
 }
