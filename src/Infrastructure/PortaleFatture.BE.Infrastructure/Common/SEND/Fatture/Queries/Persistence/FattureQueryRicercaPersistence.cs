@@ -38,10 +38,11 @@ public class FattureQueryRicercaPersistence(FattureQueryRicerca command) : Dappe
         };
 
         using var values = await ((IDatabase)this).QueryMultipleAsync<FattureListaDto>(
-        connection!,
-        sql,
-        query,
-        transaction);
+            connection!,
+            sql,
+            query,
+            transaction);
+
         var enti = await values.ReadAsync<EnteContrattoDto>();
         var fatture = await values.ReadFirstAsync<FattureListaDto>();
 
@@ -50,7 +51,11 @@ public class FattureQueryRicercaPersistence(FattureQueryRicerca command) : Dappe
 
         foreach (var f in fatture)
         {
-            var ente = enti.Where(x => x.IdEnte == f.fattura!.IstitutioID).FirstOrDefault();
+            // Match ente case-insensitive: SQL Server confronta i GUID case-insensitive, quindi la vista
+            // (be.vwDocumentiEmessiNonFatturati) puo' restituire un IstitutioID con casing diverso da
+            // pfd.Enti (es. FkIdEnte maiuscolo in cfg.GestioneFatture). Un '==' case-sensitive scartava la
+            // riga -> lista vuota -> 404. Vedi FattureRicercaApiIntegrationTests.NonFatturate_CasingEnteDiverso.
+            var ente = enti.FirstOrDefault(x => string.Equals(x.IdEnte, f.fattura!.IstitutioID, StringComparison.OrdinalIgnoreCase));
             if (ente != null)
             {
                 computedFatture.Add(f);
