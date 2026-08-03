@@ -44,7 +44,8 @@ public class FattureRicercaApiIntegrationTests
     { IdEnte = Guid.NewGuid().ToString(), Prodotto = "prod-pn", Ruolo = Ruolo.ADMIN, IdTipoContratto = 1 };
 
     private async Task<List<TitoloFatturaDto>> Query(bool cancellata, int anno, int mese,
-        string[]? tipologia = null, int? fkIdTipoContratto = null, int? fatturaInviata = null)
+        string[]? tipologia = null, int? fkIdTipoContratto = null, int? fatturaInviata = null,
+        string[]? idEnti = null)
     {
         var res = await _handler.Send(new FattureQueryRicerca(AdminAuth())
         {
@@ -53,7 +54,8 @@ public class FattureRicercaApiIntegrationTests
             Mese = mese,
             TipologiaFattura = tipologia,
             FkIdTipoContratto = fkIdTipoContratto,
-            FatturaInviata = fatturaInviata
+            FatturaInviata = fatturaInviata,
+            IdEnti = idEnti
         });
         return (res ?? new FattureListaDto()).Select(x => x.fattura!).ToList();
     }
@@ -203,6 +205,79 @@ public class FattureRicercaApiIntegrationTests
             Assert.That(nonFatt2024_3.Any(x => x.IdFattura == 6001), Is.False, "L'emessa 6001 non e' 'Non Fatturata'.");
             Assert.That(nonFatt2024_2.Any(x => x.IdFattura == 5001), Is.True);
             Assert.That(emesse2024_2.Any(x => x.IdFattura == 5001), Is.False, "L'eliminata 5001 non e' tra le emesse.");
+        });
+    }
+
+    // =================== Regressione CASING ente (match case-insensitive) ===================
+
+    [Test]
+    public async Task NonFatturate_CasingEnteDiverso_VieneComunqueRestituita()
+    {
+        // La posticipata 9101 (2026/7) ha cfg.GestioneFatture.FkIdEnte in MAIUSCOLO mentre pfd.Enti e'
+        // lowercase. La vista (JOIN SQL case-insensitive) la restituisce con istitutioID MAIUSCOLO; il
+        // match C# con EnteSQLBuilder (IdEnte lowercase) DEVE essere case-insensitive, altrimenti la riga
+        // viene scartata -> lista vuota -> 404 (era il bug reale su api/fatture?Cancellata=true).
+        var f = (await Query(true, 2026, 7)).SingleOrDefault(x => x.IdFattura == 9101);
+
+        Assert.That(f, Is.Not.Null, "La Non Fatturata con casing ente diverso deve essere restituita (match case-insensitive).");
+        Assert.Multiple(() =>
+        {
+            Assert.That(f!.Inviata, Is.EqualTo(4), "Posticipata -> marker inviata=4.");
+            Assert.That(f.TipologiaFattura, Is.EqualTo("SECONDO SALDO"));
+            Assert.That(f.RagioneSociale, Is.EqualTo("Ente Casing Test"),
+                "L'enrichment ente deve popolare la RagioneSociale nonostante il casing diverso.");
+        });
+    }
+
+    // =================== Casi "rompi api/fatture" (robustezza di PostFattureByRicercaAsync) ===================
+
+    [Test]
+    public async Task NonFatturate_PeriodoAssurdo_NonLancia_RestituisceVuoto()
+        // Mese 13 / anno lontano: la query deve eseguire senza eccezioni e tornare vuoto (endpoint -> 404).
+        => Assert.That(await Query(true, 1999, 13), Is.Empty);
+
+    [Test]
+    public async Task Emesse_PeriodoAssurdo_NonLancia_RestituisceVuoto()
+        => Assert.That(await Query(false, 1999, 13), Is.Empty);
+
+    [Test]
+    public async Task NonFatturate_FiltroIdEnti_NonMatchante_RestituisceVuoto()
+    {
+        var rows = await Query(true, 2026, 7, idEnti: new[] { "00000000-0000-0000-0000-000000000000" });
+        Assert.That(rows, Is.Empty, "Un IdEnti che non matcha nessun ente svuota il risultato (nessun 500).");
+    }
+
+    [Test]
+    public async Task NonFatturate_FiltroIdEnti_Matchante_RestituisceSoloQuellEnte()
+    {
+        // Ente della posticipata casing (lowercase, come pfd.Enti): filtro IdEnti + enrichment case-insensitive.
+        var rows = await Query(true, 2026, 7, idEnti: new[] { "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee" });
+        Assert.That(rows.Select(x => x.IdFattura), Is.EqualTo(new long?[] { 9101 }));
+    }
+
+    [Test]
+    public async Task NonFatturate_FatturaInviata_IgnorataSulRamoNonFatturate()
+    {
+        // Il ramo NON FATTURATE non applica @FatturaInviata (la vista espone marker 3/4, non lo stato reale):
+        // 0 e 1 devono dare lo stesso insieme non vuoto.
+        var a = (await Query(true, 2024, 2, fatturaInviata: 0)).Select(x => x.IdFattura).OrderBy(x => x).ToList();
+        var b = (await Query(true, 2024, 2, fatturaInviata: 1)).Select(x => x.IdFattura).OrderBy(x => x).ToList();
+        Assert.That(a, Is.EqualTo(b).And.Not.Empty);
+    }
+
+    [Test]
+    public async Task Emesse_FkIdTipoContrattoInesistente_RestituisceVuoto()
+        => Assert.That(await Query(false, 2024, 3, fkIdTipoContratto: 999), Is.Empty);
+
+    [Test]
+    public async Task NonFatturate_TipologiaMultiplaMista_RestituisceSoloLeMatchanti()
+    {
+        // Tipologia valida + inesistente nello stesso IN: torna solo la valida, nessun errore.
+        var rows = await Query(true, 2024, 2, tipologia: new[] { "ANTICIPO", "__NO_MATCH__" });
+        Assert.Multiple(() =>
+        {
+            Assert.That(rows.Any(x => x.IdFattura == 5001), Is.True, "L'ANTICIPO 5001 deve esserci.");
+            Assert.That(rows.All(x => x.TipologiaFattura == "ANTICIPO"), Is.True, "Nessuna tipologia diversa.");
         });
     }
 }
