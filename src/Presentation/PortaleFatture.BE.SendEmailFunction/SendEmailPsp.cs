@@ -129,7 +129,8 @@ public class SendEmailPsp(ILoggerFactory loggerFactory)
             }
 
             var apiKeyFilePath = builder.ApiKeyFilePath();
-            _logger.LogInformation("PSP recipients loaded: {RecipientCount}", psps!.Count());
+            int recipientCounter = psps!.Count();
+            _logger.LogInformation("PSP recipients loaded: {RecipientCount}", recipientCounter);
 
             // /!\ pausa fissa di 1 minuto senza motivazione documentata — verificare se serve ancora, poi rimuovere o rendere configurabile
             Thread.Sleep(60000); // 1 minuto
