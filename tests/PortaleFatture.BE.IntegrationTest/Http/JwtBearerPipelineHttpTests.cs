@@ -109,19 +109,47 @@ public class JwtBearerPipelineHttpTests
     }
 
     /// <summary>
-    /// Token valido con ruolo ammesso: si asserisce solo che auth e authorization siano superate
-    /// (ne' 401 ne' 403), non l'esito della rotta. Oggi infatti l'handler risponde 500 perche' il DB
-    /// seedato non ha la tabella pfw.Utenti che UtenteCreateCommand interroga ("Invalid object name
-    /// 'pfw.utenti'"): e' un buco del seed, estraneo alla pipeline di autenticazione. Se un domani
-    /// la tabella venisse aggiunta al seed, questo test resterebbe valido e si potrebbe irrigidire
-    /// l'asserzione a 200.
+    /// Token valido con ruolo ammesso: la richiesta arriva fino in fondo e la rotta risponde 200 con
+    /// il profilo. Fino al 06/08/2026 questo test si limitava a "ne' 401 ne' 403" perche' l'handler
+    /// finiva in 500: mancava dal seed la tabella pfw.Utenti, che UtenteCreateCommand interroga a ogni
+    /// chiamata. Aggiunta al seed, l'asserzione e' stata irrigidita — e' il caso BE-AUTH-04 del testbook.
     /// </summary>
     [Test]
-    public async Task TokenValidoConRuoloAdmin_ShouldPassAuthenticationAndAuthorization()
+    public async Task TokenValidoConRuoloAdmin_ShouldReturn200_ConProfilo()
     {
         var resp = await Get(_factory.Token(ruolo: Ruolo.ADMIN));
 
-        Assert.That(resp.StatusCode, Is.Not.EqualTo(HttpStatusCode.Unauthorized)
-                                       .And.Not.EqualTo(HttpStatusCode.Forbidden));
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+    }
+
+    /// <summary>
+    /// Effetto collaterale voluto del profilo: UtenteCreateCommand registra l'accesso su pfw.Utenti.
+    /// La tabella nasce vuota nel seed, quindi la riga che troviamo l'ha scritta la chiamata stessa.
+    /// </summary>
+    [Test]
+    public async Task Profilo_ShouldRegistrareAccessoSuUtenti()
+    {
+        (await Get(_factory.Token(ruolo: Ruolo.ADMIN))).EnsureSuccessStatusCode();
+
+        using var conn = new Microsoft.Data.SqlClient.SqlConnection(LocalTestDb.ConnectionString);
+        await conn.OpenAsync();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = "SELECT COUNT(*) FROM pfw.Utenti";
+
+        Assert.That((int)(await cmd.ExecuteScalarAsync())!, Is.GreaterThan(0),
+            "La chiamata al profilo deve aver registrato l'accesso dell'utente.");
+    }
+
+    /// <summary>
+    /// BE-AUTH-01: l'health check e' anonimo (AllowAnonymous) e in whitelist del nonce, quindi risponde
+    /// senza credenziali. Vale piu' di quanto sembri: distingue "l'applicazione non parte" da "questo
+    /// endpoint e' rotto" — se fallisce lui, ogni altro test rosso e' una conseguenza, non una causa.
+    /// </summary>
+    [Test]
+    public async Task Health_SenzaCredenziali_ShouldReturn200()
+    {
+        var resp = await _factory.CreateClient().GetAsync("/health");
+
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
     }
 }
