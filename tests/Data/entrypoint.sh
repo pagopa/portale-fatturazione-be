@@ -31,6 +31,13 @@ if [ "$1" = '/opt/mssql/bin/sqlservr' ]; then
       # ente/contratto con codiceSDI per i test su DatiFatturazione (PF-705)
       "$SQLCMD" -C -S localhost -U sa -P 52JdGnzZaANhf -d master -i /scripts/dati_fatturazione.sql
 
+      # notifiche + contestazioni (tabelle e seed 2026/3) per POST api/notifiche/pagopa
+      "$SQLCMD" -C -S localhost -U sa -P 52JdGnzZaANhf -d master -i /scripts/notifiche.sql
+
+      # modulo commessa: tabelle mancanti + seed 2026/4-5 per le rotte api/v2/modulocommessa/*
+      # (deve precedere views/, che contiene le 4 viste legacy pfd.v* dell'area)
+      "$SQLCMD" -C -S localhost -U sa -P 52JdGnzZaANhf -d master -i /scripts/modulo_commessa.sql
+
       # anteprima email PSP (stg.PspEmailPreview + colonne nullable su ppa.PspEmail): erano script
       # da lanciare a mano, quindi un rebuild del container li perdeva. Sono idempotenti.
       "$SQLCMD" -C -S localhost -U sa -P 52JdGnzZaANhf -d master -i /scripts/create_psp_email_preview_table.sql
