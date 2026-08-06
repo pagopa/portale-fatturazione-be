@@ -61,14 +61,25 @@ public class ApiTestFactory : WebApplicationFactory<Program>
         });
     }
 
-    /// <summary>Client che invia le richieste con il ruolo indicato (null = anonimo).</summary>
-    public HttpClient CreateClientAs(string? ruolo, string? idEnte = null)
+    /// <summary>
+    /// Client che invia le richieste con il ruolo indicato (null = anonimo).
+    ///
+    /// `auth` e `profilo` servono alle rotte lato ADERENTE: SelfCarePolicy pretende auth = SELFCARE
+    /// **piu'** un profilo fra quelli ammessi (PA, GSP, SCP, …). Lasciandoli al default si ottiene
+    /// l'identita' admin (PAGOPA), che su quelle rotte prende 403 — ed e' il comportamento voluto,
+    /// verificato da Http/PolicyAuthorizationHttpTests.
+    /// </summary>
+    public HttpClient CreateClientAs(string? ruolo, string? idEnte = null, string? auth = null, string? profilo = null)
     {
         var client = CreateClient();
         if (ruolo is not null)
             client.DefaultRequestHeaders.Add(TestAuthHandler.RoleHeader, ruolo);
         if (idEnte is not null)
             client.DefaultRequestHeaders.Add(TestAuthHandler.IdEnteHeader, idEnte);
+        if (auth is not null)
+            client.DefaultRequestHeaders.Add(TestAuthHandler.AuthHeader, auth);
+        if (profilo is not null)
+            client.DefaultRequestHeaders.Add(TestAuthHandler.ProfiloHeader, profilo);
         return client;
     }
 

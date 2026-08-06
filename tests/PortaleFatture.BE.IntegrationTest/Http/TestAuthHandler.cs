@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
@@ -26,6 +26,13 @@ public class TestAuthHandler(
     public const string AuthHeader = "X-Test-Auth";
     public const string IdEnteHeader = "X-Test-IdEnte";
 
+    /// <summary>
+    /// SelfCarePolicy pretende, oltre a auth = SELFCARE, un `profilo` fra quelli ammessi (PA, GSP,
+    /// SCP, PSP, AS, SA, PT). Il valore fisso "profilo-test" li fallisce tutti, quindi senza questo
+    /// header le rotte lato aderente rispondono 403 anche con l'identita' giusta.
+    /// </summary>
+    public const string ProfiloHeader = "X-Test-Profilo";
+
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
         if (!Request.Headers.TryGetValue(RoleHeader, out var ruoloHeader))
@@ -38,6 +45,9 @@ public class TestAuthHandler(
         var idEnte = Request.Headers.TryGetValue(IdEnteHeader, out var e) && !string.IsNullOrWhiteSpace(e)
             ? e.ToString()
             : "11111111-1111-1111-1111-111111111111";
+        var profilo = Request.Headers.TryGetValue(ProfiloHeader, out var p) && !string.IsNullOrWhiteSpace(p)
+            ? p.ToString()
+            : "profilo-test";
 
         var claims = new List<Claim>
         {
@@ -46,7 +56,7 @@ public class TestAuthHandler(
             new(ClaimTypes.Email, "test@pagopa.it"),
             new(CustomClaim.Auth, auth),
             new(CustomClaim.DescrizioneRuolo, ruolo),
-            new(CustomClaim.Profilo, "profilo-test"),
+            new(CustomClaim.Profilo, profilo),
             new(CustomClaim.Prodotto, "prod-pn"),
             new(CustomClaim.IdEnte, idEnte),
             new(CustomClaim.NomeEnte, "Ente Test"),

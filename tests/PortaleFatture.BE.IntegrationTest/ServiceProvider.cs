@@ -60,6 +60,13 @@ public static class ServiceProvider
         services.AddSingleton<ISelfCareHttpClient, SelfCareHttpClient>();
         services.AddSingleton<ISelfCareTokenService, SelfCareTokenService>();
 
+        // Serve agli handler dell'area ApiKeys, che cifrano la chiave prima di scriverla a DB: senza
+        // questa registrazione CreateORModifyApiKeyCommandHandler non si risolve affatto.
+        // La chiave e' fittizia e locale ai test (32 caratteri = AES-256). Non deve coincidere con
+        // quella reale: AesEncryption usa un IV a zero, quindi la cifratura e' DETERMINISTICA e i test
+        // possono ricalcolare il ciphertext per ritrovare la riga scritta.
+        services.AddSingleton<IAesEncryption>(new AesEncryption("chiave-di-test-32-caratteri-1234"));
+
         return services.BuildServiceProvider();
     }
 
