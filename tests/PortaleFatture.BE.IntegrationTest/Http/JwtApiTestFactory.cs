@@ -100,9 +100,12 @@ public class JwtApiTestFactory : ApiTestFactory
         string? issuer = null,
         string? audience = null,
         string? secret = null,
-        DateTime? scadenza = null)
+        DateTime? scadenza = null,
+        string auth = AuthType.SELFCARE,
+        string? profilo = null) // Profilo espone campi static, non const: non usabili come default
     {
         var jwt = ConfigurazioneJwt!;
+        profilo ??= Profilo.PubblicaAmministrazione;
 
         var credenziali = new SigningCredentials(
             new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret ?? jwt.Secret!)),
@@ -118,11 +121,11 @@ public class JwtApiTestFactory : ApiTestFactory
                 new Claim(CustomClaim.DescrizioneRuolo, ruolo),
                 new Claim(CustomClaim.IdEnte, "11111111-1111-1111-1111-111111111111"),
                 new Claim(CustomClaim.Prodotto, "prod-pn"),
-                new Claim(CustomClaim.Profilo, "PA"),
+                new Claim(CustomClaim.Profilo, profilo),
                 new Claim(CustomClaim.GruppoRuolo, "gruppo-test"),
                 new Claim(CustomClaim.NomeEnte, "Ente Test"),
                 new Claim(CustomClaim.IdTipoContratto, "1"),
-                new Claim(CustomClaim.Auth, AuthType.SELFCARE)
+                new Claim(CustomClaim.Auth, auth)
             ],
             notBefore: DateTime.UtcNow.AddMinutes(-5),
             expires: scadenza ?? DateTime.UtcNow.AddHours(1),
