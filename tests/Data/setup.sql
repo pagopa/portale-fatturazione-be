@@ -378,3 +378,19 @@ CREATE TABLE pfd.Enti (
 	Category nvarchar(MAX) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 	CONSTRAINT PK__Enti__16EA308B3ABC1682 PRIMARY KEY (InternalIstitutionId)
 );
+-- =============================================================================================
+-- pfw.Utenti: interrogata/scritta da UtenteCreateCommand, che ogni chiamata a GET api/auth/profilo
+-- esegue (upsert dell'ultimo accesso). Senza la tabella la rotta risponde 500 con
+-- "Invalid object name 'pfw.utenti'" — un 500 che sembra un problema di autenticazione e non lo e'.
+-- Volutamente SENZA righe di seed: e' l'handler stesso a inserirle al primo accesso, ed e' proprio
+-- quel comportamento che i test verificano. DDL reale fornita dal team DB.
+-- =============================================================================================
+IF OBJECT_ID('pfw.Utenti', 'U') IS NULL
+CREATE TABLE [pfw].[Utenti](
+	[FkIdEnte] [nvarchar](100) NOT NULL,
+	[IdUtente] [nvarchar](510) NOT NULL,
+	[DataPrimo] [datetime] NOT NULL,
+	[DataUltimo] [datetime] NOT NULL,
+ CONSTRAINT [PK_Utenti] PRIMARY KEY CLUSTERED ([FkIdEnte] ASC, [IdUtente] ASC)
+);
+GO

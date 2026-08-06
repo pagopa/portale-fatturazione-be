@@ -703,3 +703,96 @@ VALUES
  (6002, '11111111-1111-1111-1111-111111111111', 'SECONDO SALDO', 2024, 5, GETDATE(), GETDATE(), NULL,      'seed', 1, 'RIPRISTINATA', N'[]'),
  (6003, '11111111-1111-1111-1111-111111111111', 'SECONDO SALDO', 2024, 6, GETDATE(), NULL,      GETDATE(), 'seed', 2, 'CANCELLATA',   N'[]');
 GO
+
+-- =============================================================================================
+-- Dettaglio REL: [be].[vwRelDettaglio], letta da GET api/rel/pagopa/{id} (BE-SMOKE-02 del testbook).
+-- L'id di rotta e' la RelTestataKey serializzata: {IdEnte}_{IdContratto}_{Tipologia con '-' al posto
+-- degli spazi}_{Anno}_{Mese}.
+--
+-- Tre periodi, tutti su ente1 (TOKEN-E1), scelti liberi per non interferire con i seed esistenti
+-- (2024 non-fatturate, 2025 griglia, 2026/2 sospese+report, 2026/7 casing):
+--
+--   2026/5  PRIMO SALDO   -> caso COMPLETO: RelTestata + MesiFatture + tmp testata/righe con storni.
+--                            Verifica la mappatura dei CodiceMateriale sui 4 bucket e il segno negativo.
+--   2026/9  PRIMO SALDO   -> caso TRAPPOLA 1: RelTestata presente ma NESSUNA riga di staging
+--                            (MesiFatture/tmp*), come un periodo storico ripulito. TotaliCumulati e'
+--                            in INNER JOIN -> la vista non restituisce nulla -> SingleAsync -> 500.
+--   2026/10 PRIMO SALDO   -> caso TRAPPOLA 2 (fan-out): staging completo, ma l'ente ha DUE righe in
+--                            pfw.DatiFatturazione. Il LEFT JOIN della vista e' solo su FkIdEnte, senza
+--                            anno/mese/tipologia -> 2 righe -> SingleAsync -> 500.
+--                            Usa un ente DEDICATO (9999...) per non alterare gli altri test: qualunque
+--                            riga DatiFatturazione su ente1 renderebbe fan-out anche il caso 2026/5.
+-- =============================================================================================
+
+IF NOT EXISTS (SELECT 1 FROM pfd.Enti WHERE InternalIstitutionId = '99999999-9999-9999-9999-999999999999')
+INSERT INTO pfd.Enti (InternalIstitutionId, description) VALUES
+ ('99999999-9999-9999-9999-999999999999', 'Ente Rel Fanout');
+GO
+
+-- Staging del caso completo (2026/5) e del caso fan-out (2026/10).
+SET IDENTITY_INSERT pfd.tmpFattureTestata ON;
+IF NOT EXISTS (SELECT 1 FROM pfd.tmpFattureTestata WHERE IdFattura IN (9201,9202))
+INSERT INTO pfd.tmpFattureTestata
+ (IdFattura, FkProdotto, FkIdTipoDocumento, FkTipologiaFattura, FkIdEnte, DataFattura, IdentificativoFattura,
+  TotaleFattura, Divisa, MetodoPagamento, AnnoRiferimento, MeseRiferimento, CodiceContratto, Progressivo, FatturaInviata, FlagFatturata)
+VALUES
+ (9201, 'prod-pn', 'TD01', 'PRIMO SALDO', '11111111-1111-1111-1111-111111111111', '2026-05-01', 'IT-9201',
+  800.00, 'EUR', 'MP5', 2026, 5, 'TOKEN-E1', 9201, 0, 0),
+ (9202, 'prod-pn', 'TD01', 'PRIMO SALDO', '99999999-9999-9999-9999-999999999999', '2026-10-01', 'IT-9202',
+  100.00, 'EUR', 'MP5', 2026, 10, 'TOKEN-E9', 9202, 0, 0);
+SET IDENTITY_INSERT pfd.tmpFattureTestata OFF;
+GO
+
+-- 9201: un materiale per ciascuno dei 4 bucket + una riga NON storno che deve restare fuori dai totali.
+-- Attesi in vista (il moltiplicatore * -1 della vista li rende negativi):
+--   Anticipo_StornoAnalogico -100, Anticipo_StornoDigitale -50,
+--   Acconto_StornoAnalogico   -30, Acconto_StornoDigitale  -20,
+--   Anticipo_StornoTotale    -150, Acconto_StornoTotale    -50, StornoTotale -200.
+IF NOT EXISTS (SELECT 1 FROM pfd.tmpFattureRighe WHERE FkIdFattura IN (9201,9202))
+INSERT INTO pfd.tmpFattureRighe
+ (FkIdFattura, NumeroLinea, Testo, CodiceMateriale, Quantita, PrezzoUnitario, Imponibile, RigaBollo, PeriodoRiferimento)
+VALUES
+ (9201, 1, 'storno anticipo analogico', 'STORNO ANTICIPO NA', 1, 100.00, 100.00, 0, '05/2026'),
+ (9201, 2, 'storno anticipo digitale',  'STORNO ANTICIPO ND', 1,  50.00,  50.00, 0, '05/2026'),
+ (9201, 3, 'storno acconto analogico',  'STORNO ACCONTO NA',  1,  30.00,  30.00, 0, '05/2026'),
+ (9201, 4, 'storno acconto digitale',   'STORNO ACCONTO ND',  1,  20.00,  20.00, 0, '05/2026'),
+ (9201, 5, 'consumo del periodo',       'MAT-A',              1, 600.00, 600.00, 0, '05/2026'),
+ (9202, 1, 'consumo del periodo',       'MAT-A',              1, 100.00, 100.00, 0, '10/2026');
+GO
+
+IF NOT EXISTS (SELECT 1 FROM pfd.MesiFatture WHERE FkIdFatturaTmp IN (9201,9202))
+INSERT INTO pfd.MesiFatture (FkIdEnte, AnnoRiferimento, MeseRiferimento, FKTipologiaFattura, FkIdFattura, FkIdFatturaTmp, FlagEliminata)
+VALUES
+ ('11111111-1111-1111-1111-111111111111', 2026,  5, 'PRIMO SALDO', NULL, 9201, 0),
+ ('99999999-9999-9999-9999-999999999999', 2026, 10, 'PRIMO SALDO', NULL, 9202, 0);
+GO
+
+-- Testate REL dei tre periodi. La 2026/9 e' volutamente SENZA staging (caso trappola 1).
+-- Le colonne Asseverazione* vanno valorizzate anche se non interessano il caso: su RelTestataDettaglioDto
+-- sono decimal/int NON nullable, quindi un NULL a DB fa fallire il mapping Dapper (InvalidCastException
+-- -> 500) prima ancora di arrivare all'asserzione. Vale per qualunque nuova riga di RelTestata nel seed.
+IF NOT EXISTS (SELECT 1 FROM pfd.RelTestata WHERE contract_id IN ('TOKEN-E1','TOKEN-E9') AND [year]=2026 AND [month] IN (5,9,10) AND TipologiaFattura='PRIMO SALDO')
+INSERT INTO pfd.RelTestata
+ (internal_organization_id, contract_id, TipologiaFattura, [year], [month], TotaleAnalogico, TotaleDigitale,
+  TotaleNotificheAnalogiche, TotaleNotificheDigitali, Totale, TotaleAnalogicoIva, TotaleDigitaleIva, TotaleIva, Caricata, RelFatturata,
+  AsseverazioneTotaleAnalogico, AsseverazioneTotaleDigitale, AsseverazioneTotaleNotificheAnalogiche, AsseverazioneTotaleNotificheDigitali,
+  AsseverazioneTotale, AsseverazioneTotaleAnalogicoIva, AsseverazioneTotaleDigitaleIva, AsseverazioneTotaleIva)
+VALUES
+ ('11111111-1111-1111-1111-111111111111', 'TOKEN-E1', 'PRIMO SALDO', 2026,  5, 700.00, 300.00, 70, 30, 1000.00, 854.00, 366.00, 1220.00, 1, 0,
+  0, 0, 0, 0, 0, 0, 0, 0),
+ ('11111111-1111-1111-1111-111111111111', 'TOKEN-E1', 'PRIMO SALDO', 2026,  9, 111.00, 222.00, 11, 22,  333.00, 135.42, 270.84,  406.26, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0),
+ ('99999999-9999-9999-9999-999999999999', 'TOKEN-E9', 'PRIMO SALDO', 2026, 10, 100.00,   0.00, 10,  0,  100.00, 122.00,   0.00,  122.00, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0);
+GO
+
+-- Due righe DatiFatturazione sullo stesso ente: e' esattamente cio' che innesca il fan-out del
+-- LEFT JOIN (solo su FkIdEnte). Ente dedicato, quindi nessun altro test ne risente.
+IF NOT EXISTS (SELECT 1 FROM pfw.DatiFatturazione WHERE FkIdEnte = '99999999-9999-9999-9999-999999999999')
+INSERT INTO pfw.DatiFatturazione
+ (Cup, Cig, CodCommessa, DataDocumento, SplitPayment, FkIdEnte, IdDocumento, DataCreazione, FkTipoCommessa, PEC, FkProdotto, NotaLegale)
+VALUES
+ -- FkTipoCommessa deve esistere in pfw.TipoCommessa (FK FkTipoCommessaDatiFatturazione): 1=Ordine, 2=Contratto.
+ ('CUP-FANOUT-1', NULL, 'COMM-1', '2026-10-01', 0, '99999999-9999-9999-9999-999999999999', 'DOC-1', GETDATE(), '1', 'fanout@pec.it', 'prod-pn', 0),
+ ('CUP-FANOUT-2', NULL, 'COMM-2', '2026-10-02', 0, '99999999-9999-9999-9999-999999999999', 'DOC-2', GETDATE(), '1', 'fanout@pec.it', 'prod-pn', 0);
+GO
