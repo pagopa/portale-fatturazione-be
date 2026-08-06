@@ -38,6 +38,9 @@ if [ "$1" = '/opt/mssql/bin/sqlservr' ]; then
       # (deve precedere views/, che contiene le 4 viste legacy pfd.v* dell'area)
       "$SQLCMD" -C -S localhost -U sa -P 52JdGnzZaANhf -d master -i /scripts/modulo_commessa.sql
 
+      # chiavi API e whitelist IP delle Integration API (con i due indici univoci, che sono contratto)
+      "$SQLCMD" -C -S localhost -U sa -P 52JdGnzZaANhf -d master -i /scripts/api_keys.sql
+
       # anteprima email PSP (stg.PspEmailPreview + colonne nullable su ppa.PspEmail): erano script
       # da lanciare a mano, quindi un rebuild del container li perdeva. Sono idempotenti.
       "$SQLCMD" -C -S localhost -U sa -P 52JdGnzZaANhf -d master -i /scripts/create_psp_email_preview_table.sql
