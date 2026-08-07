@@ -823,3 +823,101 @@ CREATE TABLE [pfd].[FattureWhiteList](
  CONSTRAINT [PK_FattureWhiteList] PRIMARY KEY CLUSTERED ([IdLista] ASC)
 );
 GO
+
+-- =============================================================================================
+-- pfd.RelRighe — le righe/notifiche di una REL, lette da RelRigheQueryGetByIdPersistence per
+-- generare il "Report di dettaglio notifiche" (Azure Function CreateRelRighe/CreateRelSospese).
+-- DDL reale fornita dal team DB.
+--
+-- ⚠️ Il seed è costruito per DISCRIMINARE un'invariante che il codice esprime in modo fragile e che
+-- la documentazione dichiara CORRETTA (business-fatturazione.md, § SEM. SOSPESI):
+--
+--   la scelta fra "filtra per semestre (FlagConguaglio)" e "filtra per anno/mese" avviene con una
+--   RICERCA TESTUALE sul nome della tipologia — contains("var"|"semestrale"|"annuale") — che
+--   **'SEM. SOSPESI' NON intercetta**, perché è abbreviato. Quindi SEM. SOSPESI è filtrata per
+--   anno/mese, ed è voluto: le sue righe conservano il periodo di riferimento originale.
+--
+-- Le righe qui sotto rendono la differenza osservabile: se qualcuno "normalizzasse" quella stringa
+-- (l'intervento che verrebbe naturale in una pulizia), i test cambierebbero risultato.
+-- Test: RelRigheFiltroPeriodoIntegrationTests.
+-- =============================================================================================
+IF OBJECT_ID('pfd.RelRighe', 'U') IS NULL
+CREATE TABLE [pfd].[RelRighe](
+	[contract_id] [nvarchar](400) NOT NULL,
+	[tax_code] [nvarchar](100) NOT NULL,
+	[vat_number] [nvarchar](100) NOT NULL,
+	[zip_code] [nvarchar](200) NULL,
+	[foreign_state] [nvarchar](200) NULL,
+	[number_of_pages] [int] NULL,
+	[g_envelope_weight] [nvarchar](200) NULL,
+	[cost] [decimal](9, 2) NULL,
+	[timeline_category] [nvarchar](max) NULL,
+	[paper_product_type] [nvarchar](200) NULL,
+	[event_id] [nvarchar](400) NOT NULL,
+	[iun] [nvarchar](100) NULL,
+	[notification_sent_at] [nvarchar](max) NULL,
+	[internal_organization_id] [nvarchar](100) NULL,
+	[event_timestamp] [nvarchar](max) NULL,
+	[recipient_index] [nvarchar](200) NULL,
+	[recipient_type] [nvarchar](20) NULL,
+	[recipient_id] [nvarchar](100) NULL,
+	[year] [int] NULL,
+	[month] [int] NULL,
+	[daily] [nvarchar](max) NULL,
+	[item_code] [nvarchar](max) NOT NULL,
+	[notification_request_id] [nvarchar](max) NOT NULL,
+	[recipient_tax_id] [nvarchar](max) NOT NULL,
+	[notificationtype] [nvarchar](40) NULL,
+	[Recapitista] [nvarchar](100) NULL,
+	[invoincingtimestamp] [nvarchar](max) NULL,
+	[TipologiaFattura] [nvarchar](40) NOT NULL,
+	[IdFlagContestazione] [tinyint] NOT NULL,
+	[FlagConguaglio] [nvarchar](50) NULL,
+	[AnnoNotifica] [int] NULL,
+	[MeseNotifica] [int] NULL,
+	[TipologiaRel] [nvarchar](20) NULL,
+ CONSTRAINT [PK_RelRighe] PRIMARY KEY CLUSTERED ([event_id] ASC)
+);
+GO
+
+-- Ente1 / TOKEN-E1. Periodo di riferimento 2026/5, tranne dove indicato.
+--   REL-PS-1/2      PRIMO SALDO   2026/5   -> attese sul PRIMO SALDO
+--   REL-ASS-1       ASSEVERAZIONE 2026/5   -> DEVE uscire insieme al PRIMO SALDO (OR esplicito nel codice)
+--   REL-SS-MAG      SEM. SOSPESI  2026/5   -> attesa chiedendo 2026/5
+--   REL-SS-GIU      SEM. SOSPESI  2026/6   -> stesso semestre, mese diverso: NON deve uscire
+--                                             (è la prova che SEM. SOSPESI filtra per anno/mese)
+--   REL-VS-MAG/GIU  VAR. SEMESTRALE, mesi diversi, stesso FlagConguaglio '2026-S1'
+--                                          -> devono uscire ENTRAMBE (filtro per semestre)
+IF NOT EXISTS (SELECT 1 FROM pfd.RelRighe WHERE event_id LIKE 'REL-%')
+INSERT INTO pfd.RelRighe
+ (contract_id, tax_code, vat_number, event_id, iun, internal_organization_id, [year], [month],
+  item_code, notification_request_id, recipient_tax_id, notificationtype, cost,
+  TipologiaFattura, IdFlagContestazione, FlagConguaglio)
+VALUES
+ ('TOKEN-E1','TAX1','VAT1','REL-PS-1','IUN-PS-1','11111111-1111-1111-1111-111111111111',2026,5,'IC','NRQ','RTX','Digitali',1.00,'PRIMO SALDO',1,NULL),
+ ('TOKEN-E1','TAX1','VAT1','REL-PS-2','IUN-PS-2','11111111-1111-1111-1111-111111111111',2026,5,'IC','NRQ','RTX','Analogico890',3.50,'PRIMO SALDO',1,NULL),
+ ('TOKEN-E1','TAX1','VAT1','REL-ASS-1','IUN-ASS-1','11111111-1111-1111-1111-111111111111',2026,5,'IC','NRQ','RTX','Digitali',1.00,'ASSEVERAZIONE',1,NULL),
+ ('TOKEN-E1','TAX1','VAT1','REL-SS-MAG','IUN-SS-MAG','11111111-1111-1111-1111-111111111111',2026,5,'IC','NRQ','RTX','Digitali',2.00,'SEM. SOSPESI',1,'2026-S1'),
+ ('TOKEN-E1','TAX1','VAT1','REL-SS-GIU','IUN-SS-GIU','11111111-1111-1111-1111-111111111111',2026,6,'IC','NRQ','RTX','Digitali',2.00,'SEM. SOSPESI',1,'2026-S1'),
+ ('TOKEN-E1','TAX1','VAT1','REL-VS-MAG','IUN-VS-MAG','11111111-1111-1111-1111-111111111111',2026,5,'IC','NRQ','RTX','Digitali',4.00,'VAR. SEMESTRALE',1,'2026-S1'),
+ ('TOKEN-E1','TAX1','VAT1','REL-VS-GIU','IUN-VS-GIU','11111111-1111-1111-1111-111111111111',2026,6,'IC','NRQ','RTX','Digitali',4.00,'VAR. SEMESTRALE',1,'2026-S1');
+GO
+
+-- Testate REL richieste da RelRigheQueryGetByIdHandler: prima di leggere le righe l'handler cerca la
+-- TESTATA del periodo e ne prende il FlagConguaglio (sovrascrivendo quello passato nella query).
+-- Senza la testata fa FirstOrDefault()! su una lista vuota -> NullReferenceException.
+-- Servono quindi le testate di SEM. SOSPESI e VAR. SEMESTRALE 2026/5 (quella del PRIMO SALDO c'è già,
+-- seedata per vwRelDettaglio). Il FlagConguaglio '2026-S1' è ciò che fa uscire entrambi i mesi nel
+-- ramo conguaglio.
+IF NOT EXISTS (SELECT 1 FROM pfd.RelTestata WHERE contract_id='TOKEN-E1' AND [year]=2026 AND [month]=5 AND TipologiaFattura IN ('SEM. SOSPESI','VAR. SEMESTRALE'))
+INSERT INTO pfd.RelTestata
+ (internal_organization_id, contract_id, TipologiaFattura, [year], [month], TotaleAnalogico, TotaleDigitale,
+  TotaleNotificheAnalogiche, TotaleNotificheDigitali, Totale, TotaleAnalogicoIva, TotaleDigitaleIva, TotaleIva,
+  Caricata, RelFatturata, FlagConguaglio,
+  AsseverazioneTotaleAnalogico, AsseverazioneTotaleDigitale, AsseverazioneTotaleNotificheAnalogiche,
+  AsseverazioneTotaleNotificheDigitali, AsseverazioneTotale, AsseverazioneTotaleAnalogicoIva,
+  AsseverazioneTotaleDigitaleIva, AsseverazioneTotaleIva)
+VALUES
+ ('11111111-1111-1111-1111-111111111111','TOKEN-E1','SEM. SOSPESI',   2026,5, 2.00,2.00,1,1,4.00,2.44,2.44,4.88,0,0,'2026-S1', 0,0,0,0,0,0,0,0),
+ ('11111111-1111-1111-1111-111111111111','TOKEN-E1','VAR. SEMESTRALE',2026,5, 4.00,4.00,1,1,8.00,4.88,4.88,9.76,0,0,'2026-S1', 0,0,0,0,0,0,0,0);
+GO
