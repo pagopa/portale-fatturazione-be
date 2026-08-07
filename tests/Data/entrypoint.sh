@@ -54,7 +54,7 @@ if [ "$1" = '/opt/mssql/bin/sqlservr' ]; then
         done
       fi
 
-      # stored procedure autorevoli be.spGestioneFattura* (droppate in tests/Data/sp/), in ordine
+      # stored procedure be.spGestioneFattura* (droppate in tests/Data/sp/), in ordine
       if [ -d /scripts/sp ]; then
         for f in $(ls /scripts/sp/*.sql 2>/dev/null | sort); do
           echo "Applying SP script: $f"
