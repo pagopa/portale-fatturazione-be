@@ -796,3 +796,30 @@ VALUES
  ('CUP-FANOUT-1', NULL, 'COMM-1', '2026-10-01', 0, '99999999-9999-9999-9999-999999999999', 'DOC-1', GETDATE(), '1', 'fanout@pec.it', 'prod-pn', 0),
  ('CUP-FANOUT-2', NULL, 'COMM-2', '2026-10-02', 0, '99999999-9999-9999-9999-999999999999', 'DOC-2', GETDATE(), '1', 'fanout@pec.it', 'prod-pn', 0);
 GO
+
+-- =============================================================================================
+-- pfd.FattureWhiteList — esclusione di enti dalla fatturazione (endpoint api/fatture/pagopa/whitelist/*).
+-- Semantica: una riga con DataFine NULL e' un'esclusione ATTIVA per Ente/Anno/Mese/Tipologia; la
+-- "cancellazione" e' un soft-delete che valorizza DataFine, non un DELETE.
+--
+-- DDL reale fornita dal team DB. Nessuna FK dichiarata (com'e' all'origine): le JOIN su Enti/Contratti
+-- stanno nella query di lettura, non nello schema.
+--
+-- ⚠️ `IdUtente` e' NOT NULL: il command lo valorizza da AuthenticationInfo.Id, quindi un'identita'
+-- senza Id fa fallire l'INSERT a DB, non a monte. Da tenere presente scrivendo test o fixture.
+--
+-- I test usano l'ANNO 2099 come sandbox e ripuliscono per anno: non tocca nessun altro dato del seed.
+-- =============================================================================================
+IF OBJECT_ID('pfd.FattureWhiteList', 'U') IS NULL
+CREATE TABLE [pfd].[FattureWhiteList](
+	[IdLista] [int] IDENTITY(1,1) NOT NULL,
+	[FkIdEnte] [nvarchar](100) NOT NULL,
+	[Anno] [int] NOT NULL,
+	[Mese] [int] NOT NULL,
+	[DataInizio] [datetime] NOT NULL,
+	[DataFine] [datetime] NULL,
+	[FkTipologiaFattura] [nvarchar](100) NOT NULL,
+	[IdUtente] [nvarchar](100) NOT NULL,
+ CONSTRAINT [PK_FattureWhiteList] PRIMARY KEY CLUSTERED ([IdLista] ASC)
+);
+GO

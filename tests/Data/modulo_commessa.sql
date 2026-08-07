@@ -71,10 +71,15 @@ GO
 -- Attenzione al legame con pfd.Enti.istatCode: vDatiModuloCommessaAderenti joina le province su
 -- SUBSTRING(e.istatCode, 1, 3), quindi il codice ente deve iniziare con il codice ISTAT provincia.
 -- ---------------------------------------------------------------------------------------------
+-- ⚠️ `vModuloCommessaPrevisionale_V2` joina le regioni in **INNER JOIN**: una riga di
+-- pfw.DatiModuloCommessaRegioni il cui codice non esiste qui **sparisce dalla vista in silenzio**,
+-- senza errore e senza comparire nei totali. In produzione la tabella contiene tutte le regioni,
+-- quindi non si nota; in un seed parziale è la prima cosa da controllare se una riga "non c'è".
 IF NOT EXISTS (SELECT 1 FROM pfw.Regioni)
 INSERT INTO pfw.Regioni (CodiceIstat, Regione) VALUES
  ('12', N'Lazio'),
- ('03', N'Lombardia');
+ ('03', N'Lombardia'),
+ ('01', N'Piemonte');
 GO
 
 IF NOT EXISTS (SELECT 1 FROM pfw.Province)
@@ -145,19 +150,32 @@ GO
 -- colonna 'Calcolato', che vModuloCommessaPrevisionale_V2 usa in MAX(CAST(Calcolato AS int)) e nella
 -- PARTITION BY. Senza, la vista non si crea ("Invalid column name 'Calcolato'"). La aggiungiamo qui
 -- invece che in setup.sql per tenere il delta visibile.
--- Tipo NON verificato sul DB reale: 'bit' e' compatibile con l'uso della vista (CAST a int), ma se il
--- DB la tiene int/altro, allineare qui e in setup.sql.
+-- Tipo e nullabilita' CONFERMATI sul DB reale (06/08/2026): bit NOT NULL con default 0. La
+-- nullabilita' non e' un dettaglio: dichiararla NULL renderebbe possibili in locale delle righe che
+-- a DB reale non possono esistere, e MAX(CAST(Calcolato AS int)) vedrebbe NULL solo qui.
 IF COL_LENGTH('pfw.DatiModuloCommessaRegioni', 'Calcolato') IS NULL
-ALTER TABLE pfw.DatiModuloCommessaRegioni ADD [Calcolato] [bit] NULL;
+ALTER TABLE pfw.DatiModuloCommessaRegioni
+    ADD [Calcolato] [bit] NOT NULL
+        CONSTRAINT [DF_DatiModuloCommessaRegioni_Calcolato] DEFAULT ((0));
 GO
 
 -- Distribuzione regionale: AR + 890 devono sommare al totale nazionale delle spedizioni 1 e 2
 -- (600 + 400 = 1000) perche' vModuloCommessaPrevisionale_V2 dia TotaleCoperturaRegionale='VALIDO'.
 -- Con numeri diversi si ottengono 'ECCESSIVO'/'INSUFFICIENTE': e' proprio cio' che la vista serve
 -- a intercettare, quindi il seed copre il caso valido e ne lascia traccia per gli altri.
+-- Forma dei dati allineata a un estratto reale (06/08/2026), che è diversa da quella che verrebbe
+-- naturale inventare:
+--   · `Provincia` è NULL su TUTTE le righe reali — il dato territoriale sta solo in `Regione`;
+--   · `Regione` è il codice ISTAT a due cifre CON lo zero iniziale ('01', '03', '12'), quindi il JOIN
+--     con pfw.Regioni.CodiceIstat va scritto con la stessa forma;
+--   · `AR` e `890` sono spesso **NULL**, non 0: è la riga di un ente che non ha compilato quella
+--     regione. La terza riga qui sotto riproduce quel caso, perché la vista li somma con ISNULL e un
+--     seed di soli valori pieni non eserciterebbe mai quel ramo;
+--   · un ente ha **più righe per lo stesso periodo**, una per regione.
 IF NOT EXISTS (SELECT 1 FROM pfw.DatiModuloCommessaRegioni WHERE Internalistitutionid = '11111111-1111-1111-1111-111111111111' AND anno = 2026 AND mese = 5)
 INSERT INTO pfw.DatiModuloCommessaRegioni (Internalistitutionid, anno, mese, Regione, AR, [890], Calcolato)
 VALUES
- ('11111111-1111-1111-1111-111111111111', 2026, 5, '12', 400, 250, 0),
- ('11111111-1111-1111-1111-111111111111', 2026, 5, '03', 200, 150, 0);
+ ('11111111-1111-1111-1111-111111111111', 2026, 5, '12',  400,  250, 0),
+ ('11111111-1111-1111-1111-111111111111', 2026, 5, '03',  200,  150, 0),
+ ('11111111-1111-1111-1111-111111111111', 2026, 5, '01', NULL, NULL, 0);
 GO

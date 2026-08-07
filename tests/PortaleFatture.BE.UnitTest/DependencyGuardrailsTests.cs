@@ -34,6 +34,13 @@ namespace PortaleFatture.BE.UnitTest;
 public class DependencyGuardrailsTests
 {
     [TestCase(@"src\Presentation\PortaleFatture.BE.Api\PortaleFatture.BE.Api.csproj", "Microsoft.Bcl.Memory", "9.0.14")]
+    // System.Security.Cryptography.Xml: 8 alert Dependabot sulla 8.0.1. Entra nel grafo per un
+    // sottoalbero che esiste SOLO per Microsoft.Identity.Web (non usata da nessun file C#):
+    //   Microsoft.Identity.Web.TokenCache 3.8.4 -> Microsoft.AspNetCore.DataProtection 8.0.1 -> Xml 8.0.1
+    //                                          \-> Xml 8.0.1
+    // Rimuovendo Identity.Web l'intero ramo sparirebbe e questo pin diventerebbe superfluo (come il
+    // pin Bcl.Memory sopra): v. TD-3 nel backlog tech-debt. Finche' resta, il pin serve.
+    [TestCase(@"src\Presentation\PortaleFatture.BE.Api\PortaleFatture.BE.Api.csproj", "System.Security.Cryptography.Xml", "8.0.4")]
     [TestCase(@"src\Presentation\PortaleFatture.BE.SendEmailFunction\PortaleFatture_BE_SendEmailFunction.csproj", "System.Net.Http", "4.3.4")]
     [TestCase(@"src\Presentation\PortaleFatture.BE.SendEmailFunction\PortaleFatture_BE_SendEmailFunction.csproj", "System.Text.RegularExpressions", "4.3.1")]
     [TestCase(@"src\Presentation\PortaleFatture.BE.Function.API\PortaleFatture.BE.Function.API.csproj", "System.Net.Http", "4.3.4")]
