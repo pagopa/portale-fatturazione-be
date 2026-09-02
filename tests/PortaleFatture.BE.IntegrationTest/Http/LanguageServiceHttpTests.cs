@@ -1,0 +1,317 @@
+using System.Net;
+using System.Text;
+using Azure.AI.TextAnalytics;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using PortaleFatture.BE.Core.Auth;
+using PortaleFatture.BE.Core.Exceptions;
+using PortaleFatture.BE.Infrastructure.Common.Language.Service;
+
+namespace PortaleFatture.BE.IntegrationTest.Http;
+
+/// <summary>
+/// Le tre rotte di **Azure AI Language** (PF-775): `api/piid`, `api/language-detection`,
+/// `api/summarize-text`.
+///
+/// **Cosa provano davvero questi test.** L'ambiente di test non ha la sezione
+/// `PortaleFattureOptions:Language` negli user secrets, quindi è *esattamente* lo scenario "servizio
+/// non configurato" — quello che prima del 02/09/2026 impediva l'avvio dell'intera applicazione
+/// (registrazione DI eager + costruttore che sollevava: 206 test rossi su 568, tutti quelli che
+/// avviano l'app). Qui si verifica che quello scenario sia ora **contenuto**: l'API parte, le altre
+/// rotte funzionano, e chi chiama queste tre riceve un **503** che dice perché.
+///
+/// Non si verifica la chiamata reale ad Azure — richiederebbe una chiave e produrrebbe costi e
+/// dipendenza da un servizio esterno in suite. Quella resta materia di prova manuale in DEV.
+///
+/// ATTENZIONE **Se un domani questi test diventano rossi con un 200**, non sono rotti: significa che qualcuno
+/// ha configurato `Language` negli user secrets di test. In quel caso vanno spostati su un fake di
+/// `ILanguageService`, non "aggiustati" sulle risposte reali di Azure.
+/// </summary>
+public class LanguageServiceHttpTests
+{
+    private const string RottaPii = "/api/piid";
+    private const string RottaLingua = "/api/language-detection";
+    private const string RottaSintesi = "/api/summarize-text";
+
+    private ApiTestFactory _factory = null!;
+
+    [OneTimeSetUp]
+    public void Setup() => _factory = new ApiTestFactory();
+
+    [OneTimeTearDown]
+    public void TearDown() => _factory?.Dispose();
+
+    // =============================================================================================
+    // Il servizio non configurato non deve impedire l'avvio — è il difetto che ha motivato il fix
+    // =============================================================================================
+
+    [Test]
+    public async Task ApiConLanguageNonConfigurato_ShouldAvviarsiComunque()
+    {
+        // Se l'applicazione non partisse, questa chiamata non otterrebbe alcuna risposta: e' la prova
+        // diretta che una sezione di configurazione assente non fa piu' cadere il boot.
+        var client = _factory.CreateClientAs(Ruolo.ADMIN);
+
+        var resp = await client.GetAsync("/health");
+
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK),
+            "L'app deve avviarsi anche senza la sezione Language: un servizio esterno OPZIONALE non "
+            + "puo' impedire il boot di cio' che non lo usa.");
+    }
+
+    [TestCase(RottaPii, TestName = "ServizioNonConfigurato_ShouldReturn503(api/piid)")]
+    [TestCase(RottaLingua, TestName = "ServizioNonConfigurato_ShouldReturn503(api/language-detection)")]
+    [TestCase(RottaSintesi, TestName = "ServizioNonConfigurato_ShouldReturn503(api/summarize-text)")]
+    public async Task ServizioNonConfigurato_ShouldReturn503_ConMessaggio(string rotta)
+    {
+        var (stato, corpo) = await Post(rotta, """{ "testo": "Mario Rossi, CF RSSMRA80A01H501U" }""");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(stato, Is.EqualTo(HttpStatusCode.ServiceUnavailable),
+                "503 e non 404: 'la funzione non e' disponibile qui' e' un fatto di ambiente, non "
+                + "l'esito dell'elaborazione. E non 500: non e' un errore imprevisto.");
+            Assert.That(corpo, Does.Contain("non e' configurato").IgnoreCase,
+                "Il 503 deve dire perche': un corpo vuoto non aiuterebbe chi chiama.");
+        });
+    }
+
+    // =============================================================================================
+    // Validazione dell'input — precede la guardia, quindi si vede anche senza configurazione
+    // =============================================================================================
+
+    [TestCase("{}", TestName = "TestoAssente_ShouldReturn400(campo mancante)")]
+    [TestCase("""{ "testo": "" }""", TestName = "TestoAssente_ShouldReturn400(stringa vuota)")]
+    public async Task TestoAssente_ShouldReturn400(string body)
+    {
+        var (stato, _) = await Post(RottaPii, body);
+
+        Assert.That(stato, Is.EqualTo(HttpStatusCode.BadRequest),
+            "Il testo e' obbligatorio, e il controllo viene prima della guardia sulla configurazione.");
+    }
+
+    /// <summary>
+    /// ATTENZIONE`LanguageServiceRequest.testo` è un **campo pubblico**, non una proprietà, e in minuscolo:
+    /// System.Text.Json lo deserializza **solo** grazie a `SerializerOptions.IncludeFields = true`,
+    /// impostato una volta sola in `ConfigurationExtensions`. Se quella riga cambiasse, il binding
+    /// smetterebbe di funzionare in silenzio e queste rotte risponderebbero 400 a ogni chiamata.
+    ///
+    /// Questo test lo blinda: se il campo smette di legare, il 400 arriva *prima* del 503 e il test
+    /// diventa rosso indicando la causa.
+    /// </summary>
+    [Test]
+    public async Task CampoTesto_ShouldEssereDeserializzato_NonostanteSiaUnCampo()
+    {
+        var (stato, _) = await Post(RottaPii, """{ "testo": "un testo qualsiasi" }""");
+
+        Assert.That(stato, Is.Not.EqualTo(HttpStatusCode.BadRequest),
+            "Il testo c'e': un 400 qui significherebbe che il binding del CAMPO 'testo' non funziona "
+            + "piu' (IncludeFields disattivato), non che la richiesta e' malformata.");
+    }
+
+    // =============================================================================================
+    // La distinzione fra "nessun risultato" e "il servizio a monte ha fallito"
+    //
+    // Prima entrambi i casi tornavano `null` dal servizio e l'endpoint li traduceva in **404**: per il
+    // client, "in questo testo non ci sono PII" e "la chiave Azure e' scaduta" erano la stessa cosa.
+    // Ora l'errore del servizio esterno solleva `UpstreamServiceException` → **502**.
+    //
+    // Qui il servizio reale viene sostituito con due fake — non serve una chiave Azure, e soprattutto
+    // il test verifica la REGOLA (quale esito produce quale codice) invece del comportamento di un
+    // servizio esterno che non controlliamo.
+    // =============================================================================================
+
+    [Test]
+    public async Task ServizioCheFallisce_ShouldReturn502_ENon404()
+    {
+        var client = ClientCon(new LanguageServiceFake(fallisce: true));
+
+        var resp = await client.PostAsync(_factory.WithNonce(RottaPii),
+            new StringContent("""{ "testo": "Mario Rossi" }""", Encoding.UTF8, "application/json"));
+        var corpo = await resp.Content.ReadAsStringAsync();
+        TestContext.Out.WriteLine($"servizio in errore -> {(int)resp.StatusCode} | {corpo}");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.BadGateway),
+                "Un guasto del servizio a monte non deve travestirsi da 404: il chiamante non puo' "
+                + "distinguerlo da 'nessuna PII trovata' e riproverebbe cambiando input, inutilmente.");
+            Assert.That(corpo, Does.Contain("Azure AI Language"),
+                "Il 502 deve dire quale servizio ha fallito.");
+        });
+    }
+
+    [Test]
+    public async Task ServizioInTimeout_ShouldReturn504_ENon502()
+    {
+        // Il 504 e' una UpstreamTimeoutException, che DERIVA da UpstreamServiceException: nel gestore
+        // globale deve essere elencata prima della base, altrimenti il pattern matching la cattura e
+        // risponde 502. Questo test protegge proprio quell'ordine, che e' facile invertire per sbaglio
+        // riordinando lo switch.
+        var client = ClientCon(new LanguageServiceFake(fallisce: true, inTimeout: true));
+
+        var resp = await client.PostAsync(_factory.WithNonce(RottaSintesi),
+            new StringContent("""{ "testo": "un testo lungo da sintetizzare" }""", Encoding.UTF8, "application/json"));
+        var corpo = await resp.Content.ReadAsStringAsync();
+        TestContext.Out.WriteLine($"servizio in timeout -> {(int)resp.StatusCode} | {corpo}");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.GatewayTimeout),
+                "504 e non 502: 'non ha risposto in tempo' e 'ha risposto male' hanno cause e rimedi "
+                + "diversi. Se qui arriva 502, nello switch la classe base precede la derivata.");
+            Assert.That(corpo, Does.Contain("secondi").IgnoreCase,
+                "Il messaggio deve dire entro quanto tempo ci si aspettava la risposta.");
+        });
+    }
+
+    [Test]
+    public async Task NessunRisultato_ShouldRestare404()
+    {
+        // Contro-prova: il 404 resta per il suo significato legittimo. Senza questa, il test sopra
+        // proverebbe solo che "qualcosa da' 502", non che i due casi sono DISTINTI.
+        var client = ClientCon(new LanguageServiceFake(fallisce: false));
+
+        var resp = await client.PostAsync(_factory.WithNonce(RottaPii),
+            new StringContent("""{ "testo": "nessun dato personale qui" }""", Encoding.UTF8, "application/json"));
+
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.NotFound),
+            "Elaborazione riuscita, nessuna PII: 404, ed e' corretto.");
+    }
+
+    /// <summary>
+    /// La risposta della sintesi è il **contratto nostro**, non il tipo dell'SDK Azure.
+    ///
+    /// Prima la rotta restituiva `List&lt;AbstractiveSummarizeResultCollection&gt;` direttamente: il JSON
+    /// visto dal frontend era la forma interna di `Azure.AI.TextAnalytics` — statistiche, versione del
+    /// modello, offset — e un aggiornamento del pacchetto avrebbe potuto cambiarlo senza che nulla
+    /// fallisse da noi. Ora esce `{ "sintesi": [ … ] }`.
+    ///
+    /// Il test guarda il JSON e non l'oggetto tipizzato proprio perché è il JSON il contratto.
+    /// </summary>
+    [Test]
+    public async Task Sintesi_ShouldRestituireIlContrattoNostro_NonIlTipoDellSdk()
+    {
+        var client = ClientCon(new LanguageServiceFake(fallisce: false, sintesi: ["Prima sintesi.", "Seconda sintesi."]));
+
+        var resp = await client.PostAsync(_factory.WithNonce(RottaSintesi),
+            new StringContent("""{ "testo": "un testo da sintetizzare" }""", Encoding.UTF8, "application/json"));
+        var corpo = await resp.Content.ReadAsStringAsync();
+        TestContext.Out.WriteLine($"sintesi -> {(int)resp.StatusCode} | {corpo}");
+
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        Assert.Multiple(() =>
+        {
+            Assert.That(corpo, Does.Contain("sintesi").IgnoreCase, "La chiave del contratto nostro.");
+            Assert.That(corpo, Does.Contain("Prima sintesi.").And.Contain("Seconda sintesi."),
+                "Tutte le sintesi devono arrivare: appiattirle a una sola perderebbe informazione.");
+            Assert.That(corpo, Does.Not.Contain("modelVersion").IgnoreCase,
+                "Nessun campo interno dell'SDK deve trapelare nel contratto pubblico.");
+            Assert.That(corpo, Does.Not.Contain("statistics").IgnoreCase);
+        });
+    }
+
+    [Test]
+    public async Task Sintesi_SenzaRisultati_ShouldReturn404()
+    {
+        // Elaborazione riuscita ma nessuna sintesi prodotta: 404, coerente con le altre due rotte.
+        var client = ClientCon(new LanguageServiceFake(fallisce: false, sintesi: []));
+
+        var resp = await client.PostAsync(_factory.WithNonce(RottaSintesi),
+            new StringContent("""{ "testo": "x" }""", Encoding.UTF8, "application/json"));
+
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
+    /// <summary>Client con `ILanguageService` sostituito da un fake.</summary>
+    private HttpClient ClientCon(ILanguageService fake)
+    {
+        var client = _factory.WithWebHostBuilder(b => b.ConfigureTestServices(s =>
+        {
+            s.RemoveAll<ILanguageService>();
+            s.AddSingleton(fake);
+        })).CreateClient();
+
+        client.DefaultRequestHeaders.Add(TestAuthHandler.RoleHeader, Ruolo.ADMIN);
+        return client;
+    }
+
+    /// <summary>
+    /// Fake minimo: o fallisce come farebbe il servizio esterno (quota, credenziale, rete), o riesce
+    /// senza produrre risultati. Sono i due esiti che prima collassavano entrambi in un 404.
+    /// </summary>
+    private sealed class LanguageServiceFake(bool fallisce, bool inTimeout = false, string[]? sintesi = null) : ILanguageService
+    {
+        public bool IsConfigured => true;
+
+        private Exception Errore(string operazione) => inTimeout
+            ? new UpstreamTimeoutException($"Azure AI Language: {operazione} non completata entro 45 secondi.")
+            : new UpstreamServiceException($"Azure AI Language: {operazione} non riuscita.");
+
+        public Task<PiiEntityCollection?> DetectPersonalIdentifiableInformationAsync(
+            string text, string language = "it", CancellationToken cancellationToken = default) =>
+            fallisce
+                ? throw Errore("rilevazione PII")
+                : Task.FromResult<PiiEntityCollection?>(null);
+
+        public Task<DetectedLanguage?> DetectLanguageAsync(
+            string text, CancellationToken cancellationToken = default) =>
+            fallisce
+                ? throw Errore("rilevazione della lingua")
+                : Task.FromResult<DetectedLanguage?>(null);
+
+        public Task<List<AbstractiveSummarizeResultCollection>?> SummarizeTextAsync(
+            string text, string language = "it", CancellationToken cancellationToken = default)
+        {
+            if (fallisce) throw Errore("sintesi del testo");
+            if (sintesi is null) return Task.FromResult<List<AbstractiveSummarizeResultCollection>?>(null);
+
+            // I tipi dell'SDK non hanno costruttori pubblici: si compongono con le factory di
+            // TextAnalyticsModelFactory, che Azure espone proprio per i test.
+            var risultato = TextAnalyticsModelFactory.AbstractiveSummarizeResult(
+                id: "0",
+                statistics: default,
+                summaries: [.. sintesi.Select(t => TextAnalyticsModelFactory.AbstractiveSummary(t, []))],
+                warnings: []);
+
+            return Task.FromResult<List<AbstractiveSummarizeResultCollection>?>(
+                [TextAnalyticsModelFactory.AbstractiveSummarizeResultCollection([risultato], statistics: null, modelVersion: "test")]);
+        }
+    }
+
+    // =============================================================================================
+    // Autorizzazione
+    // =============================================================================================
+
+    [Test]
+    public async Task SenzaAutenticazione_ShouldReturn401()
+    {
+        var (stato, _) = await Post(RottaPii, """{ "testo": "x" }""", ruolo: null);
+
+        Assert.That(stato, Is.EqualTo(HttpStatusCode.Unauthorized));
+    }
+
+    [Test]
+    public async Task ConTokenEnte_ShouldReturn403()
+    {
+        // Le tre rotte sono PagoPAPolicy: un aderente SelfCare non deve raggiungerle.
+        var client = _factory.CreateClientAs(Ruolo.ADMIN, auth: "SELFCARE", profilo: "PA");
+        var resp = await client.PostAsync(_factory.WithNonce(RottaPii),
+            new StringContent("""{ "testo": "x" }""", Encoding.UTF8, "application/json"));
+
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+    }
+
+    // =============================================================================================
+
+    private async Task<(HttpStatusCode stato, string corpo)> Post(string rotta, string body, string? ruolo = Ruolo.ADMIN)
+    {
+        var client = _factory.CreateClientAs(ruolo);
+        var resp = await client.PostAsync(_factory.WithNonce(rotta),
+            new StringContent(body, Encoding.UTF8, "application/json"));
+        var corpo = await resp.Content.ReadAsStringAsync();
+        TestContext.Out.WriteLine($"POST {rotta} -> {(int)resp.StatusCode} {resp.StatusCode} | {corpo}");
+        return (resp.StatusCode, corpo);
+    }
+}

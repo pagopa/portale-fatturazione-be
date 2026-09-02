@@ -18,6 +18,7 @@ using PortaleFatture.BE.Core.Common;
 using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Infrastructure;
 using PortaleFatture.BE.Infrastructure.Common.Identity;
+using PortaleFatture.BE.Infrastructure.Common.Language.Service;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.Persistence.Schemas;
 using PortaleFatture.BE.Infrastructure.Common.SEND;
@@ -181,13 +182,40 @@ public static class ConfigurationExtensions
         var serviceProvider = services.BuildServiceProvider();
         var options = serviceProvider.GetRequiredService<IPortaleFattureOptions>();
         var logger = serviceProvider.GetRequiredService<ILogger<SynapseService>>();
+        
         services.AddSingleton<ISynapseService>(new SynapseService(
             options.Synapse!.SynapseWorkspaceName,
             options.Synapse.ResourceGroupName,
             options.Synapse.SubscriptionId,
             logger)
             );
+        
         services.AddSingleton<IServiceWorkFlowFatture>(new ServiceWorkFlowFatture());
+
+        // Registrazione LAZY (factory) e non eager: l'istanza nasce alla prima richiesta che usa il
+        // servizio, non all'avvio dell'applicazione. Due ragioni, entrambe verificate:
+        //   * LanguageService LANCIA nel costruttore se endpoint/key mancano, quindi con la
+        //     registrazione eager un ambiente senza la sezione Language non fa partire l'API — non
+        //     "rompe le tre rotte": impedisce l'avvio del processo, e con esso tutto il resto
+        //     (misurato: 206 test di integrazione rossi su 568, tutti quelli che avviano l'app);
+        //   * `options.Language!` non protegge da nulla (il `!` silenzia il compilatore, non il
+        //     runtime): senza la sezione era una NullReferenceException qui in AddGateways.
+        // Con `?.` il valore nullo arriva al costruttore, che solleva il suo messaggio esplicito
+        // ("Missing environment variable [LanguageServiceEndpoint]") solo a chi chiama quelle rotte.
+        //
+        // ATTENZIONE NB: SynapseService, registrato qui sopra, è anch'esso EAGER e usa anch'esso `options.Synapse!`
+        //    — quindi ha lo stesso difetto latente: se un domani mancasse la sezione Synapse, sarebbe
+        //    la stessa NullReferenceException all'avvio. Non si manifesta solo perché quella sezione è
+        //    sempre configurata, e perché il suo costruttore non lancia (assegna e basta). La differenza
+        //    fra i due non è quindi il modo di registrarli, ma il costruttore: qui la lazy serve proprio
+        //    perché questo ctor lancia.
+        services.AddSingleton<ILanguageService>(sp => new LanguageService(
+            options.Language?.Endpoint,
+            options.Language?.Key,
+            sp.GetRequiredService<ILogger<LanguageService>>(),
+            options.Language?.TimeoutSeconds ?? 45
+        ));
+
         return services;
     }
 
@@ -229,6 +257,12 @@ public static class ConfigurationExtensions
                         DomainException => Results.Problem(statusCode: StatusCodes.Status500InternalServerError, detail: exception.Message),
                         ValidationException => Results.Problem(statusCode: StatusCodes.Status400BadRequest, detail: exception.Message),
                         NotFoundException => Results.Problem(statusCode: StatusCodes.Status404NotFound, detail: exception.Message),
+                        // ORDINE SIGNIFICATIVO: UpstreamTimeoutException deriva da UpstreamServiceException,
+                        // quindi va elencata PRIMA, altrimenti la base la cattura e il 504 non esce mai.
+                        // 504 = non ha risposto in tempo; 502 = ha risposto male (quota, credenziale, rete).
+                        // Entrambi diversi dal 404 ("nessun risultato") e dal 500 ("errore nostro").
+                        UpstreamTimeoutException => Results.Problem(statusCode: StatusCodes.Status504GatewayTimeout, detail: exception.Message),
+                        UpstreamServiceException => Results.Problem(statusCode: StatusCodes.Status502BadGateway, detail: exception.Message),
                         not null => Results.Problem(statusCode: StatusCodes.Status500InternalServerError, detail: exception.Message),
                         _ => Results.Problem(statusCode: StatusCodes.Status500InternalServerError, detail: "Generic error, contact system administrator")
                     };

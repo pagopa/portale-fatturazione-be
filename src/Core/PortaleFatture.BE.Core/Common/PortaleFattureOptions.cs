@@ -28,6 +28,7 @@ public sealed class PortaleFattureOptions : IPortaleFattureOptions
     public StorageNotifiche? StorageNotifiche { get; set; } 
     public AzureFunction? AzureFunction { get; set; } 
     public StorageRelDownload? StorageRelDownload { get; set; }  
+    public Language? Language { get; set; }
 }
 
 public class StorageRelDownload()
@@ -116,5 +117,34 @@ public class AzureFunction()
     public string? NotificheUri { get; set; }
     public string? AppKey { get; set; } 
 }
- 
-        
+
+public class Language()
+{
+    public string? Endpoint { get; set; }
+    public string? Key { get; set; }
+
+    /// <summary>
+    /// Tempo massimo concesso alle operazioni long-running di Azure AI Language (oggi solo la sintesi
+    /// del testo). Default **45 secondi**, scelto per stare **sotto** il taglio del gateway che sta
+    /// davanti a questo backend (~60s, v. docs/autenticazione.md): serve a produrre un 504 gestito e
+    /// tracciato invece di una connessione interrotta dal gateway, che non lascerebbe traccia nei
+    /// nostri log. Se un domani la soglia del gateway cambiasse, questo valore va rivisto di conseguenza.
+    /// </summary>
+    public int TimeoutSeconds { get; set; } = 45;
+
+    /// <summary>
+    /// Lunghezza massima del testo per le operazioni **sincrone** (rilevazione PII e della lingua).
+    /// Default **5.120 caratteri**, il limite per documento delle API sincrone di Azure AI Language.
+    /// </summary>
+    public int MaxChars { get; set; } = 5_120;
+
+    /// <summary>
+    /// Lunghezza massima per la **sintesi**, che passa dall'API asincrona e ha un limite molto più
+    /// alto. Default **125.000 caratteri**.
+    ///
+    /// ATTENZIONE Entrambi i valori sono limiti **del servizio Azure**, non nostri: vanno riverificati sulla
+    /// documentazione Microsoft quando si aggiorna l'SDK o si cambia tier del servizio. Sono qui in
+    /// configurazione proprio per poterli correggere senza ricompilare.
+    /// </summary>
+    public int MaxCharsSummarize { get; set; } = 125_000;
+}
