@@ -23,66 +23,12 @@ public class NotificaQueryGetByListEntiPersistencev2(NotificaQueryGetByListaEnti
     {
         var notifiche = new NotificaDto();
 
-        var where = string.Empty;
         var page = _command.Page;
         var size = _command.Size;
-        var anno = _command.AnnoValidita;
-        var mese = _command.MeseValidita;
 
-        if (anno.HasValue)
-            where += " WHERE n.year=@anno";
-        if (mese.HasValue)
-            where += " AND n.month=@mese";
-
-        if (!_command.EntiIds.IsNullNotAny())
-            where += $" AND internal_organization_id IN @entiIds";
-
-        if (!_command.Recapitisti.IsNullNotAny())
-            where += $" AND Recapitista IN @Recapitisti";
-
-        if (!_command.Consolidatori.IsNullNotAny())
-            where += $" AND Consolidatore IN @Consolidatori";
-
-        var prodotto = string.IsNullOrEmpty(_command.Prodotto) ? null : _command.Prodotto;
-        var cap = string.IsNullOrEmpty(_command.Cap) ? null : _command.Cap;
-        var profilo = string.IsNullOrEmpty(_command.Profilo) ? null : _command.Profilo;
-        var tipoNotifica = _command.TipoNotifica != null ? _command.TipoNotifica : null;
-        var contestazione = _command.StatoContestazione ?? null;
-        var iun = string.IsNullOrEmpty(_command.Iun) ? null : _command.Iun;
-        var recipientId = string.IsNullOrEmpty(_command.RecipientId) ? null : _command.RecipientId;
-
-        if (!string.IsNullOrEmpty(iun))
-            where += " AND n.iun=@iun";
-
-        if (!string.IsNullOrEmpty(recipientId))
-            where += " AND recipient_id=@recipientId";
-
-        if (!string.IsNullOrEmpty(prodotto))
-            where += " AND c.product=@prodotto";
-
-        if (!string.IsNullOrEmpty(cap))
-            where += " AND zip_code=@cap";
-        if (!string.IsNullOrEmpty(profilo))
-            where += " AND e.institutionType=@profilo";
-
-        IEnumerable<string?> tnot = [];
-        if (!tipoNotifica.IsNullNotAny())
-        {
-            tnot = tipoNotifica!.Select(x => x!.Map()).Where(x => !string.IsNullOrEmpty(x));
-            if (tipoNotifica!.Where(x => x == TipoNotifica.Digitali).FirstOrDefault() == TipoNotifica.Digitali)
-                where += " AND (paper_product_type IN @tipoNotifica OR paper_product_type IS NULL)";
-            else
-                where += " AND paper_product_type IN @tipoNotifica";
-        }
-
-        if (!contestazione.IsNullNotAny() && contestazione!.SequenceEqual([1]))
-            where += " and t.FKIdFlagContestazione is NULL";
-        else if (!contestazione.IsNullNotAny() && contestazione!.Contains(1))
-            where += " and (t.FKIdFlagContestazione is NULL OR t.FKIdFlagContestazione IN @contestazione)";
-        else if (!contestazione.IsNullNotAny())
-            where += " and t.FKIdFlagContestazione IN @contestazione";
-        else if (contestazione.IsNullNotAny())
-            contestazione = null;
+        // Stesso builder della v1: il frammento di WHERE era duplicato per copia fra le due classi.
+        var filtri = NotificaFiltriSQLBuilder.Componi(NotificaFiltriInput.Da(_command));
+        var where = filtri.Where;
 
         var orderBy = _orderBy;
 
@@ -97,63 +43,14 @@ public class NotificaQueryGetByListEntiPersistencev2(NotificaQueryGetByListaEnti
 
         var sql = string.Join(";", sqlEnte, sqlCount);
 
-        dynamic parameters = new ExpandoObject();
-        var sqlParameters = new List<SqlParameter>();
-
-        if (page.HasValue)
-        {
-            parameters.Page = page;
-            sqlParameters.Add(new SqlParameter("@Page", page));
-        }
-
-        if (size.HasValue)
-        {
-            parameters.Size = size;
-            sqlParameters.Add(new SqlParameter("@Size", size));
-        }
-
-        if (anno.HasValue)
-        {
-            parameters.Anno = anno.Value;
-            sqlParameters.Add(new SqlParameter("@Anno", anno.Value));
-        }
-
-        if (mese.HasValue)
-        {
-            parameters.Mese = mese.Value;
-            sqlParameters.Add(new SqlParameter("@Mese", mese.Value));
-        }
-
-
-        if (!string.IsNullOrEmpty(prodotto))
-            parameters.Prodotto = prodotto;
-
-        if (!string.IsNullOrEmpty(cap))
-            parameters.Cap = cap;
-
-        if (!string.IsNullOrEmpty(profilo))
-            parameters.Profilo = profilo;
-
-        if (!tipoNotifica.IsNullNotAny())
-            parameters.TipoNotifica = tnot;
-
-        if (contestazione != null)
-            parameters.Contestazione = contestazione;
-
-        if (!string.IsNullOrEmpty(iun))
-            parameters.Iun = iun;
-
-        if (!_command.EntiIds.IsNullNotAny())
-            parameters.EntiIds = _command.EntiIds;
-
-        if (!_command.Recapitisti.IsNullNotAny())
-            parameters.Recapitisti = _command.Recapitisti;
-
-        if (!_command.Consolidatori.IsNullNotAny())
-            parameters.Consolidatori = _command.Consolidatori;
-
-        if (!string.IsNullOrEmpty(recipientId))
-            parameters.RecipientId = recipientId;
+        // ⚠️ DIFETTO NOTO, riprodotto qui tale e quale: al comando arrivano SOLO i quattro parametri
+        // scalari (Page/Size/Anno/Mese), mentre `filtri.Parametri` ne contiene fino a quattordici.
+        // Ogni altro filtro presente nel WHERE resta senza il suo parametro -> SqlException. Prima
+        // dell'estrazione il difetto era invisibile: l'insieme completo veniva costruito in un
+        // ExpandoObject che poi non leggeva piu' nessuno. V. NotificaFiltriBuilderUnitTests.
+        var sqlParameters = NotificaFiltriSQLBuilder.NomiParametriComandoV2(filtri)
+            .Select(nome => new SqlParameter($"@{nome}", filtri.Parametri[nome]))
+            .ToList();
 
         var notificas = new List<SimpleNotificaDto>();
         var totalCount = 0;
