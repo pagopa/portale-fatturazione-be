@@ -26,6 +26,7 @@ public class EmailPspServiceIntegrationTests
     public void InsertPreviewEmail_ShouldPersistInStgPreviewTable()
     {
         var connectionString = Required("PortaleFattureOptions:ConnectionString");
+        TestDb.SkipIfUnavailable(connectionString);
         var service = new EmailPspService(connectionString);
 
         var idContratto = $"IT_PREV_{Guid.NewGuid():N}";
@@ -66,6 +67,7 @@ public class EmailPspServiceIntegrationTests
     public void InsertTracciatoEmail_ShouldPersistInPpaPspEmail_WithOptionalFields()
     {
         var connectionString = Required("PortaleFattureOptions:ConnectionString");
+        TestDb.SkipIfUnavailable(connectionString);
         var service = new EmailPspService(connectionString);
 
         var idContratto = $"IT_TRK_{Guid.NewGuid():N}";
@@ -108,6 +110,7 @@ public class EmailPspServiceIntegrationTests
     public void GetSenderEmail_ReadOnly_ShouldUseReferenteMail_WhenNotEmpty()
     {
         var connectionString = Required("PortaleFattureOptions:ConnectionString");
+        TestDb.SkipIfUnavailable(connectionString);
         var service = new EmailPspService(connectionString);
         const string quarter = "2026_1";
 
@@ -135,6 +138,7 @@ public class EmailPspServiceIntegrationTests
     public void GetSenderEmail_ReadOnly_ShouldFallbackToCourtesyMail_WhenReferenteEmpty()
     {
         var connectionString = Required("PortaleFattureOptions:ConnectionString");
+        TestDb.SkipIfUnavailable(connectionString);
         var service = new EmailPspService(connectionString);
         const string quarter = "2026_1";
 
@@ -165,6 +169,7 @@ public class EmailPspServiceIntegrationTests
     public void GetSenderEmailAdjustment_ReadOnly_ShouldReturnAdjustmentTipologiaAndQuarterFilter()
     {
         var connectionString = Required("PortaleFattureOptions:ConnectionString");
+        TestDb.SkipIfUnavailable(connectionString);
         var service = new EmailPspService(connectionString);
         const string quarter = "2026_1";
 
@@ -188,6 +193,7 @@ public class EmailPspServiceIntegrationTests
     public void CountInvioAdjustment_ReadOnly_ShouldMatchDatabaseCountEvaluation()
     {
         var connectionString = Required("PortaleFattureOptions:ConnectionString");
+        TestDb.SkipIfUnavailable(connectionString);
         var service = new EmailPspService(connectionString);
         const string quarter = "2026_1";
 

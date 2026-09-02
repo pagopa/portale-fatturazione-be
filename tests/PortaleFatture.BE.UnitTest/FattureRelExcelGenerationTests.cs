@@ -67,7 +67,7 @@ public class FattureRelExcelGenerationTests
         };
         var relNonFirmate = new List<RelNonFatturataDto>(); // vuoto: evita NRE nel foglio PAC non firmate
 
-        var bytes = fatture.ReportFattureRel(fattureSospese, relNonFirmate, Month, "PRIMO SALDO");
+        var bytes = fatture.ReportFattureRel(fattureSospese, relNonFirmate, null, Month, "PRIMO SALDO");
 
         using var wb = new XLWorkbook(new MemoryStream(bytes));
         Assert.Multiple(() =>
@@ -149,7 +149,7 @@ public class FattureRelExcelGenerationTests
             new List<FattureRelSospeseExcelDto> { SospesaRow("SI") },
             new List<FattureRelSospeseExcelDto> { SospesaRow("SI") }
         };
-        var relBytes = fatture.ReportFattureRel(fattureSospese, new List<RelNonFatturataDto>(), Month, "PRIMO SALDO");
+        var relBytes = fatture.ReportFattureRel(fattureSospese, new List<RelNonFatturataDto>(), null, Month, "PRIMO SALDO");
         using var relWb = new XLWorkbook(new MemoryStream(relBytes));
         Assert.That(HasColumn(relWb, $"Enti Fatt. a Zero {Month}", Caption), Is.False,
             "Il foglio non-sospeso 'Enti Fatt. a Zero' NON deve contenere la colonna.");

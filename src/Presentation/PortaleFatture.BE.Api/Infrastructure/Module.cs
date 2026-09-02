@@ -21,6 +21,7 @@ public abstract class Module : IModule
     public static string DatiAuthLabel = "Autenticazione";
     public static string DatiAsseverazioneLabelPagoPA = "Dati Asseverazione PagoPA";
     public static string DatiMessaggiPagoPA = "Dati Messaggi PagoPA";
+    public static string InfoBanner = "Info Banner";
     public static string DatiAccertamentiPagoPA = "Accertamenti PagoPA";
     public static string DatiOrchestratoreLabel = "Dati ORchestratore";
     public static string DatiApiKey = "Dati Api Key";

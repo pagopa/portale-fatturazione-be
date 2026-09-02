@@ -1,4 +1,4 @@
-using MediatR;
+﻿using MediatR;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework.Legacy;
@@ -11,22 +11,36 @@ using PortaleFatture.BE.UnitTest.Common;
 
 namespace PortaleFatture.BE.UnitTest;
 
-[Ignore("Pregresso: richiede DB seedato e/o allineamento agli handler attuali (CodiceSDI/SDI). Vedi PF-705")]
 public class DatiFatturazioneUpdateCommandTests
 {
+    /// <summary>Ente dedicato a questa fixture nel seed (tests/Data/dati_fatturazione.sql).</summary>
+    private const string IdEnteSeed = "66666666-6666-6666-6666-666666666666";
+    private const string CodiceSdiSeed = "ABCDEF1";
+
     private IDbContextFactory _factory;
     private ILogger<DatiFatturazioneUpdateCommandTests> _logger;
     private IStringLocalizer<Localization> _localizer;
     private IMediator _handler;
 
     [SetUp]
-    public void Setup()
+    public async Task Setup()
     {
-        _factory = ServiceProvider.GetRequiredService<IFattureDbContextFactory>();
-        _logger = ServiceProvider.GetRequiredService<ILogger<DatiFatturazioneUpdateCommandTests>>();
-        _localizer = ServiceProvider.GetRequiredService<IStringLocalizer<Localization>>();
-        _handler = ServiceProvider.GetRequiredService<IMediator>();
+        _factory = ServiceProvider.GetRequiredService<IFattureDbContextFactory>(LocalTestDb.ConnectionString);
+        _logger = ServiceProvider.GetRequiredService<ILogger<DatiFatturazioneUpdateCommandTests>>(LocalTestDb.ConnectionString);
+        _localizer = ServiceProvider.GetRequiredService<IStringLocalizer<Localization>>(LocalTestDb.ConnectionString);
+        _handler = ServiceProvider.GetRequiredService<IMediator>(LocalTestDb.ConnectionString);
+        await Pulisci();
     }
+
+    [TearDown]
+    public async Task TearDown() => await Pulisci();
+
+    private static Task Pulisci() => LocalTestDb.ExecuteAsync($@"
+        DELETE c FROM pfw.DatiFatturazioneContatti c
+          INNER JOIN pfw.DatiFatturazione d ON d.IdDatiFatturazione = c.FkIdDatiFatturazione
+         WHERE d.FkIdEnte = '{IdEnteSeed}';
+        DELETE FROM pfw.DatiFatturazione WHERE FkIdEnte = '{IdEnteSeed}';
+        DELETE FROM pfw.[Log] WHERE FkIdEnte = '{IdEnteSeed}';");
 
     [Test]
     public async Task UpdateCommand_ShouldSucceed_WithoutContatti()
@@ -40,7 +54,7 @@ public class DatiFatturazioneUpdateCommandTests
         string? expectedIdDocumento = "eiddocumento";
         string? expectedMap = "emap";
         DateTime expectedDataCreazione = DateTime.UtcNow.ItalianTime();
-        string? expectedIdEnte = TestExtensions.GetRandomIdEnte();
+        string? expectedIdEnte = IdEnteSeed;
         string? expectedPec = "pippo@pec.it";
         string? expectedProdotto = "prod-pn";
         var authInfo = TestExtensions.GetAuthInfo(expectedIdEnte, expectedProdotto);
@@ -65,7 +79,8 @@ public class DatiFatturazioneUpdateCommandTests
             TipoCommessa = expectedTipoCommessa,
             IdDocumento = expectedIdDocumento,
             Map = expectedMap,
-            SplitPayment = expectedSplitPayment
+            SplitPayment = expectedSplitPayment,
+            CodiceSDI = CodiceSdiSeed
         };
 
         var actualDatiFatturazione = await _handler.Send(request);
@@ -99,7 +114,8 @@ public class DatiFatturazioneUpdateCommandTests
             TipoCommessa = expectedTipoCommessa,
             IdDocumento = expectedIdDocumento,
             Map = expectedMap,
-            SplitPayment = expectedSplitPayment
+            SplitPayment = expectedSplitPayment,
+            CodiceSDI = CodiceSdiSeed
         };
 
         actualDatiFatturazione = await _handler.Send(updateRequest);
@@ -123,7 +139,7 @@ public class DatiFatturazioneUpdateCommandTests
         string? expectedIdDocumento = "eiddocumento";
         string? expectedMap = "emap";
         DateTime expectedDataCreazione = DateTime.UtcNow.ItalianTime();
-        string? expectedIdEnte = TestExtensions.GetRandomIdEnte();
+        string? expectedIdEnte = IdEnteSeed;
         string? expectedPec = "pippo@pec.it";
         string? expectedProdotto = "prod-pn";
         var authInfo = TestExtensions.GetAuthInfo(expectedIdEnte, expectedProdotto);
@@ -148,7 +164,8 @@ public class DatiFatturazioneUpdateCommandTests
             TipoCommessa = expectedTipoCommessa,
             IdDocumento = expectedIdDocumento,
             Map = expectedMap,
-            SplitPayment = expectedSplitPayment
+            SplitPayment = expectedSplitPayment,
+            CodiceSDI = CodiceSdiSeed
         };
 
         var actualDatiFatturazione = await _handler.Send(request);
@@ -181,7 +198,8 @@ public class DatiFatturazioneUpdateCommandTests
             TipoCommessa = expectedTipoCommessa,
             IdDocumento = expectedIdDocumento,
             Map = expectedMap,
-            SplitPayment = expectedSplitPayment
+            SplitPayment = expectedSplitPayment,
+            CodiceSDI = CodiceSdiSeed
         };
 
         actualDatiFatturazione = await _handler.Send(updateRequest);
@@ -204,7 +222,7 @@ public class DatiFatturazioneUpdateCommandTests
         string? expectedIdDocumento = "eiddocumento";
         string? expectedMap = "emap";
         DateTime expectedDataCreazione = DateTime.UtcNow.ItalianTime();
-        string? expectedIdEnte = TestExtensions.GetRandomIdEnte();
+        string? expectedIdEnte = IdEnteSeed;
         string? expectedPec = "pippo@pec.it";
         string? expectedProdotto = "prod-pn";
         var authInfo = TestExtensions.GetAuthInfo(expectedIdEnte, expectedProdotto);
@@ -232,7 +250,8 @@ public class DatiFatturazioneUpdateCommandTests
             TipoCommessa = expectedTipoCommessa,
             IdDocumento = expectedIdDocumento,
             Map = expectedMap,
-            SplitPayment = expectedSplitPayment
+            SplitPayment = expectedSplitPayment,
+            CodiceSDI = CodiceSdiSeed
         };
 
         var actualDatiFatturazione = await _handler.Send(request);
@@ -264,7 +283,8 @@ public class DatiFatturazioneUpdateCommandTests
             TipoCommessa = expectedTipoCommessa,
             IdDocumento = expectedIdDocumento,
             Map = expectedMap,
-            SplitPayment = expectedSplitPayment
+            SplitPayment = expectedSplitPayment,
+            CodiceSDI = CodiceSdiSeed
         };
 
         actualDatiFatturazione = await _handler.Send(updateRequest);
@@ -287,7 +307,7 @@ public class DatiFatturazioneUpdateCommandTests
         string? expectedIdDocumento = "eiddocumento";
         string? expectedMap = "emap";
         DateTime expectedDataCreazione = DateTime.UtcNow.ItalianTime();
-        string? expectedIdEnte = TestExtensions.GetRandomIdEnte();
+        string? expectedIdEnte = IdEnteSeed;
         string? expectedPec = "pippo@pec.it";
         string? expectedProdotto = "prod-pn";
         var authInfo = TestExtensions.GetAuthInfo(expectedIdEnte, expectedProdotto);
@@ -312,7 +332,8 @@ public class DatiFatturazioneUpdateCommandTests
             TipoCommessa = expectedTipoCommessa,
             IdDocumento = expectedIdDocumento,
             Map = expectedMap,
-            SplitPayment = expectedSplitPayment
+            SplitPayment = expectedSplitPayment,
+            CodiceSDI = CodiceSdiSeed
         };
 
         var actualDatiFatturazione = await _handler.Send(request);
@@ -335,7 +356,8 @@ public class DatiFatturazioneUpdateCommandTests
             TipoCommessa = expectedTipoCommessa,
             IdDocumento = expectedIdDocumento,
             Map = expectedMap,
-            SplitPayment = expectedSplitPayment
+            SplitPayment = expectedSplitPayment,
+            CodiceSDI = CodiceSdiSeed
         };
 
         actualDatiFatturazione = await _handler.Send(updateRequest);

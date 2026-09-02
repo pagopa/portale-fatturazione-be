@@ -12,7 +12,7 @@ public static class DocumentExtensions
 {
     public static string GetHashSHA256(this string? rawData)
     { 
-        using var sha256Hash = SHA256.Create();
+        using var sha256Hash = SHA256.Create();https://api.dev.portalefatturazione.pagopa.it/api/fatture/pagopa/gestione-fatture/azione
         var bytes = sha256Hash.ComputeHash(Encoding.UTF8.GetBytes(rawData!)); 
         var builder = new StringBuilder();
         for (var i = 0; i < bytes.Length; i++) 

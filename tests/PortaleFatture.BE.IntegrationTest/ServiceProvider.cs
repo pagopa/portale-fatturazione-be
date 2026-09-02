@@ -13,7 +13,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 
 public static class ServiceProvider
 {
-    private static IServiceProvider Provider()
+    private static IServiceProvider Provider(string? connectionStringOverride = null)
     {
         var services = new ServiceCollection();
         var configurationBuilder = new ConfigurationBuilder()
@@ -40,7 +40,7 @@ public static class ServiceProvider
             o.SelfCareUri = configuration.GetSection("PortaleFattureOptions:SelfCareUri").Value;
         });
  
-        var dbConnectionString = options.ConnectionString ??
+        var dbConnectionString = connectionStringOverride ?? options.ConnectionString ??
                       throw new ConfigurationException("Db connection string not configured");
 
         services.AddSingleton<IDbContextFactory>(new DbContextFactory(dbConnectionString, "pfw"));
@@ -60,12 +60,29 @@ public static class ServiceProvider
         services.AddSingleton<ISelfCareHttpClient, SelfCareHttpClient>();
         services.AddSingleton<ISelfCareTokenService, SelfCareTokenService>();
 
+        // Serve agli handler dell'area ApiKeys, che cifrano la chiave prima di scriverla a DB: senza
+        // questa registrazione CreateORModifyApiKeyCommandHandler non si risolve affatto.
+        // La chiave e' fittizia e locale ai test (32 caratteri = AES-256). Non deve coincidere con
+        // quella reale: AesEncryption usa un IV a zero, quindi la cifratura e' DETERMINISTICA e i test
+        // possono ricalcolare il ciphertext per ritrovare la riga scritta.
+        services.AddSingleton<IAesEncryption>(new AesEncryption("chiave-di-test-32-caratteri-1234"));
+
         return services.BuildServiceProvider();
     }
 
     public static T GetRequiredService<T>() where T : class
     {
         var provider = Provider();
+        return provider.GetRequiredService<T>();
+    }
+
+    /// <summary>
+    /// Come GetRequiredService, ma con una connection string alternativa (es. il DB locale seeded
+    /// avviato da tests/docker-compose.yml) invece di UAT. Usato dai test CRUD di Gestione Fatture.
+    /// </summary>
+    public static T GetRequiredService<T>(string connectionString) where T : class
+    {
+        var provider = Provider(connectionString);
         return provider.GetRequiredService<T>();
     }
 }

@@ -75,4 +75,18 @@ public abstract class DapperBase : IDatabase
         var task = connection.QuerySingleAsync<T>(sqlQuery, parameters, transaction, commandTimeout, type);
         return await Execute(task, connection, transaction);
     }
+
+    public async Task<T?> SingleOrDefaultAsync<T>(
+        IDbConnection connection,
+        string sqlQuery,
+        object? parameters,
+        IDbTransaction? transaction,
+        CommandType type,
+        int? commandTimeout = null)
+    {
+        // QuerySingleOrDefaultAsync: 0 righe -> default(T) (niente eccezione); >1 righe -> lancia
+        // (resta un segnale che la chiave non e' univoca come atteso).
+        var task = connection.QuerySingleOrDefaultAsync<T>(sqlQuery, parameters, transaction, commandTimeout, type);
+        return await Execute(task, connection, transaction);
+    }
 }

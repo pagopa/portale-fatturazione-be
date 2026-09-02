@@ -122,19 +122,36 @@ CREATE TABLE pfw.TipoContratto (
 
 CREATE TABLE pfw.DatiFatturazione (
 	IdDatiFatturazione bigint IDENTITY(1,1) NOT NULL,
-	Cup nvarchar(15) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
-	Cig nvarchar(10) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
-	CodCommessa nvarchar(100) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
-	DataDocumento datetime NOT NULL,
+	-- Nullabilita' e ordine colonne allineati a un estratto della tabella reale (2247 righe,
+	-- 2026-07-24). Le colonne opzionali arrivano quasi sempre come stringa vuota, non NULL, ma il
+	-- NULL esiste: dichiararle NOT NULL faceva fallire i test con violazioni fasulle.
+	--   Cup           1 NULL, 2059 su 2247 stringa vuota, lunghezza max 15
+	--   Cig           NULL nel 100% delle righe: mai scritta dal codice, colonna vestigiale
+	--   CodCommessa   1 NULL, lunghezza max 99
+	--   DataDocumento 4 NULL  -> conferma l'assert "IsNull(DataDocumento)" dei test create
+	--   IdDocumento   1 NULL, 1795 stringa vuota, lunghezza max 20
+	--   Map           NULL nel 100% delle righe
+	Cup nvarchar(15) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	Cig nvarchar(10) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	CodCommessa nvarchar(100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	DataDocumento datetime NULL,
 	SplitPayment bit NOT NULL,
 	FkIdEnte nvarchar(50) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
-	IdDocumento nvarchar(20) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	IdDocumento nvarchar(20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 	DataCreazione datetime NOT NULL,
 	DataModifica datetime NULL,
 	[Map] nvarchar(100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 	FkTipoCommessa nvarchar(1) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	PEC nvarchar(250) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	FkProdotto nvarchar(15) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	-- presente nell'entita' Core DatiFatturazione e nell'INSERT: senza, la SELECT costruita da
+	-- DatiFatturazioneSQLBuilder fallisce con "Invalid column name 'NotaLegale'"
+	NotaLegale bit NOT NULL CONSTRAINT DF_DatiFatturazione_NotaLegale DEFAULT(0),
+	-- scritta da DatiFatturazioneCreateCommandPersistence/UpdateCommandPersistence (PF-705).
+	-- Lunghezza 7: nei dati reali il codice destinatario SDI e' 6-7 caratteri (911 righe NULL),
+	-- coerente con la specifica SDI. La lunghezza DICHIARATA non e' stata verificata: se il DB
+	-- reale la tiene piu' larga, allargare anche qui.
+	CodiceSDI nvarchar(7) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 	CONSTRAINT PK__DatiFatt__5A190E0F178A5F57 PRIMARY KEY (IdDatiFatturazione),
 	CONSTRAINT FkProdotto_DatiFatturazione FOREIGN KEY (FkProdotto) REFERENCES pfw.Prodotti(Prodotto),
 	CONSTRAINT FkTipoCommessaDatiFatturazione FOREIGN KEY (FkTipoCommessa) REFERENCES pfw.TipoCommessa(TipoCommessa)
@@ -156,12 +173,17 @@ CREATE TABLE pfw.DatiModuloCommessaTotali (
 	AnnoValidita int NOT NULL,
 	MeseValidita int NOT NULL,
 	FkIdCategoriaSpedizione int NOT NULL,
-	FkStato nvarchar(50) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	-- allineamento al codice attuale (DatiModuloCommessaCreateTotaleCommandPersistence): la MERGE usa
+	-- FkIdStato (non FkStato) e scrive anche PercentualeCategoria/Totale/Fatturabile.
+	FkIdStato nvarchar(50) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	TotaleCategoria decimal(9,2) NOT NULL,
+	PercentualeCategoria int NULL,
+	Totale decimal(9,2) NULL,
+	Fatturabile bit NULL,
 	CONSTRAINT PK_DatiModuloCommessaTotali PRIMARY KEY (FkIdEnte,FkIdTipoContratto,FkProdotto,AnnoValidita,MeseValidita,FkIdCategoriaSpedizione),
 	CONSTRAINT FK_DatiModuloCommessaTotali_CategoriaSpedizione FOREIGN KEY (FkIdCategoriaSpedizione) REFERENCES pfw.CategoriaSpedizione(IdCategoriaSpedizione),
 	CONSTRAINT FK_DatiModuloCommessaTotali_Prodotti FOREIGN KEY (FkProdotto) REFERENCES pfw.Prodotti(Prodotto),
-	CONSTRAINT FK_DatiModuloCommessaTotali_Stato FOREIGN KEY (FkStato) REFERENCES pfw.Stato(Stato),
+	CONSTRAINT FK_DatiModuloCommessaTotali_Stato FOREIGN KEY (FkIdStato) REFERENCES pfw.Stato(Stato),
 	CONSTRAINT FK_DatiModuloCommessaTotali_TipoContratto FOREIGN KEY (FkIdTipoContratto) REFERENCES pfw.TipoContratto(IdTipoContratto)
 );
 
@@ -229,6 +251,19 @@ CREATE TABLE pfw.CostoNotifiche (
 
  
 
+-- Tabella scritta da DatiModuloCommessaValoriRegioniInsertCommandPersistence.
+-- NB: definizione INFERITA da INSERT + ValoriRegioneDto (nel seed mancava del tutto) —
+-- da confrontare con la definizione reale di produzione. Colonna [890]: nome che inizia per cifra.
+CREATE TABLE pfw.DatiModuloCommessaRegioni (
+	Internalistitutionid nvarchar(50) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	Anno int NOT NULL,
+	Mese int NOT NULL,
+	Provincia nvarchar(50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	Regione nvarchar(50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	AR int NULL,
+	[890] int NULL
+);
+
 CREATE TABLE pfw.DatiModuloCommessa (
 	NumeroNotificheNazionali int NOT NULL,
 	NumeroNotificheInternazionali int NOT NULL,
@@ -241,6 +276,13 @@ CREATE TABLE pfw.DatiModuloCommessa (
 	FkProdotto nvarchar(15) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	AnnoValidita int NOT NULL,
 	MeseValidita int NOT NULL,
+	-- allineamento alla definizione reale di pfw.DatiModuloCommessa (valori/prezzi calcolati).
+	-- NB: in produzione FkIdEnte/FkIdStato sono nvarchar(100); qui restano 50 per coerenza con le
+	-- FK verso pfw.Stato/Prodotti gia' definite in questo seed.
+	ValoreNazionali decimal(9,2) NULL DEFAULT ((0)),
+	PrezzoNazionali decimal(9,2) NULL DEFAULT ((0)),
+	ValoreInternazionali decimal(9,2) NULL DEFAULT ((0)),
+	PrezzoInternazionali decimal(9,2) NULL DEFAULT ((0)),
 	CONSTRAINT PK_DatiModuloCommessa PRIMARY KEY (FkIdEnte,FKIdTipoContratto,FkProdotto,AnnoValidita,MeseValidita,FkIdTipoSpedizione),
 	CONSTRAINT FKIdStatoCommessa FOREIGN KEY (FkIdStato) REFERENCES pfw.Stato(Stato),
 	CONSTRAINT FK_DatiModuloCommessa_Prodotti FOREIGN KEY (FkProdotto) REFERENCES pfw.Prodotti(Prodotto),
@@ -259,13 +301,15 @@ INSERT INTO  pfw.Prodotti
 (Prodotto)
 VALUES('prod-pn'); 
 
+-- NB: valorizzare anche Tipo: il codice (DatiModuloCommessaExtensions.GetTotali) individua la
+-- categoria digitale con Tipo.Contains("digitale"). Con solo Descrizione si ottiene un NRE.
 INSERT INTO pfw.CategoriaSpedizione
-(Descrizione)
-VALUES('Analogico');
+(Tipo, Descrizione)
+VALUES('Analogico', 'Analogico');
 
 INSERT INTO pfw.CategoriaSpedizione
-(Descrizione)
-VALUES('Digitale');
+(Tipo, Descrizione)
+VALUES('Digitale', 'Digitale');
 
 INSERT INTO pfw.TipoSpedizione
 (Tipo, Descrizione, FkIdCategoriaSpedizione)
@@ -305,7 +349,10 @@ CREATE TABLE pfd.Contratti (
 	[month] int NULL,
 	daily nvarchar(MAX) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 	LastModified datetime2 NULL,
-	FkIdTipoContratto bigint NULL
+	FkIdTipoContratto bigint NULL,
+	-- letta da EnteSQLBuilder.SelectContrattoByIdEnte ("c.codiceSDI as codiceSDI"), usata
+	-- dall'handler DatiFatturazioneCreate per decidere se saltare la verifica del recipient code
+	codiceSDI nvarchar(7) COLLATE SQL_Latin1_General_CP1_CI_AS NULL
 );
  
 CREATE TABLE pfd.Enti (
@@ -315,6 +362,8 @@ CREATE TABLE pfd.Enti (
 	digitalAddress nvarchar(MAX) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 	address nvarchar(MAX) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 	originId nvarchar(MAX) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	-- letta da EnteSQLBuilder: "ISNULL(originIdPadre, e.originId) as CodiceIPA"
+	originIdPadre nvarchar(MAX) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 	zipCode nvarchar(MAX) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 	istatCode nvarchar(MAX) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 	city nvarchar(MAX) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
@@ -329,3 +378,19 @@ CREATE TABLE pfd.Enti (
 	Category nvarchar(MAX) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 	CONSTRAINT PK__Enti__16EA308B3ABC1682 PRIMARY KEY (InternalIstitutionId)
 );
+-- =============================================================================================
+-- pfw.Utenti: interrogata/scritta da UtenteCreateCommand, che ogni chiamata a GET api/auth/profilo
+-- esegue (upsert dell'ultimo accesso). Senza la tabella la rotta risponde 500 con
+-- "Invalid object name 'pfw.utenti'" — un 500 che sembra un problema di autenticazione e non lo e'.
+-- Volutamente SENZA righe di seed: e' l'handler stesso a inserirle al primo accesso, ed e' proprio
+-- quel comportamento che i test verificano. DDL reale fornita dal team DB.
+-- =============================================================================================
+IF OBJECT_ID('pfw.Utenti', 'U') IS NULL
+CREATE TABLE [pfw].[Utenti](
+	[FkIdEnte] [nvarchar](100) NOT NULL,
+	[IdUtente] [nvarchar](510) NOT NULL,
+	[DataPrimo] [datetime] NOT NULL,
+	[DataUltimo] [datetime] NOT NULL,
+ CONSTRAINT [PK_Utenti] PRIMARY KEY CLUSTERED ([FkIdEnte] ASC, [IdUtente] ASC)
+);
+GO

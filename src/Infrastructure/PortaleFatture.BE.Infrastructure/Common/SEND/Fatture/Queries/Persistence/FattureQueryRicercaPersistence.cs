@@ -12,8 +12,6 @@ namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries.Persisten
 public class FattureQueryRicercaPersistence(FattureQueryRicerca command) : DapperBase, IQuery<FattureListaDto?>
 {
     private readonly FattureQueryRicerca _command = command;
-    private static readonly string _sqlSelectAll = FattureQueryRicercaBuilder.SelectView();
-    private static readonly string _sqlSelectAllCancellate = FattureQueryRicercaBuilder.SelectViewCancellate();
     private static readonly string _sqlSelectEnti = EnteSQLBuilder.SelectAll();
     public async Task<FattureListaDto?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
     {
@@ -23,15 +21,12 @@ public class FattureQueryRicercaPersistence(FattureQueryRicerca command) : Dappe
         var mese = _command.Mese;
         var tipoFattura = _command.TipologiaFattura;
 
-        var sqlFatture = _command.Cancellata ? _sqlSelectAllCancellate : _sqlSelectAll;
-        var sqlEnti = _sqlSelectEnti.Add(schema); 
+        // Scelta ramo (EMESSE vs NON FATTURATE) + risoluzione del filtro tipologia sulla colonna giusta:
+        // logica pura estratta nel builder (unit-testabile). Vedi FattureQueryRicercaBuilderTests.
+        var sqlFatture = FattureQueryRicercaBuilder.SelectFattureRicerca(_command.Cancellata, !tipoFattura.IsNullNotAny());
+        var sqlEnti = _sqlSelectEnti.Add(schema);
 
-        if (!tipoFattura.IsNullNotAny())
-            sqlFatture = sqlFatture.Replace("[condition_tipologiafattura]", "and FT.FkTipologiaFattura IN @TipologiaFattura"); 
-        else
-            sqlFatture = sqlFatture.Replace("[condition_tipologiafattura]", string.Empty); 
-
-        var sql = string.Join(";", sqlEnti, sqlFatture); 
+        var sql = string.Join(";", sqlEnti, sqlFatture);
         
         var query = new
         {
@@ -43,10 +38,11 @@ public class FattureQueryRicercaPersistence(FattureQueryRicerca command) : Dappe
         };
 
         using var values = await ((IDatabase)this).QueryMultipleAsync<FattureListaDto>(
-        connection!,
-        sql,
-        query,
-        transaction);
+            connection!,
+            sql,
+            query,
+            transaction);
+
         var enti = await values.ReadAsync<EnteContrattoDto>();
         var fatture = await values.ReadFirstAsync<FattureListaDto>();
 
@@ -55,7 +51,11 @@ public class FattureQueryRicercaPersistence(FattureQueryRicerca command) : Dappe
 
         foreach (var f in fatture)
         {
-            var ente = enti.Where(x => x.IdEnte == f.fattura!.IstitutioID).FirstOrDefault();
+            // Match ente case-insensitive: SQL Server confronta i GUID case-insensitive, quindi la vista
+            // (be.vwDocumentiEmessiNonFatturati) puo' restituire un IstitutioID con casing diverso da
+            // pfd.Enti (es. FkIdEnte maiuscolo in cfg.GestioneFatture). Un '==' case-sensitive scartava la
+            // riga -> lista vuota -> 404. Vedi FattureRicercaApiIntegrationTests.NonFatturate_CasingEnteDiverso.
+            var ente = enti.FirstOrDefault(x => string.Equals(x.IdEnte, f.fattura!.IstitutioID, StringComparison.OrdinalIgnoreCase));
             if (ente != null)
             {
                 computedFatture.Add(f);
