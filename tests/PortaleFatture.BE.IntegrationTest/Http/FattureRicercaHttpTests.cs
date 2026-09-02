@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text;
+using System.Text.Json;
 using PortaleFatture.BE.Core.Auth;
 
 namespace PortaleFatture.BE.IntegrationTest.Http;
@@ -40,6 +41,135 @@ public class FattureRicercaHttpTests
         var body = await resp.Content.ReadAsStringAsync();
         Assert.That(body, Does.Contain("5001").Or.Contain("5002"),
             "Il corpo deve contenere le Non Fatturate (Eliminate) del periodo 2024/2.");
+    }
+
+    // =============================================================================================
+    // `PF-672 TD-21`: col filtro **Stato = "Non Fatturate"** la griglia deve mostrare **sia** le
+    // posticipate **sia** le eliminate.
+    //
+    // Sul backend è `api/fatture` con `cancellata = true`, che legge `be.vwDocumentiEmessiNonFatturati`
+    // — una **unione** di due CTE, `FattureEliminate` ∪ `FatturePosticipate`. Il test verifica proprio
+    // che l'unione arrivi intera al client: il rischio di una vista fatta di due rami è che uno dei due
+    // si rompa in silenzio (una join che non aggancia, un casing diverso) e la griglia mostri metà dei
+    // documenti senza alcun errore — è già successo, con il 404 fantasma da casing del GUID ente.
+    //
+    // Il seed del 2024 contiene entrambe le famiglie: 4001 posticipata (gennaio) e 5001/5002 eliminate
+    // (febbraio).
+    // =============================================================================================
+
+    [Test]
+    public async Task NonFatturate_ShouldMostrareLePosticipate()
+    {
+        // 4001: posticipata di gennaio 2024, ramo FatturePosticipate della vista.
+        var resp = await Post("""{ "cancellata": true, "anno": 2024, "mese": 1 }""");
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+
+        var idFatture = IdFattureNelCorpo(await resp.Content.ReadAsStringAsync());
+        TestContext.Out.WriteLine($"posticipate: {string.Join(", ", idFatture)}");
+        Assert.That(idFatture, Does.Contain(4001L));
+    }
+
+    [Test]
+    public async Task NonFatturate_ShouldMostrareLeEliminate()
+    {
+        // 5001 e 5002: eliminate di febbraio 2024, ramo FattureEliminate.
+        var resp = await Post("""{ "cancellata": true, "anno": 2024, "mese": 2 }""");
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+
+        var idFatture = IdFattureNelCorpo(await resp.Content.ReadAsStringAsync());
+        TestContext.Out.WriteLine($"eliminate: {string.Join(", ", idFatture)}");
+        Assert.Multiple(() =>
+        {
+            Assert.That(idFatture, Does.Contain(5001L));
+            Assert.That(idFatture, Does.Contain(5002L), "la 5002 non ha righe: deve comparire lo stesso");
+        });
+    }
+
+    /// <summary>
+    /// Il marker che distingue le due famiglie: la vista espone `fattura.inviata` con **3 = ELIMINATA**
+    /// e **4 = POSTICIPATA** — non lo stato reale di invio, che su queste righe non avrebbe senso.
+    /// È il valore su cui il portale distingue le due, quindi vale la pena che arrivi giusto.
+    /// </summary>
+    [Test]
+    public async Task NonFatturate_IlMarker_ShouldDistinguereLeDueFamiglie()
+    {
+        var posticipate = await (await Post("""{ "cancellata": true, "anno": 2024, "mese": 1 }""")).Content.ReadAsStringAsync();
+        var eliminate = await (await Post("""{ "cancellata": true, "anno": 2024, "mese": 2 }""")).Content.ReadAsStringAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(MarkerNelCorpo(posticipate), Does.Contain(4), "marker POSTICIPATA atteso 4");
+            Assert.That(MarkerNelCorpo(eliminate), Does.Contain(3), "marker ELIMINATA atteso 3");
+        });
+    }
+
+    /// <summary>
+    /// ⚠️ **Il filtro "Non Fatturate" lavora per periodo**: senza `mese` la ricerca risponde 404 anche
+    /// quando per quell'anno esistono documenti. Non è un difetto — il portale manda sempre il periodo
+    /// — ma spiega perché "tutte le posticipate ed eliminate" significa *tutte quelle del periodo
+    /// selezionato*, e perché una verifica a mano fatta col solo anno sembra dire che non c'è nulla.
+    /// </summary>
+    [Test]
+    public async Task NonFatturate_SenzaMese_ShouldReturn404_Caratterizzazione()
+    {
+        var resp = await Post("""{ "cancellata": true, "anno": 2024 }""");
+
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
+    private static List<int> MarkerNelCorpo(string corpo)
+    {
+        var trovati = new List<int>();
+        using var doc = JsonDocument.Parse(corpo);
+        Raccogli(doc.RootElement);
+        return trovati;
+
+        void Raccogli(JsonElement elemento)
+        {
+            switch (elemento.ValueKind)
+            {
+                case JsonValueKind.Object:
+                    foreach (var proprieta in elemento.EnumerateObject())
+                    {
+                        if (proprieta.Name.Equals("inviata", StringComparison.OrdinalIgnoreCase)
+                            && proprieta.Value.TryGetInt32(out var marker))
+                            trovati.Add(marker);
+                        Raccogli(proprieta.Value);
+                    }
+                    break;
+                case JsonValueKind.Array:
+                    foreach (var voce in elemento.EnumerateArray()) Raccogli(voce);
+                    break;
+            }
+        }
+    }
+
+    /// <summary>Gli `idFattura` presenti nel corpo, cercati ovunque nella struttura annidata.</summary>
+    private static List<long> IdFattureNelCorpo(string corpo)
+    {
+        var trovati = new List<long>();
+        using var doc = JsonDocument.Parse(corpo);
+        Raccogli(doc.RootElement);
+        return trovati;
+
+        void Raccogli(JsonElement elemento)
+        {
+            switch (elemento.ValueKind)
+            {
+                case JsonValueKind.Object:
+                    foreach (var proprieta in elemento.EnumerateObject())
+                    {
+                        if (proprieta.Name.Contains("idfattura", StringComparison.OrdinalIgnoreCase)
+                            && proprieta.Value.TryGetInt64(out var id))
+                            trovati.Add(id);
+                        Raccogli(proprieta.Value);
+                    }
+                    break;
+                case JsonValueKind.Array:
+                    foreach (var voce in elemento.EnumerateArray()) Raccogli(voce);
+                    break;
+            }
+        }
     }
 
     [Test]
