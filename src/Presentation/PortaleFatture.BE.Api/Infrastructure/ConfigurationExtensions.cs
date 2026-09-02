@@ -213,7 +213,9 @@ public static class ConfigurationExtensions
             options.Language?.Endpoint,
             options.Language?.Key,
             sp.GetRequiredService<ILogger<LanguageService>>(),
-            options.Language?.TimeoutSeconds ?? 45
+            options.Language?.TimeoutSeconds ?? 45,
+            options.Language?.MaxChars ?? 5_120,
+            options.Language?.MaxCharsSummarize ?? 125_000
         ));
 
         return services;
@@ -259,7 +261,8 @@ public static class ConfigurationExtensions
                         NotFoundException => Results.Problem(statusCode: StatusCodes.Status404NotFound, detail: exception.Message),
                         // ORDINE SIGNIFICATIVO: UpstreamTimeoutException deriva da UpstreamServiceException,
                         // quindi va elencata PRIMA, altrimenti la base la cattura e il 504 non esce mai.
-                        // 504 = non ha risposto in tempo; 502 = ha risposto male (quota, credenziale, rete).
+                        // 504 = non ha risposto in tempo;
+                        // 502 = ha risposto male (quota, credenziale, rete).
                         // Entrambi diversi dal 404 ("nessun risultato") e dal 500 ("errore nostro").
                         UpstreamTimeoutException => Results.Problem(statusCode: StatusCodes.Status504GatewayTimeout, detail: exception.Message),
                         UpstreamServiceException => Results.Problem(statusCode: StatusCodes.Status502BadGateway, detail: exception.Message),
