@@ -41,7 +41,7 @@ public class AzioneContestazioneAdversarialIntegrationTests
     // ---------------------------------------------------------------------------------------------
 
     /// <summary>
-    /// ⚠️ DIFETTO. `pfd.Notifiche` **non ha un vincolo di unicita' su `event_id`** (la colonna e'
+    /// ATTENZIONE DIFETTO. `pfd.Notifiche` **non ha un vincolo di unicita' su `event_id`** (la colonna e'
     /// `nvarchar(400) NULL`, senza PK ne' indice univoco — v. il DDL nel seed), quindi due righe con
     /// lo stesso id sono fisicamente possibili: e' esattamente cio' che una reingestione parziale
     /// della pipeline puo' produrre.
@@ -107,7 +107,7 @@ public class AzioneContestazioneAdversarialIntegrationTests
     }
 
     /// <summary>
-    /// ⚠️ Il caso `' OR '1'='1` merita una nota: se l'id fosse concatenato invece che parametrizzato,
+    /// ATTENZIONE Il caso `' OR '1'='1` merita una nota: se l'id fosse concatenato invece che parametrizzato,
     /// la `WHERE` diventerebbe sempre vera e `SingleAsync` troverebbe **piu' righe**, quindi
     /// solleverebbe — e il `catch` lo tradurrebbe di nuovo in "non esiste". L'esito osservabile
     /// sarebbe identico a quello corretto: la parametrizzazione va verificata sulla tabella, non

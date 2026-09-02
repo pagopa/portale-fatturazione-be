@@ -10,7 +10,7 @@ namespace PortaleFatture.BE.IntegrationTest.Http;
 /// Il caso di testbook `PF-672 TD-04`: **annullare una posticipa** col pulsante "Annulla" sulla riga
 /// della griglia, dopo di che *"le fatture cancellate non sono più visibili nella griglia risultati"*.
 ///
-/// ⚠️ **Terzo disallineamento di vocabolario dell'area**, e l'unico che può far sbagliare una chiamata:
+/// ATTENZIONE **Terzo disallineamento di vocabolario dell'area**, e l'unico che può far sbagliare una chiamata:
 /// il pulsante si chiama **"Annulla"**, l'azione da mandare all'API è **`CANCELLA`**, e lo stato che
 /// ne risulta si legge **`CANCELLATA`**. La whitelist dell'endpoint accetta solo
 /// `POSTICIPA | ELIMINA | RIPRISTINA | CANCELLA`: mandare la parola dell'interfaccia dà **400**

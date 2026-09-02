@@ -281,6 +281,71 @@ public class LanguageServiceHttpTests
     }
 
     // =============================================================================================
+    // Limite di lunghezza del testo (limite di Azure, applicato PRIMA della chiamata)
+    // =============================================================================================
+
+    /// <summary>
+    /// Un testo oltre il limite dev'essere respinto **prima** di chiamare Azure: **400**, non 502.
+    ///
+    /// Senza il controllo il limite lo applicava il servizio esterno — l'SDK sollevava, il catch
+    /// traduceva in `UpstreamServiceException` e il client vedeva un 502, cioè "il servizio a monte ha
+    /// un problema" quando invece il problema era nella sua richiesta. E la chiamata veniva **fatta e
+    /// pagata** prima di scoprirlo.
+    ///
+    /// Il servizio reale non è configurato in test, quindi qui si userebbe il 503; si passa perciò da
+    /// un fake configurato, per far arrivare la richiesta al controllo di lunghezza. Il fake però non
+    /// implementa il limite (lo fa `LanguageService`), quindi il test verifica la **rotta con il
+    /// servizio vero**: v. `LimiteLunghezza_UnitSulServizio` nel progetto unit.
+    /// </summary>
+    [Test]
+    public async Task TestoOltreIlLimite_ShouldReturn400_ENon502()
+    {
+        // 6.000 caratteri: sopra il limite delle operazioni sincrone (5.120), sotto quello della sintesi.
+        var testoLungo = new string('a', 6_000);
+        var client = ClientCon(LanguageServiceReale());
+
+        var resp = await client.PostAsync(_factory.WithNonce(RottaPii),
+            new StringContent($$"""{ "testo": "{{testoLungo}}" }""", Encoding.UTF8, "application/json"));
+        var corpo = await resp.Content.ReadAsStringAsync();
+        TestContext.Out.WriteLine($"testo 6000 caratteri -> {(int)resp.StatusCode}");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest),
+                "Il testo troppo lungo e' un errore della RICHIESTA (400), non un guasto del servizio "
+                + "a monte (502): e la chiamata ad Azure non deve nemmeno partire.");
+            Assert.That(corpo, Does.Contain("5.120").Or.Contain("5120"),
+                "Il messaggio deve dire qual e' il limite e quanto era lungo il testo ricevuto.");
+        });
+    }
+
+    [Test]
+    public async Task TestoEntroIlLimite_ShouldSuperareIlControllo()
+    {
+        // Contro-prova: 5.000 caratteri passano il controllo e arrivano alla chiamata (che qui fallisce
+        // perche' il servizio finto non ha credenziali: l'importante e' che NON sia un 400).
+        var testo = new string('a', 5_000);
+        var client = ClientCon(LanguageServiceReale());
+
+        var resp = await client.PostAsync(_factory.WithNonce(RottaPii),
+            new StringContent($$"""{ "testo": "{{testo}}" }""", Encoding.UTF8, "application/json"));
+
+        Assert.That(resp.StatusCode, Is.Not.EqualTo(HttpStatusCode.BadRequest),
+            "5.000 caratteri sono sotto il limite: il controllo di lunghezza non deve scattare.");
+    }
+
+    /// <summary>
+    /// Il `LanguageService` **vero**, costruito con endpoint e chiave fittizi: `IsConfigured` è `true`,
+    /// quindi la guardia del 503 non scatta e la richiesta arriva ai controlli veri del servizio —
+    /// che è esattamente ciò che questi due test devono esercitare. La chiamata ad Azure non parte
+    /// perché il testo viene respinto prima (primo test) o perché l'endpoint è fittizio (secondo).
+    /// </summary>
+    private static LanguageService LanguageServiceReale() => new(
+        endpoint: "https://esempio-non-raggiungibile.cognitiveservices.azure.com/",
+        key: "chiave-fittizia-per-test",
+        logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<LanguageService>.Instance);
+
+    // =============================================================================================
     // Autorizzazione
     // =============================================================================================
 

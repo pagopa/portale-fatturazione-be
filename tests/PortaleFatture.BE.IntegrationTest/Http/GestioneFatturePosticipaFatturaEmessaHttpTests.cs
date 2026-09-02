@@ -26,7 +26,7 @@ namespace PortaleFatture.BE.IntegrationTest.Http;
 /// usato da altre classi con altre tipologie, e un ente dedicato garantisce che nessun'altra
 /// asserzione incontri questa riga.
 ///
-/// ⚠️ Cosa **non** copre: il rifiuto su una fattura **già inviata** (`FatturaInviata = 1`). La SP
+/// ATTENZIONE Cosa **non** copre: il rifiuto su una fattura **già inviata** (`FatturaInviata = 1`). La SP
 /// dovrebbe rifiutarla, ma oggi non lo fa — la guardia è codice morto perché il conteggio calcolato su
 /// `FattureTestata` viene sovrascritto da una tabella variabile mai popolata. È già tracciato dal test
 /// `[Ignore]` `Posticipa_OnAlreadySentInvoice_ShouldBeRejected`, e va chiuso lì, non qui.
@@ -183,7 +183,7 @@ public class GestioneFatturePosticipaFatturaEmessaHttpTests
     /// sovrascrive con quello risolto dal periodo (ente/tipologia/anno/mese). Mandare l'id di
     /// un'altra fattura non permette quindi di marcarla.
     ///
-    /// ⚠️ Attenzione al rovescio della medaglia, che qui **non** si verifica ma va conosciuto: quel
+    /// ATTENZIONE Attenzione al rovescio della medaglia, che qui **non** si verifica ma va conosciuto: quel
     /// `SELECT @IdFattura = …` è una assegnazione da SELECT, e se non trova righe **lascia la
     /// variabile invariata**. Su un periodo *senza* fattura, quindi, l'id mandato dal client
     /// sopravvive e finisce nella riga di staging — dove punterebbe a una fattura che non esiste.

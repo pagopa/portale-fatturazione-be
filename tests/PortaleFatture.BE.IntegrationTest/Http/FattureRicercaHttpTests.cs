@@ -104,7 +104,7 @@ public class FattureRicercaHttpTests
     }
 
     /// <summary>
-    /// ⚠️ **Il filtro "Non Fatturate" lavora per periodo**: senza `mese` la ricerca risponde 404 anche
+    /// ATTENZIONE **Il filtro "Non Fatturate" lavora per periodo**: senza `mese` la ricerca risponde 404 anche
     /// quando per quell'anno esistono documenti. Non è un difetto — il portale manda sempre il periodo
     /// — ma spiega perché "tutte le posticipate ed eliminate" significa *tutte quelle del periodo
     /// selezionato*, e perché una verifica a mano fatta col solo anno sembra dire che non c'è nulla.

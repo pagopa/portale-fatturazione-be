@@ -82,7 +82,7 @@ public class ApiKeysCommandIntegrationTests
     [Test]
     public async Task CreaIp_StessoIndirizzoSuEnteDiverso_ShouldReturnMeno1_Finding()
     {
-        // ⚠️ CONSEGUENZA NON OVVIA DELLO SCHEMA: UQ_IPAddress è univoco sulla SOLA colonna IPAddress,
+        // ATTENZIONE CONSEGUENZA NON OVVIA DELLO SCHEMA: UQ_IPAddress è univoco sulla SOLA colonna IPAddress,
         // non sulla coppia (FkIdEnte, IPAddress). Quindi il primo aderente che registra un indirizzo
         // impedisce a QUALSIASI altro di registrare lo stesso — scenario tutt'altro che teorico con
         // uscite NAT condivise o due enti dietro lo stesso gateway.

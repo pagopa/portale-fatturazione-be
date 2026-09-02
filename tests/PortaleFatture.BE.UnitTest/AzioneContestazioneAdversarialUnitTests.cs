@@ -50,7 +50,7 @@ public class AzioneContestazioneAdversarialUnitTests
     }
 
     /// <summary>
-    /// ⚠️ Il confronto e' `==` fra stringhe, quindi **case-sensitive**: un `pa` minuscolo non e' un
+    /// ATTENZIONE Il confronto e' `==` fra stringhe, quindi **case-sensitive**: un `pa` minuscolo non e' un
     /// `PA`. La colonna `pfd.Enti.institutionType` e' popolata dall'onboarding SelfCare e il valore
     /// viaggia fino al claim senza normalizzazione — se un giorno arrivasse con un casing diverso,
     /// l'utente non vedrebbe "azioni non permesse" ma un errore.
@@ -121,7 +121,7 @@ public class AzioneContestazioneAdversarialUnitTests
     // ---------------------------------------------------------------------------------------------
 
     /// <summary>
-    /// ⚠️ DIFETTO. `Notifica.Anno` e `Notifica.Mese` sono **stringhe** (le colonne `year`/`month` sono
+    /// ATTENZIONE DIFETTO. `Notifica.Anno` e `Notifica.Mese` sono **stringhe** (le colonne `year`/`month` sono
     /// `int` a DB e vengono convertite da Dapper), e l'handler fa `Convert.ToInt16(notifica.Anno)`
     /// senza alcuna protezione. `Int16` arriva a **32767**: un anno oltre quel valore — che la colonna
     /// `int` accetta senza problemi — produce una `OverflowException` non gestita, cioe' un 500.

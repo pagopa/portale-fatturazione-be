@@ -14,7 +14,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// DDL reale estratta da PRODUZIONE), insieme alle due tabelle di calendario da cui dipende
 /// (`tests/Data/orchestratore.sql`).
 ///
-/// ⚠️ Episodio del 31/08/2026, utile come precedente: la vista c'era in produzione ma **mancava in
+/// ATTENZIONE Episodio del 31/08/2026, utile come precedente: la vista c'era in produzione ma **mancava in
 ///    UAT**, dove le quattro rotte dell'area rispondevano 500 — un disallineamento di ambiente, non un
 ///    difetto del backend (l'allineamento DB fra ambienti e' manuale, v. `docs/cicd-release.md`).
 ///    Segnalato al team Data e risolto in giornata: oggi la vista c'e' in DEV, UAT e PROD. Davanti a

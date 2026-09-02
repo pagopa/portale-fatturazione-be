@@ -273,7 +273,7 @@ public class GestioneFattureEliminaDallaRigaHttpTests
     }
 
     /// <summary>
-    /// ⚠️ `CodiceContratto` non è un dettaglio riempitivo: `be.vwDocumentiEmessiNonFatturati` arriva
+    /// ATTENZIONE `CodiceContratto` non è un dettaglio riempitivo: `be.vwDocumentiEmessiNonFatturati` arriva
     /// alle fatture con `INNER JOIN pfd.Contratti ON c.onboardingtokenid = FT.CodiceContratto`, e in
     /// più con un `INNER JOIN pfw.FatturaTestataConfig` su (tipologia, tipo contratto). Una fattura
     /// senza codice contratto — o con una combinazione tipologia/contratto non configurata — **non

@@ -121,7 +121,7 @@ public class GestioneFattureNotaHttpTests
     /// L'aspettativa del testbook, oggi non soddisfatta dal backend: fuori dai limiti 10–500 la
     /// richiesta dovrebbe essere respinta.
     ///
-    /// ⚠️ **Da confermare col prodotto prima di "correggere"**: può essere una scelta deliberata tenere
+    /// ATTENZIONE **Da confermare col prodotto prima di "correggere"**: può essere una scelta deliberata tenere
     /// il vincolo nel solo form, come regola di usabilità. In quel caso questo test va cancellato e la
     /// caratterizzazione qui sopra resta da sola a documentare che l'API è permissiva. Se invece il
     /// vincolo è di dominio, il rimedio è una validazione sull'endpoint accanto a quelle già presenti
@@ -167,7 +167,7 @@ public class GestioneFattureNotaHttpTests
     /// <summary>
     /// Il testo della prima nota dell'array JSON, come è finito a database.
     ///
-    /// ⚠️ **Non si usa `JSON_VALUE`**, che è la via ovvia: restituisce `nvarchar(4000)` e su un valore
+    /// ATTENZIONE **Non si usa `JSON_VALUE`**, che è la via ovvia: restituisce `nvarchar(4000)` e su un valore
     /// più lungo torna **NULL** invece del testo (in lax mode non solleva errore). Leggendo così, una
     /// nota da 5000 caratteri sembrerebbe persa mentre è memorizzata per intero — ed è esattamente
     /// l'abbaglio che ha preso questo test alla prima esecuzione. Si legge quindi la colonna intera e

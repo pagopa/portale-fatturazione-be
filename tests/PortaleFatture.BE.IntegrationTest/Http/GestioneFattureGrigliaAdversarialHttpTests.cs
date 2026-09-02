@@ -87,7 +87,7 @@ public class GestioneFattureGrigliaAdversarialHttpTests
     /// non arrivava per un nome sbagliato, qui **è cablato lungo tutta la catena**, quindi in review
     /// sembra implementato a tutti gli effetti.
     ///
-    /// ⚠️ Non è però un difetto da "completare": `note` **non è fra i filtri previsti** dalla pagina
+    /// ATTENZIONE Non è però un difetto da "completare": `note` **non è fra i filtri previsti** dalla pagina
     /// (Anno / Mese / Tipologia fattura / Tipologia contratto / Rag. Sociale / Stato — v. `PF-672
     /// TD-12`). È quindi **codice morto** da rimuovere, non una funzione mancante — motivo per cui non
     /// c'è un `[Ignore]` con l'aspettativa "deve filtrare": sarebbe un requisito inventato.

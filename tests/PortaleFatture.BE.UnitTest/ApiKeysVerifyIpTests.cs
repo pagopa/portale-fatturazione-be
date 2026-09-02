@@ -31,7 +31,7 @@ public class ApiKeysVerifyIpTests
         => Assert.That(indirizzo.VerifyIp(), Is.False);
 
     /// <summary>
-    /// ⚠️ Trappola di sicurezza, non un difetto della nostra validazione: `IPAddress.TryParse` accetta
+    /// ATTENZIONE Trappola di sicurezza, non un difetto della nostra validazione: `IPAddress.TryParse` accetta
     /// le forme dotted-quad ABBREVIATE e le espande secondo la convenzione storica di inet_aton.
     /// "192.168.1" NON viene rifiutato: diventa 192.168.0.1, cioè un indirizzo DIVERSO da quello che
     /// l'utente aveva in mente. In una whitelist IP significa autorizzare un host non voluto senza

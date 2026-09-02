@@ -272,7 +272,7 @@ public class AzioneContestazioneMatriceUnitTests
     }
 
     /// <summary>
-    /// ⚠️ Il test che distingue i due cancelli temporali, ed e' l'unico posto in cui la differenza si
+    /// ATTENZIONE Il test che distingue i due cancelli temporali, ed e' l'unico posto in cui la differenza si
     /// vede: per un profilo Ente **`CreazionePermessa` e' governata da `Valid`** (la finestra di
     /// apertura, `DataInizio`–`DataFine`) mentre chiusura e risposta sono governate da `ValidVerifica`
     /// (`DataInizio`–`DataVerifica`). Sono finestre diverse e non vanno confuse.

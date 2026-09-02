@@ -50,7 +50,7 @@ public class JwtDecoderAdversarialTests
     /// <summary>
     /// Token valido, da cui derivare le mutazioni.
     ///
-    /// ⚠️ Il set di claim dev'essere COMPLETO: `JwtTokenService.GenerateJwtToken` passa da
+    /// ATTENZIONE Il set di claim dev'essere COMPLETO: `JwtTokenService.GenerateJwtToken` passa da
     /// `IdentityExtensions.Mapper`, che accede ai claim senza controlli e va in NullReferenceException
     /// se ne manca uno. È la stessa trappola già annotata per `Http/JwtApiTestFactory` in
     /// `docs/test-integrazione-db-seedato.md`: sembra un errore del test, è un mapper senza difese.

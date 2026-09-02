@@ -35,12 +35,12 @@ namespace PortaleFatture.BE.IntegrationTest.Http;
 /// Qui si entra invece **dal form**, quindi *per periodo* e senza id, e si verifica l'effetto sulla
 /// **griglia** — che quel file non guarda.
 ///
-/// ⚠️ **Contratto della riga dopo un'ELIMINA**: `FkIdFattura` resta **NULL** anche quando la fattura
+/// ATTENZIONE **Contratto della riga dopo un'ELIMINA**: `FkIdFattura` resta **NULL** anche quando la fattura
 /// esiste (sia l'INSERT sia l'UPDATE della SP azzerano la colonna). La chiave logica è quindi il
 /// **periodo**: letture, cleanup e la successiva CANCELLA vanno fatti per periodo, non per id. È il
 /// motivo per cui la pulizia di questa classe non filtra su `FkIdFattura`.
 ///
-/// ⚠️ **Tipologie ammesse**: `ANTICIPO` e `ACCONTO`, più `PRIMO SALDO` **solo per l'ente INPS**
+/// ATTENZIONE **Tipologie ammesse**: `ANTICIPO` e `ACCONTO`, più `PRIMO SALDO` **solo per l'ente INPS**
 /// (eccezione hardcoded, coperta da `GestioneFattureRequisitiIntegrationTests`, qui non duplicata).
 /// Su una tipologia di saldo l'azione viene rifiutata — v. il test in fondo.
 ///
@@ -182,7 +182,7 @@ public class GestioneFattureEliminaDalFormHttpTests
     /// L'ELIMINA è ammessa su `ANTICIPO`/`ACCONTO` (più `PRIMO SALDO` per il solo INPS): su una
     /// tipologia di saldo la stored procedure rifiuta.
     ///
-    /// ⚠️ Il rifiuto arriva al client come **404 muto**, lo stesso difetto già visto su annulla e
+    /// ATTENZIONE Il rifiuto arriva al client come **404 muto**, lo stesso difetto già visto su annulla e
     /// ripristina: la SP fa la sua parte, è l'endpoint a tradurre `Result 0` in `NotFound()` senza
     /// spiegare. Qui si fissa il comportamento attuale.
     /// </summary>

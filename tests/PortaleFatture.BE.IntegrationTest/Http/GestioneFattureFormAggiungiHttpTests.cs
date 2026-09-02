@@ -20,7 +20,7 @@ namespace PortaleFatture.BE.IntegrationTest.Http;
 ///    dipendenze da tabelle, e soprattutto **non espone le combinazioni non ammesse**: è lì che
 ///    l'inconsistenza viene evitata a monte, impedendo di comporla nel form.
 ///
-/// ⚠️ La barriera è però solo nella **tendina**, non nell'endpoint dell'azione: chi chiama l'API
+/// ATTENZIONE La barriera è però solo nella **tendina**, non nell'endpoint dell'azione: chi chiama l'API
 /// direttamente può comporre una combinazione che il form non offrirebbe. Non è un difetto di questa
 /// pagina — è la stessa assenza di validazione del periodo già tracciata dagli `[Ignore]` dell'area
 /// (mese 0, mese 99999, anno negativo vengono accettati) — ma va saputo prima di dedurre che "il form

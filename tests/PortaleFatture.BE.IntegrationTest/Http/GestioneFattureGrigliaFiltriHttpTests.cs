@@ -17,7 +17,7 @@ namespace PortaleFatture.BE.IntegrationTest.Http;
 /// mandava mentre il DTO esponeva `TipologiaContratto`: il filtro non ha mai funzionato finché
 /// qualcuno non se n'è accorto (rinominato il 29/07/2026). Questi test lo bloccano.
 ///
-/// ⚠️ **Due nomi dell'interfaccia non corrispondono al campo che si manda**, ed è la ragione principale
+/// ATTENZIONE **Due nomi dell'interfaccia non corrispondono al campo che si manda**, ed è la ragione principale
 /// per cui questo file esiste:
 ///
 /// | Etichetta nella pagina | Campo JSON | Nota |
@@ -237,7 +237,7 @@ public class GestioneFattureGrigliaFiltriHttpTests
     }
 
     /// <summary>
-    /// ⚠️ Il rovescio del contratto, da conoscere prima di aprire una segnalazione: quel 404 è
+    /// ATTENZIONE Il rovescio del contratto, da conoscere prima di aprire una segnalazione: quel 404 è
     /// **indistinguibile** da quello di una rotta sbagliata o di un nonce non valido. "Non sono
     /// presenti documenti" e "hai chiamato male" arrivano al client identici, senza corpo.
     ///

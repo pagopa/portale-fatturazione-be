@@ -31,7 +31,7 @@ public class NotificaFiltriUnitTests
         => Assert.That(tipo.Map(), Is.EqualTo(atteso));
 
     /// <summary>
-    /// ⚠️ Il caso che spiega tutto il ramo digitale della query. `Digitali` **non** mappa su un codice:
+    /// ATTENZIONE Il caso che spiega tutto il ramo digitale della query. `Digitali` **non** mappa su un codice:
     /// mappa sulla **stringa vuota**, perche' a DB una notifica digitale ha `paper_product_type` NULL.
     ///
     /// Conseguenza nella persistence: i valori mappati vengono filtrati con

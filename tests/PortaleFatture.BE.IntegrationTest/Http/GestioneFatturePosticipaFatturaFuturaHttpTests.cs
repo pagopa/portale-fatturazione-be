@@ -28,7 +28,7 @@ namespace PortaleFatture.BE.IntegrationTest.Http;
 /// per `PRIMO SALDO` la finestra va da *mese corrente − 2* fino a **dicembre dell'anno prossimo**.
 /// Un periodo futuro è quindi offerto dai menu a tendina per costruzione, non per caso.
 ///
-/// ⚠️ Nessuno valida il periodo lato SP (mese 0, mese 99999 e anno negativo vengono accettati e
+/// ATTENZIONE Nessuno valida il periodo lato SP (mese 0, mese 99999 e anno negativo vengono accettati e
 /// scritti — difetto già tracciato da `ExtremeAnnoMese_ShouldNotCrash_AndNoOp`). Questi test provano
 /// che il caso **legittimo** funziona, non che quelli assurdi siano rifiutati: quello è un buco aperto.
 ///

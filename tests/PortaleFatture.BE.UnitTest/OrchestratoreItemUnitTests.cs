@@ -69,7 +69,7 @@ public class OrchestratoreItemUnitTests
     // ---------------------------------------------------------------------------------------------
 
     /// <summary>
-    /// ⚠️ DIFETTO, ma oggi non raggiungibile dalla vista. `Esecuzione` è dichiarata `int?` — quindi il
+    /// ATTENZIONE DIFETTO, ma oggi non raggiungibile dalla vista. `Esecuzione` è dichiarata `int?` — quindi il
     /// modello **prevede** che possa essere nulla — ma il getter fa `Esecuzione!.Value`: l'operatore
     /// `!` mette a tacere il compilatore senza garantire nulla, e a runtime `.Value` su un `int?`
     /// vuoto solleva `InvalidOperationException`.

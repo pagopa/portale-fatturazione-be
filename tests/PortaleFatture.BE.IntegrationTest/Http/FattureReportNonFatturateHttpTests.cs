@@ -125,7 +125,7 @@ public class FattureReportNonFatturateHttpTests
     /// La lettura **letterale** del testbook: un unico elenco con tutte le posticipate ed eliminate,
     /// indipendentemente dalla tipologia del report.
     ///
-    /// ⚠️ **Da chiarire col prodotto prima di trattarlo come difetto**, per lo stesso motivo detto
+    /// ATTENZIONE **Da chiarire col prodotto prima di trattarlo come difetto**, per lo stesso motivo detto
     /// sopra: se vale la lettura "per tipologia", questo test va **cancellato** e resta la
     /// caratterizzazione.
     /// </summary>
@@ -266,7 +266,7 @@ public class FattureReportNonFatturateHttpTests
     /// report pretende: una **riga** e la **REL** corrispondente. Sul seed nessuna fattura non inviata
     /// le ha entrambe — l'unica completa, la 8001, è già inviata e quindi fuori da questo report.
     ///
-    /// ⚠️ `pfd.RelTestata` vuole le colonne `Asseverazione*` valorizzate: sono `decimal`/`int` **non
+    /// ATTENZIONE `pfd.RelTestata` vuole le colonne `Asseverazione*` valorizzate: sono `decimal`/`int` **non
     /// nullable** sul DTO, e un NULL fa fallire il mapping con un 500 che sembra un problema di vista.
     /// </summary>
     private static void CompletaLaFatturaNonInviata() => Esegui($@"

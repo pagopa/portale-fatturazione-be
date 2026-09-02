@@ -15,7 +15,7 @@ namespace PortaleFatture.BE.IntegrationTest.Http;
 /// pre-eliminazione — entrambi con un commento `TODO: rimuovere eccezione per fattura INPS - PRIMO
 /// SALDO`. È quindi dichiaratamente **temporanea**.
 ///
-/// ⚠️ **Quando l'eccezione verrà rimossa, il primo test di questa classe diventerà rosso.** Non è un
+/// ATTENZIONE **Quando l'eccezione verrà rimossa, il primo test di questa classe diventerà rosso.** Non è un
 /// difetto: è il segnale che la regola è cambiata, e va aggiornato invece che "riparato" — l'eccezione
 /// sparisce e il caso di testbook con lei. È il motivo per cui la classe la isola invece di
 /// spargerla fra i test dell'ELIMINA.

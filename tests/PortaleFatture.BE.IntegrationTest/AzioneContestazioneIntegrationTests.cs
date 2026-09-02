@@ -88,7 +88,7 @@ public class AzioneContestazioneIntegrationTests
     // ---------------------------------------------------------------------------------------------
 
     /// <summary>
-    /// ⚠️ Il lock scatta su `Fatturabile`, non su un flag che si chiama "fatturata": la colonna
+    /// ATTENZIONE Il lock scatta su `Fatturabile`, non su un flag che si chiama "fatturata": la colonna
     /// `pfd.Notifiche.Fatturabile` viene esposta dalla query come `Fatturata` (`n.Fatturabile as
     /// Fatturata`) e l'handler la legge come "gia' inclusa in un ciclo di fatturazione". Nome della
     /// colonna e significato nel codice non coincidono — da tenere presente prima di modificare l'uno

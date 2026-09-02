@@ -194,7 +194,7 @@ public class NotificaQueryListaEntiV2IntegrationTests
     // ---------------------------------------------------------------------------------------------
 
     /// <summary>
-    /// ⚠️ DIFETTO. Il SELECT restituisce `NotificationType`, `IdTipoContestazione` e `CodiceOggetto`,
+    /// ATTENZIONE DIFETTO. Il SELECT restituisce `NotificationType`, `IdTipoContestazione` e `CodiceOggetto`,
     /// il DTO ha le tre proprieta' — ma la mappatura a mano della v2 **non le assegna**. Con Dapper
     /// (v1) si popolavano da sole; qui restano a null/0 per sempre, in silenzio.
     ///
@@ -220,7 +220,7 @@ public class NotificaQueryListaEntiV2IntegrationTests
     }
 
     /// <summary>
-    /// ⚠️ DIFETTO piu' sottile del precedente. `NumberOfPages` e `CostEuroInCentesimi` sono stringhe
+    /// ATTENZIONE DIFETTO piu' sottile del precedente. `NumberOfPages` e `CostEuroInCentesimi` sono stringhe
     /// sul DTO e la v2 le riempie con `reader["…"].ToString()`. Su una colonna NULL quel `ToString()`
     /// non da' `null`: da' **stringa vuota** (`DBNull.Value.ToString()`). Dapper, nella v1, lasciava
     /// `null`.

@@ -153,7 +153,7 @@ public class NotificaQueryListaEntiV2AdversarialTests
     // ---------------------------------------------------------------------------------------------
 
     /// <summary>
-    /// ⚠️ Identico al difetto n.1 gia' documentato sulla v1: la parola `WHERE` la emette **solo**
+    /// ATTENZIONE Identico al difetto n.1 gia' documentato sulla v1: la parola `WHERE` la emette **solo**
     /// `if (anno.HasValue)`, tutti gli altri filtri aggiungono `" AND …"`. Senza anno, quell'`AND` non
     /// finisce in un WHERE inesistente — si attacca all'ultima riga della SELECT, che e'
     /// `LEFT JOIN pfw.TipoContestazione a ON …`, e diventa parte della **ON di una LEFT JOIN**, dove
@@ -181,7 +181,7 @@ public class NotificaQueryListaEntiV2AdversarialTests
     // ---------------------------------------------------------------------------------------------
 
     /// <summary>
-    /// ⚠️ Sulla v2 questo non e' un caso di laboratorio. L'endpoint dichiara
+    /// ATTENZIONE Sulla v2 questo non e' un caso di laboratorio. L'endpoint dichiara
     /// `[FromQuery] int page, [FromQuery] int pageSize` **non nullable**: una chiamata a
     /// `api/v2/notifiche/pagopa` che ometta i due parametri non li lascia assenti, li lega a **0** — e
     /// `size = 0` arriva fino a `FETCH NEXT 0 ROWS ONLY`, che non e' T-SQL valido. Un client che

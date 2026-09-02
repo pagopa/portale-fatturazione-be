@@ -22,7 +22,7 @@ namespace PortaleFatture.BE.IntegrationTest.Http;
 /// `FkIdFattura`** — strada che con `idFattura: null` non esiste. Qui si verifica l'effetto a DB
 /// leggendo **per periodo**, che e' la chiave logica reale di `cfg.GestioneFatture`.
 ///
-/// ⚠️ **Una differenza dichiarata rispetto al caso UAT**: il periodo riservato qui (2026/8) non ha una
+/// ATTENZIONE **Una differenza dichiarata rispetto al caso UAT**: il periodo riservato qui (2026/8) non ha una
 /// fattura corrispondente in `pfd.FattureTestata`, quindi la SP prende il ramo "pre-generazione". Oggi
 /// l'esito osservabile e' identico a quello del ramo con fattura esistente, perche' nella SP il
 /// conteggio su `FattureTestata` viene sovrascritto da una tabella variabile mai popolata e il ramo di
