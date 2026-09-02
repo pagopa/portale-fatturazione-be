@@ -300,12 +300,19 @@ GO
 -- Seed deterministico: fatture non inviate.
 -- 1001-1002 SALDO  -> per POSTICIPA / RIPRISTINA / CANCELLA
 -- 2001      ANTICIPO -> per ELIMINA (percorso distruttivo, ora sicuro su DB usa-e-getta)
-IF NOT EXISTS (SELECT 1 FROM pfd.FattureTestata WHERE IdFattura IN (1001,1002,2001,2002,3001))
 -- IdFattura e' IDENTITY sul DB reale, ma i test si appoggiano a id deterministici (1001, 2002, ...):
 -- servono quindi IDENTITY_INSERT e la lista colonne esplicita. Le colonne NOT NULL che non
 -- interessano gli scenari di Gestione Fatture (prodotto, tipo documento, importi, divisa...) sono
 -- riempite con valori plausibili e costanti: contano solo perche' la tabella non le accetta NULL.
+--
+-- ⚠️ ORDINE OBBLIGATORIO: SET IDENTITY_INSERT prima, IF NOT EXISTS sull'INSERT dopo (come in tutti
+--    gli altri blocchi di questo file). Con l'ordine invertito l'IF governerebbe **solo** il SET —
+--    un IF senza BEGIN/END regge una sola istruzione — quindi alla RIESECUZIONE dello script su un DB
+--    gia' seedato il SET verrebbe saltato (righe gia' presenti) e l'INSERT partirebbe comunque,
+--    fallendo con "Msg 544: Cannot insert explicit value for identity column ... IDENTITY_INSERT is
+--    set to OFF" e uccidendo tutto il resto del file. Su DB fresco funzionava per caso.
 SET IDENTITY_INSERT pfd.FattureTestata ON;
+IF NOT EXISTS (SELECT 1 FROM pfd.FattureTestata WHERE IdFattura IN (1001,1002,2001,2002,3001))
 INSERT INTO pfd.FattureTestata
  (IdFattura, FkIdEnte, FkTipologiaFattura, AnnoRiferimento, MeseRiferimento, FatturaInviata,
   FkProdotto, FkIdTipoDocumento, DataFattura, IdentificativoFattura, TotaleFattura, Divisa, MetodoPagamento,
@@ -920,4 +927,49 @@ INSERT INTO pfd.RelTestata
 VALUES
  ('11111111-1111-1111-1111-111111111111','TOKEN-E1','SEM. SOSPESI',   2026,5, 2.00,2.00,1,1,4.00,2.44,2.44,4.88,0,0,'2026-S1', 0,0,0,0,0,0,0,0),
  ('11111111-1111-1111-1111-111111111111','TOKEN-E1','VAR. SEMESTRALE',2026,5, 4.00,4.00,1,1,8.00,4.88,4.88,9.76,0,0,'2026-S1', 0,0,0,0,0,0,0,0);
+GO
+
+-- =============================================================================================
+-- POSTICIPA su una fattura GIA' EMESSA ma NON INVIATA (caso di testbook, replay 31/08/2026).
+--
+-- Scenario: l'admin apre il form "aggiungi" e posticipa un periodo per cui la fattura ESISTE gia'
+-- in pfd.FattureTestata con FatturaInviata = 0. E' diverso dal caso gia' coperto (periodo senza
+-- fattura, "pre-generazione") per una ragione osservabile: nel ramo ELSE la SP fa
+--     SELECT @IdFattura = IdFattura FROM pfd.FattureTestata WHERE anno/mese/ente/tipologia
+-- quindi la riga di cfg.GestioneFatture nasce con FkIdFattura VALORIZZATO anche se il client ha
+-- mandato "idFattura": null. Il server risolve la fattura dal periodo: e' il contrasto fra i due
+-- casi a rendere utili entrambi i test.
+--
+-- Ente ISOLATO apposta: la fattura vive su un periodo (2026/7) che altre classi usano per altre
+-- tipologie/enti, e un ente dedicato garantisce che nessun'altra asserzione la incontri. Serve anche
+-- il contratto, perche' la vista della griglia arriva alle righe con tre INNER JOIN
+-- (Enti -> Contratti -> TipoContratto).
+--
+-- NB: la tipologia deve stare nella whitelist della SP
+-- ('PRIMO SALDO','SECONDO SALDO','VAR. SEMESTRALE','SEM. SOSPESI'), altrimenti il conteggio sulle
+-- fatture non la vedrebbe nemmeno.
+-- =============================================================================================
+
+IF NOT EXISTS (SELECT 1 FROM pfd.Enti WHERE InternalIstitutionId = '77777777-7777-7777-7777-777777777777')
+INSERT INTO pfd.Enti (InternalIstitutionId, description) VALUES
+ ('77777777-7777-7777-7777-777777777777', 'Ente Fattura Emessa Non Inviata');
+
+IF NOT EXISTS (SELECT 1 FROM pfd.Contratti WHERE internalistitutionid = '77777777-7777-7777-7777-777777777777')
+INSERT INTO pfd.Contratti (internalistitutionid, FkIdTipoContratto, onboardingtokenid) VALUES
+ ('77777777-7777-7777-7777-777777777777', 2, 'TOKEN-E7');  -- PAC
+GO
+
+SET IDENTITY_INSERT pfd.FattureTestata ON;
+IF NOT EXISTS (SELECT 1 FROM pfd.FattureTestata WHERE IdFattura = 7501)
+INSERT INTO pfd.FattureTestata
+ (IdFattura, FkIdEnte, FkTipologiaFattura, AnnoRiferimento, MeseRiferimento, FatturaInviata,
+  FkProdotto, FkIdTipoDocumento, DataFattura, IdentificativoFattura, TotaleFattura, Divisa, MetodoPagamento,
+  Progressivo, CodiceContratto)
+VALUES
+ -- FatturaInviata = 0 => "emessa ma NON inviata": e' esattamente lo stato che la pagina consente di
+ -- posticipare. Con FatturaInviata = 1 la SP dovrebbe rifiutare, ma oggi non lo fa (guardia resa
+ -- codice morto dal conteggio sovrascritto) -- difetto gia' tracciato da un test [Ignore].
+ (7501, '77777777-7777-7777-7777-777777777777', 'VAR. SEMESTRALE', 2026, 7, 0,
+  'prod-pn', 'TD01', '2026-07-01', 'IT-7501', 2440.00, 'EUR', 'MP5', 7501, 'TOKEN-E7');
+SET IDENTITY_INSERT pfd.FattureTestata OFF;
 GO

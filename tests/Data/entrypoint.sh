@@ -31,12 +31,18 @@ if [ "$1" = '/opt/mssql/bin/sqlservr' ]; then
       # ente/contratto con codiceSDI per i test su DatiFatturazione (PF-705)
       "$SQLCMD" -C -S localhost -U sa -P 52JdGnzZaANhf -d master -i /scripts/dati_fatturazione.sql
 
-      # notifiche + contestazioni (tabelle e seed 2026/3) per POST api/notifiche/pagopa
+      # notifiche + contestazioni + calendario contestazioni (seed 2026/3 aperto, 2026/4 chiuso),
+      # per POST api/notifiche/pagopa e per la matrice azioni di AzioneContestazione*
       "$SQLCMD" -C -S localhost -U sa -P 52JdGnzZaANhf -d master -i /scripts/notifiche.sql
 
       # modulo commessa: tabelle mancanti + seed 2026/4-5 per le rotte api/v2/modulocommessa/*
       # (deve precedere views/, che contiene le 4 viste legacy pfd.v* dell'area)
       "$SQLCMD" -C -S localhost -U sa -P 52JdGnzZaANhf -d master -i /scripts/modulo_commessa.sql
+
+      # orchestratore: cfg.CalendarioVarSemestrale + cfg.CalendarioFatturazione (temporale) e seed.
+      # Deve precedere views/, che contiene pfd.vOrchestratore: un CREATE VIEW fallisce se le tabelle
+      # referenziate non esistono (per le viste non c'e' deferred name resolution).
+      "$SQLCMD" -C -S localhost -U sa -P 52JdGnzZaANhf -d master -i /scripts/orchestratore.sql
 
       # chiavi API e whitelist IP delle Integration API (con i due indici univoci, che sono contratto)
       "$SQLCMD" -C -S localhost -U sa -P 52JdGnzZaANhf -d master -i /scripts/api_keys.sql
