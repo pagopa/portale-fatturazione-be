@@ -24,7 +24,7 @@ public static class NotificaFiltriSQLBuilder
     /// <summary>
     /// Compone il frammento di WHERE e l'insieme dei parametri che quel frammento richiede.
     ///
-    /// ⚠️ Riproduce il comportamento attuale **cosi' com'e'**, difetti compresi: e' un'estrazione, non
+    /// ATTENZIONE Riproduce il comportamento attuale **cosi' com'e'**, difetti compresi: e' un'estrazione, non
     /// una correzione. In particolare la parola `WHERE` viene emessa **solo** dal filtro sull'anno,
     /// quindi senza anno tutti gli altri filtri producono una stringa che inizia per " AND ..." e
     /// finisce per attaccarsi alla `ON` dell'ultima LEFT JOIN della SELECT — dove non elimina righe.
@@ -144,7 +144,7 @@ public static class NotificaFiltriSQLBuilder
     /// <summary>
     /// I quattro nomi che `NotificaQueryGetByListEntiPersistencev2` passa davvero al `SqlCommand`.
     ///
-    /// ⚠️ **E' il difetto della riscrittura v2, isolato qui perche' sia visibile e verificabile.** La
+    /// ATTENZIONE **E' il difetto della riscrittura v2, isolato qui perche' sia visibile e verificabile.** La
     /// v1 usa Dapper, che prende l'intero insieme di parametri e per giunta espande le liste degli
     /// `IN`; la v2 costruisce il comando a mano e ne aggiunge quattro — quindi ogni altro filtro
     /// produce `Must declare the scalar variable`, e ogni filtro a lista produce `Incorrect syntax`

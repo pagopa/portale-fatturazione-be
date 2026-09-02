@@ -43,7 +43,7 @@ public class NotificaQueryGetByListEntiPersistencev2(NotificaQueryGetByListaEnti
 
         var sql = string.Join(";", sqlEnte, sqlCount);
 
-        // ⚠️ DIFETTO NOTO, riprodotto qui tale e quale: al comando arrivano SOLO i quattro parametri
+        // ATTENZIONE DIFETTO NOTO, riprodotto qui tale e quale: al comando arrivano SOLO i quattro parametri
         // scalari (Page/Size/Anno/Mese), mentre `filtri.Parametri` ne contiene fino a quattordici.
         // Ogni altro filtro presente nel WHERE resta senza il suo parametro -> SqlException. Prima
         // dell'estrazione il difetto era invisibile: l'insieme completo veniva costruito in un
