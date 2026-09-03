@@ -4,6 +4,7 @@ using Azure.AI.TextAnalytics;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging.Abstractions;
 using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Infrastructure.Common.Language.Service;
@@ -14,19 +15,23 @@ namespace PortaleFatture.BE.IntegrationTest.Http;
 /// Le tre rotte di **Azure AI Language** (PF-775): `api/piid`, `api/language-detection`,
 /// `api/summarize-text`.
 ///
-/// **Cosa provano davvero questi test.** L'ambiente di test non ha la sezione
-/// `PortaleFattureOptions:Language` negli user secrets, quindi è *esattamente* lo scenario "servizio
-/// non configurato" — quello che prima del 02/09/2026 impediva l'avvio dell'intera applicazione
-/// (registrazione DI eager + costruttore che sollevava: 206 test rossi su 568, tutti quelli che
-/// avviano l'app). Qui si verifica che quello scenario sia ora **contenuto**: l'API parte, le altre
-/// rotte funzionano, e chi chiama queste tre riceve un **503** che dice perché.
+/// **Cosa provano davvero questi test.** Che lo scenario "servizio non configurato" — quello che prima
+/// del 02/09/2026 impediva l'avvio dell'intera applicazione (registrazione DI eager + costruttore che
+/// sollevava: 206 test rossi su 568, tutti quelli che avviano l'app) — sia ora **contenuto**: l'API
+/// parte, le altre rotte funzionano, e chi chiama queste tre riceve un **503** che dice perché.
 ///
-/// Non si verifica la chiamata reale ad Azure — richiederebbe una chiave e produrrebbe costi e
-/// dipendenza da un servizio esterno in suite. Quella resta materia di prova manuale in DEV.
+/// Nessun test qui chiama Azure davvero: si usano fake di `ILanguageService`, oppure il servizio vero
+/// costruito **senza credenziali**. Le chiamate reali stanno in `LanguageServiceRealeIntegrationTests`
+/// e `LanguageServiceAdversarialIntegrationTests`, che sono `[Explicit]` e a pagamento.
 ///
-/// ATTENZIONE **Se un domani questi test diventano rossi con un 200**, non sono rotti: significa che qualcuno
-/// ha configurato `Language` negli user secrets di test. In quel caso vanno spostati su un fake di
-/// `ILanguageService`, non "aggiustati" sulle risposte reali di Azure.
+/// ⚠️ **Lezione del 03/09/2026, gia' prevista dal commento che stava qui.** Questi test davano per
+/// scontato che la macchina non avesse la sezione `PortaleFattureOptions:Language`, e su quell'assenza
+/// poggiavano i tre casi del 503: un **verde ambientale**, non una proprietà del codice. Appena i
+/// secrets sono stati configurati sono diventati rossi con un **502** — il servizio risultava
+/// configurato e la chiamata partiva verso l'endpoint indicato. Ora la condizione è imposta dal test
+/// stesso (`ClientCon(new LanguageService(null, null, ...))`), quindi l'esito non dipende più da come è
+/// messa la macchina di chi esegue. Da tenere presente scrivendo altri test in quest'area: se un caso
+/// passa "perché sull'ambiente manca qualcosa", non sta verificando ciò che sembra.
 /// </summary>
 public class LanguageServiceHttpTests
 {
@@ -65,7 +70,15 @@ public class LanguageServiceHttpTests
     [TestCase(RottaSintesi, TestName = "ServizioNonConfigurato_ShouldReturn503(api/summarize-text)")]
     public async Task ServizioNonConfigurato_ShouldReturn503_ConMessaggio(string rotta)
     {
-        var (stato, corpo) = await Post(rotta, """{ "testo": "Mario Rossi, CF RSSMRA80A01H501U" }""");
+        // La condizione "non configurato" viene IMPOSTA qui, invece di dipendere dall'assenza della
+        // sezione Language sulla macchina di chi esegue. Era un verde ambientale, ed e' diventato rosso
+        // (502, non 200) il 03/09/2026 appena i secrets sono stati aggiunti: il servizio risultava
+        // configurato e la chiamata partiva davvero.
+        // Si usa il LanguageService VERO con endpoint e chiave nulli — non un fake — cosi' il test
+        // continua a esercitare la logica di IsConfigured invece di una sua imitazione.
+        var client = ClientCon(new LanguageService(null, null, NullLogger<LanguageService>.Instance));
+
+        var (stato, corpo) = await Post(client, rotta, """{ "testo": "Mario Rossi, CF RSSMRA80A01H501U" }""");
 
         Assert.Multiple(() =>
         {
@@ -370,9 +383,12 @@ public class LanguageServiceHttpTests
 
     // =============================================================================================
 
-    private async Task<(HttpStatusCode stato, string corpo)> Post(string rotta, string body, string? ruolo = Ruolo.ADMIN)
+    private Task<(HttpStatusCode stato, string corpo)> Post(string rotta, string body, string? ruolo = Ruolo.ADMIN)
+        => Post(_factory.CreateClientAs(ruolo), rotta, body);
+
+    /// <summary>Variante per i test che devono imporre una specifica registrazione di ILanguageService.</summary>
+    private async Task<(HttpStatusCode stato, string corpo)> Post(HttpClient client, string rotta, string body)
     {
-        var client = _factory.CreateClientAs(ruolo);
         var resp = await client.PostAsync(_factory.WithNonce(rotta),
             new StringContent(body, Encoding.UTF8, "application/json"));
         var corpo = await resp.Content.ReadAsStringAsync();
