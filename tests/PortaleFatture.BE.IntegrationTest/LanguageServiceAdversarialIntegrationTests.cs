@@ -164,16 +164,20 @@ public class LanguageServiceAdversarialIntegrationTests
     /// e' il dato piu' identificante di tutti — piu' del nome, che invece viene oscurato. Chi si
     /// affidasse alla redazione crederebbe di aver protetto il testo.
     ///
-    /// Decisione **non tecnica**, da portare a chi segue privacy (v. il punto aperto in TD-5). Opzioni:
-    /// passare esplicitamente le categorie PII all'SDK, oppure aggiungere una redazione nostra per il
-    /// CF (formato regolare, 16 caratteri con carattere di controllo), oppure dichiarare il limite.
+    /// ✅ **Decisione presa il 04/09/2026: si accetta come limite noto**, e la lacuna resta dichiarata
+    /// nella documentazione e nel testbook (caso BE-LANG-06). Non si aggiunge una redazione nostra del
+    /// CF ne' si forzano categorie PII esplicite all'SDK: restano opzioni percorribili se il requisito
+    /// cambia, ma oggi non si interviene.
     ///
-    /// Questo test resta come **aspettativa corretta**: va riattivato quando la lacuna e' chiusa.
-    /// Il comportamento attuale e' fissato da <see cref="Pii_CodiceFiscale_OggiNonVieneRedatto_Caratterizzazione"/>.
+    /// Il test resta qui come **aspettativa corretta**, non come difetto aperto: va riattivato se un
+    /// domani Azure inizia a riconoscere il CF. Il comportamento attuale e' fissato da
+    /// <see cref="Pii_CodiceFiscale_OggiNonVieneRedatto_Caratterizzazione"/>, che e' **attivo** ed e' il
+    /// campanello: se diventa rosso, la scelta si riapre.
     /// </summary>
     [Test]
-    [Ignore("Azure non redige il codice fiscale italiano (misurato 03/09/2026). Aspettativa corretta, "
-            + "in attesa di decisione privacy: categorie PII esplicite, redazione nostra, o limite dichiarato.")]
+    [Ignore("Azure non redige il codice fiscale italiano (misurato 03/09/2026). LIMITE ACCETTATO il "
+            + "04/09/2026, non un difetto aperto: la lacuna e' dichiarata in docs/architettura.md e nel "
+            + "testbook. Riattivare solo se Azure inizia a riconoscere il CF.")]
     public async Task Pii_CodiceFiscale_NonCompareNelTestoRedatto()
     {
         var testo = $"Il contribuente Mario Rossi, codice fiscale {CodiceFiscaleFinto}, ha presentato istanza.";
@@ -268,7 +272,7 @@ public class LanguageServiceAdversarialIntegrationTests
     /// </summary>
     [Test]
     [Ignore("Stessa lacuna del CF non spaziato (misurato 03/09/2026): Azure non riconosce il codice "
-            + "fiscale italiano. In attesa di decisione privacy.")]
+            + "fiscale italiano. LIMITE ACCETTATO il 04/09/2026 — v. il gemello non spaziato.")]
     public async Task Pii_CodiceFiscaleConSpazi_VieneComunqueRedatto()
     {
         const string cfSpaziato = "RSS MRA 85M01 H501Z";
