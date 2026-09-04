@@ -55,7 +55,7 @@ public class FattureInvioSapMultiploPeriodoIntegrationTests
         // 7501 e' entrata nel seed il 31/08/2026 per i casi di posticipa/elimina su fattura "emessa ma
         // NON inviata" (VAR. SEMESTRALE 2026/7, ente dedicato): essendo non inviata e non in staging,
         // e' a tutti gli effetti "da inviare" e va nell'insieme atteso.
-        Assert.That(rows.Select(r => r.IdFattura),
+        Assert.That(ids,
             Is.EquivalentTo(new long[] { 1001, 1002, 2001, 2002, 3001, 7501 }),
             "Senza filtri la query deve restituire tutte le fatture 'da inviare' della vista.");
     }

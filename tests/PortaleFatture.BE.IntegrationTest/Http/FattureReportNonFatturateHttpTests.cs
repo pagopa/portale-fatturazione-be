@@ -1,6 +1,7 @@
-using System.IO.Compression;
+﻿using System.IO.Compression;
 using System.Net;
 using System.Text;
+using System.Text.RegularExpressions;
 using Microsoft.Data.SqlClient;
 using PortaleFatture.BE.Core.Auth;
 
@@ -73,7 +74,7 @@ public class FattureReportNonFatturateHttpTests
     {
         SeminaStaging("SECONDO SALDO", 2);
 
-        var (stato, fogli, _) = await Report("SECONDO SALDO");
+        var (stato, fogli, _, _) = await Report("SECONDO SALDO");
 
         Assert.That(stato, Is.EqualTo(HttpStatusCode.OK));
         Assert.That(fogli, Does.Contain("Non Fatturate"),
@@ -105,19 +106,24 @@ public class FattureReportNonFatturateHttpTests
         SeminaStaging("PRIMO SALDO", 1);
         SeminaStaging("VAR. SEMESTRALE", 3, stato: 3, azione: "ELIMINATA");
 
-        var (stato, fogli, testo) = await Report("PRIMO SALDO", "SECONDO SALDO", "VAR. SEMESTRALE", "SEM. SOSPESI");
+        // Un solo report, e confronto sul SOLO foglio "Non Fatturate". Il testo dell'intero workbook
+        // non discrimina piu' nulla: da quando il seed ha fatture 2026/2 per tutte e quattro le
+        // tipologie, chiedendole tutte lo zip contiene un xlsx per tipologia e i fogli di dettaglio di
+        // ciascuno citano legittimamente la propria.
+        var (stato, fogli, _, perFoglio) = await Report("SECONDO SALDO");
 
         Assert.That(stato, Is.EqualTo(HttpStatusCode.OK));
         Assert.That(fogli, Does.Contain("Non Fatturate"));
+
+        var nonFatturate = perFoglio["Non Fatturate"];
         Assert.Multiple(() =>
         {
-            Assert.That(testo, Does.Contain("SECONDO SALDO"),
-                "L'unico report generabile su questo seed e' quello del SECONDO SALDO, e le sue non "
-                + "fatturate ci sono.");
-            Assert.That(testo, Does.Not.Contain("PRIMO SALDO"),
+            Assert.That(nonFatturate, Does.Contain("SECONDO SALDO"),
+                "Le non fatturate della tipologia del report ci sono (righe statiche del seed).");
+            Assert.That(nonFatturate, Does.Not.Contain("PRIMO SALDO"),
                 "Le non fatturate delle ALTRE tipologie non entrano nello sheet: se un domani ci "
                 + "entrassero, il requisito e' stato riletto come 'elenco unico' — aggiornare il test.");
-            Assert.That(testo, Does.Not.Contain("VAR. SEMESTRALE"));
+            Assert.That(nonFatturate, Does.Not.Contain("VAR. SEMESTRALE"));
         });
     }
 
@@ -140,13 +146,17 @@ public class FattureReportNonFatturateHttpTests
         SeminaStaging("PRIMO SALDO", 1);
         SeminaStaging("VAR. SEMESTRALE", 3, stato: 3, azione: "ELIMINATA");
 
-        var (_, _, testo) = await Report("PRIMO SALDO", "SECONDO SALDO", "VAR. SEMESTRALE", "SEM. SOSPESI");
+        // Stessa base di confronto della caratterizzazione (il foglio, non l'intero workbook):
+        // sull'intero file queste asserzioni passerebbero per il motivo sbagliato, cioe' i fogli di
+        // dettaglio dei report delle altre tipologie.
+        var (_, _, _, perFoglio) = await Report("SECONDO SALDO");
+        var nonFatturate = perFoglio["Non Fatturate"];
 
         Assert.Multiple(() =>
         {
-            Assert.That(testo, Does.Contain("PRIMO SALDO"));
-            Assert.That(testo, Does.Contain("VAR. SEMESTRALE"));
-            Assert.That(testo, Does.Contain("ELIMINATA"), "Entrambi gli stati, non solo le posticipate.");
+            Assert.That(nonFatturate, Does.Contain("PRIMO SALDO"));
+            Assert.That(nonFatturate, Does.Contain("VAR. SEMESTRALE"));
+            Assert.That(nonFatturate, Does.Contain("ELIMINATA"), "Entrambi gli stati, non solo le posticipate.");
         });
     }
 
@@ -171,7 +181,7 @@ public class FattureReportNonFatturateHttpTests
         CompletaLaFatturaNonInviata();
         SeminaStaging(TipologiaNonInviata, 3, ente: EnteNonInviata);
 
-        var (stato, fogli, _) = await ReportNonInviate(TipologiaNonInviata);
+        var (stato, fogli, _, _) = await ReportNonInviate(TipologiaNonInviata);
 
         Assert.That(stato, Is.EqualTo(HttpStatusCode.OK),
             "Senza report non c'e' sheet: se qui arriva 404, mancano i dati di supporto, non il fix.");
@@ -187,7 +197,7 @@ public class FattureReportNonFatturateHttpTests
         // in cfg.GestioneFatture, quindi l'assenza dello sheet e' significativa.
         CompletaLaFatturaNonInviata();
 
-        var (stato, fogli, _) = await ReportNonInviate(TipologiaNonInviata);
+        var (stato, fogli, _, _) = await ReportNonInviate(TipologiaNonInviata);
 
         Assert.That(stato, Is.EqualTo(HttpStatusCode.OK));
         Assert.That(fogli, Is.Not.Empty, "Il report ha i suoi fogli: il confronto e' significativo.");
@@ -210,7 +220,8 @@ public class FattureReportNonFatturateHttpTests
     ///   di contro-prova passa sul vuoto, sembrando verde;
     /// - i testi delle celle sono **inline** nei fogli, non in `xl/sharedStrings.xml` (che non esiste).
     /// </summary>
-    private Task<(HttpStatusCode stato, List<string> fogli, string testo)> Report(params string[] tipologie)
+    private Task<(HttpStatusCode stato, List<string> fogli, string testo,
+        Dictionary<string, string> perFoglio)> Report(params string[] tipologie)
     {
         var elenco = string.Join(",", tipologie.Select(t => $"\"{t}\""));
         return Scarica(Rotta, $$"""{ "anno": {{Anno}}, "mese": {{Mese}}, "tipologiaFattura": [{{elenco}}] }""");
@@ -219,23 +230,26 @@ public class FattureReportNonFatturateHttpTests
     /// <summary>
     /// Il report della pagina Invia Fatture: niente periodo, solo le tipologie e `inviata = 0`.
     /// </summary>
-    private Task<(HttpStatusCode stato, List<string> fogli, string testo)> ReportNonInviate(params string[] tipologie)
+    private Task<(HttpStatusCode stato, List<string> fogli, string testo,
+        Dictionary<string, string> perFoglio)> ReportNonInviate(params string[] tipologie)
     {
         var elenco = string.Join(",", tipologie.Select(t => $"\"{t}\""));
         return Scarica(RottaNonInviate, $$"""{ "tipologiaFattura": [{{elenco}}], "inviata": 0 }""");
     }
 
-    private async Task<(HttpStatusCode stato, List<string> fogli, string testo)> Scarica(string rotta, string body)
+    private async Task<(HttpStatusCode stato, List<string> fogli, string testo,
+        Dictionary<string, string> perFoglio)> Scarica(string rotta, string body)
     {
         var client = _factory.CreateClientAs(Ruolo.ADMIN);
         var resp = await client.PostAsync(_factory.WithNonce(rotta),
             new StringContent(body, Encoding.UTF8, "application/json"));
         TestContext.Out.WriteLine($"{rotta} {body} -> {(int)resp.StatusCode}");
 
-        if (resp.StatusCode != HttpStatusCode.OK) return (resp.StatusCode, [], string.Empty);
+        if (resp.StatusCode != HttpStatusCode.OK) return (resp.StatusCode, [], string.Empty, []);
 
         var fogli = new List<string>();
         var testo = new StringBuilder();
+        var perFoglio = new Dictionary<string, StringBuilder>();
         using var zip = new ZipArchive(new MemoryStream(await resp.Content.ReadAsByteArrayAsync()), ZipArchiveMode.Read);
         foreach (var xlsx in zip.Entries.Where(e => e.FullName.EndsWith(".xlsx")))
         {
@@ -244,21 +258,52 @@ public class FattureReportNonFatturateHttpTests
             buffer.Position = 0;
 
             using var interno = new ZipArchive(buffer, ZipArchiveMode.Read);
-            foreach (var parte in interno.Entries.Where(e => e.FullName.StartsWith("xl/") && e.FullName.EndsWith(".xml")))
+            var parti = new Dictionary<string, string>();
+            foreach (var parte in interno.Entries)
             {
                 using var reader = new StreamReader(parte.Open());
-                var xml = await reader.ReadToEndAsync();
-                testo.Append(xml);
+                parti[parte.FullName] = await reader.ReadToEndAsync();
+            }
 
-                if (parte.FullName == "xl/workbook.xml")
-                    fogli.AddRange(System.Text.RegularExpressions.Regex
-                        .Matches(xml, "<(?:\\w+:)?sheet\\b[^>]*name=\"([^\"]+)\"")
-                        .Select(m => m.Groups[1].Value));
+            foreach (var parte in parti.Where(x => x.Key.StartsWith("xl/") && x.Key.EndsWith(".xml")))
+                testo.Append(parte.Value);
+
+            // Nome del foglio -> contenuto del SOLO foglio: `workbook.xml` da' nome e `r:id`, e i
+            // `.rels` traducono l'`r:id` nel file (`xl/worksheets/sheetN.xml`). L'ordine dei file NON
+            // e' una scorciatoia affidabile: non segue quello dei fogli.
+            // ATTENZIONE l'ordine degli attributi non e' garantito: qui e' Type, Target, Id — una
+            // regex che pretendesse Id prima di Target non troverebbe nulla, e il foglio resterebbe
+            // fuori dalla mappa senza che niente lo segnali.
+            var bersagli = new Dictionary<string, string>();
+            if (parti.TryGetValue("xl/_rels/workbook.xml.rels", out var rels))
+                foreach (Match rel in Regex.Matches(rels, "<Relationship\\b[^>]*?>"))
+                {
+                    var id = Regex.Match(rel.Value, "Id=\"([^\"]+)\"").Groups[1].Value;
+                    var bersaglio = Regex.Match(rel.Value, "Target=\"([^\"]+)\"").Groups[1].Value;
+                    if (id.Length > 0 && bersaglio.Length > 0) bersagli[id] = bersaglio;
+                }
+
+            if (!parti.TryGetValue("xl/workbook.xml", out var workbook)) continue;
+            foreach (Match sheet in Regex.Matches(workbook, "<(?:\\w+:)?sheet\\b[^>]*?>"))
+            {
+                var nome = Regex.Match(sheet.Value, "name=\"([^\"]+)\"").Groups[1].Value;
+                if (nome.Length == 0) continue;
+                fogli.Add(nome);
+
+                var rid = Regex.Match(sheet.Value, "r:id=\"([^\"]+)\"").Groups[1].Value;
+                if (!bersagli.TryGetValue(rid, out var target)) continue;
+                var percorso = target.StartsWith('/') ? target.TrimStart('/') : "xl/" + target;
+                if (!parti.TryGetValue(percorso, out var xmlFoglio)) continue;
+
+                if (!perFoglio.TryGetValue(nome, out var accumulatore))
+                    perFoglio[nome] = accumulatore = new StringBuilder();
+                accumulatore.Append(xmlFoglio);
             }
         }
 
         TestContext.Out.WriteLine($"  fogli: {string.Join(" | ", fogli)}");
-        return (resp.StatusCode, fogli, testo.ToString());
+        return (resp.StatusCode, fogli, testo.ToString(),
+            perFoglio.ToDictionary(x => x.Key, x => x.Value.ToString()));
     }
 
     /// <summary>
