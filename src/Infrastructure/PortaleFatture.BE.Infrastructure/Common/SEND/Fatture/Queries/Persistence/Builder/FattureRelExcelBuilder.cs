@@ -97,11 +97,22 @@ public static class FattureRelExcelBuilder
         r.CodiceMateriale like '%STORNO%'
         AND t.FkIdEnte NOT IN
         (SELECT rr.internal_organization_id from pfd.RelTestata rr
-        WHERE rr.month= @mese and rr.year=@anno and rr.TipologiaFattura=@tipologiafattura) 
+        WHERE rr.month= @mese and rr.year=@anno and rr.TipologiaFattura=@tipologiafattura)
         AND (
             @FatturaInviata IS NULL  -- Tutte
             OR (@FatturaInviata = 2 AND t.FatturaInviata IS NULL)  -- In elaborazione
             OR (t.FatturaInviata = @FatturaInviata)  -- 0 o 1
+        )
+        -- Stessa esclusione di _sqlRel, e deve restare allineata: le due query alimentano DUE FOGLI
+        -- dello stesso file Excel (REL e note/storni). Escludendo la fattura posticipata solo da una,
+        -- l'export sarebbe incoerente con se' stesso — sparirebbe da un foglio e resterebbe nell'altro.
+        AND NOT EXISTS (
+            SELECT 1 FROM cfg.GestioneFatture gf
+            WHERE gf.FkIdEnte = t.FkIdEnte
+              AND gf.FkTipologiaFattura = t.FkTipologiaFattura
+              AND gf.Anno = t.AnnoRiferimento
+              AND gf.Mese = t.MeseRiferimento
+              AND gf.Stato IN (0, 3)
         )
         ";
 
@@ -252,11 +263,25 @@ public static class FattureRelExcelBuilder
 							        and t.annoriferimento = rt.year
 							        and t.meseriferimento = rt.month
                                     and t.FkTipologiaFattura = rt.TipologiaFattura
-        WHERE rr.month= @mese and rr.year=@anno and rr.TipologiaFattura=@tipologiafattura  
+        WHERE rr.month= @mese and rr.year=@anno and rr.TipologiaFattura=@tipologiafattura
         AND (
             @FatturaInviata IS NULL  -- Tutte
             OR (@FatturaInviata = 2 AND t.FatturaInviata IS NULL)  -- In elaborazione
             OR (t.FatturaInviata = @FatturaInviata)  -- 0 o 1
+        )
+        -- Esclude le fatture messe in staging: POSTICIPATA (0) ed ELIMINATA (3). Restano dentro
+        -- RIPRISTINATA (1) e CANCELLATA (2), che sono tornate in gioco.
+        -- NOT EXISTS e non LEFT JOIN: la PK di cfg.GestioneFatture include lo Stato, quindi piu' righe
+        -- per lo stesso periodo sono ammesse dallo schema (e un difetto noto della SP Posticipa ne crea
+        -- davvero una seconda). Con una join, due righe corrispondenti duplicherebbero la fattura
+        -- nell'export; con NOT EXISTS il fan-out non e' possibile.
+        AND NOT EXISTS (
+            SELECT 1 FROM cfg.GestioneFatture gf
+            WHERE gf.FkIdEnte = t.FkIdEnte
+              AND gf.FkTipologiaFattura = t.FkTipologiaFattura
+              AND gf.Anno = t.AnnoRiferimento
+              AND gf.Mese = t.MeseRiferimento
+              AND gf.Stato IN (0, 3)
         )";
 
     private static string _sqlRelSospese = @"

@@ -1,4 +1,4 @@
-using MediatR;
+﻿using MediatR;
 using Microsoft.Data.SqlClient;
 using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Dto;
@@ -14,7 +14,9 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// filtro completo, mapping del DTO, esclusione delle fatture in staging.
 ///
 /// Seed della vista (tutte Anno 2026): ANTICIPO(2001)/ACCONTO(2002) mese 5 ente3; PRIMO SALDO mese 6
-/// INPS(3001)+ente2(1002); SECONDO SALDO mese 7 ente1(1001). Container spento → i test si ignorano.
+/// INPS(3001)+ente2(1002); SECONDO SALDO mese 7 ente1(1001). Il seed non è chiuso
+/// (altre aree possono aggiungere fatture non inviate): senza filtri si asserisce per inclusione.
+/// Container spento → i test si ignorano.
 /// </summary>
 public class FattureInvioSapMultiploPeriodoIntegrationTests
 {
@@ -48,7 +50,7 @@ public class FattureInvioSapMultiploPeriodoIntegrationTests
     {
         CleanAllSeedPeriods(); // le 5 fatture seed devono essere tutte "da inviare" (non in staging)
 
-        var rows = (await Query(null, null, null))?.ToList() ?? [];
+        var ids = ((await Query(null, null, null))?.ToList() ?? []).Select(r => r.IdFattura).ToList();
 
         // 7501 e' entrata nel seed il 31/08/2026 per i casi di posticipa/elimina su fattura "emessa ma
         // NON inviata" (VAR. SEMESTRALE 2026/7, ente dedicato): essendo non inviata e non in staging,

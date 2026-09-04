@@ -161,6 +161,56 @@ public class FattureRicercaApiIntegrationTests
         });
     }
 
+    /// <summary>
+    /// Runbook **T21**: *"con il filtro Stato = Non Fatturate voglio vedere tutte le fatture Posticipate
+    /// E Eliminate"*. Le due famiglie arrivano da **tabelle diverse** — le eliminate da
+    /// `pfd.FattureTestata_Eliminate`, le posticipate da `pfd.FattureTestata` + `cfg.GestioneFatture` —
+    /// e la vista le unisce con una UNION ALL.
+    ///
+    /// Perche' serviva un test in piu' pur essendoci gia' quelli per famiglia: il seed le teneva in mesi
+    /// **diversi** (posticipate 2024/1, eliminate 2024/2), quindi nessuna query ne restituiva due
+    /// insieme e la condizione descritta dalla segnalazione non era mai esercitata. Periodo dedicato
+    /// **2024/4**, aggiunto il 04/09/2026 con una fattura per famiglia su enti distinti.
+    /// </summary>
+    [Test]
+    public async Task NonFatturate_PeriodoConEntrambeLeFamiglie_LeRestituisceInsieme()
+    {
+        var rows = await Query(true, 2024, 4);
+
+        var posticipata = rows.SingleOrDefault(x => x.IdFattura == 4101);
+        var eliminata = rows.SingleOrDefault(x => x.IdFattura == 5101);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(posticipata, Is.Not.Null, "T21: la posticipata non compare nella griglia.");
+            Assert.That(eliminata, Is.Not.Null, "T21: l'eliminata non compare nella griglia.");
+            // I marker sono cio' che permette al frontend di distinguerle: non sono lo stato di invio.
+            Assert.That(posticipata!.Inviata, Is.EqualTo(4), "Posticipata -> marker 4.");
+            Assert.That(eliminata!.Inviata, Is.EqualTo(3), "Eliminata -> marker 3.");
+            // Enti diversi: la griglia unisce famiglie di enti distinti, non solo di tabelle distinte.
+            Assert.That(posticipata.RagioneSociale, Is.EqualTo("Ente Test 1"));
+            Assert.That(eliminata.RagioneSociale, Is.EqualTo("Ente Test 3"));
+        });
+    }
+
+    /// <summary>
+    /// Contro-prova del periodo: la stessa griglia, filtrata per un'unica tipologia, ne restituisce una
+    /// sola. Serve a dimostrare che il test sopra passa perche' **entrambe** ci sono davvero, e non
+    /// perche' il filtro sia inerte.
+    /// </summary>
+    [Test]
+    public async Task NonFatturate_PeriodoMisto_IlFiltroTipologiaSelezionaUnaSolaFamiglia()
+    {
+        var soloSecondoSaldo = await Query(true, 2024, 4, tipologia: ["SECONDO SALDO"]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(soloSecondoSaldo.Select(x => x.IdFattura), Does.Contain(4101));
+            Assert.That(soloSecondoSaldo.Select(x => x.IdFattura), Does.Not.Contain(5101),
+                "L'eliminata e' un ANTICIPO: il filtro tipologia deve escluderla.");
+        });
+    }
+
     [Test]
     public async Task NonFatturate_FiltroTipologia()
     {

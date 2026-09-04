@@ -929,6 +929,172 @@ VALUES
  ('11111111-1111-1111-1111-111111111111','TOKEN-E1','VAR. SEMESTRALE',2026,5, 4.00,4.00,1,1,8.00,4.88,4.88,9.76,0,0,'2026-S1', 0,0,0,0,0,0,0,0);
 GO
 
+-- ============================================================================================
+-- Foglio "note/storni" del report EMESSE (_sqlNoteSenzaRel), aggiunto il 04/09/2026.
+--
+-- Perche' serve: quella query alimenta il SECONDO foglio dello stesso file Excel, e prima non
+-- aveva alcuna riga nel seed (misurato: 0). Senza dati non era possibile verificare che
+-- l'esclusione delle fatture in staging (POSTICIPATA/ELIMINATA) valga anche li' — ed era proprio
+-- la lacuna che aveva prodotto la segnalazione: fattura esclusa da un foglio e presente nell'altro.
+--
+-- Requisiti della query, tutti necessari perche' la riga compaia:
+--   * riga FattureRighe con CodiceMateriale LIKE '%STORNO%'
+--   * ente SENZA RelTestata per quel periodo/tipologia (e' il "senza Rel" del nome)
+--   * contratto con TipoContratto valido (la join su pfw.TipoContratto e' INNER)
+-- Ente dedicato: nessun altro test usa 88888888, quindi la riga non altera i conteggi altrui.
+-- ============================================================================================
+IF NOT EXISTS (SELECT 1 FROM pfd.Enti WHERE InternalIstitutionId = '88888888-8888-8888-8888-888888888888')
+INSERT INTO pfd.Enti (InternalIstitutionId, description) VALUES
+ ('88888888-8888-8888-8888-888888888888', 'Ente Note Storni');
+GO
+
+IF NOT EXISTS (SELECT 1 FROM pfd.Contratti WHERE internalistitutionid = '88888888-8888-8888-8888-888888888888')
+INSERT INTO pfd.Contratti (internalistitutionid, FkIdTipoContratto, onboardingtokenid) VALUES
+ ('88888888-8888-8888-8888-888888888888', 2, 'TOKEN-E8');
+GO
+
+SET IDENTITY_INSERT pfd.FattureTestata ON;
+IF NOT EXISTS (SELECT 1 FROM pfd.FattureTestata WHERE IdFattura = 8101)
+INSERT INTO pfd.FattureTestata
+ (IdFattura, FkIdEnte, FkTipologiaFattura, AnnoRiferimento, MeseRiferimento, FatturaInviata,
+  FkProdotto, FkIdTipoDocumento, DataFattura, IdentificativoFattura, TotaleFattura, Divisa, MetodoPagamento, Progressivo, CodiceContratto)
+VALUES
+ (8101, '88888888-8888-8888-8888-888888888888', 'SECONDO SALDO', 2026, 2, 1,
+  'prod-pn', 'TD04', '2026-02-01', 'IT-8101', -300.00, 'EUR', 'MP5', 8101, 'TOKEN-E8');
+SET IDENTITY_INSERT pfd.FattureTestata OFF;
+GO
+
+-- La riga DEVE contenere 'STORNO': e' il filtro della query.
+IF NOT EXISTS (SELECT 1 FROM pfd.FattureRighe WHERE FkIdFattura = 8101)
+INSERT INTO pfd.FattureRighe
+ (FkIdFattura, NumeroLinea, Testo, CodiceMateriale, Quantita, PrezzoUnitario, Imponibile, RigaBollo, PeriodoRiferimento)
+VALUES
+ (8101, 1, 'storno anticipo', 'STORNO ANT. NA', 1, -300.00, -300.00, 0, '02/2026');
+GO
+
+-- NESSUNA pfd.RelTestata per questo ente/periodo: e' voluto. Aggiungendola la riga sparirebbe dal
+-- foglio note (il NOT IN della query) e il test perderebbe silenziosamente il suo bersaglio.
+
+-- ============================================================================================
+-- T20: lo sheet "Non Fatturate" e l'esclusione dallo sheet "Enti Fatt." vanno verificati su TUTTE
+-- le tipologie di saldo, non solo SECONDO SALDO. Aggiunto il 04/09/2026.
+--
+-- Per ogni tipologia servono DUE fatture, perche' lo sheet "Enti Fatt." e' una UNION:
+--   * ente1  -> ha RelTestata corrispondente  -> entra dal ramo _sqlRel
+--   * ente8  -> riga STORNO e NESSUNA RelTestata -> entra dal ramo _sqlNoteSenzaRel
+-- Cosi' ogni tipologia esercita entrambe le meta' dell'unione: correggerne una sola lascerebbe
+-- il difetto in piedi, ed e' esattamente il caso della segnalazione T19/T20.
+--
+-- Periodo 2026/2 come SECONDO SALDO: stesso mese, tipologie diverse. Gli id 82xx/83xx/84xx non
+-- sono usati altrove.
+-- ============================================================================================
+SET IDENTITY_INSERT pfd.FattureTestata ON;
+IF NOT EXISTS (SELECT 1 FROM pfd.FattureTestata WHERE IdFattura IN (8201,8202,8301,8302,8401,8402))
+INSERT INTO pfd.FattureTestata
+ (IdFattura, FkIdEnte, FkTipologiaFattura, AnnoRiferimento, MeseRiferimento, FatturaInviata,
+  FkProdotto, FkIdTipoDocumento, DataFattura, IdentificativoFattura, TotaleFattura, Divisa, MetodoPagamento, Progressivo, CodiceContratto)
+VALUES
+ (8201, '11111111-1111-1111-1111-111111111111', 'PRIMO SALDO',     2026, 2, 1, 'prod-pn','TD01','2026-02-01','IT-8201', 1100.00,'EUR','MP5', 8201, 'TOKEN-E1'),
+ (8202, '88888888-8888-8888-8888-888888888888', 'PRIMO SALDO',     2026, 2, 1, 'prod-pn','TD04','2026-02-01','IT-8202', -310.00,'EUR','MP5', 8202, 'TOKEN-E8'),
+ (8301, '11111111-1111-1111-1111-111111111111', 'VAR. SEMESTRALE', 2026, 2, 1, 'prod-pn','TD01','2026-02-01','IT-8301', 1200.00,'EUR','MP5', 8301, 'TOKEN-E1'),
+ (8302, '88888888-8888-8888-8888-888888888888', 'VAR. SEMESTRALE', 2026, 2, 1, 'prod-pn','TD04','2026-02-01','IT-8302', -320.00,'EUR','MP5', 8302, 'TOKEN-E8'),
+ (8401, '11111111-1111-1111-1111-111111111111', 'SEM. SOSPESI',    2026, 2, 1, 'prod-pn','TD01','2026-02-01','IT-8401', 1300.00,'EUR','MP5', 8401, 'TOKEN-E1'),
+ (8402, '88888888-8888-8888-8888-888888888888', 'SEM. SOSPESI',    2026, 2, 1, 'prod-pn','TD04','2026-02-01','IT-8402', -330.00,'EUR','MP5', 8402, 'TOKEN-E8');
+SET IDENTITY_INSERT pfd.FattureTestata OFF;
+GO
+
+-- Righe: NON storno per ente1 (ramo REL), STORNO per ente8 (ramo note).
+IF NOT EXISTS (SELECT 1 FROM pfd.FattureRighe WHERE FkIdFattura IN (8201,8202,8301,8302,8401,8402))
+INSERT INTO pfd.FattureRighe
+ (FkIdFattura, NumeroLinea, Testo, CodiceMateriale, Quantita, PrezzoUnitario, Imponibile, RigaBollo, PeriodoRiferimento)
+VALUES
+ (8201, 1, 'riga primo saldo',  'MAT-A',          1, 1100.00, 1100.00, 0, '02/2026'),
+ (8202, 1, 'storno anticipo',   'STORNO ANT. NA', 1, -310.00, -310.00, 0, '02/2026'),
+ (8301, 1, 'riga var sem',      'MAT-A',          1, 1200.00, 1200.00, 0, '02/2026'),
+ (8302, 1, 'storno anticipo',   'STORNO ANT. NA', 1, -320.00, -320.00, 0, '02/2026'),
+ (8401, 1, 'riga sem sospesi',  'MAT-A',          1, 1300.00, 1300.00, 0, '02/2026'),
+ (8402, 1, 'storno anticipo',   'STORNO ANT. NA', 1, -330.00, -330.00, 0, '02/2026');
+GO
+
+-- RelTestata SOLO per ente1: e' cio' che manda le sue fatture nel ramo _sqlRel e, per contrasto,
+-- tiene quelle di ente8 nel ramo note (che seleziona gli enti SENZA Rel nel periodo).
+IF NOT EXISTS (SELECT 1 FROM pfd.RelTestata WHERE internal_organization_id='11111111-1111-1111-1111-111111111111' AND [year]=2026 AND [month]=2 AND TipologiaFattura='PRIMO SALDO')
+INSERT INTO pfd.RelTestata
+ (internal_organization_id, contract_id, TipologiaFattura, [year], [month], TotaleAnalogico, TotaleDigitale,
+  TotaleNotificheAnalogiche, TotaleNotificheDigitali, Totale, TotaleAnalogicoIva, TotaleDigitaleIva, TotaleIva, Caricata, RelFatturata)
+VALUES
+ ('11111111-1111-1111-1111-111111111111', 'TOKEN-E1', 'PRIMO SALDO', 2026, 2, 110.00, 210.00, 11, 21, 320.00, 134.20, 256.20, 390.40, 0, 0);
+GO
+
+IF NOT EXISTS (SELECT 1 FROM pfd.RelTestata WHERE internal_organization_id='11111111-1111-1111-1111-111111111111' AND [year]=2026 AND [month]=2 AND TipologiaFattura='VAR. SEMESTRALE')
+INSERT INTO pfd.RelTestata
+ (internal_organization_id, contract_id, TipologiaFattura, [year], [month], TotaleAnalogico, TotaleDigitale,
+  TotaleNotificheAnalogiche, TotaleNotificheDigitali, Totale, TotaleAnalogicoIva, TotaleDigitaleIva, TotaleIva, Caricata, RelFatturata)
+VALUES
+ ('11111111-1111-1111-1111-111111111111', 'TOKEN-E1', 'VAR. SEMESTRALE', 2026, 2, 120.00, 220.00, 12, 22, 340.00, 146.40, 268.40, 414.80, 0, 0);
+GO
+
+IF NOT EXISTS (SELECT 1 FROM pfd.RelTestata WHERE internal_organization_id='11111111-1111-1111-1111-111111111111' AND [year]=2026 AND [month]=2 AND TipologiaFattura='SEM. SOSPESI')
+INSERT INTO pfd.RelTestata
+ (internal_organization_id, contract_id, TipologiaFattura, [year], [month], TotaleAnalogico, TotaleDigitale,
+  TotaleNotificheAnalogiche, TotaleNotificheDigitali, Totale, TotaleAnalogicoIva, TotaleDigitaleIva, TotaleIva, Caricata, RelFatturata)
+VALUES
+ ('11111111-1111-1111-1111-111111111111', 'TOKEN-E1', 'SEM. SOSPESI', 2026, 2, 130.00, 230.00, 13, 23, 360.00, 158.60, 280.60, 439.20, 0, 0);
+GO
+
+-- ============================================================================================
+-- T21: "con il filtro Stato = Non Fatturate voglio vedere TUTTE le fatture Posticipate E Eliminate".
+-- Aggiunto il 04/09/2026.
+--
+-- Il seed precedente teneva le due famiglie in mesi DIVERSI (posticipate 2024/1, eliminate 2024/2),
+-- quindi ogni test ne verificava una alla volta e la condizione descritta dalla segnalazione — le due
+-- famiglie **insieme nella stessa griglia** — non era esercitata da nessuno.
+--
+-- Periodo dedicato 2024/4, con entrambe. Non si aggiungono righe ai periodi esistenti apposta: i test
+-- su 2024/1 e 2024/2 asseriscono per id, ma un periodo condiviso e' comunque un accoppiamento inutile.
+-- ============================================================================================
+SET IDENTITY_INSERT pfd.FattureTestata ON;
+IF NOT EXISTS (SELECT 1 FROM pfd.FattureTestata WHERE IdFattura = 4101)
+INSERT INTO pfd.FattureTestata
+ (IdFattura, FkIdEnte, FkTipologiaFattura, AnnoRiferimento, MeseRiferimento, FatturaInviata,
+  FkProdotto, FkIdTipoDocumento, DataFattura, IdentificativoFattura, TotaleFattura, Divisa, MetodoPagamento, Progressivo, CodiceContratto)
+VALUES
+ (4101, '11111111-1111-1111-1111-111111111111', 'SECONDO SALDO', 2024, 4, 0,
+  'prod-pn', 'TD01', '2024-04-01', 'IT-4101', 850.00, 'EUR', 'MP5', 4101, 'TOKEN-E1');
+SET IDENTITY_INSERT pfd.FattureTestata OFF;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM cfg.GestioneFatture WHERE FkIdFattura = 4101)
+INSERT INTO cfg.GestioneFatture (FkIdFattura, FkIdEnte, FkTipologiaFattura, Anno, Mese, DataInserimento, IdUtenteInserimento, Stato, Azione, Note)
+VALUES
+ (4101, '11111111-1111-1111-1111-111111111111', 'SECONDO SALDO', 2024, 4, GETDATE(), 'seed', 0, 'POSTICIPATA', N'[]');
+GO
+
+IF NOT EXISTS (SELECT 1 FROM pfd.FattureRighe WHERE FkIdFattura = 4101)
+INSERT INTO pfd.FattureRighe
+ (FkIdFattura, NumeroLinea, Testo, CodiceMateriale, Quantita, PrezzoUnitario, Imponibile, RigaBollo, PeriodoRiferimento)
+VALUES
+ (4101, 1, 'riga post 2024/4', 'MAT-A', 1, 850.00, 850.00, 0, '04/2024');
+GO
+
+-- Eliminata dello STESSO periodo, su un ente diverso: cosi' il test verifica anche che la griglia
+-- unisca famiglie provenienti da enti distinti, non solo da tabelle distinte.
+IF NOT EXISTS (SELECT 1 FROM pfd.FattureTestata_Eliminate WHERE IdFattura = 5101)
+INSERT INTO pfd.FattureTestata_Eliminate
+ (IdFattura, FkProdotto, FkIdTipoDocumento, FkTipologiaFattura, FkIdEnte, DataFattura, IdentificativoFattura,
+  TotaleFattura, Divisa, MetodoPagamento, AnnoRiferimento, MeseRiferimento, CodiceContratto, SplitPayment, Progressivo, FatturaInviata)
+VALUES
+ (5101, 'prod-pn', 'TD01', 'ANTICIPO', '33333333-3333-3333-3333-333333333333', '2024-04-01', 'IT-5101',
+  550.00, 'EUR', 'MP5', 2024, 4, 'TOKEN-E3', 0, 5101, 0);
+GO
+
+IF NOT EXISTS (SELECT 1 FROM pfd.FattureRighe_Eliminate WHERE FkIdFattura = 5101)
+INSERT INTO pfd.FattureRighe_Eliminate
+ (FkIdFattura, NumeroLinea, Testo, CodiceMateriale, Quantita, PrezzoUnitario, Imponibile, RigaBollo, PeriodoRiferimento)
+VALUES
+ (5101, 1, 'riga elim 2024/4', 'MAT-A', 1, 550.00, 550.00, 0, '04/2024');
+GO
+
 -- =============================================================================================
 -- POSTICIPA su una fattura GIA' EMESSA ma NON INVIATA (caso di testbook, replay 31/08/2026).
 --
