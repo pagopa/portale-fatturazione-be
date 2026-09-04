@@ -293,6 +293,63 @@ public class GestioneFattureReportQueryIntegrationTests
     }
 
     // ---------------------------------------------------------------------------------------------
+    /// <summary>
+    /// Runbook **T18**: *"lo sheet Non Fatturate deve essere presente in tutte le tipologie di report di
+    /// saldo disponibili: PRIMO/SECONDO SALDO, Var. Semestrale e Sem. Sospesi"*.
+    ///
+    /// Cosa verifica davvero, e cosa no. Lo sheet viene aggiunto da `ReportFattureRel` **quando ci sono
+    /// dati** — che non ci siano righe per una tipologia non e' un difetto, e' un report senza staging.
+    /// Quindi la domanda utile e': *per ciascuna delle quattro tipologie di saldo, la query che alimenta
+    /// lo sheet restituisce le proprie righe?* Se per una sola tipologia tornasse vuota a parita' di
+    /// dati, quella e' la regressione che T18 intercetta.
+    ///
+    /// Il **filtro per tipologia e' corretto**, non un difetto (confermato dal prodotto il 04/09/2026):
+    /// lo sheet contiene le sole non fatturate della tipologia di quel report, per restare coerente con
+    /// gli sheet delle fatturate. Qui si verifica appunto che ciascuna tipologia veda le proprie.
+    /// </summary>
+    [Test]
+    public async Task Report_OgniTipologiaDiSaldo_VedeLeProprieRighe()
+    {
+        string[] saldi = ["PRIMO SALDO", "SECONDO SALDO", "VAR. SEMESTRALE", "SEM. SOSPESI"];
+
+        // Mesi 7-10: liberi rispetto a SeminaScenari (che usa 1-4) e ripuliti dal TearDown insieme al
+        // resto del periodo 2099 riservato a questa fixture.
+        var mese = 7;
+        var attesi = new List<(string Tipologia, int Mese)>();
+        foreach (var tipologia in saldi)
+        {
+            InsertGestioneFatture(tipologia, mese, stato: 0, azione: "POSTICIPATA");
+            attesi.Add((tipologia, mese));
+            mese++;
+        }
+
+        // Si raccolgono PRIMA tutti gli esiti e si asserisce dopo: dentro Assert.Multiple non vanno
+        // messe lambda async, altrimenti le eccezioni sfuggono al blocco.
+        var esiti = new List<(string Tipologia, bool Presente, string[] TipologieTornate)>();
+        foreach (var (tipologia, meseAtteso) in attesi)
+        {
+            var righe = await Report([tipologia]);
+            esiti.Add((tipologia,
+                       righe.Any(r => r.TipologiaFattura == tipologia && r.Mese == meseAtteso),
+                       righe.Select(r => r.TipologiaFattura ?? "(null)").Distinct().ToArray()));
+        }
+
+        Assert.Multiple(() =>
+        {
+            foreach (var (tipologia, presente, _) in esiti)
+                Assert.That(presente, Is.True,
+                    $"T18: per la tipologia '{tipologia}' lo sheet Non Fatturate resterebbe vuoto.");
+
+            // Contro-prova del filtro: chiedendo UNA tipologia non devono arrivare le altre. Si asserisce
+            // sull'INSIEME delle tipologie tornate e non su un conteggio: la fixture semina gia' righe
+            // proprie per PRIMO/SECONDO SALDO, quindi un numero esatto sarebbe fragile e falso-rosso.
+            foreach (var (tipologia, _, tornate) in esiti)
+                Assert.That(tornate, Is.EqualTo(new[] { tipologia }),
+                    $"Filtrando per '{tipologia}' sono tornate anche altre tipologie: filtro inerte.");
+        });
+    }
+
+    // ---------------------------------------------------------------------------------------------
     // seed / cleanup
     // ---------------------------------------------------------------------------------------------
     private void SeminaScenari()

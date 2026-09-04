@@ -1,4 +1,4 @@
-using MediatR;
+﻿using MediatR;
 using Microsoft.Data.SqlClient;
 using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Dto;
@@ -14,7 +14,9 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// filtro completo, mapping del DTO, esclusione delle fatture in staging.
 ///
 /// Seed della vista (tutte Anno 2026): ANTICIPO(2001)/ACCONTO(2002) mese 5 ente3; PRIMO SALDO mese 6
-/// INPS(3001)+ente2(1002); SECONDO SALDO mese 7 ente1(1001). Container spento → i test si ignorano.
+/// INPS(3001)+ente2(1002); SECONDO SALDO mese 7 ente1(1001). Il seed non è chiuso
+/// (altre aree possono aggiungere fatture non inviate): senza filtri si asserisce per inclusione.
+/// Container spento → i test si ignorano.
 /// </summary>
 public class FattureInvioSapMultiploPeriodoIntegrationTests
 {
@@ -48,11 +50,22 @@ public class FattureInvioSapMultiploPeriodoIntegrationTests
     {
         CleanAllSeedPeriods(); // le 5 fatture seed devono essere tutte "da inviare" (non in staging)
 
-        var rows = (await Query(null, null, null))?.ToList() ?? [];
+        var ids = ((await Query(null, null, null))?.ToList() ?? []).Select(r => r.IdFattura).ToList();
 
-        Assert.That(rows.Select(r => r.IdFattura),
-            Is.EquivalentTo(new long[] { 1001, 1002, 2001, 2002, 3001 }),
-            "Senza filtri la query deve restituire tutte le fatture 'da inviare' della vista.");
+        // NB: asserzione per inclusione, non su elenco chiuso. Il seed è condiviso fra le aree e cresce
+        // (es. la fattura 7501, non inviata, aggiunta dai test di posticipa su fattura emessa): un
+        // Is.EquivalentTo diventerebbe rosso a ogni fattura non inviata aggiunta da un'altra area,
+        // senza che questa query sia cambiata. Ciò che va verificato qui e' che senza filtri escano
+        // tutte le "da inviare" e SOLO quelle.
+        Assert.Multiple(() =>
+        {
+            Assert.That(ids, Is.SupersetOf(new long[] { 1001, 1002, 2001, 2002, 3001 }),
+                "Senza filtri la query deve restituire tutte le fatture 'da inviare' della vista.");
+            Assert.That(ids, Does.Not.Contain(8001L),
+                "8001 è già inviata (FatturaInviata=1): non deve comparire fra le 'da inviare'.");
+            Assert.That(ids, Does.Not.Contain(9101L),
+                "9101 è in cfg.GestioneFatture (seed statico, POSTICIPATA): la vista deve escluderla.");
+        });
     }
 
     [Test]
