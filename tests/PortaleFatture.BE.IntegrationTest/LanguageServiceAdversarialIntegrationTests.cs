@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using PortaleFatture.BE.Core.Exceptions;
@@ -160,7 +160,7 @@ public class LanguageServiceAdversarialIntegrationTests
     /// testo lungo con 40 ripetizioni.
     ///
     /// Non e' un difetto del nostro codice: e' una **proprieta' del servizio** che cambia il valore
-    /// della feature. `api/piid` esiste per proteggere dati personali, e in un documento italiano il CF
+    /// della feature. `api/language/pii` esiste per proteggere dati personali, e in un documento italiano il CF
     /// e' il dato piu' identificante di tutti — piu' del nome, che invece viene oscurato. Chi si
     /// affidasse alla redazione crederebbe di aver protetto il testo.
     ///

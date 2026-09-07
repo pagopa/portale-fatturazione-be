@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Text;
 using Azure.AI.TextAnalytics;
 using Microsoft.AspNetCore.TestHost;
@@ -12,8 +12,8 @@ using PortaleFatture.BE.Infrastructure.Common.Language.Service;
 namespace PortaleFatture.BE.IntegrationTest.Http;
 
 /// <summary>
-/// Le tre rotte di **Azure AI Language** (PF-775): `api/piid`, `api/language-detection`,
-/// `api/summarize-text`.
+/// Le tre rotte di **Azure AI Language** (PF-775): `api/language/pii`,
+/// `api/language/detection`, `api/language/summarize`.
 ///
 /// **Cosa provano davvero questi test.** Che lo scenario "servizio non configurato" — quello che prima
 /// del 02/09/2026 impediva l'avvio dell'intera applicazione (registrazione DI eager + costruttore che
@@ -35,9 +35,9 @@ namespace PortaleFatture.BE.IntegrationTest.Http;
 /// </summary>
 public class LanguageServiceHttpTests
 {
-    private const string RottaPii = "/api/piid";
-    private const string RottaLingua = "/api/language-detection";
-    private const string RottaSintesi = "/api/summarize-text";
+    private const string RottaPii = "/api/language/pii";
+    private const string RottaLingua = "/api/language/detection";
+    private const string RottaSintesi = "/api/language/summarize";
 
     private ApiTestFactory _factory = null!;
 
@@ -65,9 +65,9 @@ public class LanguageServiceHttpTests
             + "puo' impedire il boot di cio' che non lo usa.");
     }
 
-    [TestCase(RottaPii, TestName = "ServizioNonConfigurato_ShouldReturn503(api/piid)")]
-    [TestCase(RottaLingua, TestName = "ServizioNonConfigurato_ShouldReturn503(api/language-detection)")]
-    [TestCase(RottaSintesi, TestName = "ServizioNonConfigurato_ShouldReturn503(api/summarize-text)")]
+    [TestCase(RottaPii, TestName = "ServizioNonConfigurato_ShouldReturn503(api/language/pii)")]
+    [TestCase(RottaLingua, TestName = "ServizioNonConfigurato_ShouldReturn503(api/language/detection)")]
+    [TestCase(RottaSintesi, TestName = "ServizioNonConfigurato_ShouldReturn503(api/language/summarize)")]
     public async Task ServizioNonConfigurato_ShouldReturn503_ConMessaggio(string rotta)
     {
         // La condizione "non configurato" viene IMPOSTA qui, invece di dipendere dall'assenza della
@@ -105,22 +105,25 @@ public class LanguageServiceHttpTests
     }
 
     /// <summary>
-    /// ATTENZIONE`LanguageServiceRequest.testo` è un **campo pubblico**, non una proprietà, e in minuscolo:
-    /// System.Text.Json lo deserializza **solo** grazie a `SerializerOptions.IncludeFields = true`,
-    /// impostato una volta sola in `ConfigurationExtensions`. Se quella riga cambiasse, il binding
-    /// smetterebbe di funzionare in silenzio e queste rotte risponderebbero 400 a ogni chiamata.
+    /// Il corpo delle tre rotte ha un solo campo, `testo`, minuscolo nel JSON: a legarlo è la naming
+    /// policy **camelCase** di `ConfigurationExtensions`.
     ///
-    /// Questo test lo blinda: se il campo smette di legare, il 400 arriva *prima* del 503 e il test
-    /// diventa rosso indicando la causa.
+    /// ATTENZIONE fino al 04/09/2026 `LanguageServiceRequest.testo` era un **campo pubblico**, non una
+    /// proprietà, e legava solo grazie a `SerializerOptions.IncludeFields = true` — dipendenza
+    /// silenziosa da una riga lontana, ora rimossa convertendolo in proprietà.
+    ///
+    /// Il test resta perché il rischio si è spostato, non è sparito: se cambiasse la naming policy, il
+    /// binding smetterebbe di funzionare **in silenzio** e queste rotte risponderebbero 400 a ogni
+    /// chiamata. Qui il 400 arriverebbe *prima* del 503, indicando la causa.
     /// </summary>
     [Test]
-    public async Task CampoTesto_ShouldEssereDeserializzato_NonostanteSiaUnCampo()
+    public async Task CampoTesto_ShouldEssereDeserializzato()
     {
         var (stato, _) = await Post(RottaPii, """{ "testo": "un testo qualsiasi" }""");
 
         Assert.That(stato, Is.Not.EqualTo(HttpStatusCode.BadRequest),
-            "Il testo c'e': un 400 qui significherebbe che il binding del CAMPO 'testo' non funziona "
-            + "piu' (IncludeFields disattivato), non che la richiesta e' malformata.");
+            "Il testo c'e': un 400 qui significherebbe che il binding della proprieta' 'Testo' sul "
+            + "campo JSON 'testo' non funziona piu', non che la richiesta e' malformata.");
     }
 
     // =============================================================================================

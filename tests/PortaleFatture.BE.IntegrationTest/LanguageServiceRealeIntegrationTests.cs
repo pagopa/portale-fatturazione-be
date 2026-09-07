@@ -1,4 +1,4 @@
-using PortaleFatture.BE.Infrastructure.Common.Language.Service;
+﻿using PortaleFatture.BE.Infrastructure.Common.Language.Service;
 
 namespace PortaleFatture.BE.IntegrationTest;
 
@@ -37,7 +37,7 @@ public class LanguageServiceRealeIntegrationTests
     public void CostruisciServizioReale() => _servizio = AzureLanguageTestbed.CostruisciOSalta().Servizio;
 
     // ---------------------------------------------------------------------------------------------
-    // api/piid — rilevazione e redazione PII
+    // api/language/pii — rilevazione e redazione PII
     // ---------------------------------------------------------------------------------------------
 
     [Test]
@@ -79,7 +79,7 @@ public class LanguageServiceRealeIntegrationTests
     }
 
     // ---------------------------------------------------------------------------------------------
-    // api/language-detection
+    // api/language/detection
     // ---------------------------------------------------------------------------------------------
 
     [TestCase("Il presente documento attesta la regolare esecuzione delle prestazioni contrattuali.", "it")]
@@ -99,7 +99,7 @@ public class LanguageServiceRealeIntegrationTests
     }
 
     // ---------------------------------------------------------------------------------------------
-    // api/summarize-text
+    // api/language/summarize
     // ---------------------------------------------------------------------------------------------
 
     [Test]
