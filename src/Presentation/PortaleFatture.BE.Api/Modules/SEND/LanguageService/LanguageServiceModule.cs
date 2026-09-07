@@ -22,7 +22,7 @@ using static Microsoft.AspNetCore.Http.TypedResults;
 
 namespace PortaleFatture.BE.Api.Modules.LanguageService;
 
-public partial class LanguageService
+public partial class LanguageServiceModule
 {
 
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
@@ -38,13 +38,13 @@ public partial class LanguageService
     [FromServices] IStringLocalizer<Localization> localizer,
     [FromServices] ILanguageService languageServiceHandler)
     {
-        if(request.testo == null || request.testo.Length == 0)
+        if(request.Testo == null || request.Testo.Length == 0)
             return BadRequest();
 
         if (!languageServiceHandler.IsConfigured)
             return ServizioNonConfigurato();
 
-        var piiEntities = await languageServiceHandler.DetectPersonalIdentifiableInformationAsync(request.testo);
+        var piiEntities = await languageServiceHandler.DetectPersonalIdentifiableInformationAsync(request.Testo);
 
         // check if piiEntities is null or empty then return NotFound
         if (piiEntities == null || !piiEntities.Any())
@@ -72,13 +72,13 @@ public partial class LanguageService
     [FromServices] IStringLocalizer<Localization> localizer,
     [FromServices] ILanguageService languageServiceHandler)
     {
-        if (request.testo == null || request.testo.Length == 0)
+        if (request.Testo == null || request.Testo.Length == 0)
             return BadRequest();
 
         if (!languageServiceHandler.IsConfigured)
             return ServizioNonConfigurato();
 
-        DetectedLanguage? detectedLanguage = await languageServiceHandler.DetectLanguageAsync(request.testo);
+        DetectedLanguage? detectedLanguage = await languageServiceHandler.DetectLanguageAsync(request.Testo);
 
         // check if detectedLanguage is null then return NotFound
         if (detectedLanguage == null)
@@ -108,13 +108,13 @@ public partial class LanguageService
     [FromServices] IStringLocalizer<Localization> localizer,
     [FromServices] ILanguageService languageServiceHandler)
     {
-        if (request.testo == null || request.testo.Length == 0)
+        if (request.Testo == null || request.Testo.Length == 0)
             return BadRequest();
 
         if (!languageServiceHandler.IsConfigured)
             return ServizioNonConfigurato();
 
-        var summarizeOperation = await languageServiceHandler.SummarizeTextAsync(request.testo);
+        var summarizeOperation = await languageServiceHandler.SummarizeTextAsync(request.Testo);
 
         // check if summarizeOperation is null then return NotFound
         if (summarizeOperation == null)

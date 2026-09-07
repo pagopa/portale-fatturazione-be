@@ -1,4 +1,4 @@
-using Azure;
+﻿using Azure;
 using Azure.AI.TextAnalytics;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -46,8 +46,9 @@ public class LanguageService : ILanguageService
         if (string.IsNullOrWhiteSpace(endpoint) || string.IsNullOrWhiteSpace(key))
         {
             _logger.LogWarning(
-                "Azure AI Language non configurato ({Mancante}): le rotte api/piid, api/language-detection "
-                + "e api/summarize-text risponderanno 503. Il resto dell'applicazione non e' impattato.",
+                "Azure AI Language non configurato ({Mancante}): le rotte api/language/pii, "
+                + "api/language/detection e api/language/summarize risponderanno 503. Il resto "
+                + "dell'applicazione non e' impattato.",
                 string.IsNullOrWhiteSpace(endpoint) ? "endpoint assente" : "chiave assente");
             return;
         }

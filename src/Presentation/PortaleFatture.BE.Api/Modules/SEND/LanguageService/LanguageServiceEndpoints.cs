@@ -3,26 +3,26 @@ using PortaleFatture.BE.Api.Infrastructure;
 
 namespace PortaleFatture.BE.Api.Modules.LanguageService;
 
-public partial class LanguageService : Module, IRegistrableModule
+public partial class LanguageServiceModule : Module, IRegistrableModule
 {
     public void RegisterEndpoints(IEndpointRouteBuilder endpointRouteBuilder)
     {
 
         endpointRouteBuilder
-        .MapPost("api/piid", PostPiidAsync)
+        .MapPost("api/language/pii", PostPiidAsync)
         .WithName("Permette di inviare una stringa che verrà redatta oscurando le Personal Identifiable Information (PII)")
         .SetOpenApi(Module.LanguageService)
         .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
 
         endpointRouteBuilder
-        .MapPost("api/language-detection", PostLanguageDetectionAsync)
+        .MapPost("api/language/detection", PostLanguageDetectionAsync)
         .WithName("Permette di inviare una stringa per la rilevazione della lingua")
         .SetOpenApi(Module.LanguageService)
         .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
         endpointRouteBuilder
-        .MapPost("api/summarize-text", PostSummarizeTextAsync)
+        .MapPost("api/language/summarize", PostSummarizeTextAsync)
         .WithName("Permette di inviare una stringa per la sintesi del testo")
         .SetOpenApi(Module.LanguageService)
         .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
