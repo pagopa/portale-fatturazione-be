@@ -1,9 +1,10 @@
-using ClosedXML.Excel;
+﻿using ClosedXML.Excel;
 using MediatR;
 using Moq;
 using PortaleFatture.BE.Api.Modules.SEND.Fatture.Extensions;
 using PortaleFatture.BE.Api.Modules.SEND.Fatture.Payload.Request;
 using PortaleFatture.BE.Core.Auth;
+using PortaleFatture.BE.Infrastructure.Common.SEND.Documenti.Common;
 using PortaleFatture.BE.Infrastructure.Common.SEND.DatiRel.Dto;
 using PortaleFatture.BE.Infrastructure.Common.SEND.DatiRel.Queries;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Dto;
@@ -706,5 +707,103 @@ public class FattureReportExtensionsTests
             Assert.That(SheetNames(xlsxNull), Does.Not.Contain("Non Fatturate"), "gestioneFatture null -> nessuno sheet.");
             Assert.That(SheetNames(xlsxEmpty), Does.Not.Contain("Non Fatturate"), "gestioneFatture vuota -> nessuno sheet.");
         });
+    }
+
+    // =================== Colonna "Note" dello sheet "Non Fatturate" ==============================
+    // Il requisito e' fatto di DUE pezzi indipendenti, e vanno verificati tutti e due sul file vero:
+    //   1) il valore in cella contiene i '\n' fra un'occorrenza e l'altra;
+    //   2) la cella ha WrapText -- senza, Excel mostra tutto su una riga sola e il '\n' non si vede.
+    // Il secondo dipende da Style = XCellStyle.Wrapper sull'attributo del DTO: e' l'unica cosa che
+    // lega la colonna al CellFormat con WrapText, ed e' facilissimo perderla spostando la colonna.
+
+    private static IXLCell CellaSottoIntestazione(IXLWorkbook wb, string sheet, string intestazione)
+    {
+        var ws = wb.Worksheet(sheet);
+        var header = ws.Row(1).CellsUsed()
+            .FirstOrDefault(c => string.Equals(c.GetString(), intestazione, StringComparison.OrdinalIgnoreCase));
+        Assert.That(header, Is.Not.Null, $"Nello sheet '{sheet}' manca la colonna '{intestazione}'.");
+        return ws.Cell(2, header!.Address.ColumnNumber);
+    }
+
+    [Test]
+    public void ReportFattureRel_ColonnaNote_ConcatenataEConACapoNellaCella()
+    {
+        var gf = GfExcel("Ente-POST", "POSTICIPATA");
+        gf.Note = "2026-02-01 10:00:00 prima nota" + FattureExtensions.SeparatoreNote + "2026-03-01 11:30:00 seconda nota";
+
+        var xlsx = CallReportFattureRel(1, new[] { gf });
+
+        using var wb = new XLWorkbook(new MemoryStream(xlsx));
+        var cella = CellaSottoIntestazione(wb, "Non Fatturate", "Note");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(cella.GetString(), Is.EqualTo(gf.Note), "Le note devono arrivare in cella integre.");
+            Assert.That(cella.GetString().Split('\n'), Has.Length.EqualTo(2),
+                "Le due occorrenze devono stare su due righe della stessa cella.");
+            Assert.That(cella.Style.Alignment.WrapText, Is.True,
+                "Senza WrapText (XCellStyle.Wrapper sull'HeaderAttributev2) Excel appiattisce le note su una riga sola.");
+        });
+    }
+
+    [Test]
+    public void ReportFattureRel_ColonnaNote_SenzaNote_CellaVuotaMaColonnaPresente()
+    {
+        // Caso predominante nei dati reali: Note = '[]' -> FlattenNote restituisce null. La colonna
+        // deve comunque esserci (altrimenti il file cambia forma da un periodo all'altro).
+        var gf = GfExcel("Ente-POST", "POSTICIPATA");
+        gf.Note = null;
+
+        var xlsx = CallReportFattureRel(1, new[] { gf });
+
+        using var wb = new XLWorkbook(new MemoryStream(xlsx));
+        var cella = CellaSottoIntestazione(wb, "Non Fatturate", "Note");
+
+        Assert.That(cella.GetString(), Is.Empty);
+    }
+
+    // =================== Ordine delle colonne dello sheet "Non Fatturate" ========================
+    // Requisito 08/09/2026: "Stato" prima colonna, "Note" seconda. E' un requisito di POSIZIONE, e
+    // l'unica cosa che la decide e' l'Order degli HeaderAttributev2 sul DTO -- un valore che si
+    // cambia per sbaglio rinumerando o aggiungendo una colonna, senza che nulla fallisca (fino
+    // all'08/09 c'era un Order duplicato e l'ordine reale usciva giusto solo perche' OrderBy di LINQ
+    // e' stabile). Si asserisce quindi sul FILE, non sul DTO: e' quello che vede l'utente.
+
+    [Test]
+    public void ReportFattureRel_NonFatturate_StatoPrimaColonna_NotesSeconda()
+    {
+        var gf = GfExcel("Ente-POST", "POSTICIPATA");
+        gf.Note = "2026-02-01 10:00:00 prima nota";
+
+        var xlsx = CallReportFattureRel(1, new[] { gf });
+
+        using var wb = new XLWorkbook(new MemoryStream(xlsx));
+        var intestazioni = wb.Worksheet("Non Fatturate").Row(1).CellsUsed()
+            .OrderBy(c => c.Address.ColumnNumber)
+            .Select(c => c.GetString())
+            .ToList();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(intestazioni.Take(2), Is.EqualTo(new[] { "Stato", "Note" }),
+                "Le prime due colonne devono essere Stato e Note, in quest'ordine. "
+              + $"Ordine attuale: {string.Join(" | ", intestazioni)}");
+            Assert.That(intestazioni, Is.Unique, "Intestazioni duplicate: c'e' un Order ripetuto sul DTO.");
+        });
+    }
+
+    [Test]
+    public void GestioneFattureReportExcelDto_OrderDelleColonne_TuttiUnivoci()
+    {
+        // Guardia contro il ritorno del difetto: due colonne con lo stesso Order non rompono nulla
+        // subito (OrderBy stabile -> vince l'ordine di dichiarazione) ma rendono l'ordine reale
+        // dipendente da come sono scritte le proprieta', non dai numeri. Qui si rompe subito.
+        var ordini = typeof(GestioneFattureReportExcelDto).GetProperties()
+            .Select(pi => (HeaderAttributev2?)Attribute.GetCustomAttribute(pi, typeof(HeaderAttributev2)))
+            .Where(a => a != null)
+            .Select(a => a!.Order)
+            .ToList();
+
+        Assert.That(ordini, Is.Unique, $"Order duplicati fra le colonne: {string.Join(", ", ordini)}");
     }
 }
