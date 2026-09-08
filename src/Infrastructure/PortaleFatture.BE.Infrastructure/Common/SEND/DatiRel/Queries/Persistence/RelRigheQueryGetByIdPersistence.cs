@@ -18,12 +18,12 @@ public class RelRigheQueryGetByIdPersistence(RelRigheQueryGetById command) : Dap
         var where = string.Empty;
         var idEnte = _command.AuthenticationInfo.IdEnte;
 
-        if (!(dati.TipologiaFattura!.ToLower().Contains("var")
-            || dati.TipologiaFattura!.ToLower().Contains("semestrale")
-            || dati.TipologiaFattura!.ToLower().Contains("annuale")))
+        // Solo VAR. SEMESTRALE filtra per semestre (FlagConguaglio); tutte le altre tipologie
+        // - VAR. ANNUALE e SEM. SOSPESI incluse - filtrano per anno/mese.
+        if (string.Equals(dati.TipologiaFattura, TipologiaFattura.VAR_SEMESTRALE, StringComparison.OrdinalIgnoreCase))
+            where += " WHERE r.FlagConguaglio=@FlagConguaglio";
+        else
             where += " WHERE r.year=@anno AND r.month=@mese";
-        else 
-            where += " WHERE r.FlagConguaglio=@FlagConguaglio"; 
 
         where += " AND r.internal_organization_id=@IdEnte ";
         var anno = dati.Anno;
