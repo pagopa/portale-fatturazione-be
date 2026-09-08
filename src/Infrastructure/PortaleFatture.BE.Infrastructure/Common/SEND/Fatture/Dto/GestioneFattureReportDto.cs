@@ -36,4 +36,14 @@ public sealed class GestioneFattureReportDto
 
     public string? TipoContratto { get; set; }
     public string? Stato { get; set; }
+
+    /// <summary>
+    /// Note dell'azione di staging, JSON GREZZO come sta su cfg.GestioneFatture (tipo nativo 'json').
+    /// Esposto da [be].[vwGestioneFattureReport] come CAST(gf.[Note] AS nvarchar(max)) -- il tipo
+    /// 'json' non e' comparabile e nel SELECT DISTINCT della vista darebbe errore 421.
+    /// Forma attesa: array di { Data, Testo, Azione } (la SP accoda con JSON_MODIFY 'append'), ma nei
+    /// dati piu' vecchi puo' essere un singolo oggetto o '[]'. L'appiattimento per l'Excel lo fa
+    /// FattureExtensions.FlattenNote.
+    /// </summary>
+    public string? NoteJson { get; set; }
 }

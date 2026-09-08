@@ -1,6 +1,7 @@
 using System.Data;
 using System.IO.Compression;
 using System.Reflection;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml.Bibliography;
 using DocumentFormat.OpenXml.Drawing;
@@ -1615,8 +1616,69 @@ public static byte[] ReportFattureSospeseModuloCommessa(this List<IEnumerable<Fa
             TotaleIvato = x.TotaleIvato,
             Firmata = x.Firmata,
             TotaleFatturaImponibile = x.TotaleFatturaImponibile,
-            Stato = x.Stato
+            Stato = x.Stato,
+            Note = FlattenNote(x.NoteJson)
         });
+    }
+
+    /// <summary>
+    /// Separatore fra le occorrenze di nota dentro la cella Excel. Volutamente il solo '\n' e non
+    /// CRLF: il parser XML normalizza comunque il CR, e con WrapText attivo Excel rende il LF come
+    /// a-capo. Costante e non letterale sparso, cosi' i test possono asserire sullo stesso valore.
+    /// </summary>
+    public const string SeparatoreNote = "\n";
+
+    private static readonly JsonSerializerOptions _noteJsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
+
+    /// <summary>
+    /// Appiattisce lo storico note di cfg.GestioneFatture (JSON) in un'unica stringa multi-riga,
+    /// una occorrenza per riga nel formato "yyyy-MM-dd HH:mm:ss testo" -- lo stesso di
+    /// [be].[vwGestioneFattureDownload], cosi' le due esportazioni si leggono uguali.
+    /// </summary>
+    /// <remarks>
+    /// Tolleranza voluta sulla forma del JSON, perche' i dati reali non sono omogenei:
+    ///   - array di note (forma prodotta oggi dalla SP con JSON_MODIFY 'append');
+    ///   - oggetto singolo (righe piu' vecchie, e il seed dei test);
+    ///   - '[]' / null / stringa vuota -> nessuna nota, cella vuota.
+    /// Se il JSON non e' parsabile si restituisce il testo grezzo invece di scartarlo: in un export
+    /// perdere l'informazione e' peggio che mostrarla brutta. Non solleva mai: un dato sporco su una
+    /// riga non deve far fallire l'intero report.
+    /// </remarks>
+    public static string? FlattenNote(string? noteJson)
+    {
+        if (string.IsNullOrWhiteSpace(noteJson))
+            return null;
+
+        List<NoteCommand?>? note;
+        try
+        {
+            using var documento = JsonDocument.Parse(noteJson);
+            note = documento.RootElement.ValueKind switch
+            {
+                JsonValueKind.Array => documento.RootElement.Deserialize<List<NoteCommand?>>(_noteJsonOptions),
+                JsonValueKind.Object => [documento.RootElement.Deserialize<NoteCommand>(_noteJsonOptions)],
+                JsonValueKind.Null => null,
+                _ => null
+            };
+        }
+        catch (JsonException)
+        {
+            return noteJson;
+        }
+
+        if (note == null)
+            return null;
+
+        var righe = note
+            .Where(n => n != null)
+            .OrderBy(n => n!.Data)
+            .Select(n => $"{n!.Data:yyyy-MM-dd HH:mm:ss} {n.Testo}".TrimEnd())
+            .ToList();
+
+        return righe.Count == 0 ? null : string.Join(SeparatoreNote, righe);
     }
 
 }
