@@ -12,23 +12,26 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// `CreateRelSospese` (nessun endpoint la usa: le rotte `.../rel/.../righe` compongono un SAS token
 /// verso il CSV già generato, v. `docs/pipeline-dati-send.md`), e non aveva alcun test.
 ///
-/// Il motivo per cui vale più di una copertura qualsiasi: contiene un'invariante che il codice
-/// esprime in modo **fragile** e che la documentazione dichiara **corretta**, quindi è esattamente il
-/// tipo di cosa che una pulizia ben intenzionata romperebbe in silenzio.
+/// Il motivo per cui vale più di una copertura qualsiasi: la scelta fra "filtra per semestre" e
+/// "filtra per anno/mese" è un ramo invisibile — nessun errore, solo righe in più o in meno nel
+/// report — ed è esattamente il tipo di cosa che una modifica ben intenzionata sposta in silenzio.
 ///
-/// La scelta fra "filtra per semestre" e "filtra per anno/mese" si fa con una ricerca testuale sul
-/// nome della tipologia:
+/// Regola in vigore (dal 07/09/2026):
 ///
-///     contains("var") || contains("semestrale") || contains("annuale")  ->  FlagConguaglio
-///     altrimenti                                                        ->  year + month
+///     TipologiaFattura == "VAR. SEMESTRALE"  ->  FlagConguaglio (tutto il semestre)
+///     qualunque altra                        ->  year + month
 ///
-/// **`SEM. SOSPESI` non intercetta nessuno dei tre**, perché è abbreviato: finisce quindi nel ramo
-/// anno/mese. Sembra un caso dimenticato, **non lo è** — le righe di SEM. SOSPESI conservano il
-/// periodo di riferimento originale (v. `docs/business-fatturazione.md`). Normalizzare quella stringa
-/// cambierebbe il contenuto dei report senza che nulla fallisca.
+/// Prima il ramo del conguaglio era scelto con una ricerca testuale
+/// — contains("var") || contains("semestrale") || contains("annuale") — che catturava anche
+/// **`VAR. ANNUALE`**, e che invece **non** catturava `SEM. SOSPESI` perché abbreviato. Delle due
+/// asimmetrie ne resta una sola, ed è ora esplicita: SEM. SOSPESI filtra per anno/mese non "per
+/// distrazione dell'abbreviazione" ma perché è la regola generale, coerente col fatto che le sue
+/// righe conservano il periodo di riferimento originale (v. `docs/business-fatturazione.md`).
 ///
-/// Gira sul DB seedato: il seed di `pfd.RelRighe` è costruito apposta per rendere la differenza
-/// osservabile (stesso semestre, mesi diversi).
+/// Gira sul DB seedato: le righe di `pfd.RelRighe` sono costruite apposta per rendere la differenza
+/// osservabile — per SEM. SOSPESI, VAR. SEMESTRALE e VAR. ANNUALE il seed ha la **stessa** coppia
+/// maggio/giugno con lo **stesso** `FlagConguaglio '2026-S1'`, quindi a parità di dati l'unica cosa
+/// che può cambiare il risultato è il ramo scelto dal codice.
 /// </summary>
 public class RelRigheFiltroPeriodoIntegrationTests
 {
@@ -57,16 +60,38 @@ public class RelRigheFiltroPeriodoIntegrationTests
         var righe = await Righe("SEM. SOSPESI", 2026, 5);
 
         Assert.That(righe.Select(r => r.IdNotifica), Is.EquivalentTo(new[] { "REL-SS-MAG" }),
-            "SEM. SOSPESI deve filtrare per anno/mese. Se compare anche REL-SS-GIU, qualcuno ha "
-            + "'normalizzato' il confronto testuale su TipologiaFattura: v. docs/business-fatturazione.md, "
-            + "è un comportamento voluto, non un caso dimenticato.");
+            "SEM. SOSPESI deve filtrare per anno/mese: le sue righe conservano il periodo di "
+            + "riferimento originale (v. docs/business-fatturazione.md). Se compare anche REL-SS-GIU, "
+            + "qualcuno l'ha spostata nel ramo del conguaglio.");
+    }
+
+    /// <summary>
+    /// REGRESSIONE della modifica del 07/09/2026: `VAR. ANNUALE` è passata dal ramo semestre a quello
+    /// anno/mese, ed è l'**unica** tipologia il cui comportamento è cambiato.
+    ///
+    /// Il seed le dà la stessa forma di VAR. SEMESTRALE — due righe, maggio e giugno, stesso
+    /// `FlagConguaglio '2026-S1'` — proprio perché le due tipologie erano indistinguibili per il
+    /// vecchio confronto testuale (`contains("annuale")` e `contains("var")` scattavano entrambi).
+    /// Con quel codice questo test tornerebbe due righe e sarebbe rosso: è la sua ragione d'essere.
+    /// </summary>
+    [Test]
+    public async Task VarAnnuale_ShouldFiltrarePerAnnoMese_NonPerSemestre()
+    {
+        var righe = await Righe("VAR. ANNUALE", 2026, 5);
+
+        Assert.That(righe.Select(r => r.IdNotifica), Is.EquivalentTo(new[] { "REL-VA-MAG" }),
+            "VAR. ANNUALE deve filtrare per anno/mese. Se compare anche REL-VA-GIU, il ramo del "
+            + "conguaglio è tornato a catturarla — tipicamente reintroducendo la ricerca testuale "
+            + "contains(\"var\"|\"semestrale\"|\"annuale\") al posto del confronto con "
+            + "TipologiaFattura.VAR_SEMESTRALE.");
     }
 
     [Test]
     public async Task VarSemestrale_ShouldFiltrarePerSemestre_IgnorandoIlMese()
     {
-        // Stesso semestre, mesi diversi: entrambe devono uscire, perché "var"/"semestrale" fa scattare
-        // il ramo FlagConguaglio. È il comportamento speculare al test precedente.
+        // L'UNICA tipologia che filtra per semestre. Stesso seed dei due test sopra (maggio + giugno,
+        // stesso FlagConguaglio): qui però devono uscire entrambe. Il contrasto a parità di dati è
+        // ciò che rende il ramo osservabile.
         var righe = await Righe("VAR. SEMESTRALE", 2026, 5);
 
         Assert.That(righe.Select(r => r.IdNotifica), Is.EquivalentTo(new[] { "REL-VS-MAG", "REL-VS-GIU" }),

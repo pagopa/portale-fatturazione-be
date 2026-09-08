@@ -922,6 +922,44 @@ VALUES
  ('11111111-1111-1111-1111-111111111111','TOKEN-E1','VAR. SEMESTRALE',2026,5, 4.00,4.00,1,1,8.00,4.88,4.88,9.76,0,0,'2026-S1', 0,0,0,0,0,0,0,0);
 GO
 
+-- ---------------------------------------------------------------------------------------------
+-- VAR. ANNUALE 2026/5-6 — il discriminante della modifica del 07/09/2026.
+--
+-- Prima, la scelta del ramo era una ricerca testuale contains("var"|"semestrale"|"annuale"), quindi
+-- VAR. ANNUALE finiva nel ramo FlagConguaglio (semestre). Ora il ramo conguaglio scatta SOLO su
+-- 'VAR. SEMESTRALE' (confronto sulla costante TipologiaFattura.VAR_SEMESTRALE), quindi VAR. ANNUALE
+-- filtra per anno/mese come tutte le altre.
+--
+-- Le due righe hanno lo STESSO FlagConguaglio ('2026-S1') e mesi DIVERSI: è ciò che rende i due
+-- comportamenti distinguibili. Chiedendo 2026/5 deve uscire solo REL-VA-MAG; se uscissero entrambe,
+-- qualcuno ha rimesso VAR. ANNUALE nel ramo del conguaglio.
+-- Test: RelRigheFiltroPeriodoIntegrationTests.VarAnnuale_ShouldFiltrarePerAnnoMese_NonPerSemestre.
+-- Blocco separato (guardia propria) così è applicabile anche a un container gia' seedato.
+-- ---------------------------------------------------------------------------------------------
+IF NOT EXISTS (SELECT 1 FROM pfd.RelRighe WHERE event_id LIKE 'REL-VA-%')
+INSERT INTO pfd.RelRighe
+ (contract_id, tax_code, vat_number, event_id, iun, internal_organization_id, [year], [month],
+  item_code, notification_request_id, recipient_tax_id, notificationtype, cost,
+  TipologiaFattura, IdFlagContestazione, FlagConguaglio)
+VALUES
+ ('TOKEN-E1','TAX1','VAT1','REL-VA-MAG','IUN-VA-MAG','11111111-1111-1111-1111-111111111111',2026,5,'IC','NRQ','RTX','Digitali',5.00,'VAR. ANNUALE',1,'2026-S1'),
+ ('TOKEN-E1','TAX1','VAT1','REL-VA-GIU','IUN-VA-GIU','11111111-1111-1111-1111-111111111111',2026,6,'IC','NRQ','RTX','Digitali',5.00,'VAR. ANNUALE',1,'2026-S1');
+GO
+
+-- Testata VAR. ANNUALE 2026/5: senza, l'handler fa FirstOrDefault()! su lista vuota -> NRE
+-- (v. PeriodoSenzaTestata_ShouldThrowNullReference_Caratterizzazione).
+IF NOT EXISTS (SELECT 1 FROM pfd.RelTestata WHERE contract_id='TOKEN-E1' AND [year]=2026 AND [month]=5 AND TipologiaFattura='VAR. ANNUALE')
+INSERT INTO pfd.RelTestata
+ (internal_organization_id, contract_id, TipologiaFattura, [year], [month], TotaleAnalogico, TotaleDigitale,
+  TotaleNotificheAnalogiche, TotaleNotificheDigitali, Totale, TotaleAnalogicoIva, TotaleDigitaleIva, TotaleIva,
+  Caricata, RelFatturata, FlagConguaglio,
+  AsseverazioneTotaleAnalogico, AsseverazioneTotaleDigitale, AsseverazioneTotaleNotificheAnalogiche,
+  AsseverazioneTotaleNotificheDigitali, AsseverazioneTotale, AsseverazioneTotaleAnalogicoIva,
+  AsseverazioneTotaleDigitaleIva, AsseverazioneTotaleIva)
+VALUES
+ ('11111111-1111-1111-1111-111111111111','TOKEN-E1','VAR. ANNUALE',2026,5, 5.00,5.00,1,1,10.00,6.10,6.10,12.20,0,0,'2026-S1', 0,0,0,0,0,0,0,0);
+GO
+
 -- ============================================================================================
 -- Foglio "note/storni" del report EMESSE (_sqlNoteSenzaRel), aggiunto il 04/09/2026.
 --
