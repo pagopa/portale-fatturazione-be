@@ -131,4 +131,97 @@ public class GestioneFattureReportMapExportTests
             Assert.That(r.TipoDocumento, Is.EqualTo("a\"b;c\nd\t<x>"));
         });
     }
+
+    // --- FlattenNote: JSON delle note -> unica stringa, un'occorrenza per riga --------------------
+    // E' l'unico pezzo con logica vera della colonna Note. Il JSON reale non e' omogeneo (array
+    // prodotto dalla SP con JSON_MODIFY 'append', oggetto singolo nelle righe piu' vecchie e nel
+    // seed, '[]' di default), quindi le forme sono tutte da coprire qui.
+
+    private const string Sep = FattureExtensions.SeparatoreNote;
+
+    [Test]
+    public void FlattenNote_ArrayDiNote_UnaPerRigaOrdinatePerData()
+    {
+        var json = """
+        [
+          {"Data":"2026-03-01T11:30:00","Testo":"seconda","Azione":"RIPRISTINA"},
+          {"Data":"2026-02-01T10:00:00","Testo":"prima","Azione":"POSTICIPA"}
+        ]
+        """;
+
+        var s = FattureExtensions.FlattenNote(json);
+
+        Assert.That(s, Is.EqualTo($"2026-02-01 10:00:00 prima{Sep}2026-03-01 11:30:00 seconda"),
+            "Le note vanno concatenate in ordine cronologico, una per riga.");
+    }
+
+    [Test]
+    public void FlattenNote_OggettoSingolo_NonSoloArray_VieneAppiattito()
+    {
+        // Forma presente nei dati piu' vecchi e nel seed dei test: NON e' un array.
+        var s = FattureExtensions.FlattenNote(@"{""Data"":""2025-01-01T00:00:00"",""Testo"":""seed-posticipata""}");
+
+        Assert.That(s, Is.EqualTo("2025-01-01 00:00:00 seed-posticipata"));
+    }
+
+    [TestCase(null)]
+    [TestCase("")]
+    [TestCase("   ")]
+    [TestCase("[]")]
+    [TestCase("null")]
+    public void FlattenNote_NessunaNota_RestituisceNull(string? json)
+    {
+        // '[]' e' il DEFAULT della colonna: e' il caso piu' frequente, e deve dare cella vuota.
+        Assert.That(FattureExtensions.FlattenNote(json), Is.Null);
+    }
+
+    [Test]
+    public void FlattenNote_JsonMalformato_RestituisceIlTestoGrezzo_ENonEsplode()
+    {
+        // Scelta deliberata: in un export perdere l'informazione e' peggio che mostrarla brutta, e
+        // una riga sporca non deve far fallire l'intero report.
+        const string sporco = "{non-json";
+
+        Assert.That(FattureExtensions.FlattenNote(sporco), Is.EqualTo(sporco));
+    }
+
+    [Test]
+    public void FlattenNote_TestoNullOVuoto_ProduceSoloLaData_SenzaSpazioFinale()
+    {
+        var s = FattureExtensions.FlattenNote(@"[{""Data"":""2026-02-01T10:00:00"",""Testo"":null}]");
+
+        Assert.That(s, Is.EqualTo("2026-02-01 10:00:00"));
+    }
+
+    [Test]
+    public void FlattenNote_TestoMultiRiga_NonVieneAlterato()
+    {
+        // Il testo lo scrive l'utente dal form: se contiene a-capo suoi, restano.
+        var s = FattureExtensions.FlattenNote(@"[{""Data"":""2026-02-01T10:00:00"",""Testo"":""riga1\nriga2""}]");
+
+        Assert.That(s, Is.EqualTo("2026-02-01 10:00:00 riga1\nriga2"));
+    }
+
+    [Test]
+    public void MapExport_NoteJson_ArrivaAppiattitoSullaColonnaNote()
+    {
+        var x = Pieno();
+        x.NoteJson = """
+        [
+          {"Data":"2026-02-01T10:00:00","Testo":"prima","Azione":"POSTICIPA"},
+          {"Data":"2026-03-01T11:30:00","Testo":"seconda","Azione":"RIPRISTINA"}
+        ]
+        """;
+
+        var r = new[] { x }.MapExport().Single();
+
+        Assert.That(r.Note, Is.EqualTo($"2026-02-01 10:00:00 prima{Sep}2026-03-01 11:30:00 seconda"));
+    }
+
+    [Test]
+    public void MapExport_SenzaNoteJson_NoteNull()
+    {
+        Assert.That(new[] { Pieno() }.MapExport().Single().Note, Is.Null,
+            "NoteJson non valorizzato (o vista senza note) -> colonna vuota, non stringa spuria.");
+    }
 }
