@@ -1,5 +1,3 @@
-using System.Net;
-using System.Net.Sockets;
 using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 using PortaleFatture.BE.Core.Exceptions;
@@ -15,63 +13,27 @@ namespace PortaleFatture.BE.UnitTest;
 /// continuava a promettere `Language:TimeoutSeconds`, la documentazione a descriverlo, e il campo
 /// `_timeout` restava assegnato ma non letto (un readonly mai usato non produce warning del
 /// compilatore). Questi due test sono il presidio che mancava.
+///
+/// Fino all'11/09/2026 il servizio lento era un **socket TCP locale** che accettava la connessione e
+/// non rispondeva. Con l'autenticazione a identità non è più possibile: l'SDK si rifiuta di spedire un
+/// token su <c>http://</c>, e un socket TLS locale richiederebbe un certificato. Si usa quindi un
+/// trasporto HTTP che accetta la richiesta e non risponde mai (<see cref="TrasportoFinto.Muto"/>): stesso
+/// scenario, stesso <see cref="LanguageService"/> vero, stessa pipeline di Azure.Core — senza rete.
 /// </summary>
 [TestFixture]
 public class LanguageServiceTimeoutTests
 {
-    private TcpListener _serverMuto = null!;
-    private CancellationTokenSource _stopAccept = null!;
-    private readonly List<TcpClient> _connessioniTenuteAperte = [];
-    private string _endpoint = null!;
-
-    /// <summary>
-    /// Un socket che **accetta** la connessione e non risponde mai: riproduce il servizio lento, che è
-    /// il caso per cui il timeout esiste. Un endpoint semplicemente irraggiungibile non servirebbe —
-    /// fallirebbe subito in connessione, cioè produrrebbe una UpstreamServiceException (502) e non
-    /// eserciterebbe affatto il ramo sotto test.
-    /// </summary>
-    [OneTimeSetUp]
-    public void AvviaServerMuto()
-    {
-        _stopAccept = new CancellationTokenSource();
-        _serverMuto = new TcpListener(IPAddress.Loopback, 0);
-        _serverMuto.Start();
-        _endpoint = $"http://127.0.0.1:{((IPEndPoint)_serverMuto.LocalEndpoint).Port}";
-
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                while (!_stopAccept.IsCancellationRequested)
-                {
-                    // Le connessioni vanno TENUTE: chiudendole il client vedrebbe un errore di rete
-                    // (502) invece di restare in attesa della risposta (504).
-                    _connessioniTenuteAperte.Add(await _serverMuto.AcceptTcpClientAsync(_stopAccept.Token));
-                }
-            }
-            catch (OperationCanceledException) { /* fine fixture */ }
-            catch (ObjectDisposedException) { /* listener chiuso */ }
-        });
-    }
-
-    [OneTimeTearDown]
-    public void FermaServerMuto()
-    {
-        _stopAccept.Cancel();
-        foreach (var connessione in _connessioniTenuteAperte)
-            connessione.Dispose();
-        _serverMuto.Stop();
-        _serverMuto.Dispose();
-        _stopAccept.Dispose();
-    }
-
-    private LanguageService ServizioVerso(string endpoint, int timeoutSeconds) =>
-        new(endpoint, "chiave-finta-per-il-test", NullLogger<LanguageService>.Instance, timeoutSeconds);
+    private static LanguageService ServizioVersoUnServizioMuto(int timeoutSeconds) => new(
+        "https://esempio.cognitiveservices.azure.com/",
+        NullLogger<LanguageService>.Instance,
+        timeoutSeconds,
+        credential: new CredenzialeFinta(),
+        clientOptions: TrasportoFinto.Muto().Opzioni());
 
     [Test]
     public void SummarizeText_ServizioCheNonRisponde_SollevaUpstreamTimeoutENonUpstreamService()
     {
-        var servizio = ServizioVerso(_endpoint, timeoutSeconds: 1);
+        var servizio = ServizioVersoUnServizioMuto(timeoutSeconds: 1);
 
         var eccezione = Assert.CatchAsync(async () => await servizio.SummarizeTextAsync("un testo qualsiasi"));
 
@@ -87,7 +49,7 @@ public class LanguageServiceTimeoutTests
     public void SummarizeText_ChiamanteCheAnnulla_NonVieneScambiatoPerUnTimeoutDelServizio()
     {
         // Timeout nostro ampio: a cancellare è il chiamante, non noi.
-        var servizio = ServizioVerso(_endpoint, timeoutSeconds: 120);
+        var servizio = ServizioVersoUnServizioMuto(timeoutSeconds: 120);
         using var annullaSubito = new CancellationTokenSource();
         annullaSubito.CancelAfter(TimeSpan.FromMilliseconds(200));
 

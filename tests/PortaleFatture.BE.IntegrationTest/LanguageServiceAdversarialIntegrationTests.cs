@@ -7,8 +7,9 @@ using PortaleFatture.BE.Infrastructure.Common.Language.Service;
 namespace PortaleFatture.BE.IntegrationTest;
 
 /// <summary>
-/// Test ADVERSARIAL su Azure AI Language che colpiscono il **servizio vero**, con endpoint e chiave
-/// reali presi dagli user secrets del progetto (`PortaleFattureOptions:Language:Endpoint` e `:Key`).
+/// Test ADVERSARIAL su Azure AI Language che colpiscono il **servizio vero**, con l'endpoint preso
+/// dagli user secrets del progetto (`PortaleFattureOptions:Language:Endpoint`) e l'identita' Entra ID di
+/// chi esegue (`DefaultAzureCredential`: Visual Studio o `az login`) — dall'11/09/2026 non c'e' chiave.
 ///
 /// Perché esistono, dato che l'area ha già 16 test HTTP: quelli usano un servizio **finto**, quindi
 /// provano la nostra mappatura degli errori — non ciò che Azure fa davvero. Qui stanno solo i casi che
@@ -60,7 +61,6 @@ public class LanguageServiceAdversarialIntegrationTests
     private int _timeoutSeconds;
 
     private string _endpoint = null!;
-    private string _key = null!;
 
     [OneTimeSetUp]
     public void CostruisciServizioReale()
@@ -69,7 +69,6 @@ public class LanguageServiceAdversarialIntegrationTests
 
         _servizio = configurato.Servizio;
         _endpoint = configurato.Endpoint;
-        _key = configurato.Key;
         _maxChars = configurato.MaxChars;
         _maxCharsSummarize = configurato.MaxCharsSummarize;
         _timeoutSeconds = configurato.TimeoutSeconds;
@@ -426,16 +425,18 @@ public class LanguageServiceAdversarialIntegrationTests
     // ---------------------------------------------------------------------------------------------
 
     [Test]
-    public void Credenziali_ChiaveErrata_DiventaUpstreamServiceExceptionENonUnErroreGenerico()
+    public void Credenziali_TokenRifiutato_DiventaUpstreamServiceExceptionENonUnErroreGenerico()
     {
-        var conChiaveErrata = new LanguageService(
-            _endpoint, "chiave-palesemente-non-valida", NullLogger<LanguageService>.Instance);
+        // Un token che Entra ID non ha mai emesso: Azure lo rifiuta con un 401, esattamente come
+        // farebbe con l'identita' di un App Service a cui manca il ruolo sulla risorsa.
+        var conTokenRifiutato = new LanguageService(
+            _endpoint, NullLogger<LanguageService>.Instance, credential: new CredenzialeFinta());
 
         var eccezione = Assert.CatchAsync(
-            async () => await conChiaveErrata.DetectLanguageAsync("testo qualsiasi"));
+            async () => await conTokenRifiutato.DetectLanguageAsync("testo qualsiasi"));
 
-        // Deve restare nella famiglia mappata a 502: una chiave scaduta e' un problema del servizio a
-        // monte, non della richiesta del client (che sarebbe 400) ne' un bug nostro (500).
+        // Deve restare nella famiglia mappata a 502: un'identita' rifiutata e' un problema del servizio
+        // a monte, non della richiesta del client (che sarebbe 400) ne' un bug nostro (500).
         Assert.That(eccezione, Is.InstanceOf<UpstreamServiceException>());
         Assert.That(eccezione, Is.Not.TypeOf<UpstreamTimeoutException>(),
             "Un rifiuto di autenticazione non e' un timeout.");
@@ -444,9 +445,11 @@ public class LanguageServiceAdversarialIntegrationTests
     [Test]
     public void Credenziali_EndpointInesistente_DiventaUpstreamServiceException()
     {
+        // Credenziale finta: l'host non risolve, quindi il token non verrebbe comunque usato — e cosi'
+        // il caso non dipende dall'identita' di chi esegue.
         var conEndpointSbagliato = new LanguageService(
             "https://endpoint-inesistente-portale-fatture.cognitiveservices.azure.com/",
-            _key, NullLogger<LanguageService>.Instance, timeoutSeconds: 10);
+            NullLogger<LanguageService>.Instance, timeoutSeconds: 10, credential: new CredenzialeFinta());
 
         var eccezione = Assert.CatchAsync(
             async () => await conEndpointSbagliato.DetectLanguageAsync("testo qualsiasi"));

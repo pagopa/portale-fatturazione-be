@@ -54,7 +54,7 @@ public class VaultClientSettingsLanguageIntegrationTests
 
     private static readonly string[] VariabiliLanguage =
     [
-        "LANGUAGE_ENDPOINT", "LANGUAGE_KEY", "LANGUAGE_TIMEOUTSECONDS",
+        "LANGUAGE_ENDPOINT", "LANGUAGE_TIMEOUTSECONDS",
         "LANGUAGE_MAXCHARS", "LANGUAGE_MAXCHARSSUMMARIZE"
     ];
 
@@ -104,7 +104,6 @@ public class VaultClientSettingsLanguageIntegrationTests
         {
             Assert.That(options.Language, Is.Not.Null, "la sezione deve essere istanziata anche quando non e' configurata");
             Assert.That(options.Language!.Endpoint, Is.Null);
-            Assert.That(options.Language.Key, Is.Null);
             Assert.That(options.Language.TimeoutSeconds, Is.EqualTo(45));
             Assert.That(options.Language.MaxChars, Is.EqualTo(5_120));
             Assert.That(options.Language.MaxCharsSummarize, Is.EqualTo(125_000));
@@ -119,7 +118,6 @@ public class VaultClientSettingsLanguageIntegrationTests
     public async Task VaultClientSettings_ConLeVariabiliLanguage_LeRiportaNellaSezione()
     {
         Environment.SetEnvironmentVariable("LANGUAGE_ENDPOINT", "https://fat-d-app-ls.cognitiveservices.azure.com/");
-        Environment.SetEnvironmentVariable("LANGUAGE_KEY", "chiave-di-test");
         Environment.SetEnvironmentVariable("LANGUAGE_TIMEOUTSECONDS", "30");
         Environment.SetEnvironmentVariable("LANGUAGE_MAXCHARS", "4000");
         Environment.SetEnvironmentVariable("LANGUAGE_MAXCHARSSUMMARIZE", "100000");
@@ -129,7 +127,6 @@ public class VaultClientSettingsLanguageIntegrationTests
         Assert.Multiple(() =>
         {
             Assert.That(options.Language!.Endpoint, Is.EqualTo("https://fat-d-app-ls.cognitiveservices.azure.com/"));
-            Assert.That(options.Language.Key, Is.EqualTo("chiave-di-test"));
             Assert.That(options.Language.TimeoutSeconds, Is.EqualTo(30));
             Assert.That(options.Language.MaxChars, Is.EqualTo(4_000));
             Assert.That(options.Language.MaxCharsSummarize, Is.EqualTo(100_000));
@@ -147,36 +144,31 @@ public class VaultClientSettingsLanguageIntegrationTests
 
         var options = new PortaleFattureOptions
         {
-            Language = new Language { Endpoint = "https://da-appsettings/", Key = "chiave-da-appsettings" }
+            Language = new Language { Endpoint = "https://da-appsettings/", MaxChars = 4_000 }
         };
         await options.VaultClientSettings();
 
         Assert.Multiple(() =>
         {
             Assert.That(options.Language!.Endpoint, Is.EqualTo("https://da-ambiente/"));
-            Assert.That(options.Language.Key, Is.EqualTo("chiave-da-appsettings"),
+            Assert.That(options.Language.MaxChars, Is.EqualTo(4_000),
                 "una variabile assente non deve cancellare quanto gia' configurato");
         });
     }
 
     /// <summary>
     /// Lo scenario di incollatura, lungo tutta la catena: e' cosi' che i valori arrivano davvero nelle
-    /// app setting del portale Azure. Con la normalizzazione il servizio risulta configurato; senza,
-    /// la chiave partirebbe con l'a-capo attaccato e Azure la rifiuterebbe con un 502 opaco.
+    /// app setting del portale Azure. Con la normalizzazione l'endpoint arriva pulito al servizio, che
+    /// risulta configurato.
     /// </summary>
     [Test]
     public async Task VaultClientSettings_ValoriIncollatiConSpaziatura_VengonoNormalizzati()
     {
         Environment.SetEnvironmentVariable("LANGUAGE_ENDPOINT", " https://fat-d-app-ls.cognitiveservices.azure.com/\r\n");
-        Environment.SetEnvironmentVariable("LANGUAGE_KEY", "chiave-di-test\n");
 
         var options = await new PortaleFattureOptions().VaultClientSettings();
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(options.Language!.Endpoint, Is.EqualTo("https://fat-d-app-ls.cognitiveservices.azure.com/"));
-            Assert.That(options.Language.Key, Is.EqualTo("chiave-di-test"));
-        });
+        Assert.That(options.Language!.Endpoint, Is.EqualTo("https://fat-d-app-ls.cognitiveservices.azure.com/"));
         Assert.That(RisolviLanguageService(options).IsConfigured, Is.True);
     }
 
@@ -211,7 +203,6 @@ public class VaultClientSettingsLanguageIntegrationTests
     public async Task CatenaCompleta_ConLeVariabili_IlServizioRisoltoDaDiEConfigurato()
     {
         Environment.SetEnvironmentVariable("LANGUAGE_ENDPOINT", "https://fat-d-app-ls.cognitiveservices.azure.com/");
-        Environment.SetEnvironmentVariable("LANGUAGE_KEY", "chiave-di-test");
 
         var servizio = RisolviLanguageService(await new PortaleFattureOptions().VaultClientSettings());
 

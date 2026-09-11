@@ -29,7 +29,7 @@ namespace PortaleFatture.BE.IntegrationTest.Http;
 /// poggiavano i tre casi del 503: un **verde ambientale**, non una proprietà del codice. Appena i
 /// secrets sono stati configurati sono diventati rossi con un **502** — il servizio risultava
 /// configurato e la chiamata partiva verso l'endpoint indicato. Ora la condizione è imposta dal test
-/// stesso (`ClientCon(new LanguageService(null, null, ...))`), quindi l'esito non dipende più da come è
+/// stesso (`ClientCon(new LanguageService(null, ...))`), quindi l'esito non dipende più da come è
 /// messa la macchina di chi esegue. Da tenere presente scrivendo altri test in quest'area: se un caso
 /// passa "perché sull'ambiente manca qualcosa", non sta verificando ciò che sembra.
 /// </summary>
@@ -74,9 +74,9 @@ public class LanguageServiceHttpTests
         // sezione Language sulla macchina di chi esegue. Era un verde ambientale, ed e' diventato rosso
         // (502, non 200) il 03/09/2026 appena i secrets sono stati aggiunti: il servizio risultava
         // configurato e la chiamata partiva davvero.
-        // Si usa il LanguageService VERO con endpoint e chiave nulli — non un fake — cosi' il test
-        // continua a esercitare la logica di IsConfigured invece di una sua imitazione.
-        var client = ClientCon(new LanguageService(null, null, NullLogger<LanguageService>.Instance));
+        // Si usa il LanguageService VERO con endpoint nullo — non un fake — cosi' il test continua a
+        // esercitare la logica di IsConfigured invece di una sua imitazione.
+        var client = ClientCon(new LanguageService(null, NullLogger<LanguageService>.Instance));
 
         var (stato, corpo) = await Post(client, rotta, """{ "testo": "Mario Rossi, CF RSSMRA80A01H501U" }""");
 
@@ -133,7 +133,7 @@ public class LanguageServiceHttpTests
     // client, "in questo testo non ci sono PII" e "la chiave Azure e' scaduta" erano la stessa cosa.
     // Ora l'errore del servizio esterno solleva `UpstreamServiceException` → **502**.
     //
-    // Qui il servizio reale viene sostituito con due fake — non serve una chiave Azure, e soprattutto
+    // Qui il servizio reale viene sostituito con due fake — non serve un'identità Azure, e soprattutto
     // il test verifica la REGOLA (quale esito produce quale codice) invece del comportamento di un
     // servizio esterno che non controlliamo.
     // =============================================================================================
@@ -351,15 +351,18 @@ public class LanguageServiceHttpTests
     }
 
     /// <summary>
-    /// Il `LanguageService` **vero**, costruito con endpoint e chiave fittizi: `IsConfigured` è `true`,
+    /// Il `LanguageService` **vero**, costruito con un endpoint fittizio: `IsConfigured` è `true`,
     /// quindi la guardia del 503 non scatta e la richiesta arriva ai controlli veri del servizio —
     /// che è esattamente ciò che questi due test devono esercitare. La chiamata ad Azure non parte
     /// perché il testo viene respinto prima (primo test) o perché l'endpoint è fittizio (secondo).
+    ///
+    /// La credenziale è finta di proposito: con `DefaultAzureCredential` il secondo test dipenderebbe
+    /// dall'identità di chi esegue (e dal tempo che la catena impiega ad arrendersi) invece che dal codice.
     /// </summary>
     private static LanguageService LanguageServiceReale() => new(
         endpoint: "https://esempio-non-raggiungibile.cognitiveservices.azure.com/",
-        key: "chiave-fittizia-per-test",
-        logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<LanguageService>.Instance);
+        logger: Microsoft.Extensions.Logging.Abstractions.NullLogger<LanguageService>.Instance,
+        credential: new CredenzialeFinta());
 
     // =============================================================================================
     // Autorizzazione

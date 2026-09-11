@@ -25,7 +25,6 @@ public class ModuleExtensionsLanguageEnvironmentAdversarialTests
     private static readonly string[] Variabili =
     [
         "LANGUAGE_ENDPOINT",
-        "LANGUAGE_KEY",
         "LANGUAGE_TIMEOUTSECONDS",
         "LANGUAGE_MAXCHARS",
         "LANGUAGE_MAXCHARSSUMMARIZE"
@@ -102,25 +101,18 @@ public class ModuleExtensionsLanguageEnvironmentAdversarialTests
 
     /// <summary>
     /// Il caso piu' probabile di tutta questa classe, ed e' il motivo per cui esiste il Trim: il valore
-    /// di una app setting viene incollato nel portale Azure, e una chiave con uno spazio o un a-capo in
-    /// coda sarebbe rifiutata da Azure — cioe' arriverebbe al client come un 502 generico, senza nulla
-    /// che faccia sospettare l'incollatura.
+    /// di una app setting viene incollato nel portale Azure, spesso con uno spazio o un a-capo ai bordi
+    /// che nessuno vede.
     /// </summary>
-    [TestCase(" chiave-incollata\n", TestName = "spazio davanti e a-capo in coda")]
-    [TestCase("\tchiave-incollata\r\n", TestName = "tabulazione e fine riga Windows")]
-    [TestCase("chiave-incollata   ", TestName = "spazi in coda")]
-    public void ChiaveConSpaziAttorno_VieneNormalizzataConTrim(string valore)
+    [TestCase(" https://esempio.cognitiveservices.azure.com/\n", TestName = "spazio davanti e a-capo in coda")]
+    [TestCase("\thttps://esempio.cognitiveservices.azure.com/\r\n", TestName = "tabulazione e fine riga Windows")]
+    [TestCase("https://esempio.cognitiveservices.azure.com/   ", TestName = "spazi in coda")]
+    public void EndpointConSpaziAttorno_VieneNormalizzatoConTrim(string valore)
     {
-        Environment.SetEnvironmentVariable("LANGUAGE_KEY", valore);
-        Environment.SetEnvironmentVariable("LANGUAGE_ENDPOINT", $"  https://esempio.cognitiveservices.azure.com/ ");
+        Environment.SetEnvironmentVariable("LANGUAGE_ENDPOINT", valore);
 
-        var language = new Language().ApplyEnvironmentOverrides();
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(language.Key, Is.EqualTo("chiave-incollata"));
-            Assert.That(language.Endpoint, Is.EqualTo("https://esempio.cognitiveservices.azure.com/"));
-        });
+        Assert.That(new Language().ApplyEnvironmentOverrides().Endpoint,
+            Is.EqualTo("https://esempio.cognitiveservices.azure.com/"));
     }
 
     /// <summary>
@@ -131,9 +123,9 @@ public class ModuleExtensionsLanguageEnvironmentAdversarialTests
     [Test]
     public void SpaziaturaInterna_RestaIntatta()
     {
-        Environment.SetEnvironmentVariable("LANGUAGE_KEY", "  parte-uno parte-due  ");
+        Environment.SetEnvironmentVariable("LANGUAGE_ENDPOINT", "  parte-uno parte-due  ");
 
-        Assert.That(new Language().ApplyEnvironmentOverrides().Key, Is.EqualTo("parte-uno parte-due"));
+        Assert.That(new Language().ApplyEnvironmentOverrides().Endpoint, Is.EqualTo("parte-uno parte-due"));
     }
 
     [Test]
@@ -160,61 +152,59 @@ public class ModuleExtensionsLanguageEnvironmentAdversarialTests
     [TestCase("un endpoint qualsiasi", TestName = "testo libero")]
     public void EndpointNonUri_SollevaAllaCostruzioneDelServizio_NonAllAvvio(string endpoint)
     {
-        var language = new Language { Endpoint = endpoint, Key = "chiave" };
+        var language = new Language { Endpoint = endpoint };
 
         Assert.Throws<UriFormatException>(() => _ = CostruisciServizio(language));
     }
 
     /// <summary>
-    /// Speculare del precedente: con un endpoint sintatticamente valido il servizio si costruisce e si
-    /// dichiara configurato **qualunque cosa contenga la chiave**. Nessuna validazione qui e' possibile:
-    /// la verita' sulla chiave la conosce solo Azure, e arriva come 502 al primo utilizzo.
-    /// </summary>
-    [Test]
-    public void ChiaveMalformata_IlServizioSiDichiaraConfigurato_LErroreArrivaDalServizioAMonte()
-    {
-        var language = new Language
-        {
-            Endpoint = "https://esempio.cognitiveservices.azure.com/",
-            Key = " chiave-incollata\n"
-        };
-
-        Assert.That(CostruisciServizio(language).IsConfigured, Is.True);
-    }
-
-    /// <summary>
-    /// ATTENZIONE Nessun controllo sullo schema: un <c>http://</c> viene accettato e la chiave
-    /// viaggerebbe in chiaro. Caratterizzato perche' e' un errore di configurazione plausibile e
-    /// completamente muto.
+    /// ATTENZIONE Nessun controllo sullo schema in configurazione: un <c>http://</c> viene accettato e il
+    /// servizio si dichiara configurato. Il token non esce comunque — e' l'SDK a rifiutarsi di spedirlo
+    /// in chiaro — ma ogni chiamata diventa un 502 che non dice "hai scritto http" (v.
+    /// <c>LanguageServiceAutenticazioneTests</c>). Caratterizzato perche' e' un errore di configurazione
+    /// plausibile e muto fino alla prima chiamata.
     /// </summary>
     [Test]
     public void EndpointInChiaro_VieneAccettato_NessunControlloSulloSchema()
     {
-        var language = new Language { Endpoint = "http://esempio.cognitiveservices.azure.com/", Key = "chiave" };
+        var language = new Language { Endpoint = "http://esempio.cognitiveservices.azure.com/" };
 
         Assert.That(CostruisciServizio(language).IsConfigured, Is.True);
     }
 
     /// <summary>
-    /// Configurazione parziale (endpoint senza chiave, o viceversa): niente eccezioni, servizio non
-    /// configurato, 503 sulle sue rotte e il resto dell'applicazione intatto. E' l'invariante per cui
-    /// tutto questo meccanismo esiste.
+    /// Senza endpoint (assente, vuoto o di soli spazi): niente eccezioni, servizio non configurato, 503
+    /// sulle sue rotte e il resto dell'applicazione intatto. E' l'invariante per cui tutto questo
+    /// meccanismo esiste.
     /// </summary>
-    [TestCase("https://esempio.cognitiveservices.azure.com/", null, TestName = "endpoint senza chiave")]
-    [TestCase(null, "chiave", TestName = "chiave senza endpoint")]
-    [TestCase(null, null, TestName = "sezione vuota")]
-    public void ConfigurazioneParziale_NonSolleva_ServizioNonConfigurato(string? endpoint, string? key)
+    [TestCase(null, TestName = "endpoint assente")]
+    [TestCase("", TestName = "endpoint vuoto")]
+    [TestCase("   ", TestName = "endpoint di soli spazi")]
+    public void SenzaEndpoint_NonSolleva_ServizioNonConfigurato(string? endpoint)
     {
-        var language = new Language { Endpoint = endpoint, Key = key };
+        var language = new Language { Endpoint = endpoint };
 
         LanguageService? servizio = null;
         Assert.DoesNotThrow(() => servizio = CostruisciServizio(language));
         Assert.That(servizio!.IsConfigured, Is.False);
     }
 
+    /// <summary>
+    /// Speculare: l'endpoint **da solo** basta. Dall'11/09/2026 non c'e' una chiave da affiancargli —
+    /// l'autenticazione e' l'identita' Entra ID — quindi "endpoint senza chiave" non e' piu' una
+    /// configurazione parziale. Se l'identita' manca o non ha il ruolo, lo si scopre alla prima chiamata
+    /// come 502, non qui.
+    /// </summary>
+    [Test]
+    public void SoloEndpoint_ServizioConfigurato()
+    {
+        var language = new Language { Endpoint = "https://esempio.cognitiveservices.azure.com/" };
+
+        Assert.That(CostruisciServizio(language).IsConfigured, Is.True);
+    }
+
     private static LanguageService CostruisciServizio(Language language) => new(
         language.Endpoint,
-        language.Key,
         NullLogger<LanguageService>.Instance,
         language.TimeoutSeconds,
         language.MaxChars,

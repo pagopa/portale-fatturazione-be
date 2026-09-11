@@ -38,17 +38,20 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// risposta del servizio, e distinguerlo da "non configurato" e' esattamente il punto della scala di
 /// codici 503/502/504.
 ///
-/// **Sonda da 1 secondo per distinguere rete da credenziale**, senza lanciare la suite e senza
-/// consumare quota (la chiave e' finta apposta: se la rete passa, Azure rifiuta la chiave *dopo*
-/// averla ricevuta):
+/// **Sonda da 1 secondo per distinguere rete da identita'**, senza lanciare la suite e senza consumare
+/// quota. Si manda il **proprio** token (dall'11/09/2026 il servizio si autentica solo con l'identita'
+/// Entra ID, nessuna chiave) su un corpo vuoto, che Azure rifiuta *dopo* aver autenticato:
 ///
 /// <code>
-/// curl -s -o /dev/null -w "%{http_code}\n" -X POST \
+/// TOKEN=$(az account get-access-token --resource https://cognitiveservices.azure.com --query accessToken -o tsv)
+/// curl -s -w "\n%{http_code}\n" -X POST \
 ///   "https://&lt;risorsa&gt;.cognitiveservices.azure.com/language/:analyze-text?api-version=2023-04-01" \
-///   -H "Ocp-Apim-Subscription-Key: chiave-finta" -H "Content-Type: application/json" -d '{}'
+///   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{}'
 /// </code>
 ///
-/// **401** = la rete passa, il problema e' altrove. **403** = sei bloccato fuori.
+/// **400** = rete e identita' passano. **401** = la rete passa, ma il token non e' accettato (ruolo
+/// mancante, tenant sbagliato). **403** = sei bloccato fuori — ma leggi il corpo: un 403 puo' anche
+/// voler dire identita' senza ruolo, e il messaggio lo distingue.
 ///
 /// ⚠️ **Il 403 puo' essere transitorio** (visto il 03/09/2026: bloccato alle 10:27, passante pochi
 /// minuti dopo, a parita' di IP e di endpoint). Una regola di firewall appena aggiunta impiega qualche
@@ -68,7 +71,6 @@ internal static class AzureLanguageTestbed
     public sealed record Configurato(
         LanguageService Servizio,
         string Endpoint,
-        string Key,
         int MaxChars,
         int MaxCharsSummarize,
         int TimeoutSeconds);
@@ -106,12 +108,16 @@ internal static class AzureLanguageTestbed
                 + "PortaleFattureOptions:Language:AbilitaTestReali=true.");
 
         var endpoint = sezione["Endpoint"];
-        var key = sezione["Key"];
 
-        if (string.IsNullOrWhiteSpace(endpoint) || string.IsNullOrWhiteSpace(key))
+        // Nessuna chiave: il servizio usa DefaultAzureCredential, cioe' l'identita' di chi esegue
+        // (Visual Studio o `az login`), che deve avere il ruolo Cognitive Services User sulla risorsa.
+        // Se manca, i test non vengono ignorati ma diventano ROSSI con un 502: e' una risposta del
+        // servizio, e va vista.
+        if (string.IsNullOrWhiteSpace(endpoint))
             Assert.Ignore(
                 "Sezione PortaleFattureOptions:Language non configurata negli user secrets del progetto "
-                + "IntegrationTest (id 27e0801e-8863-4e92-af93-631a5685fed4): servono Endpoint e Key.");
+                + "IntegrationTest (id 27e0801e-8863-4e92-af93-631a5685fed4): serve Endpoint. "
+                + "L'autenticazione usa la propria identita' (az login / Visual Studio).");
 
         // I limiti si LEGGONO dalla configurazione invece di ricopiarli nelle fixture: se un domani
         // vengono tarati diversamente, i test verificano i valori nuovi e non una copia dimenticata.
@@ -128,10 +134,10 @@ internal static class AzureLanguageTestbed
             + $"| timeout {timeoutSeconds}s");
 
         var servizio = new LanguageService(
-            endpoint, key, NullLogger<LanguageService>.Instance,
+            endpoint, NullLogger<LanguageService>.Instance,
             timeoutSeconds, maxChars, maxCharsSummarize);
 
-        return new Configurato(servizio, endpoint!, key!, maxChars, maxCharsSummarize, timeoutSeconds);
+        return new Configurato(servizio, endpoint!, maxChars, maxCharsSummarize, timeoutSeconds);
     }
 
     private static bool Attivo(string? valore) =>

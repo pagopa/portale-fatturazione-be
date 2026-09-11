@@ -17,6 +17,9 @@ namespace PortaleFatture.BE.UnitTest;
 /// <c>VaultClientSettings</c> nel suo complesso resta non testabile (gira solo in produzione e pretende
 /// una trentina di variabili d'ambiente): l'override di Language e' stato quindi estratto in un metodo
 /// a se', che e' esattamente la parte che si vuole poter verificare.
+///
+/// Non c'e' una <c>LANGUAGE_KEY</c>: dall'11/09/2026 il servizio si autentica solo con l'identita'
+/// Entra ID, quindi l'endpoint da solo e' una configurazione completa.
 /// </summary>
 [TestFixture]
 [NonParallelizable] // manipola variabili d'ambiente, che sono stato globale del processo
@@ -25,7 +28,6 @@ public class ModuleExtensionsLanguageEnvironmentTests
     private static readonly string[] Variabili =
     [
         "LANGUAGE_ENDPOINT",
-        "LANGUAGE_KEY",
         "LANGUAGE_TIMEOUTSECONDS",
         "LANGUAGE_MAXCHARS",
         "LANGUAGE_MAXCHARSSUMMARIZE"
@@ -49,7 +51,6 @@ public class ModuleExtensionsLanguageEnvironmentTests
         Assert.Multiple(() =>
         {
             Assert.That(language.Endpoint, Is.Null);
-            Assert.That(language.Key, Is.Null);
             Assert.That(language.TimeoutSeconds, Is.EqualTo(45));
             Assert.That(language.MaxChars, Is.EqualTo(5_120));
             Assert.That(language.MaxCharsSummarize, Is.EqualTo(125_000));
@@ -57,18 +58,13 @@ public class ModuleExtensionsLanguageEnvironmentTests
     }
 
     [Test]
-    public void ApplyEnvironmentOverrides_ConEndpointEChiave_LiApplica()
+    public void ApplyEnvironmentOverrides_ConEndpoint_LoApplica()
     {
         Environment.SetEnvironmentVariable("LANGUAGE_ENDPOINT", "https://esempio.cognitiveservices.azure.com/");
-        Environment.SetEnvironmentVariable("LANGUAGE_KEY", "chiave-di-test");
 
         var language = new Language().ApplyEnvironmentOverrides();
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(language.Endpoint, Is.EqualTo("https://esempio.cognitiveservices.azure.com/"));
-            Assert.That(language.Key, Is.EqualTo("chiave-di-test"));
-        });
+        Assert.That(language.Endpoint, Is.EqualTo("https://esempio.cognitiveservices.azure.com/"));
     }
 
     [Test]
@@ -98,15 +94,27 @@ public class ModuleExtensionsLanguageEnvironmentTests
     public void ApplyEnvironmentOverrides_StringaVuota_NonSovrascriveIlValoreEsistente(string valore)
     {
         Environment.SetEnvironmentVariable("LANGUAGE_ENDPOINT", valore);
-        Environment.SetEnvironmentVariable("LANGUAGE_KEY", valore);
 
-        var language = new Language { Endpoint = "https://gia-configurato/", Key = "chiave-esistente" }
+        var language = new Language { Endpoint = "https://gia-configurato/" }.ApplyEnvironmentOverrides();
+
+        Assert.That(language.Endpoint, Is.EqualTo("https://gia-configurato/"));
+    }
+
+    /// <summary>
+    /// Il caso degli App Service configurati con i nomi nativi (<c>PortaleFattureOptions__Language__*</c>):
+    /// il valore arriva dal bind, la variabile flat **non esiste affatto**, e il metodo non deve toccarlo.
+    /// E' la situazione reale degli ambienti al 10/09/2026.
+    /// </summary>
+    [Test]
+    public void ApplyEnvironmentOverrides_VariabileAssente_TieneIlValoreDelBind()
+    {
+        var language = new Language { Endpoint = "https://da-bind-nativo/", MaxChars = 4_000 }
             .ApplyEnvironmentOverrides();
 
         Assert.Multiple(() =>
         {
-            Assert.That(language.Endpoint, Is.EqualTo("https://gia-configurato/"));
-            Assert.That(language.Key, Is.EqualTo("chiave-esistente"));
+            Assert.That(language.Endpoint, Is.EqualTo("https://da-bind-nativo/"));
+            Assert.That(language.MaxChars, Is.EqualTo(4_000));
         });
     }
 
@@ -124,26 +132,6 @@ public class ModuleExtensionsLanguageEnvironmentTests
     }
 
     /// <summary>
-    /// Il caso che tiene in piedi la scelta: endpoint configurato ma chiave assente e' una
-    /// configurazione **incompleta**, non un errore fatale. Deve arrivare intatta a
-    /// <c>LanguageService</c>, che risponde 503 sulle sue rotte e lascia in piedi tutto il resto.
-    /// </summary>
-    [Test]
-    public void ApplyEnvironmentOverrides_ConfigurazioneParziale_NonSolleva()
-    {
-        Environment.SetEnvironmentVariable("LANGUAGE_ENDPOINT", "https://esempio.cognitiveservices.azure.com/");
-
-        Language? language = null;
-        Assert.DoesNotThrow(() => language = new Language().ApplyEnvironmentOverrides());
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(language!.Endpoint, Is.EqualTo("https://esempio.cognitiveservices.azure.com/"));
-            Assert.That(language.Key, Is.Null);
-        });
-    }
-
-    /// <summary>
     /// La precedenza e' l'unica cosa che rende utile questo metodo in produzione: sui container Azure
     /// la sezione arriva **vuota** da appsettings, ma se un domani qualcuno ci scrivesse un valore di
     /// comodo, la variabile d'ambiente deve comunque vincere — altrimenti l'ambiente non sarebbe piu'
@@ -153,20 +141,17 @@ public class ModuleExtensionsLanguageEnvironmentTests
     public void ApplyEnvironmentOverrides_VariabilePresente_VinceSulValoreGiaConfigurato()
     {
         Environment.SetEnvironmentVariable("LANGUAGE_ENDPOINT", "https://da-ambiente/");
-        Environment.SetEnvironmentVariable("LANGUAGE_KEY", "chiave-da-ambiente");
         Environment.SetEnvironmentVariable("LANGUAGE_TIMEOUTSECONDS", "30");
 
         var language = new Language
         {
             Endpoint = "https://da-appsettings/",
-            Key = "chiave-da-appsettings",
             TimeoutSeconds = 45
         }.ApplyEnvironmentOverrides();
 
         Assert.Multiple(() =>
         {
             Assert.That(language.Endpoint, Is.EqualTo("https://da-ambiente/"));
-            Assert.That(language.Key, Is.EqualTo("chiave-da-ambiente"));
             Assert.That(language.TimeoutSeconds, Is.EqualTo(30));
         });
     }
