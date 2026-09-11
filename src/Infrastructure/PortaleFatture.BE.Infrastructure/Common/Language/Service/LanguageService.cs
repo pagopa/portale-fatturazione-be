@@ -1,15 +1,14 @@
-﻿using Azure;
+using Azure;
 using Azure.AI.TextAnalytics;
+using Azure.Core;
+using Azure.Identity;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using PortaleFatture.BE.Core.Exceptions;
 
 namespace PortaleFatture.BE.Infrastructure.Common.Language.Service;
 
 public class LanguageService : ILanguageService
 {
-    private readonly string? _endpoint;
-    private readonly string? _key;
     private readonly ILogger<LanguageService> _logger;
     private readonly TextAnalyticsClient? _client;
     private readonly TimeSpan _timeout;
@@ -17,7 +16,7 @@ public class LanguageService : ILanguageService
     private readonly int _maxCharsSummarize ;
 
     /// <inheritdoc />
-    public bool IsConfigured => _client is not null; // true se endpoint e key sono configurati, altrimenti false
+    public bool IsConfigured => _client is not null; // true se l'endpoint e' configurato, altrimenti false
 
     /// <summary>
     /// ATTENZIONE Il costruttore **non solleva** se la configurazione manca: espone <see cref="IsConfigured"/>
@@ -31,29 +30,51 @@ public class LanguageService : ILanguageService
     ///
     /// La configurazione mancante resta comunque **visibile**: un warning a ogni avvio del servizio, e
     /// un 503 esplicito a chi chiama le rotte.
+    ///
+    /// **Autenticazione: solo identità Entra ID**, nessuna chiave. Senza <paramref name="credential"/>
+    /// si usa <see cref="DefaultAzureCredential"/>, come per Synapse e per il database: sull'App Service
+    /// risolve la **managed identity** (quella di sistema, o una user-assigned indicata da
+    /// <c>AZURE_CLIENT_ID</c>), in locale l'account di Visual Studio o di <c>az login</c>. Tre requisiti
+    /// che il codice non può verificare e che, se mancano, si presentano solo alla prima chiamata:
+    /// <list type="bullet">
+    ///   <item>l'identità deve avere il ruolo <b>Cognitive Services User</b> sulla risorsa;</item>
+    ///   <item>l'endpoint deve essere il <b>custom subdomain</b> (<c>https://&lt;risorsa&gt;.cognitiveservices.azure.com/</c>):
+    ///   quello regionale non accetta token Entra ID;</item>
+    ///   <item>lo schema deve essere <b>https</b>: su <c>http://</c> l'SDK si rifiuta di spedire il token.</item>
+    /// </list>
+    /// In tutti e tre i casi l'errore attraversa il <c>catch</c> generico dei metodi e diventa una
+    /// <see cref="UpstreamServiceException"/> (→ 502), non un 500: l'identità è una dipendenza esterna
+    /// come il servizio stesso.
+    ///
+    /// La credenziale è creata **una volta per istanza** (il servizio è registrato singleton), così la
+    /// cache dei token dell'SDK viene riusata fra le richieste.
+    ///
+    /// <paramref name="credential"/> e <paramref name="clientOptions"/> esistono per i test: permettono
+    /// di sostituire l'identità e il trasporto HTTP senza toccare la rete.
     /// </summary>
-    public LanguageService(string? endpoint, string? key, ILogger<LanguageService> logger,
-        int timeoutSeconds = 45, int maxChars = 5_120, int maxCharsSummarize = 125_000)
+    public LanguageService(string? endpoint, ILogger<LanguageService> logger,
+        int timeoutSeconds = 45, int maxChars = 5_120, int maxCharsSummarize = 125_000,
+        TokenCredential? credential = null, TextAnalyticsClientOptions? clientOptions = null)
     {
         _maxChars = maxChars > 0 ? maxChars : 5_120;
         _maxCharsSummarize = maxCharsSummarize > 0 ? maxCharsSummarize : 125_000;
         _logger = logger;
 
-        _endpoint = endpoint;
-        _key = key;
         _timeout = TimeSpan.FromSeconds(timeoutSeconds > 0 ? timeoutSeconds : 45);
 
-        if (string.IsNullOrWhiteSpace(endpoint) || string.IsNullOrWhiteSpace(key))
+        if (string.IsNullOrWhiteSpace(endpoint))
         {
             _logger.LogWarning(
-                "Azure AI Language non configurato ({Mancante}): le rotte api/language/pii, "
+                "Azure AI Language non configurato (endpoint assente): le rotte api/language/pii, "
                 + "api/language/detection e api/language/summarize risponderanno 503. Il resto "
-                + "dell'applicazione non e' impattato.",
-                string.IsNullOrWhiteSpace(endpoint) ? "endpoint assente" : "chiave assente");
+                + "dell'applicazione non e' impattato.");
             return;
         }
 
-        _client = new TextAnalyticsClient(new Uri(endpoint), new AzureKeyCredential(key));
+        _client = new TextAnalyticsClient(
+            new Uri(endpoint),
+            credential ?? new DefaultAzureCredential(),
+            clientOptions ?? new TextAnalyticsClientOptions());
     }
 
     /// <summary>
@@ -65,7 +86,7 @@ public class LanguageService : ILanguageService
     {
         if (_client is null)
             throw new InvalidOperationException(
-                "Azure AI Language non configurato: valorizzare PortaleFattureOptions:Language:Endpoint e :Key.");
+                "Azure AI Language non configurato: valorizzare PortaleFattureOptions:Language:Endpoint.");
     }
 
     /// <summary>

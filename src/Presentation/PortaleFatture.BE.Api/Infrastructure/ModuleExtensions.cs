@@ -221,8 +221,9 @@ public static class ModuleExtensions
     /// <summary>
     /// Applica alla sezione <c>Language</c> gli override letti dalle variabili d'ambiente, con la stessa
     /// convenzione flat delle altre voci di <see cref="VaultClientSettings"/> (<c>SEZIONE_CAMPO</c>):
-    /// <c>LANGUAGE_ENDPOINT</c>, <c>LANGUAGE_KEY</c>, <c>LANGUAGE_TIMEOUTSECONDS</c>,
-    /// <c>LANGUAGE_MAXCHARS</c>, <c>LANGUAGE_MAXCHARSSUMMARIZE</c>.
+    /// <c>LANGUAGE_ENDPOINT</c>, <c>LANGUAGE_TIMEOUTSECONDS</c>, <c>LANGUAGE_MAXCHARS</c>,
+    /// <c>LANGUAGE_MAXCHARSSUMMARIZE</c>. Non esiste una <c>LANGUAGE_KEY</c>: il servizio si autentica
+    /// solo con l'identita' Entra ID (v. <c>LanguageService</c>).
     ///
     /// ATTENZIONE A differenza di **tutte** le altre letture di quel metodo, qui una variabile assente
     /// non solleva. Azure AI Language e' un servizio **opzionale**: la sua assenza deve produrre un 503
@@ -238,16 +239,14 @@ public static class ModuleExtensions
     public static Language ApplyEnvironmentOverrides(this Language language)
     {
         language.Endpoint = ValueOrCurrent("LANGUAGE_ENDPOINT", language.Endpoint);
-        language.Key = ValueOrCurrent("LANGUAGE_KEY", language.Key);
         language.TimeoutSeconds = PositiveIntOrCurrent("LANGUAGE_TIMEOUTSECONDS", language.TimeoutSeconds);
         language.MaxChars = PositiveIntOrCurrent("LANGUAGE_MAXCHARS", language.MaxChars);
         language.MaxCharsSummarize = PositiveIntOrCurrent("LANGUAGE_MAXCHARSSUMMARIZE", language.MaxCharsSummarize);
         return language;
 
         // Il Trim non e' cosmetico: il valore di una app setting viene quasi sempre INCOLLATO nel portale
-        // Azure, e una chiave con uno spazio o un a-capo in coda e' accettata qui, arriva intatta ad
-        // AzureKeyCredential e viene rifiutata da Azure — cioe' diventa un 502 generico, senza nulla che
-        // faccia sospettare l'incollatura. Nessuno dei valori di questa sezione (URL, chiave, numeri) puo'
+        // Azure, e uno spazio o un a-capo ai bordi arriverebbe intatto al servizio, con un errore a valle
+        // che non fa sospettare l'incollatura. Nessuno dei valori di questa sezione (URL, numeri) puo'
         // avere spaziatura significativa ai bordi, quindi normalizzarla e' sempre corretto.
         static string? ValueOrCurrent(string variable, string? current)
         {

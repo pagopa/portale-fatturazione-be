@@ -193,25 +193,22 @@ public static class ConfigurationExtensions
         services.AddSingleton<IServiceWorkFlowFatture>(new ServiceWorkFlowFatture());
 
         // Registrazione LAZY (factory) e non eager: l'istanza nasce alla prima richiesta che usa il
-        // servizio, non all'avvio dell'applicazione. Due ragioni, entrambe verificate:
-        //   * LanguageService LANCIA nel costruttore se endpoint/key mancano, quindi con la
-        //     registrazione eager un ambiente senza la sezione Language non fa partire l'API — non
-        //     "rompe le tre rotte": impedisce l'avvio del processo, e con esso tutto il resto
-        //     (misurato: 206 test di integrazione rossi su 568, tutti quelli che avviano l'app);
-        //   * `options.Language!` non protegge da nulla (il `!` silenzia il compilatore, non il
-        //     runtime): senza la sezione era una NullReferenceException qui in AddGateways.
-        // Con `?.` il valore nullo arriva al costruttore, che solleva il suo messaggio esplicito
-        // ("Missing environment variable [LanguageServiceEndpoint]") solo a chi chiama quelle rotte.
+        // servizio, non all'avvio dell'applicazione. Azure AI Language e' OPZIONALE: senza endpoint il
+        // costruttore non solleva ma espone IsConfigured = false, e le tre rotte rispondono 503.
+        // La prima versione registrava eager un costruttore che sollevava, e un ambiente senza la
+        // sezione Language non faceva partire l'API — non "rompeva le tre rotte": impediva l'avvio del
+        // processo (misurato: 206 test di integrazione rossi su 568, tutti quelli che avviano l'app).
+        // `options.Language?.` e non `!.`: il `!` silenzia il compilatore, non il runtime.
         //
-        // ATTENZIONE NB: SynapseService, registrato qui sopra, è anch'esso EAGER e usa anch'esso `options.Synapse!`
-        //    — quindi ha lo stesso difetto latente: se un domani mancasse la sezione Synapse, sarebbe
-        //    la stessa NullReferenceException all'avvio. Non si manifesta solo perché quella sezione è
-        //    sempre configurata, e perché il suo costruttore non lancia (assegna e basta). La differenza
-        //    fra i due non è quindi il modo di registrarli, ma il costruttore: qui la lazy serve proprio
-        //    perché questo ctor lancia.
+        // Nessuna chiave: l'autenticazione e' solo con l'identita' Entra ID (DefaultAzureCredential,
+        // creata dentro LanguageService — v. il suo costruttore per ruolo ed endpoint richiesti).
+        //
+        // ATTENZIONE NB: SynapseService, registrato qui sopra, è EAGER e usa `options.Synapse!` — quindi
+        //    se un domani mancasse la sezione Synapse sarebbe una NullReferenceException all'avvio. Non
+        //    si manifesta solo perché quella sezione è sempre configurata, e perché il suo costruttore
+        //    non lancia (assegna e basta).
         services.AddSingleton<ILanguageService>(sp => new LanguageService(
             options.Language?.Endpoint,
-            options.Language?.Key,
             sp.GetRequiredService<ILogger<LanguageService>>(),
             options.Language?.TimeoutSeconds ?? 45,
             options.Language?.MaxChars ?? 5_120,

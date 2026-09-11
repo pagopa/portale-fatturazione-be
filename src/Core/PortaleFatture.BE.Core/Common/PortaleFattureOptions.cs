@@ -118,10 +118,18 @@ public class AzureFunction()
     public string? AppKey { get; set; } 
 }
 
+/// <summary>
+/// Azure AI Language. Non c'e' una chiave: l'autenticazione avviene **solo** con l'identita' Entra ID
+/// (<c>DefaultAzureCredential</c>, v. <c>LanguageService</c>), quindi l'unico campo necessario per
+/// attivare il servizio e' <see cref="Endpoint"/>. Senza, le tre rotte rispondono 503.
+/// </summary>
 public class Language()
 {
+    /// <summary>
+    /// Il **custom subdomain** della risorsa (<c>https://&lt;risorsa&gt;.cognitiveservices.azure.com/</c>):
+    /// l'endpoint regionale non accetta token Entra ID.
+    /// </summary>
     public string? Endpoint { get; set; }
-    public string? Key { get; set; }
 
     /// <summary>
     /// Tempo massimo concesso alle operazioni long-running di Azure AI Language (oggi solo la sintesi

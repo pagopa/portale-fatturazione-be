@@ -5,7 +5,7 @@ namespace PortaleFatture.BE.Infrastructure.Common.Language.Service;
 public interface ILanguageService
 {
     /// <summary>
-    /// `false` quando endpoint o chiave non sono configurati: in quel caso il servizio non è
+    /// `false` quando l'endpoint non è configurato: in quel caso il servizio non è
     /// utilizzabile e i tre metodi sollevano <see cref="InvalidOperationException"/>.
     ///
     /// Esiste perché la configurazione di questo servizio è **opzionale**: un ambiente che non usa
@@ -20,7 +20,7 @@ public interface ILanguageService
     /// risultati. Se la chiamata al servizio esterno fallisce sollevano invece
     /// <see cref="PortaleFatture.BE.Core.Exceptions.UpstreamServiceException"/> (→ 502): prima
     /// entrambi i casi tornavano `null` e diventavano un 404, quindi "nessuna PII in questo testo" e
-    /// "la chiave è scaduta" erano indistinguibili per il client e nei log applicativi.
+    /// "l'identità è stata rifiutata" erano indistinguibili per il client e nei log applicativi.
     /// </remarks>
     Task<PiiEntityCollection?> DetectPersonalIdentifiableInformationAsync(string text, string language = "it", CancellationToken cancellationToken = default);
 
