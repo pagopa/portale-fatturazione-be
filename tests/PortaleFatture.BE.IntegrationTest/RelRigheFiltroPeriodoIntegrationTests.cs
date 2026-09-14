@@ -86,6 +86,112 @@ public class RelRigheFiltroPeriodoIntegrationTests
             + "TipologiaFattura.VAR_SEMESTRALE.");
     }
 
+    /// <summary>
+    /// Caso della specifica DATA (08/09/2026) che il seed non copriva affatto: nessuna riga
+    /// `SECONDO SALDO` esisteva.
+    ///
+    /// Copre due cose in un colpo solo. La prima è il filtro per anno/mese. La seconda è più
+    /// interessante: la testata di questo periodo ha il **`FlagConguaglio` valorizzato**, e l'handler
+    /// lo legge e lo passa alla query — quindi il flag *c'è*, e il fatto che esca la sola riga di
+    /// maggio dimostra che non entra nella `WHERE`. È il caso DATA "FlagConguaglio valorizzato ma
+    /// ignorato", che sul PRIMO SALDO non sarebbe dimostrabile allo stesso modo perché lì la testata
+    /// ha il flag NULL.
+    /// </summary>
+    [Test]
+    public async Task SecondoSaldo_ShouldFiltrarePerAnnoMese_IgnorandoIlFlagDellaTestata()
+    {
+        var righe = await Righe("SECONDO SALDO", 2026, 5);
+
+        Assert.That(righe.Select(r => r.IdNotifica), Is.EquivalentTo(new[] { "REL-SD-MAG" }),
+            "SECONDO SALDO deve filtrare per anno/mese. Se compare anche REL-SD-GIU, la tipologia è "
+            + "finita nel ramo del conguaglio: la testata di questo periodo ha il FlagConguaglio "
+            + "valorizzato, quindi il ramo sbagliato restituirebbe entrambi i mesi.");
+    }
+
+    /// <summary>
+    /// L'altra metà di `VarSemestrale_ShouldFiltrarePerSemestre_IgnorandoIlMese`: la stessa REL viene
+    /// chiesta da **giugno** invece che da maggio e deve restituire lo **stesso** insieme.
+    ///
+    /// Serve perché "il mese è ignorato" chiedendo un mese solo è dimostrato a metà: un'implementazione
+    /// che filtrasse per `year` + semestre passerebbe comunque il test di maggio. Qui no.
+    ///
+    /// ⚠️ Anno e mese non sono però *del tutto* inerti, ed è bene saperlo: non filtrano le righe, ma
+    /// selezionano la **testata** da cui l'handler legge il `FlagConguaglio` — cioè scelgono di quale
+    /// semestre si parla. Per questo il seed ha una testata VAR. SEMESTRALE anche per 2026/6.
+    /// </summary>
+    [Test]
+    public async Task VarSemestrale_ChiedendoGiugno_ShouldRestituireLoStessoInsiemeDiMaggio()
+    {
+        var righe = await Righe("VAR. SEMESTRALE", 2026, 6);
+
+        Assert.That(righe.Select(r => r.IdNotifica), Is.EquivalentTo(new[] { "REL-VS-MAG", "REL-VS-GIU" }),
+            "Chiesta da giugno, la VAR. SEMESTRALE deve restituire tutto il semestre come da maggio.");
+    }
+
+    /// <summary>
+    /// CARATTERIZZAZIONE del caso DATA "FlagConguaglio null → errore o empty".
+    ///
+    /// Il BE risponde **sempre empty, mai errore**, e lo fa in silenzio: l'handler prende NULL dalla
+    /// testata, la `WHERE` diventa `r.FlagConguaglio = NULL` e in SQL quel confronto non è mai vero.
+    /// Il seed mette nel periodo una riga che *avrebbe* i requisiti per uscire (stesso ente, stesso
+    /// contratto, tipologia giusta, flag valorizzato sulla riga): non esce.
+    ///
+    /// Conseguenza operativa, che è il motivo per cui il test esiste: una REL semestrale la cui testata
+    /// abbia il flag non valorizzato produce un **report vuoto senza alcun segnale** — né eccezione, né
+    /// log. Se DATA volesse un errore esplicito, è qui che va deciso.
+    /// </summary>
+    [Test]
+    public async Task VarSemestrale_TestataConFlagConguaglioNull_ShouldReturnVuotoSilenzioso()
+    {
+        var righe = await Righe("VAR. SEMESTRALE", 2026, 11);
+
+        Assert.That(righe, Is.Empty,
+            "Con FlagConguaglio NULL sulla testata il confronto SQL non è mai vero: report vuoto, "
+            + "non un errore. Se questo test diventa rosso, qualcuno ha gestito il caso NULL — "
+            + "verificare che sia una scelta concordata con DATA e non un effetto collaterale.");
+    }
+
+    /// <summary>
+    /// Caso DATA "nessun record per anno/mese", nella variante **benigna**: la testata del periodo
+    /// esiste ma non ci sono righe. Qui l'atteso di DATA è rispettato — lista vuota.
+    ///
+    /// Va letto insieme a `PeriodoSenzaTestata_ShouldThrowNullReference_Caratterizzazione`, che copre
+    /// l'altra variante: se manca anche la **testata**, non si ottiene una lista vuota ma
+    /// un'eccezione. Sono due situazioni che la specifica DATA tratta come una sola.
+    /// </summary>
+    /// <summary>
+    /// Il gemello del test precedente, chiesto dal team DATA (14/09/2026): non il flag **assente** ma
+    /// il flag **malformato**. Il valore del seed — `VAR. SEMESTRALE202607` — è il loro esempio, e ha
+    /// l'aria di una concatenazione accidentale fra tipologia e periodo; **non** è il formato atteso.
+    ///
+    /// Esito identico al caso NULL, e per la stessa ragione: per il BE il `FlagConguaglio` è una
+    /// **stringa opaca**. Nessun parsing, nessuna validazione, nessun formato privilegiato — un valore
+    /// che non corrisponde ad alcuna riga produce semplicemente un report vuoto.
+    ///
+    /// Il caso è difensivo: quel dato lo scrivono le pipeline del team DATA e non dovrebbe mai essere
+    /// sbagliato. Il test serve a sapere **cosa succederebbe se lo fosse**, e la risposta è la peggiore
+    /// possibile dal punto di vista diagnostico: nessun errore, nessun log, un report che sembra
+    /// legittimamente privo di righe.
+    /// </summary>
+    [Test]
+    public async Task VarSemestrale_TestataConFlagMalformato_ShouldReturnVuotoSilenzioso()
+    {
+        var righe = await Righe("VAR. SEMESTRALE", 2026, 12);
+
+        Assert.That(righe, Is.Empty,
+            "Un FlagConguaglio malformato non viene riconosciuto come tale: non corrisponde a nulla e "
+            + "il report esce vuoto. Se questo test diventa rosso, è stata introdotta una validazione "
+            + "del formato — verificare che sia concordata con DATA.");
+    }
+
+    [Test]
+    public async Task PeriodoConTestataMaSenzaRighe_ShouldReturnVuoto()
+    {
+        var righe = await Righe("PRIMO SALDO", 2026, 9);
+
+        Assert.That(righe, Is.Empty);
+    }
+
     [Test]
     public async Task VarSemestrale_ShouldFiltrarePerSemestre_IgnorandoIlMese()
     {
