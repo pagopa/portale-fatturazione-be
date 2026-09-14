@@ -52,20 +52,12 @@ public class FattureInvioSapMultiploPeriodoIntegrationTests
 
         var ids = ((await Query(null, null, null))?.ToList() ?? []).Select(r => r.IdFattura).ToList();
 
-        // NB: asserzione per inclusione, non su elenco chiuso. Il seed è condiviso fra le aree e cresce
-        // (es. la fattura 7501, non inviata, aggiunta dai test di posticipa su fattura emessa): un
-        // Is.EquivalentTo diventerebbe rosso a ogni fattura non inviata aggiunta da un'altra area,
-        // senza che questa query sia cambiata. Ciò che va verificato qui e' che senza filtri escano
-        // tutte le "da inviare" e SOLO quelle.
-        Assert.Multiple(() =>
-        {
-            Assert.That(ids, Is.SupersetOf(new long[] { 1001, 1002, 2001, 2002, 3001 }),
-                "Senza filtri la query deve restituire tutte le fatture 'da inviare' della vista.");
-            Assert.That(ids, Does.Not.Contain(8001L),
-                "8001 è già inviata (FatturaInviata=1): non deve comparire fra le 'da inviare'.");
-            Assert.That(ids, Does.Not.Contain(9101L),
-                "9101 è in cfg.GestioneFatture (seed statico, POSTICIPATA): la vista deve escluderla.");
-        });
+        // 7501 e' entrata nel seed il 31/08/2026 per i casi di posticipa/elimina su fattura "emessa ma
+        // NON inviata" (VAR. SEMESTRALE 2026/7, ente dedicato): essendo non inviata e non in staging,
+        // e' a tutti gli effetti "da inviare" e va nell'insieme atteso.
+        Assert.That(ids,
+            Is.EquivalentTo(new long[] { 1001, 1002, 2001, 2002, 3001, 7501 }),
+            "Senza filtri la query deve restituire tutte le fatture 'da inviare' della vista.");
     }
 
     [Test]

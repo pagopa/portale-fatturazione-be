@@ -23,6 +23,7 @@ public static class ModuleExtensions
         model.StorageContestazioni??= new();
         model.StorageNotifiche ??= new();
         model.AzureFunction ??= new();
+        model.Language ??= new();
 
         var selfCareUri = Environment.GetEnvironmentVariable("SELF_CARE_URI") ??
              throw new ConfigurationException("Please specify a SELF_CARE_URI!");
@@ -212,7 +213,54 @@ public static class ModuleExtensions
 
         model.AzureFunction.NotificheUri    = azureFunctionNotificheUri;
         model.AzureFunction.AppKey = azureFunctionAppKey;
+
+        model.Language.ApplyEnvironmentOverrides();
         return model;
+    }
+
+    /// <summary>
+    /// Applica alla sezione <c>Language</c> gli override letti dalle variabili d'ambiente, con la stessa
+    /// convenzione flat delle altre voci di <see cref="VaultClientSettings"/> (<c>SEZIONE_CAMPO</c>):
+    /// <c>LANGUAGE_ENDPOINT</c>, <c>LANGUAGE_TIMEOUTSECONDS</c>, <c>LANGUAGE_MAXCHARS</c>,
+    /// <c>LANGUAGE_MAXCHARSSUMMARIZE</c>. Non esiste una <c>LANGUAGE_KEY</c>: il servizio si autentica
+    /// solo con l'identita' Entra ID (v. <c>LanguageService</c>).
+    ///
+    /// ATTENZIONE A differenza di **tutte** le altre letture di quel metodo, qui una variabile assente
+    /// non solleva. Azure AI Language e' un servizio **opzionale**: la sua assenza deve produrre un 503
+    /// sulle sue tre rotte, non impedire l'avvio dell'applicazione a chi non lo usa (v.
+    /// docs/architettura.md, "Servizi esterni opzionali" — con la registrazione eager e un costruttore
+    /// che lanciava, la sezione mancante mandava in rosso 206 test di integrazione su 568).
+    ///
+    /// Un valore assente, vuoto o non parsabile lascia quindi intatto quello gia' presente nel model,
+    /// che arriva dal bind di <c>appsettings</c> / user secrets.
+    ///
+    /// Le stringhe vengono inoltre **normalizzate con Trim**: v. il commento su <c>ValueOrCurrent</c>.
+    /// </summary>
+    public static Language ApplyEnvironmentOverrides(this Language language)
+    {
+        language.Endpoint = ValueOrCurrent("LANGUAGE_ENDPOINT", language.Endpoint);
+        language.TimeoutSeconds = PositiveIntOrCurrent("LANGUAGE_TIMEOUTSECONDS", language.TimeoutSeconds);
+        language.MaxChars = PositiveIntOrCurrent("LANGUAGE_MAXCHARS", language.MaxChars);
+        language.MaxCharsSummarize = PositiveIntOrCurrent("LANGUAGE_MAXCHARSSUMMARIZE", language.MaxCharsSummarize);
+        return language;
+
+        // Il Trim non e' cosmetico: il valore di una app setting viene quasi sempre INCOLLATO nel portale
+        // Azure, e uno spazio o un a-capo ai bordi arriverebbe intatto al servizio, con un errore a valle
+        // che non fa sospettare l'incollatura. Nessuno dei valori di questa sezione (URL, numeri) puo'
+        // avere spaziatura significativa ai bordi, quindi normalizzarla e' sempre corretto.
+        static string? ValueOrCurrent(string variable, string? current)
+        {
+            var value = Environment.GetEnvironmentVariable(variable);
+            return string.IsNullOrWhiteSpace(value) ? current : value.Trim();
+        }
+
+        // Un valore <= 0 e' scartato come non valido: il costruttore di LanguageService lo tradurrebbe
+        // comunque nel proprio default, ma cosi' resta valido quanto configurato a monte.
+        static int PositiveIntOrCurrent(string variable, int current)
+        {
+            var value = Environment.GetEnvironmentVariable(variable);
+            return int.TryParse(value, out var number) && number > 0 ? number : current;
+        }
     }
 
     private static string _kvUri = "https://{0}.vault.azure.net";

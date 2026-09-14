@@ -210,3 +210,83 @@ INSERT INTO pfd.NotificheCount
 VALUES
  ('11111111-1111-1111-1111-111111111111', 'TOKEN-E1', 2026, 3, 5.60, 1.00, 2, 1, 6.60, 22, 6.83, 1.22, 8.05);
 GO
+
+-- =============================================================================================
+-- Calendario delle contestazioni: e' il "cancello" temporale di ogni azione su una contestazione
+-- (v. docs/business-contestazioni.md). Letto da CalendarioContestazioneQueryGetPersistence, che
+-- l'handler AzioneContestazioneQueryGetByIdNotifica interroga per il periodo DELLA NOTIFICA.
+--
+-- DDL reale del DB (fornita dal team DB, 2026-08-13), riprodotta as-is: nessuna PK, nessun indice.
+--
+-- ⚠️ Tre trappole, tutte per la stessa causa — CalendarioContestazioneQueryGetPersistence avvolge
+--    la query in un `catch { return null; }`, e l'handler traduce il null in un calendario con
+--    Valid/ValidVerifica = false, cioe' TUTTI I PERMESSI NEGATI. Qualunque errore di lettura si
+--    presenta quindi come "finestra chiusa", non come errore:
+--
+--   1) la tabella ASSENTE non fa fallire nulla: nega e basta. E' il motivo per cui
+--      AzioneContestazioneIntegrationTests ha una guardia in [SetUp] che si auto-ignora invece di
+--      fidarsi di una suite verde;
+--   2) DataVerifica e' NULLABLE a DB ma e' `DateTime` NON nullable su CalendarioContestazione:
+--      una riga con DataVerifica NULL fa fallire il mapping Dapper -> catch -> tutto negato.
+--      Per questo qui e' sempre valorizzata;
+--   3) stesso discorso per DataChiusuraContestazioni e DataFineRisposteContestazioni, che
+--      SelectAll() aliasa su ChiusuraContestazioni/TempoRisposta (anch'esse non nullable).
+--      Da notare che quei due nomi di colonna, dichiarati negli attributi [Column] dell'entita',
+--      NON esistono nella tabella reale: funziona solo perche' SelectByAnnoMese non li seleziona
+--      e SelectAll li aliasa a mano.
+--
+-- Le date sono volutamente ESTREME e non realistiche: la suite confronta con GETDATE(), quindi una
+-- finestra "aperta" scritta con date plausibili scadrebbe da sola col passare dei mesi, e i test
+-- diventerebbero verdi a vuoto (v. trappola 1). 2026/3 e' aperta per sempre, 2026/4 chiusa per
+-- sempre.
+-- =============================================================================================
+
+IF OBJECT_ID('pfw.ContestazioniCalendario', 'U') IS NULL
+CREATE TABLE [pfw].[ContestazioniCalendario](
+	[MeseContestazione] [int] NOT NULL,
+	[AnnoContestazione] [int] NOT NULL,
+	[DataInizio] [datetime] NOT NULL,
+	[DataFine] [datetime] NOT NULL,
+	[DataVerifica] [datetime] NULL,
+	[DataCalcoloPrimoSecondo] [datetime] NULL,
+	[DataChiusuraContestazioni] [datetime] NULL,
+	[DataFineRisposteContestazioni] [datetime] NULL
+);
+GO
+
+-- 2026/3 -> finestra APERTA (DataFine/DataVerifica nel futuro remoto): e' il periodo delle tre
+--           notifiche seedate sopra, quindi quello su cui le asserzioni positive hanno senso.
+-- 2026/4 -> finestra CHIUSA (tutte le date nel passato): serve a provare end-to-end che il
+--           calendario e' davvero il cancello, con la notifica EVT-3004 qui sotto.
+IF NOT EXISTS (SELECT 1 FROM pfw.ContestazioniCalendario WHERE AnnoContestazione = 2026 AND MeseContestazione IN (3, 4))
+INSERT INTO pfw.ContestazioniCalendario
+ (MeseContestazione, AnnoContestazione, DataInizio, DataFine, DataVerifica,
+  DataCalcoloPrimoSecondo, DataChiusuraContestazioni, DataFineRisposteContestazioni)
+VALUES
+ (3, 2026, '2026-03-05', '2099-12-31', '2099-12-31', '2099-12-31', '2099-12-31', '2099-12-31'),
+ (4, 2026, '2026-04-05', '2026-05-05', '2026-05-20', '2026-05-25', '2026-05-20', '2026-05-15');
+GO
+
+-- EVT-3004: contestata (stato 3) come EVT-3002, ma nel periodo 2026/4 a finestra chiusa. Unica
+-- differenza rilevante: il periodo. Fatturabile = 0, cosi' l'unico "no" possibile viene dal
+-- calendario e non dal lock di fatturazione.
+IF NOT EXISTS (SELECT 1 FROM pfd.Notifiche WHERE event_id = 'EVT-3004')
+INSERT INTO pfd.Notifiche
+ (contract_id, tax_code, vat_number, zip_code, foreign_state, number_of_pages, g_envelope_weight,
+  cost_eurocent, timeline_category, paper_product_type, event_id, iun, notification_sent_at,
+  internal_organization_id, event_timestamp, recipient_index, recipient_type, recipient_id,
+  [year], [month], daily, item_code, notification_request_id, recipient_tax_id, notificationtype,
+  Recapitista, Consolidatore, TipologiaFattura, Fatturabile)
+VALUES
+ ('TOKEN-E1', 'MRTFNC85D04H501K', '12345678901', '00100', NULL, 2, '20', 210, 'SEND_ANALOG_DOMICILE', 'AR',
+  'EVT-3004', 'IUN-3004', '2026-04-02', '11111111-1111-1111-1111-111111111111', '2026-04-06T10:00:00',
+  '0', 'PF', 'REC-3004', 2026, 4, '2026-04-06', 'IC-3004', 'NRQ-3004', 'TAX-3004', 'AnalogicoARNazionali',
+  'Recapitista Uno', 'Consolidatore Uno', NULL, 0);
+GO
+
+IF NOT EXISTS (SELECT 1 FROM pfw.Contestazioni WHERE FkIdNotifica = 'EVT-3004')
+INSERT INTO pfw.Contestazioni
+ (FkIdNotifica, FkIdTipoContestazione, FkIdFlagContestazione, NoteEnte, Onere, DataInserimentoEnte, Anno, Mese)
+VALUES
+ ('EVT-3004', 1, 3, N'Contestazione su periodo ormai chiuso', N'Recapitista', '2026-04-10', 2026, 4);
+GO

@@ -18,6 +18,7 @@ using PortaleFatture.BE.Core.Common;
 using PortaleFatture.BE.Core.Exceptions;
 using PortaleFatture.BE.Infrastructure;
 using PortaleFatture.BE.Infrastructure.Common.Identity;
+using PortaleFatture.BE.Infrastructure.Common.Language.Service;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.Persistence.Schemas;
 using PortaleFatture.BE.Infrastructure.Common.SEND;
@@ -181,13 +182,39 @@ public static class ConfigurationExtensions
         var serviceProvider = services.BuildServiceProvider();
         var options = serviceProvider.GetRequiredService<IPortaleFattureOptions>();
         var logger = serviceProvider.GetRequiredService<ILogger<SynapseService>>();
+        
         services.AddSingleton<ISynapseService>(new SynapseService(
             options.Synapse!.SynapseWorkspaceName,
             options.Synapse.ResourceGroupName,
             options.Synapse.SubscriptionId,
             logger)
             );
+        
         services.AddSingleton<IServiceWorkFlowFatture>(new ServiceWorkFlowFatture());
+
+        // Registrazione LAZY (factory) e non eager: l'istanza nasce alla prima richiesta che usa il
+        // servizio, non all'avvio dell'applicazione. Azure AI Language e' OPZIONALE: senza endpoint il
+        // costruttore non solleva ma espone IsConfigured = false, e le tre rotte rispondono 503.
+        // La prima versione registrava eager un costruttore che sollevava, e un ambiente senza la
+        // sezione Language non faceva partire l'API — non "rompeva le tre rotte": impediva l'avvio del
+        // processo (misurato: 206 test di integrazione rossi su 568, tutti quelli che avviano l'app).
+        // `options.Language?.` e non `!.`: il `!` silenzia il compilatore, non il runtime.
+        //
+        // Nessuna chiave: l'autenticazione e' solo con l'identita' Entra ID (DefaultAzureCredential,
+        // creata dentro LanguageService — v. il suo costruttore per ruolo ed endpoint richiesti).
+        //
+        // ATTENZIONE NB: SynapseService, registrato qui sopra, è EAGER e usa `options.Synapse!` — quindi
+        //    se un domani mancasse la sezione Synapse sarebbe una NullReferenceException all'avvio. Non
+        //    si manifesta solo perché quella sezione è sempre configurata, e perché il suo costruttore
+        //    non lancia (assegna e basta).
+        services.AddSingleton<ILanguageService>(sp => new LanguageService(
+            options.Language?.Endpoint,
+            sp.GetRequiredService<ILogger<LanguageService>>(),
+            options.Language?.TimeoutSeconds ?? 45,
+            options.Language?.MaxChars ?? 5_120,
+            options.Language?.MaxCharsSummarize ?? 125_000
+        ));
+
         return services;
     }
 
@@ -229,6 +256,13 @@ public static class ConfigurationExtensions
                         DomainException => Results.Problem(statusCode: StatusCodes.Status500InternalServerError, detail: exception.Message),
                         ValidationException => Results.Problem(statusCode: StatusCodes.Status400BadRequest, detail: exception.Message),
                         NotFoundException => Results.Problem(statusCode: StatusCodes.Status404NotFound, detail: exception.Message),
+                        // ORDINE SIGNIFICATIVO: UpstreamTimeoutException deriva da UpstreamServiceException,
+                        // quindi va elencata PRIMA, altrimenti la base la cattura e il 504 non esce mai.
+                        // 504 = non ha risposto in tempo;
+                        // 502 = ha risposto male (quota, credenziale, rete).
+                        // Entrambi diversi dal 404 ("nessun risultato") e dal 500 ("errore nostro").
+                        UpstreamTimeoutException => Results.Problem(statusCode: StatusCodes.Status504GatewayTimeout, detail: exception.Message),
+                        UpstreamServiceException => Results.Problem(statusCode: StatusCodes.Status502BadGateway, detail: exception.Message),
                         not null => Results.Problem(statusCode: StatusCodes.Status500InternalServerError, detail: exception.Message),
                         _ => Results.Problem(statusCode: StatusCodes.Status500InternalServerError, detail: "Generic error, contact system administrator")
                     };
