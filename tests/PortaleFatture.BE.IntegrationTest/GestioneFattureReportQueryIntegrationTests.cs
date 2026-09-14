@@ -1,4 +1,4 @@
-using MediatR;
+﻿using MediatR;
 using Microsoft.Data.SqlClient;
 using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Dto;
@@ -350,6 +350,61 @@ public class GestioneFattureReportQueryIntegrationTests
     }
 
     // ---------------------------------------------------------------------------------------------
+    // Colonna NoteJson: la vista la espone come CAST(gf.[Note] AS nvarchar(max)) (aggiunta l'08/09/2026;
+    // il CAST e' obbligatorio, il tipo nativo 'json' non e' comparabile e nel SELECT DISTINCT della
+    // vista darebbe errore 421). Qui si prova cio' che un unit test non puo': che il CAST arrivi a
+    // Dapper come stringa, che la nota sia quella della riga giusta, e che la colonna in piu' dentro
+    // il DISTINCT non faccia sparire ne' duplicare righe.
+    // ---------------------------------------------------------------------------------------------
+
+    [Test]
+    public async Task Report_NoteJson_ArrivaIlJsonGrezzoDellaRigaCorrelata()
+    {
+        // mese 5: array di due note, come lo scrive la SP con JSON_MODIFY 'append'.
+        const string due = @"[{""Data"":""2099-05-01T10:00:00"",""Testo"":""nota uno"",""Azione"":""POSTICIPA""},"
+                         + @"{""Data"":""2099-05-02T11:30:00"",""Testo"":""nota due"",""Azione"":""RIPRISTINA""}]";
+        InsertGestioneFatture("VAR. SEMESTRALE", 5, stato: 0, azione: "POSTICIPATA", note: due);
+
+        var r = Riga(await Report(), "VAR. SEMESTRALE", 5);
+
+        Assert.That(r, Is.Not.Null);
+        Assert.Multiple(() =>
+        {
+            Assert.That(r!.NoteJson, Is.Not.Null.And.Not.Empty,
+                "Se qui arriva null, la vista seedata non espone ancora [NoteJson] (rigenera il container) "
+              + "oppure il CAST del tipo 'json' non e' mappato su string.");
+            Assert.That(r.NoteJson, Does.Contain("nota uno").And.Contain("nota due"));
+        });
+    }
+
+    [Test]
+    public async Task Report_NoteJson_ArrayVuoto_NonSiPerdeLaRiga()
+    {
+        // '[]' e' il DEFAULT della colonna: e' la forma piu' frequente. La riga deve comunque esserci
+        // (e' la regressione gia' vista su vwGestioneFattureDownload, dove un CROSS APPLY su array
+        // vuoto faceva sparire la fattura dal download).
+        InsertGestioneFatture("SEM. SOSPESI", 6, stato: 0, azione: "POSTICIPATA", note: "[]");
+
+        var r = Riga(await Report(), "SEM. SOSPESI", 6);
+
+        Assert.That(r, Is.Not.Null, "Con Note = '[]' la riga NON deve sparire dal report.");
+        Assert.That(r!.NoteJson, Is.EqualTo("[]"));
+    }
+
+    [Test]
+    public async Task Report_NoteJson_NonDuplicaNeAggiungeRighe()
+    {
+        // NoteJson entra nel DISTINCT della vista: due righe che prima collassavano non devono
+        // separarsi per colpa delle note (e nessuna deve sparire).
+        var righe = await Report();
+        var chiavi = righe.Select(r => (r.TipologiaFattura, r.Mese, r.Stato)).ToList();
+
+        Assert.That(chiavi, Is.Unique,
+            "Una riga di staging deve produrre una sola riga di report: se qui compaiono doppioni, "
+          + "e' NoteJson dentro il DISTINCT della vista.");
+    }
+
+    // ---------------------------------------------------------------------------------------------
     // seed / cleanup
     // ---------------------------------------------------------------------------------------------
     private void SeminaScenari()
@@ -369,12 +424,14 @@ public class GestioneFattureReportQueryIntegrationTests
         InsertGestioneFatture("ACCONTO", 4, stato: 2, azione: "CANCELLATA");
     }
 
-    private void InsertGestioneFatture(string tipologia, int mese, int stato, string azione) => Exec(@"
+    private const string NoteDefault = @"{""Data"":""2099-01-01T00:00:00"",""Testo"":""seed-report""}";
+
+    private void InsertGestioneFatture(string tipologia, int mese, int stato, string azione, string? note = null) => Exec(@"
         INSERT INTO cfg.GestioneFatture
             (FkIdEnte, FkTipologiaFattura, Anno, Mese, DataInserimento, IdUtenteInserimento, Stato, Azione, Note)
-        VALUES (@e, @t, @a, @m, GETDATE(), 'itest-report', @s, @az,
-                N'{""Data"":""2099-01-01T00:00:00"",""Testo"":""seed-report""}')",
-        ("@e", Ente), ("@t", tipologia), ("@a", Anno), ("@m", mese), ("@s", stato), ("@az", azione));
+        VALUES (@e, @t, @a, @m, GETDATE(), 'itest-report', @s, @az, @note)",
+        ("@e", Ente), ("@t", tipologia), ("@a", Anno), ("@m", mese), ("@s", stato), ("@az", azione),
+        ("@note", note ?? NoteDefault));
 
     private void InsertFattura(string tipologia, int mese, long progressivo, double totaleFattura, string tipoDoc) => Exec(@"
         INSERT INTO pfd.FattureTestata

@@ -199,8 +199,15 @@ FROM [be].[vwGestioneFattureGriglia]
     }
 
     /// <summary>
-    /// Query per la generazione del report di gestione fatture
+    /// Query per la generazione del report di gestione fatture (sheet "Non Fatturate").
     /// </summary>
+    /// <remarks>
+    /// NoteJson e' lo storico note di cfg.GestioneFatture, esposto dalla vista (08/09/2026) come
+    /// CAST(gf.[Note] AS nvarchar(max)): il CAST serve perche' Note e' del tipo nativo 'json'
+    /// (SQL Server 2025), che NON e' comparabile e in un SELECT DISTINCT come questa vista darebbe
+    /// errore 421. Qui arriva quindi il JSON GREZZO: l'appiattimento in stringa multi-riga e'
+    /// presentazione e vive in FattureExtensions.FlattenNote (unit-testabile, senza DB).
+    /// </remarks>
     private static readonly string _sqlReport = @"
         SELECT [IdEnte]
             ,[Ragione Sociale] AS RagioneSociale
@@ -223,6 +230,7 @@ FROM [be].[vwGestioneFattureGriglia]
             ,[TotaleFatturaImponibile]
             ,[TipoContratto]
             ,[Stato]
+            ,[NoteJson]
         FROM [be].[vwGestioneFattureReport]
         WHERE (@FilterByTipologia = 0 OR [TipologiaFattura] IN @TipologiaFattura)
     ";

@@ -1,5 +1,6 @@
 /****** Oggetto: View [be].[vwGestioneFattureReport]    Data dello script 27/07/2026 12:40:10 ******/
 -- Script autorevole estratto dal DB reale. CREATE OR ALTER per essere riapplicabile a caldo.
+-- 2026-09-08: aggiunta [NoteJson] (v. commento in-linea); allineata alla vista reale.
 -- 2026-07-27: aggiunta la colonna [Stato] = gf.Azione (stringa POSTICIPATA/ELIMINATA...), consumata
 -- da GestioneFattureQueryBuilder.SelectReport() -> GestioneFattureReportDto per il foglio Excel del
 -- report documenti emessi (agganciata in FattureExtensions.ReportFatture).
@@ -48,7 +49,12 @@ select
 	END as Firmata,
 	ft.TotaleFattura as [TotaleFatturaImponibile],
 	tc.Descrizione as TipoContratto,
-	gf.Azione as Stato
+	gf.Azione as Stato,
+	-- 2026-09-08: NoteJson = storico note dell'azione di staging (cfg.GestioneFatture.Note).
+	-- Il CAST NON e' cosmetico: Note e' del tipo nativo 'json', che non e' comparabile e in un
+	-- SELECT DISTINCT come questo fa fallire la vista con l'errore 421. Il JSON grezzo arriva
+	-- fino a GestioneFattureReportDto.NoteJson; l'appiattimento e' in FattureExtensions.FlattenNote.
+	CAST(gf.[Note] AS nvarchar(max)) AS [NoteJson]
 
 from cfg.GestioneFatture gf
 	INNER JOIN pfd.enti e ON e.InternalIstitutionId = gf.FkIdEnte
