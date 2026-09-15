@@ -929,6 +929,175 @@ VALUES
  ('11111111-1111-1111-1111-111111111111','TOKEN-E1','VAR. SEMESTRALE',2026,5, 4.00,4.00,1,1,8.00,4.88,4.88,9.76,0,0,'2026-S1', 0,0,0,0,0,0,0,0);
 GO
 
+-- ---------------------------------------------------------------------------------------------
+-- VAR. ANNUALE 2026/5-6 — il discriminante della modifica del 07/09/2026.
+--
+-- Prima, la scelta del ramo era una ricerca testuale contains("var"|"semestrale"|"annuale"), quindi
+-- VAR. ANNUALE finiva nel ramo FlagConguaglio (semestre). Ora il ramo conguaglio scatta SOLO su
+-- 'VAR. SEMESTRALE' (confronto sulla costante TipologiaFattura.VAR_SEMESTRALE), quindi VAR. ANNUALE
+-- filtra per anno/mese come tutte le altre.
+--
+-- Le due righe hanno lo STESSO FlagConguaglio ('2026-S1') e mesi DIVERSI: è ciò che rende i due
+-- comportamenti distinguibili. Chiedendo 2026/5 deve uscire solo REL-VA-MAG; se uscissero entrambe,
+-- qualcuno ha rimesso VAR. ANNUALE nel ramo del conguaglio.
+-- Test: RelRigheFiltroPeriodoIntegrationTests.VarAnnuale_ShouldFiltrarePerAnnoMese_NonPerSemestre.
+-- Blocco separato (guardia propria) così è applicabile anche a un container gia' seedato.
+-- ---------------------------------------------------------------------------------------------
+IF NOT EXISTS (SELECT 1 FROM pfd.RelRighe WHERE event_id LIKE 'REL-VA-%')
+INSERT INTO pfd.RelRighe
+ (contract_id, tax_code, vat_number, event_id, iun, internal_organization_id, [year], [month],
+  item_code, notification_request_id, recipient_tax_id, notificationtype, cost,
+  TipologiaFattura, IdFlagContestazione, FlagConguaglio)
+VALUES
+ ('TOKEN-E1','TAX1','VAT1','REL-VA-MAG','IUN-VA-MAG','11111111-1111-1111-1111-111111111111',2026,5,'IC','NRQ','RTX','Digitali',5.00,'VAR. ANNUALE',1,'2026-S1'),
+ ('TOKEN-E1','TAX1','VAT1','REL-VA-GIU','IUN-VA-GIU','11111111-1111-1111-1111-111111111111',2026,6,'IC','NRQ','RTX','Digitali',5.00,'VAR. ANNUALE',1,'2026-S1');
+GO
+
+-- Testata VAR. ANNUALE 2026/5: senza, l'handler fa FirstOrDefault()! su lista vuota -> NRE
+-- (v. PeriodoSenzaTestata_ShouldThrowNullReference_Caratterizzazione).
+IF NOT EXISTS (SELECT 1 FROM pfd.RelTestata WHERE contract_id='TOKEN-E1' AND [year]=2026 AND [month]=5 AND TipologiaFattura='VAR. ANNUALE')
+INSERT INTO pfd.RelTestata
+ (internal_organization_id, contract_id, TipologiaFattura, [year], [month], TotaleAnalogico, TotaleDigitale,
+  TotaleNotificheAnalogiche, TotaleNotificheDigitali, Totale, TotaleAnalogicoIva, TotaleDigitaleIva, TotaleIva,
+  Caricata, RelFatturata, FlagConguaglio,
+  AsseverazioneTotaleAnalogico, AsseverazioneTotaleDigitale, AsseverazioneTotaleNotificheAnalogiche,
+  AsseverazioneTotaleNotificheDigitali, AsseverazioneTotale, AsseverazioneTotaleAnalogicoIva,
+  AsseverazioneTotaleDigitaleIva, AsseverazioneTotaleIva)
+VALUES
+ ('11111111-1111-1111-1111-111111111111','TOKEN-E1','VAR. ANNUALE',2026,5, 5.00,5.00,1,1,10.00,6.10,6.10,12.20,0,0,'2026-S1', 0,0,0,0,0,0,0,0);
+GO
+
+-- ---------------------------------------------------------------------------------------------
+-- SECONDO SALDO 2026/5-6 — la tipologia che la specifica DATA elenca e che il seed non aveva.
+--
+-- Due righe, stesso FlagConguaglio ('2026-S1') e mesi diversi, come per le altre tipologie: chiedendo
+-- 2026/5 deve uscire solo REL-SD-MAG. La TESTATA 2026/5 ha il FlagConguaglio VALORIZZATO, ed e' la
+-- differenza che conta: l'handler lo legge dalla testata e lo passa alla query, quindi qui il flag
+-- c'e' davvero e il test dimostra che NON entra nella WHERE (caso DATA "flag valorizzato ma ignorato").
+-- Sul PRIMO SALDO la stessa cosa non sarebbe dimostrabile allo stesso modo: la sua testata ha il flag
+-- NULL.
+--
+-- Le righe portano anche zip_code / Recapitista / recipient_id perche' sono colonne mappate nel CSV
+-- (RigheRelDtoPagoPAMap): servono al test sul contenuto del report, non al filtro.
+-- Test: RelRigheFiltroPeriodoIntegrationTests.SecondoSaldo_*, RelRigheCsvContenutoIntegrationTests.
+-- ---------------------------------------------------------------------------------------------
+IF NOT EXISTS (SELECT 1 FROM pfd.RelRighe WHERE event_id LIKE 'REL-SD-%')
+INSERT INTO pfd.RelRighe
+ (contract_id, tax_code, vat_number, event_id, iun, internal_organization_id, [year], [month],
+  item_code, notification_request_id, recipient_tax_id, notificationtype, cost,
+  zip_code, Recapitista, recipient_id,
+  TipologiaFattura, IdFlagContestazione, FlagConguaglio)
+VALUES
+ ('TOKEN-E1','TAX1','VAT1','REL-SD-MAG','IUN-SD-MAG','11111111-1111-1111-1111-111111111111',2026,5,'IC','NRQ','RTX','Analogico890',7.00,
+  '00100','Recapitista Uno','RCP-1','SECONDO SALDO',1,'2026-S1'),
+ ('TOKEN-E1','TAX1','VAT1','REL-SD-GIU','IUN-SD-GIU','11111111-1111-1111-1111-111111111111',2026,6,'IC','NRQ','RTX','Digitali',7.00,
+  '20100','Recapitista Due','RCP-2','SECONDO SALDO',1,'2026-S1');
+GO
+
+IF NOT EXISTS (SELECT 1 FROM pfd.RelTestata WHERE contract_id='TOKEN-E1' AND [year]=2026 AND [month]=5 AND TipologiaFattura='SECONDO SALDO')
+INSERT INTO pfd.RelTestata
+ (internal_organization_id, contract_id, TipologiaFattura, [year], [month], TotaleAnalogico, TotaleDigitale,
+  TotaleNotificheAnalogiche, TotaleNotificheDigitali, Totale, TotaleAnalogicoIva, TotaleDigitaleIva, TotaleIva,
+  Caricata, RelFatturata, FlagConguaglio,
+  AsseverazioneTotaleAnalogico, AsseverazioneTotaleDigitale, AsseverazioneTotaleNotificheAnalogiche,
+  AsseverazioneTotaleNotificheDigitali, AsseverazioneTotale, AsseverazioneTotaleAnalogicoIva,
+  AsseverazioneTotaleDigitaleIva, AsseverazioneTotaleIva)
+VALUES
+ ('11111111-1111-1111-1111-111111111111','TOKEN-E1','SECONDO SALDO',2026,5, 7.00,7.00,1,1,14.00,8.54,8.54,17.08,0,0,'2026-S1', 0,0,0,0,0,0,0,0);
+GO
+
+-- ---------------------------------------------------------------------------------------------
+-- Testata VAR. SEMESTRALE anche per 2026/6, stesso FlagConguaglio della 2026/5.
+--
+-- Serve a chiedere la STESSA rel da un mese diverso: il filtro per semestre deve restituire lo stesso
+-- insieme (REL-VS-MAG + REL-VS-GIU) sia chiedendo maggio sia chiedendo giugno. Senza questa testata il
+-- caso non sarebbe verificabile, perche' l'handler cerca la testata del periodo richiesto e senza
+-- quella solleverebbe NullReferenceException prima di arrivare alla query.
+-- Test: RelRigheFiltroPeriodoIntegrationTests.VarSemestrale_ChiedendoGiugno_*.
+-- ---------------------------------------------------------------------------------------------
+IF NOT EXISTS (SELECT 1 FROM pfd.RelTestata WHERE contract_id='TOKEN-E1' AND [year]=2026 AND [month]=6 AND TipologiaFattura='VAR. SEMESTRALE')
+INSERT INTO pfd.RelTestata
+ (internal_organization_id, contract_id, TipologiaFattura, [year], [month], TotaleAnalogico, TotaleDigitale,
+  TotaleNotificheAnalogiche, TotaleNotificheDigitali, Totale, TotaleAnalogicoIva, TotaleDigitaleIva, TotaleIva,
+  Caricata, RelFatturata, FlagConguaglio,
+  AsseverazioneTotaleAnalogico, AsseverazioneTotaleDigitale, AsseverazioneTotaleNotificheAnalogiche,
+  AsseverazioneTotaleNotificheDigitali, AsseverazioneTotale, AsseverazioneTotaleAnalogicoIva,
+  AsseverazioneTotaleDigitaleIva, AsseverazioneTotaleIva)
+VALUES
+ ('11111111-1111-1111-1111-111111111111','TOKEN-E1','VAR. SEMESTRALE',2026,6, 4.00,4.00,1,1,8.00,4.88,4.88,9.76,0,0,'2026-S1', 0,0,0,0,0,0,0,0);
+GO
+
+-- ---------------------------------------------------------------------------------------------
+-- VAR. SEMESTRALE 2027/1 con testata a FlagConguaglio NULL — il caso "FlagConguaglio null" della
+-- specifica DATA, che chiede "errore o empty".
+--
+-- ⚠️ PERIODO SCELTO CON CURA, non a caso. La vista pfd.vOrchestratore conta le testate REL per
+-- (anno, mese, 'VAR. SEMESTRALE') contro cfg.CalendarioVarSemestrale, che nel seed ha i periodi
+-- 2026/5, 2026/11 e 2026/12: aggiungere una testata su uno di quei mesi cambia l'Esecuzione della
+-- riga corrispondente (2 "eseguito no data" o 0 "programmato" diventano 1 "eseguito") e fa fallire
+-- OrchestratoreQueryIntegrationTests.FiltroTipologie_*. E' successo davvero il 14/09/2026 con la
+-- prima stesura, che usava 2026/11 e 2026/12. Per le testate VAR. SEMESTRALE usare il 2027.
+--
+-- Il BE risponde sempre EMPTY, e in silenzio: l'handler prende NULL dalla testata, la WHERE diventa
+-- r.FlagConguaglio = NULL, e in SQL quel confronto non e' mai vero. La riga qui sotto esiste apposta
+-- per il periodo richiesto ED HA il flag valorizzato: se il filtro fosse per anno/mese uscirebbe, se
+-- il confronto con NULL fosse gestito uscirebbe. Non esce, ed e' l'unica cosa che il test deve vedere.
+-- Test: RelRigheFiltroPeriodoIntegrationTests.VarSemestrale_TestataConFlagNull_*.
+-- ---------------------------------------------------------------------------------------------
+IF NOT EXISTS (SELECT 1 FROM pfd.RelRighe WHERE event_id LIKE 'REL-VSNULL-%')
+INSERT INTO pfd.RelRighe
+ (contract_id, tax_code, vat_number, event_id, iun, internal_organization_id, [year], [month],
+  item_code, notification_request_id, recipient_tax_id, notificationtype, cost,
+  TipologiaFattura, IdFlagContestazione, FlagConguaglio)
+VALUES
+ ('TOKEN-E1','TAX1','VAT1','REL-VSNULL-GEN','IUN-VSNULL-GEN','11111111-1111-1111-1111-111111111111',2027,1,'IC','NRQ','RTX','Digitali',6.00,'VAR. SEMESTRALE',1,'2027-S1');
+GO
+
+IF NOT EXISTS (SELECT 1 FROM pfd.RelTestata WHERE contract_id='TOKEN-E1' AND [year]=2027 AND [month]=1 AND TipologiaFattura='VAR. SEMESTRALE')
+INSERT INTO pfd.RelTestata
+ (internal_organization_id, contract_id, TipologiaFattura, [year], [month], TotaleAnalogico, TotaleDigitale,
+  TotaleNotificheAnalogiche, TotaleNotificheDigitali, Totale, TotaleAnalogicoIva, TotaleDigitaleIva, TotaleIva,
+  Caricata, RelFatturata, FlagConguaglio,
+  AsseverazioneTotaleAnalogico, AsseverazioneTotaleDigitale, AsseverazioneTotaleNotificheAnalogiche,
+  AsseverazioneTotaleNotificheDigitali, AsseverazioneTotale, AsseverazioneTotaleAnalogicoIva,
+  AsseverazioneTotaleDigitaleIva, AsseverazioneTotaleIva)
+VALUES
+ ('11111111-1111-1111-1111-111111111111','TOKEN-E1','VAR. SEMESTRALE',2027,1, 6.00,6.00,1,1,12.00,7.32,7.32,14.64,0,0,NULL, 0,0,0,0,0,0,0,0);
+GO
+
+-- ---------------------------------------------------------------------------------------------
+-- VAR. SEMESTRALE 2027/2 con testata a FlagConguaglio MALFORMATO — caso difensivo chiesto dal team
+-- DATA (14/09/2026). Il valore 'VAR. SEMESTRALE202607' e' il loro esempio di flag sbagliato: ha tutta
+-- l'aria di una concatenazione accidentale fra tipologia e periodo. NON e' il formato atteso.
+--
+-- Non dovrebbe mai arrivare a DB — lo scrivono le pipeline del team DATA — ma se arriva il BE non se
+-- ne accorge: il flag e' una stringa opaca, nessun parsing, nessuna validazione. Il confronto non
+-- trova nulla e il report esce VUOTO, esattamente come nel caso NULL di 2026/11.
+--
+-- La riga del periodo ha un flag valido: se il filtro fosse per anno/mese uscirebbe. Non esce.
+-- Test: RelRigheFiltroPeriodoIntegrationTests.VarSemestrale_TestataConFlagMalformato_*.
+-- ---------------------------------------------------------------------------------------------
+IF NOT EXISTS (SELECT 1 FROM pfd.RelRighe WHERE event_id LIKE 'REL-VSBAD-%')
+INSERT INTO pfd.RelRighe
+ (contract_id, tax_code, vat_number, event_id, iun, internal_organization_id, [year], [month],
+  item_code, notification_request_id, recipient_tax_id, notificationtype, cost,
+  TipologiaFattura, IdFlagContestazione, FlagConguaglio)
+VALUES
+ ('TOKEN-E1','TAX1','VAT1','REL-VSBAD-FEB','IUN-VSBAD-FEB','11111111-1111-1111-1111-111111111111',2027,2,'IC','NRQ','RTX','Digitali',6.00,'VAR. SEMESTRALE',1,'2027-S1');
+GO
+
+IF NOT EXISTS (SELECT 1 FROM pfd.RelTestata WHERE contract_id='TOKEN-E1' AND [year]=2027 AND [month]=2 AND TipologiaFattura='VAR. SEMESTRALE')
+INSERT INTO pfd.RelTestata
+ (internal_organization_id, contract_id, TipologiaFattura, [year], [month], TotaleAnalogico, TotaleDigitale,
+  TotaleNotificheAnalogiche, TotaleNotificheDigitali, Totale, TotaleAnalogicoIva, TotaleDigitaleIva, TotaleIva,
+  Caricata, RelFatturata, FlagConguaglio,
+  AsseverazioneTotaleAnalogico, AsseverazioneTotaleDigitale, AsseverazioneTotaleNotificheAnalogiche,
+  AsseverazioneTotaleNotificheDigitali, AsseverazioneTotale, AsseverazioneTotaleAnalogicoIva,
+  AsseverazioneTotaleDigitaleIva, AsseverazioneTotaleIva)
+VALUES
+ ('11111111-1111-1111-1111-111111111111','TOKEN-E1','VAR. SEMESTRALE',2027,2, 6.00,6.00,1,1,12.00,7.32,7.32,14.64,0,0,'VAR. SEMESTRALE202607', 0,0,0,0,0,0,0,0);
+GO
+
 -- ============================================================================================
 -- Foglio "note/storni" del report EMESSE (_sqlNoteSenzaRel), aggiunto il 04/09/2026.
 --

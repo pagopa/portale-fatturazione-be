@@ -91,14 +91,22 @@ public class LanguageServiceAutenticazioneTests
         });
     }
 
+    /// <summary>
+    /// ⚠️ I nomi passati a <c>SetName</c> devono contenere il **nome completo del metodo** che li
+    /// consuma. `SetName` sostituisce integralmente il nome visualizzato del caso: se lo si accorcia,
+    /// il nome del metodo non compare in alcun risultato e il test diventa **impossibile da lanciare
+    /// per nome** — dal Test Explorer, o con un `--filter` sul nome completo, sembra "mai eseguito"
+    /// pur essendo verde in una run completa. È successo davvero, con la forma precedente
+    /// (`IdentitaNonDisponibile_DiventaUpstreamService(pii)`, senza `_ENessunaRichiestaParte`).
+    /// </summary>
     public static IEnumerable<TestCaseData> Operazioni()
     {
         yield return new TestCaseData((Func<LanguageService, Task>)(s => s.DetectPersonalIdentifiableInformationAsync("testo qualsiasi")))
-            .SetName("IdentitaNonDisponibile_DiventaUpstreamService(pii)");
+            .SetName("IdentitaNonDisponibile_DiventaUpstreamService_ENessunaRichiestaParte(pii)");
         yield return new TestCaseData((Func<LanguageService, Task>)(s => s.DetectLanguageAsync("testo qualsiasi")))
-            .SetName("IdentitaNonDisponibile_DiventaUpstreamService(detection)");
+            .SetName("IdentitaNonDisponibile_DiventaUpstreamService_ENessunaRichiestaParte(detection)");
         yield return new TestCaseData((Func<LanguageService, Task>)(s => s.SummarizeTextAsync("testo qualsiasi")))
-            .SetName("IdentitaNonDisponibile_DiventaUpstreamService(summarize)");
+            .SetName("IdentitaNonDisponibile_DiventaUpstreamService_ENessunaRichiestaParte(summarize)");
     }
 
     /// <summary>
