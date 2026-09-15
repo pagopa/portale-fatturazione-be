@@ -116,10 +116,22 @@ public class LanguageServiceHttpTests
     /// binding smetterebbe di funzionare **in silenzio** e queste rotte risponderebbero 400 a ogni
     /// chiamata. Qui il 400 arriverebbe *prima* del 503, indicando la causa.
     /// </summary>
+    /// <remarks>
+    /// ⚠️ **Il client va costruito col servizio NON configurato**, come nei test del 503, ed è la
+    /// stessa lezione del 03/09/2026 in una forma nuova. Usando il factory normale, questo test prende
+    /// il `LanguageService` **vero** con l'endpoint degli user secrets: finché la risorsa non era
+    /// raggiungibile falliva in fretta e passava lo stesso (qualunque errore ≠ 400), ma dalla VPN DEV
+    /// la chiamata **parte davvero** verso Azure e supera i 100 secondi di timeout dell'`HttpClient`,
+    /// facendo fallire il test con un `TaskCanceledException` che non c'entra nulla col binding.
+    /// Misurato il 14/09/2026: 1 minuto e 48 secondi. Al test serve solo un esito ≠ 400, quindi il
+    /// 503 del servizio non configurato va benissimo — e non dipende da come è messa la macchina.
+    /// </remarks>
     [Test]
     public async Task CampoTesto_ShouldEssereDeserializzato()
     {
-        var (stato, _) = await Post(RottaPii, """{ "testo": "un testo qualsiasi" }""");
+        var client = ClientCon(new LanguageService(null, NullLogger<LanguageService>.Instance));
+
+        var (stato, _) = await Post(client, RottaPii, """{ "testo": "un testo qualsiasi" }""");
 
         Assert.That(stato, Is.Not.EqualTo(HttpStatusCode.BadRequest),
             "Il testo c'e': un 400 qui significherebbe che il binding della proprieta' 'Testo' sul "

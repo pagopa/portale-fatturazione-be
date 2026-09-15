@@ -143,7 +143,9 @@ public class RelRigheFiltroPeriodoIntegrationTests
     [Test]
     public async Task VarSemestrale_TestataConFlagConguaglioNull_ShouldReturnVuotoSilenzioso()
     {
-        var righe = await Righe("VAR. SEMESTRALE", 2026, 11);
+        // Periodo 2027 e non 2026: i mesi 5, 11 e 12 del 2026 sono in cfg.CalendarioVarSemestrale e
+        // una testata VAR. SEMESTRALE su quei periodi cambia l'Esecuzione di pfd.vOrchestratore.
+        var righe = await Righe("VAR. SEMESTRALE", 2027, 1);
 
         Assert.That(righe, Is.Empty,
             "Con FlagConguaglio NULL sulla testata il confronto SQL non è mai vero: report vuoto, "
@@ -176,7 +178,8 @@ public class RelRigheFiltroPeriodoIntegrationTests
     [Test]
     public async Task VarSemestrale_TestataConFlagMalformato_ShouldReturnVuotoSilenzioso()
     {
-        var righe = await Righe("VAR. SEMESTRALE", 2026, 12);
+        // Come sopra: periodo 2027 per non interferire con il calendario semestrale dell'Orchestratore.
+        var righe = await Righe("VAR. SEMESTRALE", 2027, 2);
 
         Assert.That(righe, Is.Empty,
             "Un FlagConguaglio malformato non viene riconosciuto come tale: non corrisponde a nulla e "

@@ -1028,8 +1028,15 @@ VALUES
 GO
 
 -- ---------------------------------------------------------------------------------------------
--- VAR. SEMESTRALE 2026/11 con testata a FlagConguaglio NULL — il caso "FlagConguaglio null" della
+-- VAR. SEMESTRALE 2027/1 con testata a FlagConguaglio NULL — il caso "FlagConguaglio null" della
 -- specifica DATA, che chiede "errore o empty".
+--
+-- ⚠️ PERIODO SCELTO CON CURA, non a caso. La vista pfd.vOrchestratore conta le testate REL per
+-- (anno, mese, 'VAR. SEMESTRALE') contro cfg.CalendarioVarSemestrale, che nel seed ha i periodi
+-- 2026/5, 2026/11 e 2026/12: aggiungere una testata su uno di quei mesi cambia l'Esecuzione della
+-- riga corrispondente (2 "eseguito no data" o 0 "programmato" diventano 1 "eseguito") e fa fallire
+-- OrchestratoreQueryIntegrationTests.FiltroTipologie_*. E' successo davvero il 14/09/2026 con la
+-- prima stesura, che usava 2026/11 e 2026/12. Per le testate VAR. SEMESTRALE usare il 2027.
 --
 -- Il BE risponde sempre EMPTY, e in silenzio: l'handler prende NULL dalla testata, la WHERE diventa
 -- r.FlagConguaglio = NULL, e in SQL quel confronto non e' mai vero. La riga qui sotto esiste apposta
@@ -1043,10 +1050,10 @@ INSERT INTO pfd.RelRighe
   item_code, notification_request_id, recipient_tax_id, notificationtype, cost,
   TipologiaFattura, IdFlagContestazione, FlagConguaglio)
 VALUES
- ('TOKEN-E1','TAX1','VAT1','REL-VSNULL-NOV','IUN-VSNULL-NOV','11111111-1111-1111-1111-111111111111',2026,11,'IC','NRQ','RTX','Digitali',6.00,'VAR. SEMESTRALE',1,'2026-S2');
+ ('TOKEN-E1','TAX1','VAT1','REL-VSNULL-GEN','IUN-VSNULL-GEN','11111111-1111-1111-1111-111111111111',2027,1,'IC','NRQ','RTX','Digitali',6.00,'VAR. SEMESTRALE',1,'2027-S1');
 GO
 
-IF NOT EXISTS (SELECT 1 FROM pfd.RelTestata WHERE contract_id='TOKEN-E1' AND [year]=2026 AND [month]=11 AND TipologiaFattura='VAR. SEMESTRALE')
+IF NOT EXISTS (SELECT 1 FROM pfd.RelTestata WHERE contract_id='TOKEN-E1' AND [year]=2027 AND [month]=1 AND TipologiaFattura='VAR. SEMESTRALE')
 INSERT INTO pfd.RelTestata
  (internal_organization_id, contract_id, TipologiaFattura, [year], [month], TotaleAnalogico, TotaleDigitale,
   TotaleNotificheAnalogiche, TotaleNotificheDigitali, Totale, TotaleAnalogicoIva, TotaleDigitaleIva, TotaleIva,
@@ -1055,11 +1062,11 @@ INSERT INTO pfd.RelTestata
   AsseverazioneTotaleNotificheDigitali, AsseverazioneTotale, AsseverazioneTotaleAnalogicoIva,
   AsseverazioneTotaleDigitaleIva, AsseverazioneTotaleIva)
 VALUES
- ('11111111-1111-1111-1111-111111111111','TOKEN-E1','VAR. SEMESTRALE',2026,11, 6.00,6.00,1,1,12.00,7.32,7.32,14.64,0,0,NULL, 0,0,0,0,0,0,0,0);
+ ('11111111-1111-1111-1111-111111111111','TOKEN-E1','VAR. SEMESTRALE',2027,1, 6.00,6.00,1,1,12.00,7.32,7.32,14.64,0,0,NULL, 0,0,0,0,0,0,0,0);
 GO
 
 -- ---------------------------------------------------------------------------------------------
--- VAR. SEMESTRALE 2026/12 con testata a FlagConguaglio MALFORMATO — caso difensivo chiesto dal team
+-- VAR. SEMESTRALE 2027/2 con testata a FlagConguaglio MALFORMATO — caso difensivo chiesto dal team
 -- DATA (14/09/2026). Il valore 'VAR. SEMESTRALE202607' e' il loro esempio di flag sbagliato: ha tutta
 -- l'aria di una concatenazione accidentale fra tipologia e periodo. NON e' il formato atteso.
 --
@@ -1076,10 +1083,10 @@ INSERT INTO pfd.RelRighe
   item_code, notification_request_id, recipient_tax_id, notificationtype, cost,
   TipologiaFattura, IdFlagContestazione, FlagConguaglio)
 VALUES
- ('TOKEN-E1','TAX1','VAT1','REL-VSBAD-DIC','IUN-VSBAD-DIC','11111111-1111-1111-1111-111111111111',2026,12,'IC','NRQ','RTX','Digitali',6.00,'VAR. SEMESTRALE',1,'2026-S2');
+ ('TOKEN-E1','TAX1','VAT1','REL-VSBAD-FEB','IUN-VSBAD-FEB','11111111-1111-1111-1111-111111111111',2027,2,'IC','NRQ','RTX','Digitali',6.00,'VAR. SEMESTRALE',1,'2027-S1');
 GO
 
-IF NOT EXISTS (SELECT 1 FROM pfd.RelTestata WHERE contract_id='TOKEN-E1' AND [year]=2026 AND [month]=12 AND TipologiaFattura='VAR. SEMESTRALE')
+IF NOT EXISTS (SELECT 1 FROM pfd.RelTestata WHERE contract_id='TOKEN-E1' AND [year]=2027 AND [month]=2 AND TipologiaFattura='VAR. SEMESTRALE')
 INSERT INTO pfd.RelTestata
  (internal_organization_id, contract_id, TipologiaFattura, [year], [month], TotaleAnalogico, TotaleDigitale,
   TotaleNotificheAnalogiche, TotaleNotificheDigitali, Totale, TotaleAnalogicoIva, TotaleDigitaleIva, TotaleIva,
@@ -1088,7 +1095,7 @@ INSERT INTO pfd.RelTestata
   AsseverazioneTotaleNotificheDigitali, AsseverazioneTotale, AsseverazioneTotaleAnalogicoIva,
   AsseverazioneTotaleDigitaleIva, AsseverazioneTotaleIva)
 VALUES
- ('11111111-1111-1111-1111-111111111111','TOKEN-E1','VAR. SEMESTRALE',2026,12, 6.00,6.00,1,1,12.00,7.32,7.32,14.64,0,0,'VAR. SEMESTRALE202607', 0,0,0,0,0,0,0,0);
+ ('11111111-1111-1111-1111-111111111111','TOKEN-E1','VAR. SEMESTRALE',2027,2, 6.00,6.00,1,1,12.00,7.32,7.32,14.64,0,0,'VAR. SEMESTRALE202607', 0,0,0,0,0,0,0,0);
 GO
 
 -- ============================================================================================
