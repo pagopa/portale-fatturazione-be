@@ -21,11 +21,19 @@ public class EmailPspServiceIntegrationTests
             .Build();
     }
 
-    [Explicit]
+    /// <summary>
+    /// Spostato da UAT al DB SEEDATO il 15/09/2026, e per questo non e' piu' [Explicit]: gira in un
+    /// giro normale di test. La tabella [stg].[PspEmailPreview] e' nel seed
+    /// (tests/Data/create_psp_email_preview_table.sql), quindi non serve ne' VPN ne' user secrets.
+    ///
+    /// Gli altri test di questa classe sono ancora su UAT perche' le tabelle che interrogano
+    /// ([ppa].[PspEmail], [ppa].[Contracts], [ppa].[kpmg], [ppa].[KpiPagamenti_Sconto]) non esistono
+    /// nel seed — v. il commento in testa alla classe.
+    /// </summary>
     [Test]
     public void InsertPreviewEmail_ShouldPersistInStgPreviewTable()
     {
-        var connectionString = Required("PortaleFattureOptions:ConnectionString");
+        var connectionString = LocalTestDb.ConnectionString;
         TestDb.SkipIfUnavailable(connectionString);
         var service = new EmailPspService(connectionString);
 
