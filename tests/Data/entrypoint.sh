@@ -44,6 +44,11 @@ if [ "$1" = '/opt/mssql/bin/sqlservr' ]; then
       # referenziate non esistono (per le viste non c'e' deferred name resolution).
       "$SQLCMD" -C -S localhost -U sa -P 52JdGnzZaANhf -d master -i /scripts/orchestratore.sql
 
+      # flusso PEC Regolare Esecuzione: pfd.RelPecEmail + pfd.RelEmail (tracking) +
+      # stg.RelEmailPreview (anteprime). Deve precedere views/, che contiene pfd.EmailRel: la vista
+      # legge RelPecEmail e un CREATE VIEW fallisce se la tabella non esiste.
+      "$SQLCMD" -C -S localhost -U sa -P 52JdGnzZaANhf -d master -i /scripts/email_rel.sql
+
       # chiavi API e whitelist IP delle Integration API (con i due indici univoci, che sono contratto)
       "$SQLCMD" -C -S localhost -U sa -P 52JdGnzZaANhf -d master -i /scripts/api_keys.sql
 
