@@ -16,5 +16,62 @@ services:
       - "1433:1433" 
     volumes:
       - mssqldata:/var/opt/mssql   
+  # ---------------------------------------------------------------------------------------------
+  # Profilo "function": la SendEmailFunction containerizzata + Azurite, per i test end-to-end che
+  # passano dal webhook HTTP e dal polling dell'orchestrazione (CreateRelRigheFunctionHostTests).
+  # NON fa parte del giro ordinario: si alza con
+  #     docker compose --profile function up -d --build
+  # oppure con  .\run-integration.ps1 -Function
+  #
+  # La chiave di Azurite qui sotto NON e' un segreto: e' la costante pubblica dell'emulatore,
+  # documentata da Microsoft e identica su ogni installazione.
+  # ---------------------------------------------------------------------------------------------
+  azurite:
+    container_name: portalefatture_azurite
+    image: mcr.microsoft.com/azure-storage/azurite
+    profiles: ["function"]
+    restart: unless-stopped
+    ports:
+      - "10000:10000"
+      - "10001:10001"
+      - "10002:10002"
+
+  sendemail:
+    container_name: portalefatture_sendemail
+    profiles: ["function"]
+    build:
+      # Il build context e' la ROOT del repo, non tests/: il Dockerfile copia i .csproj con
+      # percorsi relativi src/...
+      context: ..
+      dockerfile: src/Presentation/PortaleFatture.BE.SendEmailFunction/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - database
+      - azurite
+    ports:
+      # L'host ascolta sulla 80, non sulla 8080 dell'EXPOSE: ASPNETCORE_URLS vince su
+      # ASPNETCORE_HTTP_PORTS.
+      - "8080:80"
+    environment:
+      # Senza questa, il binding [DurableClient] non riesce a comporre lo statusQueryGetUri e OGNI
+      # handler risponde 500 ("Webhooks are not configured"). Su Azure la inietta la piattaforma.
+      WEBSITE_HOSTNAME: "localhost:8080"
+      # Con i DUE PUNTI, non con il doppio underscore: il codice fa una GetEnvironmentVariable
+      # diretta su questa stringa. E' il guardrail anti-invio email: "debug" e' in allow-list fra
+      # gli ambienti NON di produzione, quindi nessuna email parte davvero.
+      "PortaleFattureOptions:WEBSITE_SITE_NAME": "debug"
+      # Il DB seedato, raggiunto per nome di servizio dentro la rete del compose.
+      CONNECTION_STRING: "Server=database,1433;Database=master;User Id=sa;Password=52JdGnzZaANhf;TrustServerCertificate=True"
+      # Mai UseDevelopmentStorage=true: dentro il container risolverebbe su 127.0.0.1.
+      AzureWebJobsStorage: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;TableEndpoint=http://azurite:10002/devstoreaccount1"
+      FUNCTIONS_WORKER_RUNTIME: "dotnet-isolated"
+      # Storage dei CSV di dettaglio REL, dirottato sull'emulatore: senza StorageRELBlobEndpoint
+      # il codice comporrebbe https://{account}.blob.core.windows.net e il percorso felice
+      # morirebbe sul DNS. Forma path-style, con il nome account nel percorso.
+      StorageRELAccountName: "devstoreaccount1"
+      StorageRELAccountKey: "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw=="
+      StorageRELBlobContainerName: "fat-test-public"
+      StorageRELBlobEndpoint: "http://azurite:10000/devstoreaccount1"
+
 volumes:
   mssqldata:       
