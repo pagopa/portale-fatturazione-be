@@ -33,7 +33,9 @@ public class CreateRelRighe(ILoggerFactory loggerFactory)
     {
         var idTestata = RelTestataKey.Deserialize(sidtestata);
         var storageSharedKeyCredential = new StorageSharedKeyCredential(storageAccountName, storageAccountKey);
-        var blobServiceClient = new BlobServiceClient(new Uri($"https://{storageAccountName}.blob.core.windows.net"), storageSharedKeyCredential);
+
+        var serviceUri = ResolveBlobServiceUri(storageAccountName, GetEnvironmentVariable("StorageRELBlobEndpoint"));
+        var blobServiceClient = new BlobServiceClient(serviceUri, storageSharedKeyCredential);
         var containerClient = blobServiceClient.GetBlobContainerClient(blobContainerName);
         try
         {
@@ -162,6 +164,27 @@ public class CreateRelRighe(ILoggerFactory loggerFactory)
         _logger.LogInformation(risposta.Serialize());
         return risposta.Serialize();
     }
+
+    /// <summary>
+    /// Endpoint del servizio blob su cui caricare i CSV di dettaglio REL.
+    ///
+    /// Il default e' quello pubblico dell'account, composto dal suo nome: e' il comportamento di
+    /// SEMPRE, ed e' quello che vale in produzione, dove <c>StorageRELBlobEndpoint</c> non e'
+    /// impostata. L'override esiste per poter puntare a un emulatore (Azurite) nei test end-to-end
+    /// sull'immagine della function, dove altrimenti la chiamata morirebbe sul DNS.
+    ///
+    /// Attenzione alla forma, che nei due casi e' diversa: Azure e' "host-style" (l'account sta nel
+    /// nome host), l'emulatore e' "path-style" (l'account sta nel percorso,
+    /// <c>http://azurite:10000/devstoreaccount1</c>). Per questo si sovrascrive l'URI intero e non il
+    /// solo nome host.
+    ///
+    /// Estratto come metodo puro per poter verificare a unit test il ramo di DEFAULT, che nessun test
+    /// end-to-end puo' esercitare: in locale la variabile c'e' sempre.
+    /// </summary>
+    public static Uri ResolveBlobServiceUri(string? storageAccountName, string? endpointOverride) =>
+        string.IsNullOrWhiteSpace(endpointOverride)
+            ? new Uri($"https://{storageAccountName}.blob.core.windows.net")
+            : new Uri(endpointOverride);
 
     private static string? GetEnvironmentVariable(string name)
     {
