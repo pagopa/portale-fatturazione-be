@@ -144,13 +144,13 @@ public class CreateRelRighe(ILoggerFactory loggerFactory)
             }
             else
             {
-                // Nessuna REL per il periodo/tipologia NON e' un guasto: per il SECONDO SALDO la REL
+                // Nessuna REL per il periodo/tipologia NON e' un errore: per il SECONDO SALDO la REL
                 // resta in pfd.tmpRelTestata finche' il ciclo di emissione non la promuove, e in quella
                 // finestra la pipeline puo' legittimamente invocare questa activity. Si restituisce
                 // quindi un esito esplicito (Count = 0) invece di far fallire l'orchestrazione.
                 risposta.Count = 0;
                 risposta.Error = "Non ci sono rel per l'anno, mese e tipologia specificate";
-                _logger.LogInformation(risposta.Serialize());
+                _logger.LogWarning(risposta.Serialize());
             }
         }
         catch (Exception ex)
