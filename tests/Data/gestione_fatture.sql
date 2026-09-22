@@ -511,8 +511,12 @@ CREATE TABLE [pfd].[tmpFattureRighe](
 );
 GO
 
--- tmpRelTestata: le colonne Asseverazione* (non referenziate dalle viste sospese) sono omesse; nel seed
--- la tabella resta VUOTA per il periodo -> il "NOT IN (rel)" del ramo note e' soddisfatto per tutti.
+-- tmpRelTestata: nel seed la tabella resta VUOTA per il periodo -> il "NOT IN (rel)" del ramo note
+-- e' soddisfatto per tutti.
+-- NB: le colonne Asseverazione* erano state omesse ritenendole non referenziate; lo sono invece da
+-- RelTestataSospesaSQLBuilder, quindi sono state aggiunte il 22/09/2026 nella loro posizione reale
+-- (fra Caricata e RelFatturata). Colonne, tipi, default e PK di questa tabella sono ora verificati
+-- uno a uno contro il DB di produzione.
 IF OBJECT_ID('pfd.tmpRelTestata', 'U') IS NULL
 CREATE TABLE [pfd].[tmpRelTestata](
 	[internal_organization_id] [nvarchar](50) NOT NULL,
@@ -530,6 +534,19 @@ CREATE TABLE [pfd].[tmpRelTestata](
 	[TotaleDigitaleIva] [decimal](9, 2) NULL,
 	[TotaleIva] [decimal](9, 2) NULL,
 	[Caricata] [tinyint] NULL CONSTRAINT [DF_tmpRelTestata_Caricata] DEFAULT ((0)),
+	-- Le otto Asseverazione* SERVONO, benche' il nome suggerisca il contrario:
+	-- RelTestataSospesaSQLBuilder le proietta, e senza di esse la query delle testate sospese muore
+	-- con "Invalid column name" prima ancora di filtrare (22/09/2026, test di CreateRelSospese).
+	-- Tipi e POSIZIONE verificati sul DB reale: stanno fra Caricata e RelFatturata, e l'ordinale
+	-- conta per un INSERT senza elenco di colonne o un SELECT *.
+	[AsseverazioneTotaleAnalogico] [decimal](9, 2) NULL,
+	[AsseverazioneTotaleDigitale] [decimal](9, 2) NULL,
+	[AsseverazioneTotaleNotificheAnalogiche] [int] NULL,
+	[AsseverazioneTotaleNotificheDigitali] [int] NULL,
+	[AsseverazioneTotale] [decimal](9, 2) NULL,
+	[AsseverazioneTotaleAnalogicoIva] [decimal](9, 2) NULL,
+	[AsseverazioneTotaleDigitaleIva] [decimal](9, 2) NULL,
+	[AsseverazioneTotaleIva] [decimal](9, 2) NULL,
 	[RelFatturata] [bit] NOT NULL CONSTRAINT [DF_tmpRelTestata_RelFatturata] DEFAULT ((0)),
 	[FlagConguaglio] [nvarchar](25) NULL,
  CONSTRAINT [PK_tmpRelTestata] PRIMARY KEY CLUSTERED
@@ -1307,4 +1324,187 @@ VALUES
  (7501, '77777777-7777-7777-7777-777777777777', 'VAR. SEMESTRALE', 2026, 7, 0,
   'prod-pn', 'TD01', '2026-07-01', 'IT-7501', 2440.00, 'EUR', 'MP5', 7501, 'TOKEN-E7');
 SET IDENTITY_INSERT pfd.FattureTestata OFF;
+GO
+
+-- ---------------------------------------------------------------------------------------------
+-- pfd.RiepilogoFatturazione_NPF (DDL reale, estratta dal DB il 22/09/2026)
+--
+-- Serve al flusso delle REL SOSPESE: RelTestataSospesaSQLBuilder la mette in INNER JOIN con
+-- pfd.tmpRelTestata, quindi senza questa tabella la query fallisce con una SqlException PRIMA di
+-- poter restituire zero righe -- e non e' esercitabile nemmeno il ramo "nessuna REL sospesa", che e'
+-- il caso corretto da PF-882 (v. docs/pipeline-dati-send.md).
+--
+-- Volutamente SENZA righe: i test dell'area sono tutti su periodi vuoti, e delle righe qui
+-- cambierebbero l'esito delle fixture che leggono i flag di sospensione per ente/periodo.
+-- Nota: la PK non e' stata estratta insieme alle colonne; se un test un domani dipendesse
+-- dall'unicita' (ente/anno/mese/tipologia), va chiesta e aggiunta.
+-- ---------------------------------------------------------------------------------------------
+IF OBJECT_ID('pfd.RiepilogoFatturazione_NPF', 'U') IS NULL
+CREATE TABLE [pfd].[RiepilogoFatturazione_NPF](
+    [FkIdEnte] [nvarchar](100) NOT NULL,
+    [AnnoRiferimento] [int] NOT NULL,
+    [MeseRiferimento] [int] NOT NULL,
+    [TipologiaContratto] [nvarchar](3) NOT NULL,
+    [Anticipo] [decimal](18, 2) NULL,
+    [AnticipoSospeso] [bit] NULL CONSTRAINT [DF_RiepilogoFatturazione_NPF_AnticipoSospeso] DEFAULT ((0)),
+    [Acconto] [decimal](18, 2) NULL,
+    [AccontoSospeso] [bit] NULL CONSTRAINT [DF_RiepilogoFatturazione_NPF_AccontoSospeso] DEFAULT ((0)),
+    [PrimoSaldo] [decimal](18, 2) NULL,
+    [PrimoSaldoSospeso] [bit] NULL CONSTRAINT [DF_RiepilogoFatturazione_NPF_PrimoSaldoSospeso] DEFAULT ((0)),
+    [SecondoSaldo] [decimal](18, 2) NULL,
+    [SecondoSaldoSospeso] [bit] NULL CONSTRAINT [DF_RiepilogoFatturazione_NPF_SecondoSaldoSospeso] DEFAULT ((0))
+);
+GO
+
+-- ---------------------------------------------------------------------------------------------
+-- pfd.tmpRelRighe (DDL reale, estratta dal DB il 22/09/2026 -- colonne, tipi, nullabilita' e PK)
+--
+-- E' la gemella "in staging" di pfd.RelRighe, letta da RelRigheSospeseQueryGetById e quindi da
+-- CreateRelSospese. Due differenze rispetto alla definitiva, entrambe da conoscere:
+--   - la PK e' su event_id DA SOLO (unica a livello di tabella): lo stesso evento non puo' comparire
+--     due volte, nemmeno su periodi o tipologie diverse. Vincola quindi come si costruisce un seed;
+--   - NON ha le colonne AnnoNotifica/MeseNotifica: la modifica PF-882 sul flusso ordinario (mostrare
+--     il periodo della notifica al posto di quello della REL) NON e' portabile qui cosi' com'e'.
+-- L'indice di copertura IX_tmpRelRighe_FactSearch non e' riprodotto: non e' unico, quindi non
+-- vincola i dati e non cambia cosa un test puo' dimostrare.
+-- ---------------------------------------------------------------------------------------------
+IF OBJECT_ID('pfd.tmpRelRighe', 'U') IS NULL
+CREATE TABLE [pfd].[tmpRelRighe](
+	[contract_id] [nvarchar](200) NOT NULL,
+	[tax_code] [nvarchar](50) NOT NULL,
+	[vat_number] [nvarchar](50) NOT NULL,
+	[zip_code] [nvarchar](100) NULL,
+	[foreign_state] [nvarchar](100) NULL,
+	[number_of_pages] [int] NULL,
+	[g_envelope_weight] [nvarchar](100) NULL,
+	[cost] [decimal](9, 2) NULL,
+	[timeline_category] [nvarchar](max) NULL,
+	[paper_product_type] [nvarchar](100) NULL,
+	[event_id] [nvarchar](200) NOT NULL,
+	[iun] [nvarchar](50) NULL,
+	[notification_sent_at] [nvarchar](max) NULL,
+	[internal_organization_id] [nvarchar](50) NULL,
+	[event_timestamp] [nvarchar](max) NULL,
+	[recipient_index] [nvarchar](100) NULL,
+	[recipient_type] [nvarchar](10) NULL,
+	[recipient_id] [nvarchar](50) NULL,
+	[year] [int] NULL,
+	[month] [int] NULL,
+	[daily] [nvarchar](max) NULL,
+	[item_code] [nvarchar](max) NOT NULL,
+	[notification_request_id] [nvarchar](max) NOT NULL,
+	[recipient_tax_id] [nvarchar](max) NOT NULL,
+	[notificationtype] [nvarchar](20) NULL,
+	[Recapitista] [nvarchar](50) NULL,
+	[invoincingtimestamp] [nvarchar](max) NULL,
+	[TipologiaFattura] [nvarchar](20) NOT NULL,
+	[IdFlagContestazione] [tinyint] NOT NULL,
+	[FlagConguaglio] [nvarchar](25) NULL,
+ CONSTRAINT [PK_tmpRelRighe] PRIMARY KEY CLUSTERED ([event_id] ASC)
+);
+GO
+
+-- Periodo dedicato alle REL SOSPESE: ente1 / TOKEN-E1, anno 2030, volutamente lontano da tutti gli
+-- altri periodi del seed e dai calendari. Dati interamente SINTETICI: in produzione questa tabella
+-- contiene IUN, codici fiscali e identificativi di destinatari reali, e questo file vive in un
+-- repository pubblico.
+--
+-- Le righe rendono osservabile il ramo del periodo, che nel flusso SOSPESE resta quello TESTUALE
+-- (contains "var"/"semestrale"/"annuale") -- divergenza voluta rispetto al flusso ordinario,
+-- chiarita il 22/09/2026, v. docs/pipeline-dati-send.md:
+--   - SECONDO SALDO: due mesi diversi con lo STESSO FlagConguaglio -> chiedendo aprile esce solo aprile;
+--   - VAR. ANNUALE:  identica forma -> chiedendo aprile escono ENTRAMBI (ramo semestre). E' l'opposto
+--     del flusso ordinario, dove dal 14/09/2026 VAR. ANNUALE filtra per anno/mese;
+--   - PRIMO SALDO + ASSEVERAZIONE nello stesso periodo -> escono insieme (OR esplicito).
+--
+-- Le testate servono: l'handler legge da tmpRelTestata il FlagConguaglio con FirstOrDefault()! e
+-- senza la riga corrispondente solleva NullReferenceException (stesso difetto del flusso ordinario).
+IF NOT EXISTS (SELECT 1 FROM pfd.tmpRelTestata WHERE [year] = 2030 AND [month] = 4)
+INSERT INTO pfd.tmpRelTestata
+ (internal_organization_id, contract_id, TipologiaFattura, [year], [month],
+  TotaleAnalogico, TotaleDigitale, TotaleNotificheAnalogiche, TotaleNotificheDigitali, Totale,
+  TotaleAnalogicoIva, TotaleDigitaleIva, TotaleIva, Caricata, RelFatturata, FlagConguaglio)
+VALUES
+ -- il FlagConguaglio c'e' anche sul SECONDO SALDO: serve a provare che viene IGNORATO
+ ('11111111-1111-1111-1111-111111111111', 'TOKEN-E1', 'SECONDO SALDO', 2030, 4,
+  10.00, 5.00, 1, 1, 15.00, 12.20, 6.10, 18.30, 0, 0, '2030-S1'),
+ ('11111111-1111-1111-1111-111111111111', 'TOKEN-E1', 'PRIMO SALDO', 2030, 4,
+  10.00, 5.00, 1, 1, 15.00, 12.20, 6.10, 18.30, 0, 0, NULL),
+ ('11111111-1111-1111-1111-111111111111', 'TOKEN-E1', 'VAR. ANNUALE', 2030, 4,
+  10.00, 5.00, 1, 1, 15.00, 12.20, 6.10, 18.30, 0, 0, '2030-S1');
+GO
+
+IF NOT EXISTS (SELECT 1 FROM pfd.tmpRelRighe WHERE event_id = 'SOSP-SD-APR')
+INSERT INTO pfd.tmpRelRighe
+ (contract_id, tax_code, vat_number, zip_code, foreign_state, number_of_pages, g_envelope_weight,
+  cost, timeline_category, paper_product_type, event_id, iun, notification_sent_at,
+  internal_organization_id, event_timestamp, recipient_index, recipient_type, recipient_id,
+  [year], [month], daily, item_code, notification_request_id, recipient_tax_id, notificationtype,
+  Recapitista, invoincingtimestamp, TipologiaFattura, IdFlagContestazione, FlagConguaglio)
+VALUES
+ ('TOKEN-E1','CF-TEST-0001','PI-TEST-0001','00100','ND',2,'20',1.50,'SEND_ANALOG_DOMESTIC','AR',
+  'SOSP-SD-APR','IUN-SOSP-0001','2030-04-02','11111111-1111-1111-1111-111111111111','2030-04-03',
+  '0','PF','REC-TEST-0001',2030,4,'20300403','ITEM-01','REQ-0001','CFDEST-0001','AnalogicoARNazionali',
+  'Recapitista Test',NULL,'SECONDO SALDO',1,'2030-S1'),
+ ('TOKEN-E1','CF-TEST-0002','PI-TEST-0002','00100','ND',1,'20',1.20,'SEND_DIGITAL_DOMESTIC',NULL,
+  'SOSP-SD-MAG','IUN-SOSP-0002','2030-05-02','11111111-1111-1111-1111-111111111111','2030-05-03',
+  '0','PF','REC-TEST-0002',2030,5,'20300503','ITEM-02','REQ-0002','CFDEST-0002','Digitali',
+  NULL,NULL,'SECONDO SALDO',1,'2030-S1'),
+ ('TOKEN-E1','CF-TEST-0003','PI-TEST-0003','00100','ND',1,'20',1.00,'SEND_DIGITAL_DOMESTIC',NULL,
+  'SOSP-PS-APR','IUN-SOSP-0003','2030-04-04','11111111-1111-1111-1111-111111111111','2030-04-05',
+  '0','PF','REC-TEST-0003',2030,4,'20300405','ITEM-03','REQ-0003','CFDEST-0003','Digitali',
+  NULL,NULL,'PRIMO SALDO',1,NULL),
+ ('TOKEN-E1','CF-TEST-0004','PI-TEST-0004','00100','ND',1,'20',1.00,'SEND_DIGITAL_DOMESTIC',NULL,
+  'SOSP-ASS-APR','IUN-SOSP-0004','2030-04-06','11111111-1111-1111-1111-111111111111','2030-04-07',
+  '0','PF','REC-TEST-0004',2030,4,'20300407','ITEM-04','REQ-0004','CFDEST-0004','Digitali',
+  NULL,NULL,'ASSEVERAZIONE',1,NULL),
+ ('TOKEN-E1','CF-TEST-0005','PI-TEST-0005','00100','ND',1,'20',1.00,'SEND_DIGITAL_DOMESTIC',NULL,
+  'SOSP-VA-APR','IUN-SOSP-0005','2030-04-08','11111111-1111-1111-1111-111111111111','2030-04-09',
+  '0','PF','REC-TEST-0005',2030,4,'20300409','ITEM-05','REQ-0005','CFDEST-0005','Digitali',
+  NULL,NULL,'VAR. ANNUALE',1,'2030-S1'),
+ ('TOKEN-E1','CF-TEST-0006','PI-TEST-0006','00100','ND',1,'20',1.00,'SEND_DIGITAL_DOMESTIC',NULL,
+  'SOSP-VA-MAG','IUN-SOSP-0006','2030-05-08','11111111-1111-1111-1111-111111111111','2030-05-09',
+  '0','PF','REC-TEST-0006',2030,5,'20300509','ITEM-06','REQ-0006','CFDEST-0006','Digitali',
+  NULL,NULL,'VAR. ANNUALE',1,'2030-S1');
+GO
+
+-- Riga di riepilogo per il periodo delle REL sospese (2030/4, ente1).
+-- NON e' decorativa: RelTestataSospesaSQLBuilder.SelectAll() parte DA questa tabella e filtra
+-- WHERE rf.PrimoSaldoSospeso = 1, quindi una testata sospesa e' visibile solo se l'ente ha il PRIMO
+-- SALDO sospeso in quel periodo -- anche quando la REL che si sta leggendo e' di un'altra tipologia.
+-- Senza questa riga l'handler non trova la testata e cade in NullReferenceException su
+-- FirstOrDefault()!, che e' il difetto gemello di quello del flusso ordinario.
+IF NOT EXISTS (SELECT 1 FROM pfd.RiepilogoFatturazione_NPF WHERE AnnoRiferimento = 2030)
+INSERT INTO pfd.RiepilogoFatturazione_NPF
+ (FkIdEnte, AnnoRiferimento, MeseRiferimento, TipologiaContratto,
+  Anticipo, AnticipoSospeso, Acconto, AccontoSospeso,
+  PrimoSaldo, PrimoSaldoSospeso, SecondoSaldo, SecondoSaldoSospeso)
+VALUES
+ ('11111111-1111-1111-1111-111111111111', 2030, 4, 'PAC',
+  NULL, 0, NULL, 0, 15.00, 1, NULL, 0);
+GO
+
+-- Testata + riepilogo anche per 2030/5 (VAR. ANNUALE), con lo stesso FlagConguaglio di aprile.
+-- Servono a poter chiedere la STESSA rel semestrale da un mese diverso: sul ramo semestre anno e mese
+-- non filtrano le righe, ma selezionano comunque la TESTATA da cui si legge il flag -- quindi senza
+-- la testata di maggio si otterrebbe una NullReferenceException invece della prova che il mese e'
+-- ininfluente. E' lo stesso motivo per cui il flusso ordinario ha due testate VAR. SEMESTRALE.
+IF NOT EXISTS (SELECT 1 FROM pfd.tmpRelTestata WHERE [year] = 2030 AND [month] = 5)
+INSERT INTO pfd.tmpRelTestata
+ (internal_organization_id, contract_id, TipologiaFattura, [year], [month],
+  TotaleAnalogico, TotaleDigitale, TotaleNotificheAnalogiche, TotaleNotificheDigitali, Totale,
+  TotaleAnalogicoIva, TotaleDigitaleIva, TotaleIva, Caricata, RelFatturata, FlagConguaglio)
+VALUES
+ ('11111111-1111-1111-1111-111111111111', 'TOKEN-E1', 'VAR. ANNUALE', 2030, 5,
+  10.00, 5.00, 1, 1, 15.00, 12.20, 6.10, 18.30, 0, 0, '2030-S1');
+GO
+
+IF NOT EXISTS (SELECT 1 FROM pfd.RiepilogoFatturazione_NPF WHERE AnnoRiferimento = 2030 AND MeseRiferimento = 5)
+INSERT INTO pfd.RiepilogoFatturazione_NPF
+ (FkIdEnte, AnnoRiferimento, MeseRiferimento, TipologiaContratto,
+  Anticipo, AnticipoSospeso, Acconto, AccontoSospeso,
+  PrimoSaldo, PrimoSaldoSospeso, SecondoSaldo, SecondoSaldoSospeso)
+VALUES
+ ('11111111-1111-1111-1111-111111111111', 2030, 5, 'PAC',
+  NULL, 0, NULL, 0, 15.00, 1, NULL, 0);
 GO
