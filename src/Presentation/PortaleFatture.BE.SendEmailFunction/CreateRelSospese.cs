@@ -33,7 +33,12 @@ public class CreateRelSospese(ILoggerFactory loggerFactory)
     {
         var idTestata = RelTestataKey.Deserialize(sidtestata);
         var storageSharedKeyCredential = new StorageSharedKeyCredential(storageAccountName, storageAccountKey);
-        var blobServiceClient = new BlobServiceClient(new Uri($"https://{storageAccountName}.blob.core.windows.net"), storageSharedKeyCredential);
+
+        // Stesso endpoint (e stesso override) della gemella CreateRelRighe: in produzione
+        // StorageRELBlobEndpoint non e' impostata e vale il default pubblico dell'account; nei test
+        // end-to-end punta all'emulatore, altrimenti l'upload morirebbe sul DNS.
+        var serviceUri = CreateRelRighe.ResolveBlobServiceUri(storageAccountName, GetEnvironmentVariable("StorageRELBlobEndpoint"));
+        var blobServiceClient = new BlobServiceClient(serviceUri, storageSharedKeyCredential);
         var containerClient = blobServiceClient.GetBlobContainerClient(blobContainerName);
         try
         {
