@@ -142,8 +142,9 @@ public class CreateRelSospese(ILoggerFactory loggerFactory)
             }
             else
             {
-                risposta.Error += "Non ci sono rel sospese per l'anno, mese e tipologia specificate";
-                throw new DomainException(risposta.Serialize());
+                risposta.Count = 0;
+                risposta.Error = "Non ci sono rel sospese per l'anno, mese e tipologia specificate";
+                _logger.LogWarning(risposta.Serialize());
             }
         }
         catch (Exception ex)
