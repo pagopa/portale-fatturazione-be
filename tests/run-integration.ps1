@@ -30,6 +30,12 @@
     Ricostruisce il container da zero (docker compose down -v && up --build). DISTRUTTIVO: cancella
     il volume e con esso i dati. Serve dopo aver modificato gli script di tests/Data/.
 
+.PARAMETER Function
+    Alza anche il profilo "function": la SendEmailFunction containerizzata + Azurite, su cui girano i
+    test end-to-end che passano dal webhook HTTP e dal polling dell'orchestrazione
+    (CreateRelRigheFunctionHostIntegrationTests). Senza questo switch quei test si auto-ignorano.
+    ATTENZIONE: la prima volta costruisce un'immagine da ~2,5 GB, quindi non e' un giro veloce.
+
 .PARAMETER Stop
     Ferma il container alla fine (senza -v: i dati restano).
 
@@ -46,6 +52,7 @@
 param(
     [string]$Filter,
     [switch]$Rebuild,
+    [switch]$Function,
     [switch]$Stop,
     [int]$TimeoutSeconds = 300
 )
@@ -124,6 +131,44 @@ try {
         Start-Sleep -Seconds 3
     }
 
+    # --- 3-bis. Profilo "function" ------------------------------------------------------------
+    # La function ha bisogno del DB gia' pronto (legge CONNECTION_STRING all'esecuzione) e di
+    # Azurite, senza il quale i listener Durable non partono affatto.
+    if ($Function) {
+        Write-Host "[run-integration] Avvio Azurite e la SendEmailFunction containerizzata..." -ForegroundColor Yellow
+        # SEMPRE --build: l'immagine deve seguire il sorgente, altrimenti i test end-to-end
+        # verificherebbero il binario del giro precedente e sarebbero un falso verde. La cache dei
+        # layer rende il rebuild incrementale, e qui NON si tocca il volume del DB (quello lo
+        # cancella solo -Rebuild, che agisce sul profilo di default).
+        docker compose --profile function up -d --build | Out-Null
+        if ($LASTEXITCODE -ne 0) { Fallisci "Avvio del profilo 'function' fallito." }
+
+        # La sonda e' l'handler chiamato senza parametri: risponde 400 per costruzione, quindi dice
+        # in un colpo solo che l'host e' su E che la function e' stata indicizzata (un problema di
+        # indicizzazione darebbe 404). Un "connection refused" significa che sta ancora salendo.
+        $urlSonda = "http://localhost:8080/api/CreateRelRigheHandler"
+        Write-Host "[run-integration] Attendo la function su $urlSonda..." -NoNewline
+        $scadutoFn = (Get-Date).AddSeconds($TimeoutSeconds)
+        while ($true) {
+            $codice = 0
+            try { $codice = (Invoke-WebRequest -Uri $urlSonda -TimeoutSec 5 -SkipHttpErrorCheck).StatusCode } catch { }
+
+            if ($codice -eq 400) { Write-Host " pronta." -ForegroundColor Green; break }
+            if ($codice -eq 404) {
+                Write-Host ""
+                docker logs --tail 30 portalefatture_sendemail
+                Fallisci "L'host risponde ma la function non e' indicizzata (404). I test non sono stati eseguiti."
+            }
+            if ((Get-Date) -gt $scadutoFn) {
+                Write-Host ""
+                docker logs --tail 30 portalefatture_sendemail
+                Fallisci "Function host non pronto entro $TimeoutSeconds s. I test non sono stati eseguiti."
+            }
+            Write-Host "." -NoNewline
+            Start-Sleep -Seconds 3
+        }
+    }
+
     # --- 4. Test ------------------------------------------------------------------------------
     $argomenti = @("test", $progetto, "-nodeReuse:false")
     if ($Filter) { $argomenti += @("--filter", $Filter) }
@@ -142,8 +187,9 @@ try {
     }
 
     if ($Stop) {
-        Write-Host "[run-integration] Fermo il container (i dati restano)." -ForegroundColor Yellow
-        docker compose stop | Out-Null
+        Write-Host "[run-integration] Fermo i container (i dati restano)." -ForegroundColor Yellow
+        # --profile function e' necessario anche per FERMARLI: senza, compose non li considera.
+        docker compose --profile function stop | Out-Null
     }
 
     exit $esito
