@@ -1,0 +1,204 @@
+# TODO: currently disabled
+
+name: "Hotfix - Publish & Deploy"
+
+permissions: {}
+
+on:
+  workflow_dispatch:
+    inputs:
+      ignore_appservice:
+        description: "Skip the appservice component"
+        type: boolean
+        default: false
+      ignore_function_api:
+        description: "Skip the function-api component"
+        type: boolean
+        default: false
+      ignore_function_integration:
+        description: "Skip the function-integration component"
+        type: boolean
+        default: false
+      deploy_dev:
+        description: "Deploy to the dev environment"
+        type: boolean
+        default: false
+      deploy_uat:
+        description: "Deploy to the uat environment"
+        type: boolean
+        default: false
+
+concurrency:
+  group: version-promote
+  cancel-in-progress: false
+
+jobs:
+  scope:
+    name: Resolve components
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    outputs:
+      components: ${{ steps.select.outputs.components }}
+      matrix: ${{ steps.select.outputs.matrix }}
+    steps:
+      - name: Guard - hotfix runs only from a maintenance branch
+        shell: bash
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          if [[ ! "${REF_NAME}" =~ ^[0-9]+(\.[0-9]+)?\.x$ ]]; then
+            echo "::error::hotfix workflow must run from a maintenance branch (e.g. 1.4.x). Got: ${REF_NAME}"
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Build excluded component list
+        id: excluded
+        shell: bash
+        env:
+          IGNORE_APPSERVICE: ${{ inputs.ignore_appservice }}
+          IGNORE_FUNCTION_API: ${{ inputs.ignore_function_api }}
+          IGNORE_FUNCTION_INTEGRATION: ${{ inputs.ignore_function_integration }}
+        run: |
+          excluded=()
+          [ "${IGNORE_APPSERVICE}" = "true" ] && excluded+=("appservice")
+          [ "${IGNORE_FUNCTION_API}" = "true" ] && excluded+=("function-api")
+          [ "${IGNORE_FUNCTION_INTEGRATION}" = "true" ] && excluded+=("function-integration")
+          json="$(printf '%s\n' "${excluded[@]}" | jq -R . | jq -cs 'map(select(length > 0))')"
+          echo "json=${json}" >> "$GITHUB_OUTPUT"
+
+      - name: Select components
+        id: select
+        uses: ./.github/actions/select-components
+        with:
+          excluded-components: ${{ steps.excluded.outputs.json }}
+
+  version:
+    name: Compute version
+    needs: scope
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: read
+    outputs:
+      new_tag: ${{ steps.version.outputs.new_tag }}
+      commit_sha: ${{ github.sha }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Compute version
+        id: version
+        uses: ./.github/actions/compute-version
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  build:
+    name: Build ${{ matrix.component }}
+    needs: [scope, version]
+    runs-on: ubuntu-24.04
+    permissions:
+      packages: write
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.scope.outputs.matrix) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Prepare image coordinates
+        id: cfg
+        shell: bash
+        env:
+          SUFFIX: ${{ matrix.suffix }}
+          REPOSITORY: ${{ github.repository }}
+          NEW_TAG: ${{ needs.version.outputs.new_tag }}
+          COMMIT_SHA: ${{ needs.version.outputs.commit_sha }}
+        run: |
+          repo="$(echo "ghcr.io/${REPOSITORY}${SUFFIX}" | tr '[:upper:]' '[:lower:]')"
+          echo "sha_image=${repo}:sha-${COMMIT_SHA}" >> "$GITHUB_OUTPUT"
+          echo "release_image=${repo}:${NEW_TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Login to GHCR
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
+
+      - name: Build & push (sha + semantic tag)
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          platforms: linux/amd64
+          push: true
+          cache-from: type=gha,scope=${{ matrix.component }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.component }}
+          tags: |
+            ${{ steps.cfg.outputs.sha_image }}
+            ${{ steps.cfg.outputs.release_image }}
+
+  deploy-dev:
+    name: '[dev] Deploy'
+    if: ${{ !failure() && !cancelled() && inputs.deploy_dev }}
+    needs: [scope, version, build]
+    uses: ./.github/workflows/_deploy.yml
+    permissions:
+      id-token: write
+      packages: read
+      contents: read
+    with:
+      release_tag: ${{ needs.version.outputs.new_tag }}
+      components: ${{ needs.scope.outputs.components }}
+      environment: dev
+    secrets:
+      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+
+  deploy-uat:
+    name: '[uat] Deploy'
+    if: ${{ !failure() && !cancelled() && inputs.deploy_uat }}
+    needs: [scope, version, deploy-dev]
+    uses: ./.github/workflows/_deploy.yml
+    permissions:
+      id-token: write
+      packages: read
+      contents: read
+    with:
+      release_tag: ${{ needs.version.outputs.new_tag }}
+      components: ${{ needs.scope.outputs.components }}
+      environment: uat
+    secrets:
+      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+
+  deploy-prod:
+    name: '[prod] Deploy'
+    if: ${{ !failure() && !cancelled() }}
+    needs: [scope, version, deploy-uat]
+    uses: ./.github/workflows/_deploy.yml
+    permissions:
+      id-token: write
+      packages: read
+      contents: read
+    with:
+      release_tag: ${{ needs.version.outputs.new_tag }}
+      components: ${{ needs.scope.outputs.components }}
+      environment: prod
+    secrets:
+      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}

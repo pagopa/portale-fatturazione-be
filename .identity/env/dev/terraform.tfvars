@@ -1,15 +1,15 @@
 #
 # general
 #
-env_short      = "p"
-env            = "prod"
+env_short      = "d"
+env            = "dev"
 prefix         = "fat"
 location       = "italynorth"
 location_short = "itn"
 
 tags = {
   CreatedBy   = "Terraform"
-  Environment = "PROD"
+  Environment = "DEV"
   Owner       = "PagoPA ICT"
   Source      = "https://github.com/pagopa/portale-fatturazione-be"
   CostCenter  = "TS230 - PagoPA ICT"
@@ -21,17 +21,15 @@ tags = {
 github = {
   org         = "pagopa"
   repository  = "portale-fatturazione-be"
-  environment = "prod"
+  environment = "dev"
 }
 
 deployments = {
-  review_required = true
-  reviewer_teams  = ["portalefatturazione-admin", "portalefatturazione-release-approvers"]
-  reviewer_users  = ["mg-dgsspa"]
+  review_required = false
 }
 
 #
 # azure
 #
-identity_resource_group_name = "fat-p-identity-rg"
-app_resource_group_name      = "fat-p-app-rg"
+identity_resource_group_name = "fat-d-identity-rg"
+app_resource_group_name      = "fat-d-app-rg"

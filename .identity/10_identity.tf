@@ -24,6 +24,19 @@ resource "azurerm_role_assignment" "app_cd_app_contributor" {
   principal_id         = azurerm_user_assigned_identity.app_cd.principal_id
 }
 
+# make the cd identity contributor of the function apps
+resource "azurerm_role_assignment" "app_cd_function_api_contributor" {
+  scope                = data.azurerm_linux_function_app.function_api.id
+  role_definition_name = "Contributor"
+  principal_id         = azurerm_user_assigned_identity.app_cd.principal_id
+}
+
+resource "azurerm_role_assignment" "app_cd_function_integration_contributor" {
+  scope                = data.azurerm_linux_function_app.function_integration.id
+  role_definition_name = "Contributor"
+  principal_id         = azurerm_user_assigned_identity.app_cd.principal_id
+}
+
 # add the federated credentials for allowing github to login as the managed identity in target env
 resource "azurerm_federated_identity_credential" "environment" {
   parent_id           = azurerm_user_assigned_identity.app_cd.id

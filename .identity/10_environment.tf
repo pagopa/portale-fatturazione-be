@@ -49,7 +49,7 @@ resource "github_actions_environment_secret" "arm_client_id" {
   plaintext_value = azurerm_user_assigned_identity.app_cd.client_id
 }
 
-# variables for targeting the app service
+# variables for targeting deploy resources
 
 resource "github_actions_environment_variable" "resource_group_name" {
   repository    = var.github.repository
@@ -58,9 +58,9 @@ resource "github_actions_environment_variable" "resource_group_name" {
   value         = var.app_resource_group_name
 }
 
-resource "github_actions_environment_variable" "app_name" {
+resource "github_actions_environment_variable" "app_name_prefix" {
   repository    = var.github.repository
   environment   = github_repository_environment.env.environment
-  variable_name = "APP_NAME"
-  value         = var.app_name
+  variable_name = "APP_NAME_PREFIX"
+  value         = local.project
 }

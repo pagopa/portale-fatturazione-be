@@ -1,7 +1,18 @@
 
 # the app service to deploy
 data "azurerm_linux_web_app" "app" {
-  name                = var.app_name
+  name                = "${local.project}-app-api"
+  resource_group_name = var.app_resource_group_name
+}
+
+# the function apps to deploy
+data "azurerm_linux_function_app" "function_api" {
+  name                = "${local.project}-api-func"
+  resource_group_name = var.app_resource_group_name
+}
+
+data "azurerm_linux_function_app" "function_integration" {
+  name                = "${local.project}-integration-func"
   resource_group_name = var.app_resource_group_name
 }
 
