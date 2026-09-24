@@ -3,6 +3,7 @@ name: "Build & Deploy DEV"
 permissions: {}
 
 on:
+  workflow_dispatch:  # TODO temp
   push:
     branches:
       - main
