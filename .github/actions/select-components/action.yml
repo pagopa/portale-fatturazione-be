@@ -65,7 +65,12 @@ runs:
         selected="$(
           jq -c '
             .components
-            | map(select((env.EXCLUDED_COMPONENTS | fromjson | index(.component)) == null))
+            | map(
+                select(
+                  .component as $name
+                  | (env.EXCLUDED_COMPONENTS | fromjson | index($name)) == null
+                )
+              )
             | if env.SELECTED_COMPONENTS == "" then
                 .
               else
