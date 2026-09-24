@@ -2,7 +2,7 @@
   "components": [
     {
       "component": "backend",
-      "suffix": "",
+      "suffix": "-be",
       "app_name_suffix": "-app-api",
       "dockerfile": "src/Presentation/PortaleFatture.BE.Api/Dockerfile"
     },
