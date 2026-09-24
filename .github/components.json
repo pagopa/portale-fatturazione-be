@@ -2,19 +2,19 @@
   "components": [
     {
       "component": "backend",
-      "suffix": "-be",
+      "image_repo": "ghcr.io/pagopa/portale-fatturazione-be",
       "app_name_suffix": "-app-api",
       "dockerfile": "src/Presentation/PortaleFatture.BE.Api/Dockerfile"
     },
     {
       "component": "api-func",
-      "suffix": "-apifunc",
+      "image_repo": "ghcr.io/pagopa/portale-fatturazione-apifunc",
       "app_name_suffix": "-api-func",
       "dockerfile": "src/Presentation/PortaleFatture.BE.SendEmailFunction/Dockerfile"
     },
     {
       "component": "integration-func",
-      "suffix": "-integration",
+      "image_repo": "ghcr.io/pagopa/portale-fatturazione-integration",
       "app_name_suffix": "-integration-func",
       "dockerfile": "src/Presentation/PortaleFatture.BE.Function.API/Dockerfile"
     }
