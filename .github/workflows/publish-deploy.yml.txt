@@ -112,14 +112,12 @@ jobs:
         id: prep
         shell: bash
         env:
-          SUFFIX:     ${{ matrix.suffix }}
+          IMAGE_REPO: ${{ matrix.image_repo }}
           COMMIT_SHA: ${{ needs.version.outputs.commit_sha }}
           NEW_TAG:    ${{ needs.version.outputs.new_tag }}
-          REPOSITORY: ${{ github.repository }}
         run: |
-          image_repo="$(echo "ghcr.io/${REPOSITORY}${SUFFIX}" | tr '[:upper:]' '[:lower:]')"
-          echo "sha_image=${image_repo}:sha-${COMMIT_SHA}"   >> "$GITHUB_OUTPUT"
-          echo "release_image=${image_repo}:${NEW_TAG}"      >> "$GITHUB_OUTPUT"
+          echo "sha_image=${IMAGE_REPO}:sha-${COMMIT_SHA}"   >> "$GITHUB_OUTPUT"
+          echo "release_image=${IMAGE_REPO}:${NEW_TAG}"      >> "$GITHUB_OUTPUT"
 
       - name: Login to GHCR
         uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0

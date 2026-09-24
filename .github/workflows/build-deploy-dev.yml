@@ -3,6 +3,7 @@ name: "Build & Deploy DEV"
 permissions: {}
 
 on:
+  workflow_dispatch:  # TODO temp
   push:
     branches:
       - main
@@ -49,12 +50,10 @@ jobs:
         id: cfg
         shell: bash
         env:
-          REPOSITORY: ${{ github.repository }}
-          SUFFIX: ${{ matrix.suffix }}
+          IMAGE_REPO: ${{ matrix.image_repo }}
         run: |
-          image_repo="$(echo "ghcr.io/${REPOSITORY}${SUFFIX}" | tr '[:upper:]' '[:lower:]')"
-          echo "sha_image=${image_repo}:sha-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
-          echo "latest_image=${image_repo}:latest" >> "$GITHUB_OUTPUT"
+          echo "sha_image=${IMAGE_REPO}:sha-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          echo "latest_image=${IMAGE_REPO}:latest" >> "$GITHUB_OUTPUT"
 
       - name: Login to GHCR
         uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
@@ -95,11 +94,9 @@ jobs:
         id: prep
         shell: bash
         env:
-          REPOSITORY: ${{ github.repository }}
-          SUFFIX: ${{ matrix.suffix }}
+          IMAGE_REPO: ${{ matrix.image_repo }}
         run: |
-          image_repo="$(echo "ghcr.io/${REPOSITORY}${SUFFIX}" | tr '[:upper:]' '[:lower:]')"
-          echo "sha_image=${image_repo}:sha-${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          echo "sha_image=${IMAGE_REPO}:sha-${{ github.sha }}" >> "$GITHUB_OUTPUT"
 
       - name: Deploy
         uses: pagopa/ict-github-actions/appservice-deploy@f605e3ee20b04e624386991032552d8cb722508c # v5.2.3
