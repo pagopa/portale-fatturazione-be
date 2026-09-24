@@ -32,6 +32,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Infrastructure\PortaleFatture.BE.Infrastructure\PortaleFatture.BE.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Presentation\PortaleFatture.BE.Api\PortaleFatture.BE.Api.csproj" />
+    <!-- Serve a CreateRelRigheAttivitaIntegrationTests: l'activity vera, non una sua ricostruzione. -->
+    <ProjectReference Include="..\..\src\Presentation\PortaleFatture.BE.SendEmailFunction\PortaleFatture_BE_SendEmailFunction.csproj" />
   </ItemGroup>
 
   <ItemGroup>

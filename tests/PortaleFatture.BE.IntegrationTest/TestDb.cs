@@ -32,4 +32,36 @@ public static class TestDb
               + "(da tests/: docker compose up -d --build). Dettaglio: " + e.Message);
         }
     }
+
+    /// <summary>
+    /// Stessa filosofia, un gradino piu' in la': il DB c'e' ma il **seed non copre** un oggetto che
+    /// la query sotto test attraversa. Senza questa guardia il test sarebbe rosso per una lacuna del
+    /// seed e non per un difetto del prodotto — il rosso piu' fuorviante che ci sia, perche' la stack
+    /// trace mostra codice di produzione.
+    ///
+    /// Il seed e' scritto a mano e va indietro rispetto al DB reale (v.
+    /// `docs/test-integrazione-db-seedato.md`): quando manca qualcosa la strada e' chiedere la **DDL
+    /// reale** e aggiungerla, non dedurla. Fino ad allora il test resta giallo con scritto cosa serve,
+    /// e diventa verde da solo il giorno in cui l'oggetto entra nel seed.
+    /// </summary>
+    public static void SkipSeOggettoAssente(string? connectionString, params string[] oggetti)
+    {
+        SkipIfUnavailable(connectionString);
+
+        using var conn = new SqlConnection(connectionString);
+        conn.Open();
+
+        foreach (var oggetto in oggetti)
+        {
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT OBJECT_ID(@nome)";
+            cmd.Parameters.AddWithValue("@nome", oggetto);
+
+            if (cmd.ExecuteScalar() is null or DBNull)
+                Assert.Ignore(
+                    $"L'oggetto '{oggetto}' non e' nel DB seedato: test saltato, non fallito. "
+                  + "Va aggiunto sotto tests/Data/ con la DDL reale, poi "
+                  + "docker compose down -v && docker compose up -d --build.");
+        }
+    }
 }

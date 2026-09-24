@@ -33,7 +33,12 @@ public class CreateRelSospese(ILoggerFactory loggerFactory)
     {
         var idTestata = RelTestataKey.Deserialize(sidtestata);
         var storageSharedKeyCredential = new StorageSharedKeyCredential(storageAccountName, storageAccountKey);
-        var blobServiceClient = new BlobServiceClient(new Uri($"https://{storageAccountName}.blob.core.windows.net"), storageSharedKeyCredential);
+
+        // Stesso endpoint (e stesso override) della gemella CreateRelRighe: in produzione
+        // StorageRELBlobEndpoint non e' impostata e vale il default pubblico dell'account; nei test
+        // end-to-end punta all'emulatore, altrimenti l'upload morirebbe sul DNS.
+        var serviceUri = CreateRelRighe.ResolveBlobServiceUri(storageAccountName, GetEnvironmentVariable("StorageRELBlobEndpoint"));
+        var blobServiceClient = new BlobServiceClient(serviceUri, storageSharedKeyCredential);
         var containerClient = blobServiceClient.GetBlobContainerClient(blobContainerName);
         try
         {
@@ -142,8 +147,9 @@ public class CreateRelSospese(ILoggerFactory loggerFactory)
             }
             else
             {
-                risposta.Error += "Non ci sono rel sospese per l'anno, mese e tipologia specificate";
-                throw new DomainException(risposta.Serialize());
+                risposta.Count = 0;
+                risposta.Error = "Non ci sono rel sospese per l'anno, mese e tipologia specificate";
+                _logger.LogWarning(risposta.Serialize());
             }
         }
         catch (Exception ex)
