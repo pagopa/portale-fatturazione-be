@@ -3,9 +3,13 @@ name: "Build & Deploy DEV"
 permissions: {}
 
 on:
+  workflow_dispatch: # TODO temp
   push:
     branches:
       - main
+    paths-ignore:
+      - 'tests/**'
+      - '.identity/**'
 
 concurrency:
   group: ci-deploy-dev-${{ github.ref }}
@@ -76,36 +80,35 @@ jobs:
             ${{ steps.cfg.outputs.sha_image }}
             ${{ steps.cfg.outputs.latest_image }}
 
-  # TODO: decomment to enable deploy dev
-  # deploy-dev:
-  #   name: "[dev] Deploy ${{ matrix.component }}"
-  #   runs-on: ubuntu-24.04
-  #   needs: [scope, build]
-  #   environment: dev
-  #   strategy:
-  #     fail-fast: false
-  #     matrix: ${{ fromJSON(needs.scope.outputs.matrix) }}
-  #   permissions:
-  #     id-token: write
+  deploy-dev:
+    name: "[dev] Deploy ${{ matrix.component }}"
+    runs-on: ubuntu-24.04
+    needs: [scope, build]
+    environment: dev
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.scope.outputs.matrix) }}
+    permissions:
+      id-token: write
 
-  #   steps:
-  #     - name: Prepare image coordinates
-  #       id: prep
-  #       shell: bash
-  #       env:
-  #         REPOSITORY: ${{ github.repository }}
-  #         SUFFIX: ${{ matrix.suffix }}
-  #       run: |
-  #         image_repo="$(echo "ghcr.io/${REPOSITORY}${SUFFIX}" | tr '[:upper:]' '[:lower:]')"
-  #         echo "sha_image=${image_repo}:sha-${{ github.sha }}" >> "$GITHUB_OUTPUT"
+    steps:
+      - name: Prepare image coordinates
+        id: prep
+        shell: bash
+        env:
+          REPOSITORY: ${{ github.repository }}
+          SUFFIX: ${{ matrix.suffix }}
+        run: |
+          image_repo="$(echo "ghcr.io/${REPOSITORY}${SUFFIX}" | tr '[:upper:]' '[:lower:]')"
+          echo "sha_image=${image_repo}:sha-${{ github.sha }}" >> "$GITHUB_OUTPUT"
 
-  #     - name: Deploy
-  #       uses: pagopa/ict-github-actions/appservice-deploy@f605e3ee20b04e624386991032552d8cb722508c # v5.2.3
-  #       with:
-  #         tenant-id:           ${{ secrets.ARM_TENANT_ID }}
-  #         subscription-id:     ${{ secrets.ARM_SUBSCRIPTION_ID }}
-  #         client-id:           ${{ secrets.ARM_CLIENT_ID }}
-  #         resource-group-name: ${{ vars.RESOURCE_GROUP_NAME }}
-  #         app-name:            ${{ vars.APP_NAME_PREFIX }}${{ matrix.app_name_suffix }}
-  #         image:               ${{ steps.prep.outputs.sha_image }}
-  #         direct-deploy-to-prod: true # dev: no staging deployment slot
+      - name: Deploy
+        uses: pagopa/ict-github-actions/appservice-deploy@f605e3ee20b04e624386991032552d8cb722508c # v5.2.3
+        with:
+          tenant-id:           ${{ secrets.ARM_TENANT_ID }}
+          subscription-id:     ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          client-id:           ${{ secrets.ARM_CLIENT_ID }}
+          resource-group-name: ${{ vars.RESOURCE_GROUP_NAME }}
+          app-name:            ${{ vars.APP_NAME_PREFIX }}${{ matrix.app_name_suffix }}
+          image:               ${{ steps.prep.outputs.sha_image }}
+          direct-deploy-to-prod: true # dev: no staging deployment slot
