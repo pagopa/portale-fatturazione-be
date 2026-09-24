@@ -33,4 +33,3 @@ deployments = {
 #
 identity_resource_group_name = "fat-u-identity-rg"
 app_resource_group_name      = "fat-u-app-rg"
-app_name                     = "fat-u-app-api"

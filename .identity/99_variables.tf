@@ -60,14 +60,6 @@ variable "identity_resource_group_name" {
 }
 
 #
-# app
-#
-variable "app_name" {
-  type        = string
-  description = "Name of the existing app service to deploy"
-}
-
-#
 # github
 #
 variable "github" {

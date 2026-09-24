@@ -1,0 +1,177 @@
+# TODO: currently disabled
+
+name: "Publish & Deploy"
+
+permissions: {}
+
+on:
+  workflow_dispatch:
+    inputs:
+      ignore_appservice:
+        description: "Skip the appservice component"
+        type: boolean
+        default: false
+      ignore_function_api:
+        description: "Skip the function-api component"
+        type: boolean
+        default: false
+      ignore_function_integration:
+        description: "Skip the function-integration component"
+        type: boolean
+        default: false
+
+concurrency:
+  group: version-promote
+  cancel-in-progress: false
+
+jobs:
+  scope:
+    name: Resolve components
+    runs-on: ubuntu-24.04
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+    outputs:
+      components: ${{ steps.select.outputs.components }}
+      matrix: ${{ steps.select.outputs.matrix }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Build excluded component list
+        id: excluded
+        shell: bash
+        env:
+          IGNORE_APPSERVICE: ${{ inputs.ignore_appservice }}
+          IGNORE_FUNCTION_API: ${{ inputs.ignore_function_api }}
+          IGNORE_FUNCTION_INTEGRATION: ${{ inputs.ignore_function_integration }}
+        run: |
+          excluded=()
+          [ "${IGNORE_APPSERVICE}" = "true" ] && excluded+=("appservice")
+          [ "${IGNORE_FUNCTION_API}" = "true" ] && excluded+=("function-api")
+          [ "${IGNORE_FUNCTION_INTEGRATION}" = "true" ] && excluded+=("function-integration")
+          json="$(printf '%s\n' "${excluded[@]}" | jq -R . | jq -cs 'map(select(length > 0))')"
+          echo "json=${json}" >> "$GITHUB_OUTPUT"
+
+      - name: Select components
+        id: select
+        uses: ./.github/actions/select-components
+        with:
+          excluded-components: ${{ steps.excluded.outputs.json }}
+
+      - name: Summary
+        env:
+          COMPONENTS: ${{ steps.select.outputs.components }}
+        shell: bash
+        run: |
+          {
+            echo "## 🧩 Selected components"
+            echo ""
+            echo "${COMPONENTS}" | jq -r '.[] | "- `\(.)`"'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  version:
+    name: Compute version
+    runs-on: ubuntu-24.04
+    needs: scope
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: read
+    outputs:
+      new_tag:     ${{ steps.version.outputs.new_tag }}
+      release_url: ${{ steps.version.outputs.release_url }}
+      commit_sha:  ${{ github.sha }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Compute version
+        id: version
+        uses: ./.github/actions/compute-version
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  retag:
+    name: Retag ${{ matrix.component }}
+    runs-on: ubuntu-24.04
+    needs: [version, scope]
+    if: needs.scope.outputs.components != '[]'
+    permissions:
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.scope.outputs.matrix) }}
+
+    steps:
+      - name: Prepare image coordinates
+        id: prep
+        shell: bash
+        env:
+          SUFFIX:     ${{ matrix.suffix }}
+          COMMIT_SHA: ${{ needs.version.outputs.commit_sha }}
+          NEW_TAG:    ${{ needs.version.outputs.new_tag }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          image_repo="$(echo "ghcr.io/${REPOSITORY}${SUFFIX}" | tr '[:upper:]' '[:lower:]')"
+          echo "sha_image=${image_repo}:sha-${COMMIT_SHA}"   >> "$GITHUB_OUTPUT"
+          echo "release_image=${image_repo}:${NEW_TAG}"      >> "$GITHUB_OUTPUT"
+
+      - name: Login to GHCR
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
+
+      - name: Retag (no rebuild)
+        shell: bash
+        env:
+          SHA_IMAGE:     ${{ steps.prep.outputs.sha_image }}
+          RELEASE_IMAGE: ${{ steps.prep.outputs.release_image }}
+        run: |
+          docker buildx imagetools create -t "${RELEASE_IMAGE}" "${SHA_IMAGE}"
+          echo "Tagged ${RELEASE_IMAGE}"
+
+  deploy-uat:
+    name: '[uat] Deploy'
+    needs: [version, scope, retag]
+    if: ${{ !failure() && !cancelled() && needs.scope.outputs.components != '[]' }}
+    uses: ./.github/workflows/_deploy.yml
+    permissions:
+      id-token: write
+      packages: read
+      contents: read
+    with:
+      release_tag: ${{ needs.version.outputs.new_tag }}
+      components:  ${{ needs.scope.outputs.components }}
+      environment: uat
+    secrets:
+      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+
+  deploy-prod:
+    name: '[prod] Deploy'
+    needs: [version, scope, deploy-uat]
+    if: ${{ !failure() && !cancelled() && needs.scope.outputs.components != '[]' }}
+    uses: ./.github/workflows/_deploy.yml
+    permissions:
+      id-token: write
+      packages: read
+      contents: read
+    with:
+      release_tag: ${{ needs.version.outputs.new_tag }}
+      components:  ${{ needs.scope.outputs.components }}
+      environment: prod
+    secrets:
+      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}

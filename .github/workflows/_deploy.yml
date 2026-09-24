@@ -1,0 +1,85 @@
+name: "Reusable – Deploy"
+
+on:
+  workflow_call:
+    inputs:
+      release_tag:
+        description: "Release tag to deploy (e.g. v1.2.3)"
+        type: string
+        required: true
+      components:
+        description: 'JSON array of components to deploy (e.g. ["appservice","function-api"])'
+        type: string
+        required: true
+      direct_deploy_to_prod:
+        description: "Deploy directly to production (no slot)"
+        type: boolean
+        required: false
+        default: true
+      environment:
+        description: "Target deployment environment (approval gate)"
+        type: string
+        required: true
+    secrets:
+      ARM_TENANT_ID:
+        required: true
+      ARM_SUBSCRIPTION_ID:
+        required: true
+      ARM_CLIENT_ID:
+        required: true
+
+permissions: {}
+
+jobs:
+  resolve:
+    name: Resolve components
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    outputs:
+      matrix: ${{ steps.select.outputs.matrix }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Select components
+        id: select
+        uses: ./.github/actions/select-components
+        with:
+          selected-components: ${{ inputs.components }}
+
+  deploy:
+    name: ${{ matrix.component }}
+    runs-on: ubuntu-24.04
+    needs: resolve
+    environment: ${{ inputs.environment }}
+    permissions:
+      id-token: write
+      packages: read
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.resolve.outputs.matrix) }}
+
+    steps:
+      - name: Resolve image coordinates
+        id: coords
+        shell: bash
+        env:
+          SUFFIX:      ${{ matrix.suffix }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          REPOSITORY:  ${{ github.repository }}
+        run: |
+          image_repo="$(echo "ghcr.io/${REPOSITORY}${SUFFIX}" | tr '[:upper:]' '[:lower:]')"
+          echo "deploy_image=${image_repo}:${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy
+        uses: pagopa/ict-github-actions/appservice-deploy@f605e3ee20b04e624386991032552d8cb722508c # v5.2.3
+        with:
+          tenant-id:           ${{ secrets.ARM_TENANT_ID }}
+          subscription-id:     ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          client-id:           ${{ secrets.ARM_CLIENT_ID }}
+          resource-group-name: ${{ vars.RESOURCE_GROUP_NAME }}
+          app-name:            ${{ vars.APP_NAME_PREFIX }}${{ matrix.app_name_suffix }}
+          image:               ${{ steps.coords.outputs.deploy_image }}
+          direct-deploy-to-prod: ${{ inputs.direct_deploy_to_prod }}

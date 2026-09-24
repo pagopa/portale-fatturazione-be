@@ -1,0 +1,92 @@
+name: "Select components"
+description: >-
+  Read component metadata from .github/components.json and emit selected
+  component names plus matrix.include payload for workflows.
+
+inputs:
+  config-path:
+    description: "Path to the component catalog JSON file"
+    required: false
+    default: ".github/components.json"
+  excluded-components:
+    description: >-
+      Optional JSON array of component names to exclude
+      (for example: ["appservice"]).
+    required: false
+    default: "[]"
+  selected-components:
+    description: >-
+      Optional JSON array of component names to keep
+      (for example: ["appservice"]).
+    required: false
+    default: ""
+
+outputs:
+  components:
+    description: "JSON array of selected component names"
+    value: ${{ steps.select.outputs.components }}
+  matrix:
+    description: "JSON object with matrix.include for selected component objects"
+    value: ${{ steps.select.outputs.matrix }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Select components
+      id: select
+      shell: bash
+      env:
+        CONFIG_PATH: ${{ inputs.config-path }}
+        EXCLUDED_COMPONENTS: ${{ inputs.excluded-components }}
+        SELECTED_COMPONENTS: ${{ inputs.selected-components }}
+      run: |
+        if [ ! -f "${CONFIG_PATH}" ]; then
+          echo "::error::Component catalog not found: ${CONFIG_PATH}"
+          exit 1
+        fi
+
+        if ! jq -e '.components | type == "array"' "${CONFIG_PATH}" >/dev/null; then
+          echo "::error::Invalid component catalog format: expected .components array."
+          exit 1
+        fi
+
+        if ! printf '%s' "${EXCLUDED_COMPONENTS}" | jq -e 'type == "array"' >/dev/null; then
+          echo "::error::excluded-components must be a JSON array of names."
+          exit 1
+        fi
+
+        if [ -n "${SELECTED_COMPONENTS}" ]; then
+          if ! printf '%s' "${SELECTED_COMPONENTS}" | jq -e 'type == "array"' >/dev/null; then
+            echo "::error::selected-components must be a JSON array of names."
+            exit 1
+          fi
+        fi
+
+        selected="$(
+          jq -c '
+            .components
+            | map(select((env.EXCLUDED_COMPONENTS | fromjson | index(.component)) == null))
+            | if env.SELECTED_COMPONENTS == "" then
+                .
+              else
+                map(
+                  select(
+                    .component as $name
+                    | (env.SELECTED_COMPONENTS | fromjson | index($name)) != null
+                  )
+                )
+              end
+          ' "${CONFIG_PATH}"
+        )"
+
+        if [ "$(printf '%s' "${selected}" | jq 'length')" -eq 0 ]; then
+          echo "::error::No deployable component selected."
+          exit 1
+        fi
+
+        components="$(printf '%s' "${selected}" | jq -c 'map(.component)')"
+        matrix="$(printf '%s' "${selected}" | jq -c '{include: .}')"
+
+        echo "components=${components}" >> "$GITHUB_OUTPUT"
+        echo "matrix=${matrix}" >> "$GITHUB_OUTPUT"
+        echo "Selected components: ${components}"

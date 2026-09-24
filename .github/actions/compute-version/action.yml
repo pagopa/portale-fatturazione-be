@@ -1,0 +1,72 @@
+name: "Compute version"
+description: >-
+  Run semantic-release to compute the next version, push the git tag and publish
+  the GitHub Release, then expose the resolved tag and release URL.
+  Fails if there are no releasable commits.
+
+# Requirements for the calling job:
+#   * actions/checkout with fetch-depth: 0 must run before this action
+#     (semantic-release needs the full history).
+#   * the job must grant: contents: write, issues: write, pull-requests: read.
+
+inputs:
+  github-token:
+    description: "Token used by semantic-release to push the tag and create the release"
+    required: true
+
+outputs:
+  new_tag:
+    description: "The git tag created by semantic-release (e.g. v1.2.3)"
+    value: ${{ steps.resolve.outputs.new_tag }}
+  release_url:
+    description: "URL of the created GitHub Release"
+    value: ${{ steps.resolve.outputs.release_url }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Release
+      id: release
+      uses: cycjimmy/semantic-release-action@b1b432f13acb7768e0c8efdec416d363a57546f2 # v4.1.1
+      with:
+        semantic_version: 24.2.0
+        extra_plugins: |
+          @semantic-release/commit-analyzer@13.0.1
+          @semantic-release/release-notes-generator@14.0.1
+          @semantic-release/github@12.0.8
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+
+    # Fails if semantic-release found no releasable commits.
+    - name: Resolve new version tag
+      id: resolve
+      shell: bash
+      env:
+        NEW_RELEASE_PUBLISHED: ${{ steps.release.outputs.new_release_published }}
+        NEW_TAG: ${{ steps.release.outputs.new_release_git_tag }}
+      run: |
+        if [ "${NEW_RELEASE_PUBLISHED}" != "true" ]; then
+          echo "::error::semantic-release did not create a new release. No releasable commits found."
+          exit 1
+        fi
+        echo "new_tag=${NEW_TAG}" >> "$GITHUB_OUTPUT"
+        release_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/tag/${NEW_TAG}"
+        echo "release_url=${release_url}" >> "$GITHUB_OUTPUT"
+        echo "Resolved new tag: ${NEW_TAG}"
+
+    - name: Summary
+      shell: bash
+      env:
+        NEW_TAG:     ${{ steps.resolve.outputs.new_tag }}
+        RELEASE_URL: ${{ steps.resolve.outputs.release_url }}
+        COMMIT_SHA:  ${{ github.sha }}
+      run: |
+        {
+          echo "## 🏷️ Version computed"
+          echo ""
+          echo "| | |"
+          echo "|---|---|"
+          echo "| **Version** | \`${NEW_TAG}\` |"
+          echo "| **Release** | [📦 View on GitHub](${RELEASE_URL}) |"
+          echo "| **Commit**  | \`${COMMIT_SHA}\` |"
+        } >> "$GITHUB_STEP_SUMMARY"
