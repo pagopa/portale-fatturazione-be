@@ -40,10 +40,34 @@ public static class AuthExtensions
     ITokenService tokensService,
     IAesEncryption encryption)
     {
+        return authInfo.MapperPagoPAProdotto(ProductRoles.SEND, usersService, tokensService, encryption);
+    }
 
-        var listAuthClaims = usersService.GetUserClaimsFromPagoPAUserAsync(authInfo, ProductRoles.SEND);
+    // Prodotti restituiti dal login admin, nell'ordine in cui compaiono nella risposta
+    public static readonly string[] ProdottiPagoPA = [ProductRoles.pagoPA, ProductRoles.SEND, ProductRoles.AppIO];
+
+    public static List<ProfileInfo> MapperPagoPAProfili(
+        this AuthenticationInfo authInfo,
+        IIdentityUsersService usersService,
+        ITokenService tokensService,
+        IAesEncryption encryption)
+    {
+        return ProdottiPagoPA
+            .Select(prodotto => authInfo.MapperPagoPAProdotto(prodotto, usersService, tokensService, encryption))
+            .ToList();
+    }
+
+    private static ProfileInfo MapperPagoPAProdotto(
+        this AuthenticationInfo authInfo,
+        string prodotto,
+        IIdentityUsersService usersService,
+        ITokenService tokensService,
+        IAesEncryption encryption)
+    {
+        var listAuthClaims = usersService.GetUserClaimsFromPagoPAUserAsync(authInfo, prodotto);
         var tokenProfileInfo = tokensService.GenerateJwtToken(listAuthClaims);
-        authInfo.Prodotto = ProductRoles.SEND;
+        // il nonce legge authInfo.Prodotto: va impostato prima di CreateNonce
+        authInfo.Prodotto = prodotto;
         return new ProfileInfo()
         {
             DescrizioneRuolo = authInfo.DescrizioneRuolo,
@@ -61,56 +85,6 @@ public static class AuthExtensions
             GruppoRuolo = authInfo.GruppoRuolo,
             Auth = authInfo.Auth
         };
-    }
-
-    public static List<ProfileInfo> MapperPagoPAProfili(
-        this AuthenticationInfo authInfo,
-        IIdentityUsersService usersService,
-        ITokenService tokensService,
-        IAesEncryption encryption)
-    {
-        List<ProfileInfo> profilesInfo = [];
-        var listAuthClaims = usersService.GetUserClaimsFromPagoPAUserAsync(authInfo, ProductRoles.pagoPA);
-        var tokenProfileInfo = tokensService.GenerateJwtToken(listAuthClaims);
-        authInfo.Prodotto = ProductRoles.pagoPA;
-        profilesInfo.Add(new ProfileInfo()
-        {
-            DescrizioneRuolo = authInfo.DescrizioneRuolo,
-            Email = authInfo.Email,
-            Id = authInfo.Id,
-            IdEnte = authInfo.IdEnte,
-            IdTipoContratto = authInfo.IdTipoContratto,
-            NomeEnte = authInfo.NomeEnte,
-            Prodotto = authInfo.Prodotto,
-            Profilo = authInfo.Profilo,
-            Ruolo = authInfo.Ruolo,
-            Nonce = encryption.EncryptString(authInfo.CreateNonce()),
-            JWT = tokenProfileInfo.JWT,
-            Valido = tokenProfileInfo.Valido,
-            GruppoRuolo = authInfo.GruppoRuolo,
-            Auth = authInfo.Auth
-        });
-        listAuthClaims = usersService.GetUserClaimsFromPagoPAUserAsync(authInfo, ProductRoles.SEND);
-        tokenProfileInfo = tokensService.GenerateJwtToken(listAuthClaims);
-        authInfo.Prodotto = ProductRoles.SEND;
-        profilesInfo.Add(new ProfileInfo()
-        {
-            DescrizioneRuolo = authInfo.DescrizioneRuolo,
-            Email = authInfo.Email,
-            Id = authInfo.Id,
-            IdEnte = authInfo.IdEnte,
-            IdTipoContratto = authInfo.IdTipoContratto,
-            NomeEnte = authInfo.NomeEnte,
-            Prodotto = authInfo.Prodotto,
-            Profilo = authInfo.Profilo,
-            Ruolo = authInfo.Ruolo,
-            Nonce = encryption.EncryptString(authInfo.CreateNonce()),
-            JWT = tokenProfileInfo.JWT,
-            Valido = tokenProfileInfo.Valido,
-            GruppoRuolo = authInfo.GruppoRuolo,
-            Auth = authInfo.Auth
-        });
-        return profilesInfo;
     }
 
     public static List<ProfileInfo> MapperSelfCare(
