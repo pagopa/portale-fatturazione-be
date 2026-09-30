@@ -4,6 +4,6 @@ public class ProductRoles
 {
     public const string SEND = "prod-pn";
     public const string pagoPA = "prod-pagopa";
-    public const string AppIO = "prod-io";
+    public const string AppIO = "prod-appio";
 
 }
