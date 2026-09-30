@@ -102,7 +102,8 @@ public class JwtApiTestFactory : ApiTestFactory
         string? secret = null,
         DateTime? scadenza = null,
         string auth = AuthType.SELFCARE,
-        string? profilo = null) // Profilo espone campi static, non const: non usabili come default
+        string? profilo = null, // Profilo espone campi static, non const: non usabili come default
+        string prodotto = "prod-pn")
     {
         var jwt = ConfigurazioneJwt!;
         profilo ??= Profilo.PubblicaAmministrazione;
@@ -120,7 +121,7 @@ public class JwtApiTestFactory : ApiTestFactory
                 new Claim(ClaimTypes.Email, "utente@test.it"),
                 new Claim(CustomClaim.DescrizioneRuolo, ruolo),
                 new Claim(CustomClaim.IdEnte, "11111111-1111-1111-1111-111111111111"),
-                new Claim(CustomClaim.Prodotto, "prod-pn"),
+                new Claim(CustomClaim.Prodotto, prodotto),
                 new Claim(CustomClaim.Profilo, profilo),
                 new Claim(CustomClaim.GruppoRuolo, "gruppo-test"),
                 new Claim(CustomClaim.NomeEnte, "Ente Test"),
