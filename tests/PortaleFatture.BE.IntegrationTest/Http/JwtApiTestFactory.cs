@@ -103,10 +103,26 @@ public class JwtApiTestFactory : ApiTestFactory
         DateTime? scadenza = null,
         string auth = AuthType.SELFCARE,
         string? profilo = null, // Profilo espone campi static, non const: non usabili come default
-        string prodotto = "prod-pn")
+        string? prodotto = "prod-pn") // null = claim Prodotto omesso (caso ostile)
     {
         var jwt = ConfigurazioneJwt!;
         profilo ??= Profilo.PubblicaAmministrazione;
+
+        List<Claim> claims =
+        [
+            new Claim(ClaimTypes.Name, "integration-test-user"),
+            new Claim(ClaimTypes.Role, ruolo),
+            new Claim(ClaimTypes.Email, "utente@test.it"),
+            new Claim(CustomClaim.DescrizioneRuolo, ruolo),
+            new Claim(CustomClaim.IdEnte, "11111111-1111-1111-1111-111111111111"),
+            new Claim(CustomClaim.Profilo, profilo),
+            new Claim(CustomClaim.GruppoRuolo, "gruppo-test"),
+            new Claim(CustomClaim.NomeEnte, "Ente Test"),
+            new Claim(CustomClaim.IdTipoContratto, "1"),
+            new Claim(CustomClaim.Auth, auth)
+        ];
+        if (prodotto is not null)
+            claims.Add(new Claim(CustomClaim.Prodotto, prodotto));
 
         var credenziali = new SigningCredentials(
             new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret ?? jwt.Secret!)),
@@ -115,19 +131,7 @@ public class JwtApiTestFactory : ApiTestFactory
         var token = new JwtSecurityToken(
             issuer ?? jwt.ValidIssuer,
             audience ?? jwt.ValidAudience,
-            [
-                new Claim(ClaimTypes.Name, "integration-test-user"),
-                new Claim(ClaimTypes.Role, ruolo),
-                new Claim(ClaimTypes.Email, "utente@test.it"),
-                new Claim(CustomClaim.DescrizioneRuolo, ruolo),
-                new Claim(CustomClaim.IdEnte, "11111111-1111-1111-1111-111111111111"),
-                new Claim(CustomClaim.Prodotto, prodotto),
-                new Claim(CustomClaim.Profilo, profilo),
-                new Claim(CustomClaim.GruppoRuolo, "gruppo-test"),
-                new Claim(CustomClaim.NomeEnte, "Ente Test"),
-                new Claim(CustomClaim.IdTipoContratto, "1"),
-                new Claim(CustomClaim.Auth, auth)
-            ],
+            claims,
             notBefore: DateTime.UtcNow.AddMinutes(-5),
             expires: scadenza ?? DateTime.UtcNow.AddHours(1),
             signingCredentials: credenziali);
