@@ -48,7 +48,7 @@ public class LoginPagoPAProfiliTests
     [Test]
     public void AppIO_ShouldAvere_CodiceProdottoSelfCare()
     {
-        Assert.That(ProductRoles.AppIO, Is.EqualTo("prod-io"));
+        Assert.That(ProductRoles.AppIO, Is.EqualTo("prod-appio"));
     }
 
     [Test]

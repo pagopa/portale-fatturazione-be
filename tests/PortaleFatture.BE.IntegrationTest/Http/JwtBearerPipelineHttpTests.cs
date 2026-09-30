@@ -123,14 +123,14 @@ public class JwtBearerPipelineHttpTests
     }
 
     /// <summary>
-    /// PF-908: il login admin emette anche un token APP IO (prod-io), e il frontend lo usa per chiedere
+    /// PF-908: il login admin emette anche un token APP IO (prod-appio), e il frontend lo usa per chiedere
     /// il profilo del prodotto scelto. La rotta non ha logica per prodotto — restituisce il claim cosi'
     /// com'e' — quindi il test fissa che il prodotto del token arrivi intatto nella risposta, e che un
     /// token admin (auth = PAGOPA) di quel prodotto sia accettato.
     /// </summary>
     [TestCase("prod-pagopa")]
     [TestCase("prod-pn")]
-    [TestCase("prod-io")]
+    [TestCase("prod-appio")]
     public async Task Profilo_TokenAdminDelProdotto_ShouldRestituire_IlProdottoDelToken(string prodotto)
     {
         var resp = await Get(_factory.Token(ruolo: Ruolo.ADMIN, auth: AuthType.PAGOPA, prodotto: prodotto));
