@@ -21,15 +21,17 @@ namespace PortaleFatture.BE.IntegrationTest.Http;
 ///    FirstOrDefault(...)!.Value su ogni claim: un token firmato ma incompleto diventa una
 ///    NullReferenceException. Difetto preesistente, qui solo fissato.
 ///
-/// Nessun caso dipende dai dati: il middleware del nonce decide prima dell'endpoint, e i controlli
-/// positivi asseriscono solo di aver superato autenticazione, autorizzazione e nonce.
+/// I rifiuti (419, 500) non toccano il DB: decidono prima dell'endpoint. I casi che superano auth e
+/// nonce arrivano invece al DB seedato e asseriscono 200 con dati sul periodo 2026/2.
 /// </summary>
 public class ProdottoTokenAdversarialHttpTests
 {
     private const int SessionExpired = 419;
     private const string RottaAdmin = "/api/fatture";                      // PagoPAPolicy, fuori whitelist nonce
     private const string RottaProfilo = "/" + JwtApiTestFactory.RottaProtetta; // in whitelist nonce
-    private const string Body = """{ "anno": 2024, "mese": 2 }""";
+    // 2026/2: periodo con fatture emesse nel seed (8001 e seguenti, ente1), quindi i casi che superano
+    // auth e nonce possono asserire un 200 con dati invece di un generico "non rifiutato".
+    private const string Body = """{ "cancellata": false, "anno": 2026, "mese": 2 }""";
 
     private static readonly string[] Prodotti = [ProductRoles.pagoPA, ProductRoles.SEND, ProductRoles.AppIO];
 
@@ -73,15 +75,27 @@ public class ProdottoTokenAdversarialHttpTests
             "Il nonce emesso per un prodotto non deve valere con il token di un altro: e' la sola barriera fra prodotti.");
     }
 
-    /// <summary>Controllo positivo: prova che il 419 sopra viene dal prodotto e non da altro nella pipeline.</summary>
+    /// <summary>
+    /// Controllo positivo: prova che il 419 sopra viene dal prodotto e non da altro nella pipeline, e che
+    /// con il token di qualunque prodotto la rotta admin restituisce davvero i dati del periodo.
+    /// </summary>
     [TestCase(ProductRoles.pagoPA)]
     [TestCase(ProductRoles.SEND)]
     [TestCase(ProductRoles.AppIO)]
-    public async Task NonceDelloStessoProdotto_ShouldSuperareAuthENonce(string prodotto)
+    public async Task NonceDelloStessoProdotto_ShouldReturn200_ConDati(string prodotto)
     {
         var resp = await PostAdmin(prodotto, prodotto);
 
-        Assert.That((int)resp.StatusCode, Is.Not.AnyOf(401, 403, SessionExpired));
+        await AssertOkConDati(resp);
+    }
+
+    private static async Task AssertOkConDati(HttpResponseMessage resp)
+    {
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+
+        using var json = System.Text.Json.JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
+        Assert.That(json.RootElement.ValueKind, Is.EqualTo(System.Text.Json.JsonValueKind.Array));
+        Assert.That(json.RootElement.GetArrayLength(), Is.GreaterThan(0), "il seed ha fatture emesse su 2026/2");
     }
 
     /// <summary>
@@ -95,8 +109,8 @@ public class ProdottoTokenAdversarialHttpTests
     {
         var resp = await PostAdmin("prod-inesistente", "prod-inesistente");
 
-        Assert.That((int)resp.StatusCode, Is.Not.AnyOf(401, 403, SessionExpired),
-            "Comportamento attuale: nessuna whitelist dei prodotti. V. summary.");
+        // Comportamento attuale: nessuna whitelist dei prodotti, e i dati escono comunque. V. summary.
+        await AssertOkConDati(resp);
     }
 
     /// <summary>
