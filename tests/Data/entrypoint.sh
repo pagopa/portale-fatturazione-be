@@ -52,6 +52,10 @@ if [ "$1" = '/opt/mssql/bin/sqlservr' ]; then
       # chiavi API e whitelist IP delle Integration API (con i due indici univoci, che sono contratto)
       "$SQLCMD" -C -S localhost -U sa -P 52JdGnzZaANhf -d master -i /scripts/api_keys.sql
 
+      # APP IO (PF-908): schema appio + appio.Contracts e seed. Deve precedere views/, che contiene
+      # be.vwAppioContracts (un CREATE VIEW fallisce se la tabella referenziata non esiste).
+      "$SQLCMD" -C -S localhost -U sa -P 52JdGnzZaANhf -d master -i /scripts/appio.sql
+
       # anteprima email PSP (stg.PspEmailPreview + colonne nullable su ppa.PspEmail): erano script
       # da lanciare a mano, quindi un rebuild del container li perdeva. Sono idempotenti.
       "$SQLCMD" -C -S localhost -U sa -P 52JdGnzZaANhf -d master -i /scripts/create_psp_email_preview_table.sql
