@@ -56,6 +56,9 @@ if [ "$1" = '/opt/mssql/bin/sqlservr' ]; then
       # be.vwAppioContracts (un CREATE VIEW fallisce se la tabella referenziata non esiste).
       "$SQLCMD" -C -S localhost -U sa -P 52JdGnzZaANhf -d master -i /scripts/appio.sql
 
+      # anagrafica PSP (prodotto pagoPA): ppa.Contracts e seed, per le rotte api/v2/pagopa/psps*
+      "$SQLCMD" -C -S localhost -U sa -P 52JdGnzZaANhf -d master -i /scripts/ppa_contracts.sql
+
       # anteprima email PSP (stg.PspEmailPreview + colonne nullable su ppa.PspEmail): erano script
       # da lanciare a mano, quindi un rebuild del container li perdeva. Sono idempotenti.
       "$SQLCMD" -C -S localhost -U sa -P 52JdGnzZaANhf -d master -i /scripts/create_psp_email_preview_table.sql
