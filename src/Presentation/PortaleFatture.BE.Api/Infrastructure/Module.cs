@@ -33,8 +33,9 @@ public abstract class Module : IModule
     public static string PSP = "PSP prodotto PagoPA";
     public static string FinancialReports = "Financial Reports prodotto PagoPA";
 
-
-
+    // prodotto AppIO
+    public static string DatiContrattiLabelAppIO = "Dati Contratti prodotto AppIO";
+    public static string DatiFattureLabelAppIO = "Dati Fatture prodotto AppIO";
 
     public const string CORSLabel = "portalefatture";
     public const string GatewayLabel = "gateway";
