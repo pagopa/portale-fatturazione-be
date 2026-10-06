@@ -194,7 +194,7 @@ public class AppIoContrattiExtensionsTests
                 new AppIoContratto
                 {
                     ContractId = "C1", Name = "Comune Alfa", TaxCode = "TAX", VatCode = "VAT",
-                    VatGroup = 1m, SdiCode = "SDI1234", YearMonth = "2026-06", YearQuarter = "2026_2"
+                    VatGroup = 1m, SdiCode = "SDI1234", YearMonth = "202607", YearQuarter = "2026_2"
                 }
             ]
         };
@@ -215,7 +215,7 @@ public class AppIoContrattiExtensionsTests
             Assert.That(c.VatCode, Is.EqualTo("VAT"));
             Assert.That(c.VatGroup, Is.EqualTo(1m));
             Assert.That(c.SdiCode, Is.EqualTo("SDI1234"));
-            Assert.That(c.YearMonth, Is.EqualTo("2026-06"));
+            Assert.That(c.YearMonth, Is.EqualTo("202607"));
             Assert.That(c.YearQuarter, Is.EqualTo("2026_2"));
         });
     }

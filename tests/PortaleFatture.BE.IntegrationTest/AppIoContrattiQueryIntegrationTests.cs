@@ -140,7 +140,7 @@ public class AppIoContrattiQueryIntegrationTests
             Assert.That(c2.VatCode, Is.EqualTo("00000000002"));
             Assert.That(c2.VatGroup, Is.EqualTo(1m));
             Assert.That(c2.SdiCode, Is.EqualTo("BBBBBB2"));
-            Assert.That(c2.YearMonth, Is.EqualTo("2026-06"));
+            Assert.That(c2.YearMonth, Is.EqualTo("202607"));
             Assert.That(c3.VatGroup, Is.Null);
             Assert.That(c3.SdiCode, Is.Null);
         });
