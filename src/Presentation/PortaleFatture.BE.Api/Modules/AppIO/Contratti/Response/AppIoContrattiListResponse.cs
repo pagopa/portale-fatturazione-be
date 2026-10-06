@@ -56,7 +56,7 @@ public class AppIoContrattoResponse
     public string? SdiCode { get; set; }
 
     /// <summary>
-    /// Anno e mese di riferimento, nel formato 'AAAA-MM'.
+    /// Anno e mese di riferimento, nel formato 'AAAAMM' (es. 202604: il mese successivo alla fine del trimestre).
     /// </summary>
     public string? YearMonth { get; set; }
 
