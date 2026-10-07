@@ -123,6 +123,27 @@ public class JwtBearerPipelineHttpTests
     }
 
     /// <summary>
+    /// PF-908: il login admin emette anche un token APP IO (prod-appio), e il frontend lo usa per chiedere
+    /// il profilo del prodotto scelto. La rotta non ha logica per prodotto — restituisce il claim cosi'
+    /// com'e' — quindi il test fissa che il prodotto del token arrivi intatto nella risposta, e che un
+    /// token admin (auth = PAGOPA) di quel prodotto sia accettato.
+    /// </summary>
+    [TestCase("prod-pagopa")]
+    [TestCase("prod-pn")]
+    [TestCase("prod-appio")]
+    public async Task Profilo_TokenAdminDelProdotto_ShouldRestituire_IlProdottoDelToken(string prodotto)
+    {
+        var resp = await Get(_factory.Token(ruolo: Ruolo.ADMIN, auth: AuthType.PAGOPA, prodotto: prodotto));
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+
+        using var json = System.Text.Json.JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
+        var valore = json.RootElement.EnumerateObject()
+            .Single(p => string.Equals(p.Name, "prodotto", StringComparison.OrdinalIgnoreCase)).Value.GetString();
+
+        Assert.That(valore, Is.EqualTo(prodotto));
+    }
+
+    /// <summary>
     /// Effetto collaterale voluto del profilo: UtenteCreateCommand registra l'accesso su pfw.Utenti.
     /// La tabella nasce vuota nel seed, quindi la riga che troviamo l'ha scritta la chiamata stessa.
     /// </summary>

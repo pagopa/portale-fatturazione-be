@@ -88,19 +88,19 @@ public class ApiTestFactory : WebApplicationFactory<Program>
     /// un nonce cifrato AES che, decifrato, combaci con Id/IdEnte/Prodotto dell'identity autenticata.
     /// Lo generiamo con lo stesso IAesEncryption dell'app, sui valori emessi da TestAuthHandler.
     /// </summary>
-    public string Nonce(string? idEnte = null)
+    public string Nonce(string? idEnte = null, string prodotto = "prod-pn")
     {
         var encryption = Services.GetRequiredService<IAesEncryption>();
         var payload = new NonceDto
         {
             Id = "integration-test-user",
             IdEnte = idEnte ?? "11111111-1111-1111-1111-111111111111",
-            Prodotto = "prod-pn"
+            Prodotto = prodotto
         }.Serialize();
         return encryption.EncryptString(payload)!;
     }
 
     /// <summary>Rotta con il nonce gia' agganciato in query string.</summary>
-    public string WithNonce(string route, string? idEnte = null)
-        => $"{route}?nonce={Uri.EscapeDataString(Nonce(idEnte))}";
+    public string WithNonce(string route, string? idEnte = null, string prodotto = "prod-pn")
+        => $"{route}?nonce={Uri.EscapeDataString(Nonce(idEnte, prodotto))}";
 }
