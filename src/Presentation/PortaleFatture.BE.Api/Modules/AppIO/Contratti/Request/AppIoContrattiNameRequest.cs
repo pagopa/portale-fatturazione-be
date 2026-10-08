@@ -11,7 +11,13 @@ public class AppIoContrattiNameRequest
     public string? Name { get; set; }
 
     /// <summary>
-    /// Trimestri in cui cercare, nel formato 'AAAA_T'; null o vuoto = solo il trimestre più recente.
+    /// Trimestri in cui cercare, nel formato 'AAAA_T'; prevalgono su Year. Null o vuoto = si usa Year.
     /// </summary>
     public string[]? Quarters { get; set; }
+
+    /// <summary>
+    /// Anno ('AAAA'), usato solo senza trimestri: tutti i trimestri dell'anno. Senza trimestri né
+    /// anno = tutti i trimestri.
+    /// </summary>
+    public string? Year { get; set; }
 }
