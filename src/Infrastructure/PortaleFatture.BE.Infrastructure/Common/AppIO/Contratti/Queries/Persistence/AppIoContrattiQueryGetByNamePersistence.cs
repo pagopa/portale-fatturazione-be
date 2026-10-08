@@ -15,12 +15,14 @@ public sealed class AppIoContrattiQueryGetByNamePersistence(AppIoContrattiQueryG
 {
     private readonly AppIoContrattiQueryGetByName _command = command;
     private static readonly string _sql = AppIoContrattiSQLBuilder.SelectContractsId();
+    private static readonly string _groupBy = AppIoContrattiSQLBuilder.GroupByContractsId();
     private static readonly string _orderBy = AppIoContrattiSQLBuilder.OrderByName();
 
     /// <summary>
-    /// Cerca il nome per sottostringa (LIKE) nei trimestri richiesti, o nel più recente, e ordina
-    /// per nome. Il valore resta un parametro, ma i caratteri jolly del LIKE ('%', '_', '[') non
-    /// vengono neutralizzati, come per i PSP.
+    /// Cerca il nome per sottostringa (LIKE) nei trimestri richiesti, nell'anno o in tutti i trimestri,
+    /// raggruppa per contratto e nome (una riga per ente, con il trimestre più recente fra quelli
+    /// cercati) e ordina per nome. Il valore resta un parametro, ma i caratteri jolly del LIKE ('%',
+    /// '_', '[') non vengono neutralizzati, come per i PSP.
     /// </summary>
     /// <param name="connection">La connessione al database.</param>
     /// <param name="schema">Lo schema del contesto (non usato: la vista è nello schema be).</param>
@@ -35,18 +37,23 @@ public sealed class AppIoContrattiQueryGetByNamePersistence(AppIoContrattiQueryG
         var where = " WHERE name LIKE '%' + @Name + '%'";
         parameters.Name = _command.Name ?? string.Empty;
 
-        // senza trimestri richiesti si cerca nel più recente
-        if (_command.YearQuarter.IsNullNotAny())
-            where += " AND year_quarter = (SELECT MAX(year_quarter) FROM [be].[vwAppioContracts])";
-        else
+        // periodo: trimestri richiesti > anno > tutti i trimestri. Senza periodo non si restringe al
+        // più recente: un contratto va trovato anche se non compare nell'ultimo trimestre caricato.
+        if (!_command.YearQuarter.IsNullNotAny())
         {
             where += " AND year_quarter IN @YearQuarter";
             parameters.YearQuarter = _command.YearQuarter;
         }
+        else if (!string.IsNullOrEmpty(_command.Year))
+        {
+            // year_quarter è 'AAAA_T'; '[_]' perché in LIKE il trattino basso è un jolly
+            where += " AND year_quarter LIKE @Year + '[_]%'";
+            parameters.Year = _command.Year;
+        }
 
         return await ((IDatabase)this).SelectAsync<AppIoContrattoNome>(
            connection!,
-           _sql + where + _orderBy,
+           _sql + where + _groupBy + _orderBy,
            parameters,
            transaction);
     }

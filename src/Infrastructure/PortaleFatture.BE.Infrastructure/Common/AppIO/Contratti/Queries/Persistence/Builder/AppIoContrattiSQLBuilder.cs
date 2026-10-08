@@ -42,20 +42,28 @@ public static class AppIoContrattiSQLBuilder
     /// <returns>La query SQL che seleziona tutti i contratti.</returns>
     public static string SelectAll() => _sql;
 
-    private static string _sqlContractsId = 
+    private static string _sqlContractsId =
     @"
-        SELECT 
-        [contract_id] as ContractId, 
-        [name] as Name, 
-        [year_quarter] as YearQuarter 
+        SELECT
+        [contract_id] as ContractId,
+        [name] as Name,
+        MAX([year_quarter]) as YearQuarter
         FROM [be].[vwAppioContracts]
     ";
 
     /// <summary>
-    /// Seleziona id, nome e trimestre di tutti i contratti dalla vista vwAppioContracts.
+    /// Seleziona id, nome e trimestre più recente dei contratti dalla vista vwAppioContracts. Va
+    /// completata con il filtro e con <see cref="GroupByContractsId"/>: la vista ha una riga per
+    /// contratto e trimestre, e senza raggruppamento lo stesso ente uscirebbe una volta per trimestre.
     /// </summary>
-    /// <returns>La query SQL che seleziona id, nome e trimestre dei contratti.</returns>
+    /// <returns>La query SQL che seleziona id, nome e trimestre più recente dei contratti.</returns>
     public static string SelectContractsId() => _sqlContractsId;
+
+    /// <summary>
+    /// Restituisce la clausola che raggruppa la ricerca per nome: una riga per contratto e nome.
+    /// </summary>
+    /// <returns>La clausola SQL GROUP BY su contract_id e name.</returns>
+    public static string GroupByContractsId() => " GROUP BY [contract_id], [name]";
 
 
     private static string _sqlCount =

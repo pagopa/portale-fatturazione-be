@@ -23,7 +23,7 @@ public sealed class AppIoContrattiQueryGetByRicercaPersistence(AppIoContrattiQue
     private static readonly string _offSet = AppIoContrattiSQLBuilder.OffSet();
 
     /// <summary>
-    /// Compone il filtro (trimestri, con il più recente come default, ed eventuali contratti), poi
+    /// Compone il filtro (trimestri, oppure anno, oppure il trimestre più recente, ed eventuali contratti), poi
     /// legge la pagina ordinata per contract_id e il conteggio totale.
     /// </summary>
     /// <param name="connection">La connessione al database.</param>
@@ -46,14 +46,20 @@ public sealed class AppIoContrattiQueryGetByRicercaPersistence(AppIoContrattiQue
         else
             offset = string.Empty;
 
-        // senza trimestri richiesti si mostra il più recente, come per i PSP
-        if (_command.YearQuarter.IsNullNotAny())
-            where.Add("year_quarter = (SELECT MAX(year_quarter) FROM [be].[vwAppioContracts])");
-        else
+        // periodo: trimestri richiesti > anno > trimestre più recente (come i documenti contabili APP IO)
+        if (!_command.YearQuarter.IsNullNotAny())
         {
             where.Add("year_quarter IN @YearQuarter");
             parameters.YearQuarter = _command.YearQuarter;
         }
+        else if (!string.IsNullOrEmpty(_command.Year))
+        {
+            // year_quarter è 'AAAA_T'; '[_]' perché in LIKE il trattino basso è un jolly
+            where.Add("year_quarter LIKE @Year + '[_]%'");
+            parameters.Year = _command.Year;
+        }
+        else
+            where.Add("year_quarter = (SELECT MAX(year_quarter) FROM [be].[vwAppioContracts])");
 
         if (!_command.ContractIds.IsNullNotAny())
         {
