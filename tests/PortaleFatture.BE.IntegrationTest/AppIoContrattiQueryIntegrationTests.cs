@@ -164,4 +164,176 @@ public class AppIoContrattiQueryIntegrationTests
             Assert.That(result.Count, Is.EqualTo(0));
         });
     }
+
+    // --- filtro per anno ---
+
+    /// <summary>
+    /// Con il solo anno la query restituisce tutti i trimestri di quell'anno, e il count è sul totale.
+    /// </summary>
+    /// <returns>Task che rappresenta l'operazione asincrona.</returns>
+    [Test]
+    public async Task ConAnno_ShouldRestituireTuttiITrimestriDellAnno()
+    {
+        var query = Query();
+        query.Year = "2026";
+
+        var result = await _handler.Send(query);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Contratti!.Select(x => (x.ContractId, x.YearQuarter)), Is.EquivalentTo(new[]
+            {
+                ("APPIO-C1", "2026_1"), ("APPIO-C1", "2026_2"), ("APPIO-C2", "2026_2"), ("APPIO-C3", "2026_2")
+            }));
+            Assert.That(result.Count, Is.EqualTo(4));
+        });
+    }
+
+    /// <summary>
+    /// I trimestri prevalgono sull'anno: con entrambi l'anno viene ignorato, anche se è di un altro anno.
+    /// </summary>
+    /// <returns>Task che rappresenta l'operazione asincrona.</returns>
+    [Test]
+    public async Task TrimestriEAnno_ShouldPrevalereITrimestri()
+    {
+        var query = Query();
+        query.YearQuarter = ["2025_4"];
+        query.Year = "2026";
+
+        var result = await _handler.Send(query);
+
+        Assert.That(result.Contratti!.Select(x => x.YearQuarter), Is.All.EqualTo("2025_4"));
+    }
+
+    /// <summary>
+    /// Un anno senza dati restituisce lista vuota: non ricade sul trimestre più recente.
+    /// </summary>
+    /// <returns>Task che rappresenta l'operazione asincrona.</returns>
+    [Test]
+    public async Task AnnoSenzaDati_ShouldRestituireListaVuotaECountZero()
+    {
+        var query = Query();
+        query.Year = "1999";
+
+        var result = await _handler.Send(query);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Contratti, Is.Empty);
+            Assert.That(result.Count, Is.EqualTo(0));
+        });
+    }
+
+    /// <summary>
+    /// Anno e contratti si applicano insieme: C4 esiste solo nel 2025, quindi nel 2026 resta solo C1.
+    /// </summary>
+    /// <returns>Task che rappresenta l'operazione asincrona.</returns>
+    [Test]
+    public async Task AnnoEContratti_ShouldIntersecare()
+    {
+        var query = Query();
+        query.Year = "2026";
+        query.ContractIds = ["APPIO-C1", "APPIO-C4"];
+
+        var result = await _handler.Send(query);
+
+        Assert.That(result.Contratti!.Select(x => (x.ContractId, x.YearQuarter)), Is.EquivalentTo(new[]
+        {
+            ("APPIO-C1", "2026_1"), ("APPIO-C1", "2026_2")
+        }));
+    }
+
+    // --- ricerca per nome ---
+
+    /// <summary>
+    /// Query per nome con AuthenticationInfo fittizio.
+    /// </summary>
+    private static AppIoContrattiQueryGetByName QueryNome(string? nome) => new(new AuthenticationInfo
+    {
+        IdEnte = Guid.NewGuid().ToString(),
+        Prodotto = "prod-appio",
+        Ruolo = Ruolo.ADMIN
+    })
+    { Name = nome };
+
+    /// <summary>
+    /// Senza trimestri né anno la ricerca per nome cerca in tutti i trimestri: C4, presente solo in
+    /// 2025_4, viene trovato anche se non è nel trimestre più recente. Una riga per contratto (GROUP BY),
+    /// con il trimestre più recente in cui compare: C1, presente in tre trimestri, esce una volta sola.
+    /// </summary>
+    /// <returns>Task che rappresenta l'operazione asincrona.</returns>
+    [Test]
+    public async Task Nome_SenzaPeriodo_ShouldCercareInTuttiITrimestri_UnaRigaPerContratto()
+    {
+        var result = (await _handler.Send(QueryNome("AppIO Test"))).ToList();
+
+        Assert.That(result.Select(x => (x.ContractId, x.YearQuarter)), Is.EqualTo(new[]
+        {
+            ("APPIO-C1", "2026_2"), ("APPIO-C2", "2026_2"), ("APPIO-C4", "2025_4")
+        }), "ordinati per nome: Alfa, Beta, Delta");
+    }
+
+    /// <summary>
+    /// Anche con più trimestri richiesti lo stesso contratto esce una volta sola, con il più recente
+    /// fra quelli cercati (non il più recente in assoluto).
+    /// </summary>
+    /// <returns>Task che rappresenta l'operazione asincrona.</returns>
+    [Test]
+    public async Task Nome_PiuTrimestri_ShouldRestituireUnaRigaPerContratto_ConIlTrimestrePiuRecenteFraQuelliCercati()
+    {
+        var query = QueryNome("Alfa");
+        query.YearQuarter = ["2025_4", "2026_1"];
+
+        var result = (await _handler.Send(query)).ToList();
+
+        Assert.That(result.Select(x => (x.ContractId, x.YearQuarter)), Is.EqualTo(new[] { ("APPIO-C1", "2026_1") }));
+    }
+
+    /// <summary>
+    /// Con il solo anno la ricerca per nome resta nei trimestri di quell'anno.
+    /// </summary>
+    /// <returns>Task che rappresenta l'operazione asincrona.</returns>
+    [Test]
+    public async Task Nome_ConAnno_ShouldCercareNeiTrimestriDellAnno()
+    {
+        var query = QueryNome("AppIO Test");
+        query.Year = "2025";
+
+        var result = (await _handler.Send(query)).ToList();
+
+        Assert.That(result.Select(x => (x.ContractId, x.YearQuarter)), Is.EquivalentTo(new[]
+        {
+            ("APPIO-C1", "2025_4"), ("APPIO-C4", "2025_4")
+        }));
+    }
+
+    /// <summary>
+    /// Anche nella ricerca per nome i trimestri prevalgono sull'anno.
+    /// </summary>
+    /// <returns>Task che rappresenta l'operazione asincrona.</returns>
+    [Test]
+    public async Task Nome_TrimestriEAnno_ShouldPrevalereITrimestri()
+    {
+        var query = QueryNome("AppIO Test");
+        query.YearQuarter = ["2026_2"];
+        query.Year = "2025";
+
+        var result = (await _handler.Send(query)).ToList();
+
+        Assert.That(result.Select(x => x.ContractId), Is.EqualTo(new[] { "APPIO-C1", "APPIO-C2" }));
+    }
+
+    /// <summary>
+    /// Senza nome né periodo la ricerca restituisce tutti i contratti, uno per id (i 4 APPIO-C* del
+    /// seed, che ha 6 righe).
+    /// </summary>
+    /// <returns>Task che rappresenta l'operazione asincrona.</returns>
+    [Test]
+    public async Task Nome_SenzaFiltri_ShouldRestituireTuttiIContratti_UnoPerId()
+    {
+        var result = (await _handler.Send(QueryNome(null))).Where(x => x.ContractId!.StartsWith("APPIO-C")).ToList();
+
+        Assert.That(result.Select(x => x.ContractId),
+            Is.EquivalentTo(new[] { "APPIO-C1", "APPIO-C2", "APPIO-C3", "APPIO-C4" }));
+    }
 }

@@ -92,4 +92,23 @@ public class AppIoContrattiSQLBuilderTests
             Assert.That(AppIoContrattiSQLBuilder.OrderByQuarters(), Is.EqualTo(" ORDER BY year_quarter DESC"));
         });
     }
+
+    /// <summary>
+    /// La ricerca per nome raggruppa per contratto e nome, e del trimestre prende il più recente: la
+    /// vista ha una riga per contratto e trimestre, e senza raggruppamento lo stesso ente uscirebbe
+    /// una volta per trimestre. Il GROUP BY deve essere accodabile fra il WHERE e l'ORDER BY.
+    /// </summary>
+    [Test]
+    public void RicercaPerNome_ShouldRaggrupparePerContrattoENome_ConIlTrimestrePiuRecente()
+    {
+        var sql = AppIoContrattiSQLBuilder.SelectContractsId() + " WHERE 1=1"
+            + AppIoContrattiSQLBuilder.GroupByContractsId() + AppIoContrattiSQLBuilder.OrderByName();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(AppIoContrattiSQLBuilder.SelectContractsId(), Does.Contain("MAX([year_quarter]) as YearQuarter"));
+            Assert.That(AppIoContrattiSQLBuilder.GroupByContractsId(), Is.EqualTo(" GROUP BY [contract_id], [name]"));
+            Assert.That(sql.IndexOf("GROUP BY"), Is.LessThan(sql.IndexOf("ORDER BY")));
+        });
+    }
 }
