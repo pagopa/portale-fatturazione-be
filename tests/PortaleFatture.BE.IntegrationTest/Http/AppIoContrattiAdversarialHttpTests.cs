@@ -104,12 +104,99 @@ public class AppIoContrattiAdversarialHttpTests
         Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
     }
 
+    /// <summary>Injection nell'anno della griglia e della ricerca per nome: resta un valore, 404.</summary>
+    [Test]
+    public async Task GridENome_InjectionNellAnno_ShouldRestareUnValore_404()
+    {
+        var grid = await Post(Base, Json(new { year = "2026' OR 1=1 --" }), Paginazione);
+        var nome = await Post($"{Base}/name", Json(new { name = "AppIO", year = "2026' OR 1=1 --" }));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(grid.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+            Assert.That(nome.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+        });
+    }
+
     // --- jolly del LIKE: non neutralizzati ---
 
     /// <summary>
+    /// L'anno della griglia finisce in un LIKE senza escape: '%' prende tutti i trimestri (le 6 righe
+    /// del seed) invece di ricadere sul più recente. Stesso comportamento dei documenti contabili APP IO.
+    /// </summary>
+    [Test]
+    public async Task Grid_AnnoJolly_ShouldRestituireTuttiITrimestri_Caratterizzazione()
+    {
+        var resp = await Post(Base, Json(new { year = "%" }), Paginazione);
+
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        Assert.That((await JsonDocument.ParseAsync(await resp.Content.ReadAsStreamAsync()))
+            .RootElement.GetProperty("count").GetInt32(), Is.EqualTo(6));
+    }
+
+    /// <summary>
+    /// Il trattino basso nell'anno è un jolly di un carattere: '20_6' prende il 2026 (4 righe). Il
+    /// separatore 'AAAA_T' invece è protetto da '[_]', quindi non può fare da jolly.
+    /// </summary>
+    [Test]
+    public async Task Grid_AnnoConTrattinoBasso_ShouldFareDaJolly_Caratterizzazione()
+    {
+        var resp = await Post(Base, Json(new { year = "20_6" }), Paginazione);
+
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        Assert.That((await JsonDocument.ParseAsync(await resp.Content.ReadAsStreamAsync()))
+            .RootElement.GetProperty("count").GetInt32(), Is.EqualTo(4));
+    }
+
+    /// <summary>
+    /// Un trimestre passato nel campo dell'anno ('2026_1') non corrisponde a nulla: 404 su griglia e
+    /// nome. Non viene interpretato come trimestre, né ricade sul default.
+    /// </summary>
+    [Test]
+    public async Task GridENome_TrimestreAlPostoDellAnno_ShouldReturn404()
+    {
+        var grid = await Post(Base, Json(new { year = "2026_1" }), Paginazione);
+        var nome = await Post($"{Base}/name", Json(new { name = "AppIO", year = "2026_1" }));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(grid.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+            Assert.That(nome.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+        });
+    }
+
+    /// <summary>
+    /// Anno vuoto o di soli spazi vale "nessun anno": sulla griglia ricade sul trimestre più recente
+    /// (3 righe), sul nome su tutti i trimestri.
+    /// </summary>
+    [TestCase("")]
+    [TestCase("   ")]
+    public async Task Grid_AnnoVuoto_ShouldUsareIlTrimestrePiuRecente(string year)
+    {
+        var resp = await Post(Base, Json(new { year }), Paginazione);
+
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        Assert.That((await JsonDocument.ParseAsync(await resp.Content.ReadAsStreamAsync()))
+            .RootElement.GetProperty("count").GetInt32(), Is.EqualTo(3));
+    }
+
+    /// <summary>
+    /// Un anno di 5000 caratteri fa fallire la query: oltre 4000 Dapper passa a nvarchar(max) e SQL
+    /// Server rifiuta il pattern del LIKE. 500, non 400. Stesso limite dei documenti contabili APP IO.
+    /// </summary>
+    [Test]
+    public async Task Grid_Anno5000Caratteri_ShouldReturn500_Caratterizzazione()
+    {
+        var resp = await Post(Base, Json(new { year = new string('9', 5000) }), Paginazione);
+
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.InternalServerError));
+    }
+
+    /// <summary>
     /// Il nome arriva nel LIKE senza escape, quindi '%', '_' e le classi '[a-z]' agiscono da jolly e
-    /// restituiscono tutti i contratti del trimestre. Nessun rischio di injection (il valore resta un
-    /// parametro), ma la ricerca non è letterale. Stesso comportamento delle rotte PSP.
+    /// restituiscono tutti i contratti. Senza trimestri né anno si cerca in tutti i trimestri, e il
+    /// GROUP BY dà una riga per contratto (i 4 del seed, che ha 6 righe). Nessun rischio di injection
+    /// (il valore resta un parametro), ma la ricerca non è letterale. Stesso comportamento delle rotte PSP.
     /// </summary>
     [TestCase("%")]
     [TestCase("_")]
@@ -119,7 +206,7 @@ public class AppIoContrattiAdversarialHttpTests
         var resp = await Post($"{Base}/name", Json(new { name }));
 
         Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-        Assert.That(await ContractIds(resp), Is.EquivalentTo(new[] { "APPIO-C1", "APPIO-C2", "APPIO-C3" }));
+        Assert.That(await ContractIds(resp), Is.EquivalentTo(new[] { "APPIO-C1", "APPIO-C2", "APPIO-C3", "APPIO-C4" }));
     }
 
     /// <summary>Una parentesi quadra non chiusa non solleva errore: semplicemente non trova nulla.</summary>
@@ -239,19 +326,71 @@ public class AppIoContrattiAdversarialHttpTests
     // --- body ---
 
     /// <summary>
-    /// Body malformato, vuoto, letterale null o con un tipo sbagliato (stringa al posto di array)
-    /// producono un 500 invece di un 400: l'errore di binding viene appiattito dal gestore globale,
-    /// e un body null arriva fino al mapping.
+    /// Body malformato o con un tipo sbagliato (stringa al posto di array) producono un 500 invece
+    /// di un 400: l'errore di binding viene appiattito dal gestore globale.
     /// </summary>
     [TestCase("{ malformato")]
-    [TestCase("")]
-    [TestCase("null")]
     [TestCase("""{ "quarters": "2026_2" }""")]
     public async Task Grid_BodyNonValido_ShouldReturn500_Caratterizzazione(string body)
     {
         var resp = await Post(Base, body, Paginazione);
 
         Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.InternalServerError));
+    }
+
+    /// <summary>
+    /// Tutti i filtri sono opzionali, body compreso: body vuoto, letterale null o assente valgono
+    /// come "{}", cioè il trimestre più recente (2026_2 nel seed), su griglia e download.
+    /// </summary>
+    [TestCase("")]
+    [TestCase("null")]
+    [TestCase("{}")]
+    public async Task GridEDownload_BodyVuotoONull_ShouldUsareIlTrimestrePiuRecente(string body)
+    {
+        var grid = await Post(Base, body, Paginazione);
+        var download = await Post($"{Base}/download", body);
+
+        Assert.That(grid.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        var json = (await JsonDocument.ParseAsync(await grid.Content.ReadAsStreamAsync())).RootElement;
+        Assert.Multiple(() =>
+        {
+            Assert.That(download.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(json.GetProperty("count").GetInt32(), Is.EqualTo(3));
+            Assert.That(json.GetProperty("contratti").EnumerateArray().Select(x => x.GetProperty("yearQuarter").GetString()),
+                Is.All.EqualTo("2026_2"));
+        });
+    }
+
+    /// <summary>
+    /// Anche sulla ricerca per nome il body è opzionale: vuoto, null o "{}" significano nessun filtro
+    /// su nome e periodo, quindi tutti i contratti di tutti i trimestri, uno per id (i 4 del seed).
+    /// </summary>
+    [TestCase("")]
+    [TestCase("null")]
+    [TestCase("{}")]
+    public async Task Name_BodyVuotoONull_ShouldRestituireTuttiIContratti(string body)
+    {
+        var resp = await Post($"{Base}/name", body);
+
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        Assert.That(await ContractIds(resp), Is.EquivalentTo(new[] { "APPIO-C1", "APPIO-C2", "APPIO-C3", "APPIO-C4" }));
+    }
+
+    /// <summary>
+    /// Anche una POST senza alcun contenuto (nessun body, nessun Content-Type) vale come "{}".
+    /// </summary>
+    [Test]
+    public async Task GridEDownload_SenzaContenuto_ShouldUsareIlTrimestrePiuRecente()
+    {
+        var client = _factory.CreateClientAs(Ruolo.ADMIN);
+        var grid = await client.PostAsync(_factory.WithNonce(Base) + Paginazione, null);
+        var download = await client.PostAsync(_factory.WithNonce($"{Base}/download"), null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(grid.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(download.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        });
     }
 
     // --- sessione ---

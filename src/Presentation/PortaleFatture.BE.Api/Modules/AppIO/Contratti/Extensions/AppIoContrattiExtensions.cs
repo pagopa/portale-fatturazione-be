@@ -27,7 +27,7 @@ public static class AppIoContrattiExtensions
     /// <summary>
     /// Converte una AppIoContrattiRequest in una AppIoContrattiQueryGetByRicerca, includendo le informazioni di autenticazione e i parametri facoltativi di paginazione.
     /// </summary>
-    /// <param name="req">La richiesta con gli id dei contratti e i trimestri da cercare.</param>
+    /// <param name="req">La richiesta con gli id dei contratti, i trimestri e l'anno da cercare.</param>
     /// <param name="authInfo">Le informazioni di autenticazione dell'utente che effettua la richiesta.</param>
     /// <param name="page">Il numero di pagina, facoltativo.</param>
     /// <param name="pageSize">La dimensione della pagina, facoltativa.</param>
@@ -39,14 +39,15 @@ public static class AppIoContrattiExtensions
             Page = page,
             Size = pageSize,
             ContractIds = req.ContractIds.IsNullNotAny() ? null : req.ContractIds,
-            YearQuarter = req.Quarters.IsNullNotAny() ? null : req.Quarters
+            YearQuarter = req.Quarters.IsNullNotAny() ? null : req.Quarters,
+            Year = string.IsNullOrWhiteSpace(req.Year) ? null : req.Year
         };
     }
 
     /// <summary>
     /// Converte una AppIoContrattiNameRequest in una AppIoContrattiQueryGetByName, includendo le informazioni di autenticazione.
     /// </summary>
-    /// <param name="req">La richiesta con il nome e i trimestri in cui cercare i contratti.</param>
+    /// <param name="req">La richiesta con il nome, i trimestri e l'anno in cui cercare i contratti.</param>
     /// <param name="authInfo">Le informazioni di autenticazione dell'utente che effettua la richiesta.</param>
     /// <returns>Una AppIoContrattiQueryGetByName valorizzata con i dati della richiesta e le informazioni di autenticazione.</returns>
     public static AppIoContrattiQueryGetByName Map(this AppIoContrattiNameRequest req, AuthenticationInfo authInfo)
@@ -54,7 +55,8 @@ public static class AppIoContrattiExtensions
         return new AppIoContrattiQueryGetByName(authInfo)
         {
             Name = req.Name,
-            YearQuarter = req.Quarters.IsNullNotAny() ? null : req.Quarters
+            YearQuarter = req.Quarters.IsNullNotAny() ? null : req.Quarters,
+            Year = string.IsNullOrWhiteSpace(req.Year) ? null : req.Year
         };
     }
 

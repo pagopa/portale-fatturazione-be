@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using PortaleFatture.BE.Api.Infrastructure;
 using PortaleFatture.BE.Api.Modules.AppIO.Contratti.Extensions;
 using PortaleFatture.BE.Api.Modules.AppIO.Contratti.Request;
@@ -90,11 +91,11 @@ public partial class AppIoContrattiModule : Module, IRegistrableModule
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     private async Task<Results<Ok<IEnumerable<AppIoContrattoNomeResponse>>, NotFound>> PostAppIoContrattiByName(
     HttpContext context,
-    [FromBody] AppIoContrattiNameRequest request,
+    [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] AppIoContrattiNameRequest? request,
     [FromServices] IMediator handler)
     {
-        // Recupera i contratti AppIO per il nome specificato
-        var contratti = await handler.Send(request.Map(context.GetAuthInfo()));
+        // Recupera i contratti AppIO per il nome specificato; body assente = nessun filtro
+        var contratti = await handler.Send((request ?? new AppIoContrattiNameRequest()).Map(context.GetAuthInfo()));
 
         // Se non ci sono contratti disponibili, restituisce NotFound
         if (contratti.IsNullNotAny())
@@ -122,13 +123,13 @@ public partial class AppIoContrattiModule : Module, IRegistrableModule
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     private async Task<Results<Ok<AppIoContrattiListResponse>, NotFound>> PostAppIoContratti(
     HttpContext context,
-    [FromBody] AppIoContrattiRequest request,
+    [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] AppIoContrattiRequest? request,
     [FromQuery] int page,
     [FromQuery] int pageSize,
     [FromServices] IMediator handler)
     {
-        // Recupera i contratti AppIO con paginazione
-        var contratti = await handler.Send(request.Map(context.GetAuthInfo(), page, pageSize));
+        // Recupera i contratti AppIO con paginazione; body assente = nessun filtro (trimestre più recente)
+        var contratti = await handler.Send((request ?? new AppIoContrattiRequest()).Map(context.GetAuthInfo(), page, pageSize));
 
         // Se non ci sono contratti disponibili, restituisce NotFound
         if (contratti == null || contratti.Count == 0)
@@ -154,11 +155,11 @@ public partial class AppIoContrattiModule : Module, IRegistrableModule
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     private async Task<IResult> PostAppIoContrattiDownload(
     HttpContext context,
-    [FromBody] AppIoContrattiRequest request,
+    [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] AppIoContrattiRequest? request,
     [FromServices] IMediator handler)
     {
-        // Recupera i contratti AppIO per il download
-        var contratti = await handler.Send(request.Map(context.GetAuthInfo()));
+        // Recupera i contratti AppIO per il download; body assente = nessun filtro (trimestre più recente)
+        var contratti = await handler.Send((request ?? new AppIoContrattiRequest()).Map(context.GetAuthInfo()));
 
         // Se non ci sono contratti disponibili, restituisce NotFound
         if (contratti == null || contratti.Count == 0)

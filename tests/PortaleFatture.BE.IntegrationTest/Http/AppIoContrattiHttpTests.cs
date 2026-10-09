@@ -105,16 +105,62 @@ public class AppIoContrattiHttpTests
     // --- name ---
 
     /// <summary>
-    /// Senza trimestri la ricerca per nome cerca nel trimestre più recente e ordina per nome.
+    /// Senza trimestri né anno la ricerca per nome cerca in TUTTI i trimestri, ordinando per nome:
+    /// un contratto si trova anche se non compare nel trimestre più recente (C4 è solo in 2025_4).
+    /// Una riga per contratto: C1, presente in tre trimestri, esce una volta con il più recente.
     /// </summary>
     [Test]
-    public async Task Name_SenzaTrimestre_ShouldCercareNelPiuRecente_OrdinatoPerNome()
+    public async Task Name_SenzaTrimestreNeAnno_ShouldCercareInTuttiITrimestri_UnaRigaPerContratto()
     {
         var resp = await Post($"{Base}/name", """{ "name": "AppIO Test" }""");
 
         Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-        // C4 ha il nome giusto ma esiste solo in 2025_4: fuori dal default
+        var json = await Json(resp);
+        Assert.Multiple(() =>
+        {
+            Assert.That(Valori(json, "contractId"), Is.EqualTo(new[] { "APPIO-C1", "APPIO-C2", "APPIO-C4" }));
+            Assert.That(Valori(json, "yearQuarter"), Is.EqualTo(new[] { "2026_2", "2026_2", "2025_4" }));
+        });
+    }
+
+    /// <summary>
+    /// Con il solo anno la ricerca per nome cerca in tutti i trimestri di quell'anno.
+    /// </summary>
+    [Test]
+    public async Task Name_ConAnno_ShouldCercareNeiTrimestriDellAnno()
+    {
+        var resp = await Post($"{Base}/name", """{ "name": "AppIO Test", "year": "2025" }""");
+
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        var json = await Json(resp);
+        Assert.Multiple(() =>
+        {
+            Assert.That(Valori(json, "contractId"), Is.EqualTo(new[] { "APPIO-C1", "APPIO-C4" }));
+            Assert.That(Valori(json, "yearQuarter"), Is.All.EqualTo("2025_4"));
+        });
+    }
+
+    /// <summary>
+    /// I trimestri prevalgono sull'anno: con entrambi si usano i trimestri.
+    /// </summary>
+    [Test]
+    public async Task Name_TrimestriEAnno_ShouldPrevalereITrimestri()
+    {
+        var resp = await Post($"{Base}/name", """{ "name": "AppIO Test", "quarters": ["2026_2"], "year": "2025" }""");
+
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
         Assert.That(Valori(await Json(resp), "contractId"), Is.EqualTo(new[] { "APPIO-C1", "APPIO-C2" }));
+    }
+
+    /// <summary>
+    /// Un anno senza contratti risponde 404.
+    /// </summary>
+    [Test]
+    public async Task Name_AnnoSenzaDati_ShouldReturn404()
+    {
+        var resp = await Post($"{Base}/name", """{ "name": "AppIO Test", "year": "1999" }""");
+
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
     }
 
     /// <summary>
@@ -191,6 +237,83 @@ public class AppIoContrattiHttpTests
         {
             Assert.That(json.GetProperty("count").GetInt32(), Is.EqualTo(2));
             Assert.That(Valori(json.GetProperty("contratti"), "yearQuarter"), Is.EquivalentTo(new[] { "2025_4", "2026_1" }));
+        });
+    }
+
+    /// <summary>
+    /// Con il solo anno la griglia mostra tutti i trimestri di quell'anno, e il conteggio è sul totale.
+    /// </summary>
+    [Test]
+    public async Task Grid_ConAnno_ShouldRestituireTuttiITrimestriDellAnno()
+    {
+        var resp = await Post(Base, """{ "year": "2026" }""", "&page=1&pageSize=10");
+
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        var json = await Json(resp);
+        Assert.Multiple(() =>
+        {
+            Assert.That(json.GetProperty("count").GetInt32(), Is.EqualTo(4));
+            Assert.That(Valori(json.GetProperty("contratti"), "yearQuarter"),
+                Is.EquivalentTo(new[] { "2026_1", "2026_2", "2026_2", "2026_2" }));
+        });
+    }
+
+    /// <summary>
+    /// I trimestri prevalgono sull'anno: con entrambi si usano i trimestri (qui di un altro anno).
+    /// </summary>
+    [Test]
+    public async Task Grid_TrimestriEAnno_ShouldPrevalereITrimestri()
+    {
+        var resp = await Post(Base, """{ "quarters": ["2025_4"], "year": "2026" }""", "&page=1&pageSize=10");
+
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        Assert.That(Valori((await Json(resp)).GetProperty("contratti"), "contractId"),
+            Is.EqualTo(new[] { "APPIO-C1", "APPIO-C4" }));
+    }
+
+    /// <summary>
+    /// Anno e contratti si applicano insieme (AND).
+    /// </summary>
+    [Test]
+    public async Task Grid_AnnoEContratti_ShouldIntersecare()
+    {
+        var resp = await Post(Base, """{ "contractIds": ["APPIO-C1"], "year": "2026" }""", "&page=1&pageSize=10");
+
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        Assert.That(Valori((await Json(resp)).GetProperty("contratti"), "yearQuarter"),
+            Is.EquivalentTo(new[] { "2026_1", "2026_2" }));
+    }
+
+    /// <summary>
+    /// Un anno senza contratti risponde 404: non ricade sul trimestre più recente.
+    /// </summary>
+    [Test]
+    public async Task Grid_AnnoSenzaDati_ShouldReturn404()
+    {
+        var resp = await Post(Base, """{ "year": "1999" }""", "&page=1&pageSize=10");
+
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
+    /// <summary>
+    /// Il download applica lo stesso filtro per anno della griglia, senza paginazione.
+    /// </summary>
+    [Test]
+    public async Task Download_ConAnno_ShouldContenereSoloIContrattiDellAnno()
+    {
+        var resp = await Post($"{Base}/download", """{ "year": "2025" }""");
+
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        using var zip = new ZipArchive(await resp.Content.ReadAsStreamAsync());
+        var testo = string.Concat(zip.Entries
+            .Where(e => e.FullName.StartsWith("xl/worksheets/"))
+            .Select(e => new StreamReader(e.Open()).ReadToEnd()));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(testo, Does.Contain("APPIO-C1"));
+            Assert.That(testo, Does.Contain("APPIO-C4"));
+            Assert.That(testo, Does.Not.Contain("APPIO-C2"), "C2 è solo nel 2026");
         });
     }
 

@@ -81,6 +81,26 @@ public class AppIoContrattiExtensionsTests
     }
 
     /// <summary>
+    /// Verifica che l'anno venga riportato nelle query di griglia e nome, e che un anno vuoto o di soli
+    /// spazi diventi null: altrimenti la persistence filtrerebbe su un LIKE ' [_]%' e non troverebbe nulla.
+    /// </summary>
+    [TestCase("2026", "2026")]
+    [TestCase("", null)]
+    [TestCase("   ", null)]
+    [TestCase(null, null)]
+    public void MapRicercaENome_Anno_ShouldRiportarloOVuotoNull(string? anno, string? atteso)
+    {
+        var ricerca = new AppIoContrattiRequest { Year = anno }.Map(Auth());
+        var nome = new AppIoContrattiNameRequest { Name = "Comune", Year = anno }.Map(Auth());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(ricerca.Year, Is.EqualTo(atteso));
+            Assert.That(nome.Year, Is.EqualTo(atteso));
+        });
+    }
+
+    /// <summary>
     /// Verifica che il mapping del nome e dei trimestri venga riportato correttamente nella query, e che un array vuoto di trimestri venga convertito in null.
     /// </summary>
     [Test]
