@@ -238,15 +238,16 @@ public class FattureReportExcelExportTests
     }
 
     [Test]
-    public void ReportFattureRel_PacNonFirmate_FoglioSempreCreato_ConSoloPacNonCaricate()
+    public void ReportFattureRel_PacNonFirmate_FoglioSempreCreato_ConTutteLePacFirmateENon()
     {
         // Il foglio "Reg. Esec. PAC non firmate" viene aggiunto SEMPRE (il guard 'if !IsNullNotAny'
-        // e' commentato nel codice): caratterizzazione. Il filtro deve tenere solo TipoContratto
-        // contenente "PAC" con Caricata != 1 -> qui 1 sola riga su 3.
+        // e' commentato nel codice): caratterizzazione. Dal 13/10/2026 il filtro tiene ogni REL con
+        // TipoContratto contenente "PAC", firmata o no: l'esclusione 'Caricata != 1' e' stata tolta,
+        // e la colonna "Firmata" distingue i due casi. Qui 2 righe su 3.
         var relNonFirmate = new List<RelNonFatturataDto>
         {
-            RelNonFirmata("PAC", caricata: 0), // tenuta
-            RelNonFirmata("PAC", caricata: 1), // esclusa (gia' firmata)
+            RelNonFirmata("PAC", caricata: 0), // tenuta, "Non Caricata"
+            RelNonFirmata("PAC", caricata: 1), // tenuta, "Firmata"
             RelNonFirmata("PAL", caricata: 0)  // esclusa (non PAC)
         };
 
@@ -256,9 +257,17 @@ public class FattureReportExcelExportTests
 
         Assert.That(wb.TryGetWorksheet("Reg. Esec. PAC non firmate", out var ws), Is.True,
             "Il foglio PAC non firmate e' creato sempre (guard commentato).");
-        // FillOneTable: intestazione + righe dati. Una sola riga deve superare il filtro.
-        Assert.That(ws.RangeUsed()!.RowCount(), Is.EqualTo(2),
-            "Solo la PAC con Caricata=0 deve comparire: PAC gia' firmata e PAL escluse.");
+        // FillOneTable: intestazione + righe dati.
+        Assert.That(ws.RangeUsed()!.RowCount(), Is.EqualTo(3),
+            "Le due PAC (firmata e non) devono comparire, la PAL no.");
+
+        var valori = ws.CellsUsed().Select(c => c.GetString()).ToList();
+        Assert.Multiple(() =>
+        {
+            Assert.That(valori, Does.Contain("Firmata"), "la PAC firmata e' nel foglio, marcata come tale");
+            Assert.That(valori, Does.Contain("Non Caricata"), "la PAC non firmata resta nel foglio");
+            Assert.That(valori, Does.Not.Contain("PAL"), "il filtro sul tipo contratto resta");
+        });
     }
 
     [Test]
