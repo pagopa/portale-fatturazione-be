@@ -1231,8 +1231,8 @@ public static byte[] ReportFattureSospeseModuloCommessa(this List<IEnumerable<Fa
                 dataSet.Tables.Add(fatture[i]!.FillTableWithTotalsRel(9, $"Regolari Esecuzioni {month}"));
                 var pacNonFirmate = relNonFirmate!
                     .Where(x => x.TipoContratto != null
-                             && x.TipoContratto.Contains("PAC", StringComparison.InvariantCultureIgnoreCase)
-                             && x.Caricata != 1);
+                             && x.TipoContratto.Contains("PAC", StringComparison.InvariantCultureIgnoreCase));
+                             //&& x.Caricata != 1); // esclusione REL PAC non firmate non più necessaria. 2026-10-13
                 //if (!pacNonFirmate.IsNullNotAny())
                     dataSet.Tables.Add(pacNonFirmate!.FillOneTable($"Reg. Esec. PAC non firmate"));
             }
