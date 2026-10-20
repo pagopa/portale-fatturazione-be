@@ -22,12 +22,10 @@ public class FattureSospeseRelExcelHandler(
         using var rs = await _factory.Create(cancellationToken: ct);
         var rel = await rs.Query(new FattureSospeseRelExcelBuilderPersistence(request), ct);
 
-        using var rsn = await _factory.Create(cancellationToken: ct);
-        var relno = await rsn.Query(new FattureSospeseNotaNoRelExcelPersistence(request), ct);
-
         using var rsu = await _factory.Create(cancellationToken: ct);
         var relsu = await rsu.Query(new FattureSospeseUnionRelExcelPersistence(request), ct);
 
-        return new List<IEnumerable<FattureRelSospeseExcelDto>> { rel!, relsu!, relno! };
+        // Keep the legacy notes slot for consumers that depend on the three-slot contract.
+        return new List<IEnumerable<FattureRelSospeseExcelDto>> { rel!, relsu!, Array.Empty<FattureRelSospeseExcelDto>() };
     }
 }

@@ -11,7 +11,6 @@ namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries.Persisten
 public class FattureSospeseUnionRelExcelPersistence(FattureSospeseRelExcelQuery command) : DapperBase, IQuery<IEnumerable<FattureRelSospeseExcelDto>?>
 {
     private readonly FattureSospeseRelExcelQuery _command = command;
-    private static readonly string _sqlNo = FattureRelExcelBuilder.SelectNoteSenzaRelSospese();
     private static readonly string _sqlRel = FattureRelExcelBuilder.SelectRelSospese();
     private static readonly string _order = FattureRelExcelBuilder.OrderByRelSospese();
     public async Task<IEnumerable<FattureRelSospeseExcelDto>?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
@@ -38,13 +37,8 @@ public class FattureSospeseUnionRelExcelPersistence(FattureSospeseRelExcelQuery 
             where += " AND IdEnte in @IdEnti ";
         }
 
-        //if (_command.FkIdTipoContratto.HasValue)
-        //{
-        //    query.Add("FkIdTipoContratto", _command.FkIdTipoContratto, DbType.Int32);
-        //    where += " AND FkIdTipoContratto = @FkIdTipoContratto ";
-        //}
-
-        var sql = "SELECT* FROM (" + _sqlRel + where + " UNION " + _sqlNo + where + _order;
+        // Preserve the former UNION's deduplication before accumulating storni.
+        var sql = "SELECT * FROM (SELECT DISTINCT * FROM (" + _sqlRel + where + ") AS rel" + _order;
 
         var values = await ((IDatabase)this).SelectAsync<FattureRelSospeseExcelDto>(
         connection!,
@@ -58,7 +52,10 @@ public class FattureSospeseUnionRelExcelPersistence(FattureSospeseRelExcelQuery 
             computedFatture.TryAdd(key, r);
             var item = computedFatture[key];
 
-            if (r.CodiceMateriale!.Contains("STORNO"))
+            if (r.CodiceMateriale is null)
+                throw new DataException($"CodiceMateriale NULL per {key} {item.IdFattura}");
+
+            if (r.CodiceMateriale.Contains("STORNO"))
             {
                 if (r.CodiceMateriale!.Contains("ANT.") || r.CodiceMateriale!.Contains("ANTICIPO"))
                 {
