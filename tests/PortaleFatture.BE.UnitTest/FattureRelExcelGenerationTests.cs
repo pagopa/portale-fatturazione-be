@@ -52,6 +52,45 @@ public class FattureRelExcelGenerationTests
         return ws.Row(1).CellsUsed().Any(c => string.Equals(c.GetString(), caption, StringComparison.OrdinalIgnoreCase));
     }
 
+    [TestCase(false)]
+    [TestCase(true)]
+    public void EmptyLegacyNotesSlot_PreservesWorkbookContentAndTotals(bool combinedReport)
+    {
+        var rows = new[] { SospesaRow("SI", 100m), SospesaRow("NO", 50m) };
+        var sospese = new List<IEnumerable<FattureRelSospeseExcelDto>> { rows, rows };
+        var regular = new List<IEnumerable<FattureRelExcelDto>>
+        {
+            new[] { NonSospesaRow() }, new[] { NonSospesaRow() }
+        };
+        byte[] Report() => combinedReport
+            ? regular.ReportFattureRel(sospese, Array.Empty<RelNonFatturataDto>(), null, Month, "PRIMO SALDO")
+            : sospese.ReportFattureSospeseRel(Month, "SECONDO SALDO");
+        using var before = new XLWorkbook(new MemoryStream(Report()));
+        sospese.Add(Array.Empty<FattureRelSospeseExcelDto>());
+        using var after = new XLWorkbook(new MemoryStream(Report()));
+
+        Assert.That(after.Worksheets.Select(x => x.Name), Is.EqualTo(before.Worksheets.Select(x => x.Name)));
+        foreach (var sheet in after.Worksheets)
+            Assert.That(sheet.RowsUsed().Select(r => r.CellsUsed().Select(c => c.GetString()).ToArray()).ToArray(),
+                Is.EqualTo(before.Worksheet(sheet.Name).RowsUsed()
+                    .Select(r => r.CellsUsed().Select(c => c.GetString()).ToArray()).ToArray()), sheet.Name);
+
+        var sospeseSheet = after.Worksheet(combinedReport ? $"Enti Fatt. {Month} Sospesi" : $"Enti Fatt. Sospese {Month}");
+        var amountColumn = sospeseSheet.Row(1).CellsUsed()
+            .Single(c => c.GetString() == "Totale Fattura Imponibile \u20ac").Address.ColumnNumber;
+        var relColumn = sospeseSheet.Row(1).CellsUsed()
+            .Single(c => c.GetString() == Caption).Address.ColumnNumber;
+        var totalsRow = sospeseSheet.RowsUsed().Single(r => r.Cell(1).GetString() == "Totali:").RowNumber();
+        Assert.Multiple(() =>
+        {
+            Assert.That(sospeseSheet.Cell(2, amountColumn).GetValue<decimal>(), Is.EqualTo(100m));
+            Assert.That(sospeseSheet.Cell(3, amountColumn).GetValue<decimal>(), Is.EqualTo(50m));
+            Assert.That(sospeseSheet.Cell(totalsRow, amountColumn).GetValue<decimal>(), Is.EqualTo(150m));
+            Assert.That(sospeseSheet.Cell(2, relColumn).GetString(), Is.EqualTo("SI"));
+            Assert.That(sospeseSheet.Cell(3, relColumn).GetString(), Is.EqualTo("NO"));
+        });
+    }
+
     [Test]
     public void ReportFattureRel_RelNonFirmata_OnlyInSospesiSheet()
     {
