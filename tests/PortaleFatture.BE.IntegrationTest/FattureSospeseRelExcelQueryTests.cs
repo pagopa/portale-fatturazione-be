@@ -1,5 +1,8 @@
+using ClosedXML.Excel;
 using MediatR;
 using Microsoft.Extensions.Configuration;
+using PortaleFatture.BE.Api.Modules.SEND.Fatture.Extensions;
+using PortaleFatture.BE.Api.Modules.SEND.Fatture.Payload.Request;
 using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Dto;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries;
@@ -8,14 +11,14 @@ namespace PortaleFatture.BE.IntegrationTest;
 
 /// <summary>
 /// Integration test end-to-end (handler MediatR -> DB seedato) per il report Fatture Sospese, che legge
-/// [be].[vwFattureSospeseReport] (ramo view/rel) e [be].[vwFattureSospeseNoteReport] (ramo note/storni)
-/// ed espone la colonna RelNonFirmata. L'handler restituisce 3 bucket: { view, union, note }.
+/// [be].[vwFattureSospeseReport] ed espone la colonna RelNonFirmata.
+/// L'handler mantiene 3 bucket: { view, REL deduplicate, note vuote }.
 ///
 /// Gira sul container seedato (LocalTestDb): le tabelle tmpFattureTestata/tmpFattureRighe/tmpRelTestata/
 /// MesiFatture e le due viste sono in tests/Data/. Seed DEDICATO su Anno 2026 / Mese 2 / 'SECONDO SALDO'
 /// (coincide coi default Conf*):
 ///   - 7001 ente1 (PAC/tipo2) + MesiFatture -> ramo VIEW, RelNonFirmata='Rel in attesa di firma';
-///   - 7002 ente3 (PAL/tipo1) riga STORNO, senza MesiFatture, senza rel -> ramo NOTE, RelNonFirmata=''.
+///   - 7002 ente3 (PAL/tipo1) riga STORNO, senza MesiFatture, presente anche nel ramo REL.
 ///
 /// I test "strutturali" (esecuzione, periodo vuoto, per-tipologia) validano schema/colonne e passano
 /// anche senza dati; quelli "data-dependent" ora asseriscono sul seed (niente piu' Inconclusive).
@@ -25,7 +28,7 @@ public class FattureSospeseRelExcelQueryTests
     private IMediator _handler;
     private IConfiguration _conf;
 
-    // indici dei bucket restituiti dagli handler: { rel(diretta), union, note }
+    // Il nome legacy UnionBranch identifica ora il report REL deduplicato.
     private const int ViewBranch = 0;
     private const int UnionBranch = 1;
     private const int NoteBranch = 2;
@@ -65,7 +68,7 @@ public class FattureSospeseRelExcelQueryTests
 
     /// <summary>
     /// L'esecuzione senza eccezioni prova che lo schema/colonna sono corretti:
-    /// [be].[vwFattureSospeseReport] espone RelNonFirmata e l'UNION col ramo note e' allineato.
+    /// [be].[vwFattureSospeseReport] espone RelNonFirmata e il terzo slot rimane vuoto.
     /// Una colonna/vista errata farebbe fallire la query con "Invalid column name".
     /// </summary>
     [Test]
@@ -74,14 +77,14 @@ public class FattureSospeseRelExcelQueryTests
         var result = await _handler.Send(BuildSospeseQuery());
 
         Assert.That(result, Is.Not.Null);
-        Assert.That(result!.Count, Is.EqualTo(3)); // rel diretta, union, note
+        Assert.That(result!.Count, Is.EqualTo(3));
         Assert.That(result[ViewBranch], Is.Not.Null);
         Assert.That(result[UnionBranch], Is.Not.Null);
-        Assert.That(result[NoteBranch], Is.Not.Null);
+        Assert.That(result[NoteBranch], Is.Not.Null.And.Empty);
     }
 
     /// <summary>
-    /// Periodo sicuramente privo di dati: valida l'intera pipeline (SQL/mapping/UNION) senza dipendere
+    /// Periodo sicuramente privo di dati: valida l'intera pipeline SQL/mapping senza dipendere
     /// dai dati. Deve ritornare 3 bucket vuoti senza eccezioni.
     /// </summary>
     [Test]
@@ -96,21 +99,27 @@ public class FattureSospeseRelExcelQueryTests
     }
 
     /// <summary>
-    /// Esercita il binding dei parametri opzionali (FkIdTipoContratto / FatturaInviata): la query deve
-    /// eseguire senza errori e restituire i 3 bucket.
+    /// I filtri opzionali devono selezionare esattamente le fatture previste dal seed.
     /// </summary>
-    [TestCase(null, null)]
-    [TestCase(1, null)]
-    [TestCase(null, 0)]
-    [TestCase(null, 1)]
-    [TestCase(null, 2)] // "in elaborazione"
-    public async Task Query_WithOptionalFilters_ShouldExecute(int? fkIdTipoContratto, int? fatturaInviata)
+    [TestCase(null, null, 2)]
+    [TestCase(1, null, 1)]
+    [TestCase(2, null, 1)]
+    [TestCase(null, 0, 2)]
+    [TestCase(null, 1, 0)]
+    [TestCase(null, 2, 0)]
+    public async Task Query_WithOptionalFilters_ReturnsExpectedRows(int? fkIdTipoContratto, int? fatturaInviata, int count)
     {
         var result = await _handler.Send(
             BuildSospeseQuery(fkIdTipoContratto: fkIdTipoContratto, fatturaInviata: fatturaInviata));
 
         Assert.That(result, Is.Not.Null);
         Assert.That(result!.Count, Is.EqualTo(3));
+        var expected = fkIdTipoContratto == 1 ? new[] { "7002" }
+            : fkIdTipoContratto == 2 ? new[] { "7001" } : new[] { "7001", "7002" };
+        foreach (var branch in result.Take(2))
+            Assert.That(branch.Select(x => x.IdFattura),
+                Is.EquivalentTo(count == 0 ? Array.Empty<string>() : expected));
+        Assert.That(result[NoteBranch], Is.Empty);
     }
 
     /// <summary>
@@ -128,11 +137,11 @@ public class FattureSospeseRelExcelQueryTests
         Assert.That(result!.Count, Is.EqualTo(3));
     }
 
-    // -------- Data-dependent (UAT) --------
+    // -------- Seed locale --------
 
     /// <summary>
     /// Nel ramo vista, RelNonFirmata deve essere costante per IdFattura (relazione 1:1):
-    /// garantisce assenza di fan-out e quindi nessuna duplicazione/gonfiamento nella UNION.
+    /// garantisce che la colonna sia preservata nel report.
     /// </summary>
     [Test]
     public async Task Query_ViewBranch_RelNonFirmata_IsConsistentPerIdFattura()
@@ -150,43 +159,71 @@ public class FattureSospeseRelExcelQueryTests
             .ToList();
 
         Assert.That(fanOut, Is.Empty,
-            "RelNonFirmata deve essere costante per IdFattura (no fan-out / no duplicazione nella UNION).");
+            "RelNonFirmata deve essere costante per IdFattura.");
     }
 
     /// <summary>
-    /// Nel ramo note la vista non espone la colonna: la query usa il placeholder '' (string.Empty)
-    /// per mantenere allineato l'UNION.
+    /// Le note separate non sono piu' interrogate; lo slot resta presente per compatibilita'.
     /// </summary>
     [Test]
-    public async Task Query_NoteBranch_RelNonFirmata_IsEmptyPlaceholder()
+    public async Task Query_NoteBranch_IsEmpty()
     {
         var result = await _handler.Send(BuildSospeseQuery());
         var noteRows = result![NoteBranch]?.ToList() ?? new List<FattureRelSospeseExcelDto>();
 
-        Assert.That(noteRows.Count, Is.GreaterThan(0),
-            "Il seed sospesi (7002 storno senza rel) deve popolare il ramo note.");
-
-        Assert.That(noteRows.All(x => x.RelNonFirmata == string.Empty), Is.True,
-            "Le righe del ramo note devono avere RelNonFirmata = '' (placeholder).");
+        Assert.That(noteRows, Is.Empty);
     }
 
     /// <summary>
-    /// La UNION deduplica: il numero di righe del bucket union non puo' superare la somma di
-    /// ramo vista + ramo note (protezione contro duplicazioni introdotte dalla colonna aggiunta).
+    /// Lo storno 7002 rimane nel ramo REL, ma non viene sommato di nuovo dal vecchio ramo note.
     /// </summary>
     [Test]
-    public async Task Query_UnionBranch_ShouldNotExceed_ViewPlusNote()
+    public async Task Query_ReportBranch_PreservesRelAmounts_WithoutAddingNotesAgain()
     {
         var result = await _handler.Send(BuildSospeseQuery());
-        var view = result![ViewBranch]?.Count() ?? 0;
-        var note = result[NoteBranch]?.Count() ?? 0;
-        var union = result[UnionBranch]?.Count() ?? 0;
+        var rows = result![UnionBranch].ToList();
+        Assert.That(rows.Select(x => x.IdFattura), Is.EqualTo(new[] { "7001", "7002" }));
+        Assert.Multiple(() =>
+        {
+            Assert.That(rows.Select(x => x.TotaleFatturaImponibile), Is.EqualTo(new[] { 1000m, 250m }));
+            Assert.That(rows[0].RelNonFirmata, Is.EqualTo("Rel in attesa di firma"));
+            Assert.That(rows[1].RelNonFirmata, Is.Empty);
+            Assert.That(rows[1].StornoAnticipoAnalogico, Is.EqualTo(-250m));
+            Assert.That(rows[1].StornoAnticipoDigitale, Is.Zero);
+            Assert.That(result[ViewBranch].Single(x => x.IdFattura == "7002").StornoAnticipoAnalogico, Is.EqualTo(-250m));
+        });
+    }
 
-        Assert.That(view + note, Is.GreaterThan(0),
-            "Il seed sospesi deve popolare view e/o note per il periodo 2026/2/SECONDO SALDO.");
+    [Test]
+    public async Task Reports_FromRealMediator_PreserveAmountsAndTotals()
+    {
+        var result = await _handler.Send(BuildSospeseQuery());
+        using var sospese = new XLWorkbook(new MemoryStream(result!.ReportFattureSospeseRel("Febbraio", ConfTipologia)));
+        AssertSheetAmounts(sospese.Worksheet("Enti Fatt. Sospese Febbraio"));
 
-        Assert.That(union, Is.LessThanOrEqualTo(view + note),
-            "Il bucket union non deve contenere piu' righe della somma vista + note (no duplicazioni).");
+        var reports = await new FatturaRicercaRequest
+        {
+            Anno = ConfAnno, Mese = ConfMese, TipologiaFattura = new[] { ConfTipologia }
+        }.ReportFatture(_handler, AdminAuth());
+        Assert.That(reports, Has.Count.EqualTo(1));
+        using var combined = new XLWorkbook(new MemoryStream(reports.Single().Value));
+        var sheet = combined.Worksheets.Single(x => x.Name.StartsWith("Enti Fatt.") && x.Name.EndsWith("Sospesi"));
+        AssertSheetAmounts(sheet);
+    }
+
+    private static void AssertSheetAmounts(IXLWorksheet sheet)
+    {
+        var amountColumn = sheet.Row(1).CellsUsed().Single(x => x.GetString() == "Totale Fattura Imponibile \u20ac").Address.ColumnNumber;
+        var stornoColumn = sheet.Row(1).CellsUsed().Single(x => x.GetString() == "Storno Anticipo Analogico \u20ac").Address.ColumnNumber;
+        var totalsRow = sheet.RowsUsed().Single(r => r.Cell(1).GetString() == "Totali:").RowNumber();
+        Assert.Multiple(() =>
+        {
+            Assert.That(sheet.Cell(2, amountColumn).GetValue<decimal>(), Is.EqualTo(1000m));
+            Assert.That(sheet.Cell(3, amountColumn).GetValue<decimal>(), Is.EqualTo(250m));
+            Assert.That(sheet.Cell(totalsRow, amountColumn).GetValue<decimal>(), Is.EqualTo(1250m));
+            Assert.That(sheet.Cell(3, stornoColumn).GetValue<decimal>(), Is.EqualTo(-250m));
+            Assert.That(sheet.Cell(totalsRow, stornoColumn).GetValue<decimal>(), Is.EqualTo(-250m));
+        });
     }
 
     // -------- Regressione report non-sospesi (DTO condiviso) --------
@@ -194,8 +231,8 @@ public class FattureSospeseRelExcelQueryTests
     /// <summary>
     /// Il report Fatture Emesse (non sospese) usa FattureRelExcelDto che, dopo la separazione dei DTO,
     /// NON espone piu' RelNonFirmata: l'assenza della colonna e' garantita a livello di tipo (compile-time)
-    /// ed e' verificata dai unit test FattureRelDtoMetadataTests. Qui si verifica solo che la query
-    /// non-sospese esegua correttamente e ritorni i bucket attesi.
+    /// ed e' verificata dai unit test FattureRelDtoMetadataTests. Qui si verificano anche
+    /// gli importi e i totali REL della fattura regolare 8001.
     /// </summary>
     [Test]
     public async Task RelExcelQuery_NonSospese_ShouldExecute()
@@ -211,5 +248,16 @@ public class FattureSospeseRelExcelQueryTests
 
         Assert.That(result, Is.Not.Null);
         Assert.That(result!.Count, Is.EqualTo(3));
+        foreach (var branch in result.Take(2))
+        {
+            var row = branch.Single(x => x.IdFattura == "8001");
+            Assert.Multiple(() =>
+            {
+                Assert.That(row.TotaleFatturaImponibile, Is.EqualTo(1500m));
+                Assert.That(row.RelTotale, Is.EqualTo(300m));
+                Assert.That(row.RelTotaleIvato, Is.EqualTo(366m));
+                Assert.That(row.StornoAnticipoAnalogico, Is.Zero);
+            });
+        }
     }
 }
