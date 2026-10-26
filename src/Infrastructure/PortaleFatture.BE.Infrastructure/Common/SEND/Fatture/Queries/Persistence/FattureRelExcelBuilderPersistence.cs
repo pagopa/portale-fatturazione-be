@@ -10,7 +10,8 @@ namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries.Persisten
 public class FattureRelExcelBuilderPersistence(FattureRelExcelQuery command) : DapperBase, IQuery<IEnumerable<FattureRelExcelDto>?>
 {
     private readonly FattureRelExcelQuery _command = command;
-    private static readonly string _sql = FattureRelExcelBuilder.SelectRel(); 
+    private static readonly string _sql = FattureRelExcelBuilder.SelectRel();
+    private static readonly string _sqlPacNonFatturate = FattureRelExcelBuilder.SelectRelPacNonFatturate();
     public async Task<IEnumerable<FattureRelExcelDto>?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
     {
         var computedFatture = new Dictionary<string, FattureRelExcelDto>();
@@ -26,11 +27,14 @@ public class FattureRelExcelBuilderPersistence(FattureRelExcelQuery command) : D
         query.Add("TipologiaFattura", tipoFattura);
         query.Add("FatturaInviata", fatturaInviata.HasValue? fatturaInviata.Value: null);
 
+        // Un filtro per ramo della UNION: nel ramo delle REL PAC non fatturate non c'e' la fattura (t).
         string where = string.Empty;
+        string wherePacNonFatturate = string.Empty;
         if (!_command.IdEnti!.IsNullNotAny())
         {
             query.Add("IdEnti", _command.IdEnti);
             where += " AND t.FKIdEnte in @IdEnti ";
+            wherePacNonFatturate += " AND rr.internal_organization_id in @IdEnti ";
             // ! TODO: passaggio a vista temporaneamente sospeso
             //where += " AND [IdEnte] in @IdEnti ";
         }
@@ -39,11 +43,12 @@ public class FattureRelExcelBuilderPersistence(FattureRelExcelQuery command) : D
         {
             query.Add("FkIdTipoContratto", _command.FkIdTipoContratto, DbType.Int32);
             where += " AND c.FkIdTipoContratto = @FkIdTipoContratto ";
+            wherePacNonFatturate += " AND c.FkIdTipoContratto = @FkIdTipoContratto ";
             // ! TODO: passaggio a vista temporaneamente sospeso
             //where += " AND [FkIdTipoContratto] = @FkIdTipoContratto ";
         }
 
-        var sql = _sql + where;
+        var sql = _sql + where + " UNION " + _sqlPacNonFatturate + wherePacNonFatturate;
 
         var values = await ((IDatabase)this).SelectAsync<FattureRelExcelDto>(
         connection!,
@@ -53,6 +58,13 @@ public class FattureRelExcelBuilderPersistence(FattureRelExcelQuery command) : D
 
         foreach (var r in values)
         {
+            // REL PAC non fatturata: nessuna riga di fattura, quindi niente storni. La chiave include il
+            // contratto, altrimenti una fattura emessa dello stesso ente su un altro contratto la nasconderebbe.
+            if (r.IdFattura is null)
+            {
+                computedFatture.TryAdd(r.IdEnte + r.TipologiaFattura + r.IdContratto + "NonFatturata", r);
+                continue;
+            }
 
             var key = r.IdEnte + r.TipologiaFattura;
             computedFatture.TryAdd(key, r);

@@ -80,7 +80,7 @@ public static class FattureRelExcelBuilder
         NULL as RelFatturata,
         c.FkIdTipoContratto,
         tp.Descrizione as TipologiaContratto
-        ,ROW_NUMBER() OVER (ORDER BY Progressivo DESC) as RowNum 
+        ,ROW_NUMBER() OVER (ORDER BY Progressivo DESC) as RowNum
         FROM pfd.FattureTestata t
         LEFT OUTER join pfd.Enti e
         ON e.InternalIstitutionId = t.FkIdEnte
@@ -243,7 +243,7 @@ public static class FattureRelExcelBuilder
         rr.[RelFatturata],
         c.FkIdTipoContratto,
         tp.Descrizione as TipologiaContratto
-        ,ROW_NUMBER() OVER (ORDER BY Progressivo DESC) as RowNum 
+        ,ROW_NUMBER() OVER (ORDER BY Progressivo DESC) as RowNum
         FROM pfd.FattureTestata t
         LEFT OUTER join pfd.Enti e
         ON e.InternalIstitutionId = t.FkIdEnte
@@ -281,6 +281,72 @@ public static class FattureRelExcelBuilder
               AND gf.FkTipologiaFattura = t.FkTipologiaFattura
               AND gf.Anno = t.AnnoRiferimento
               AND gf.Mese = t.MeseRiferimento
+              AND gf.Stato IN (0, 3)
+        )";
+
+    // REL PAC non ancora fatturate (firmate o no): non hanno una fattura emessa, quindi _sqlRel,
+    // che parte da pfd.FattureTestata, non le trova. Va in UNION in coda a _sqlRel, con le stesse
+    // colonne nello stesso ordine; lo sheet "Regolari Esecuzioni" le distingue dalla colonna "Firmata".
+    // Niente pfd.RelUpload: e' un log (UP e DOWN), e una REL scaricata ma non firmata sparirebbe.
+    private static string _sqlRelPacNonFatturate = @"
+        SELECT
+        NULL as IdFattura,
+        e.description as RagioneSociale,
+        NULL as TipoDocumento,
+        rr.internal_organization_id as IdEnte,
+        NULL as DataFattura,
+        NULL as Progressivo,
+        CAST(0 AS decimal(18,2)) as TotaleFatturaImponibile,
+        NULL as CodiceMateriale,
+        CAST(0 AS decimal(10,2)) as RigaImponibile,
+        rr.contract_id as IdContratto,
+        rr.year as Anno,
+        rr.month as Mese,
+        rr.[TipologiaFattura],
+        ISNULL(rr.[TotaleAnalogico],0) as RelTotaleAnalogico,
+        ISNULL(rr.[TotaleDigitale],0) as RelTotaleDigitale,
+        ISNULL(rr.[TotaleNotificheAnalogiche],0) as RelTotaleNotificheAnalogiche,
+        ISNULL(rr.[TotaleNotificheDigitali],0) as RelTotaleNotificheDigitali,
+        ISNULL(rr.[TotaleNotificheAnalogiche],0) + ISNULL(rr.[TotaleNotificheDigitali],0) as RelTotaleNotifiche,
+        ISNULL(rr.[Totale],0) as RelTotale,
+        ISNULL(rr.[TotaleAnalogicoIva],0) as RelTotaleIvatoAnalogico,
+        ISNULL(rr.[TotaleDigitaleIva],0) as RelTotaleIvatoDigitale,
+        ISNULL(rr.[TotaleIva],0) as RelTotaleIvato,
+        rr.[Caricata] as Caricata,
+        rr.[RelFatturata],
+        c.FkIdTipoContratto,
+        tp.Descrizione as TipologiaContratto,
+        0 as RowNum
+        FROM pfd.RelTestata rr
+        LEFT OUTER JOIN pfd.Enti e
+        ON e.InternalIstitutionId = rr.internal_organization_id
+        LEFT JOIN pfd.Contratti c
+        ON c.internalistitutionid = rr.internal_organization_id
+        AND c.onboardingtokenid = rr.contract_id
+        INNER JOIN pfw.TipoContratto tp
+        ON c.FkIdTipoContratto = tp.IdTipoContratto
+        WHERE rr.month = @mese and rr.year = @anno and rr.TipologiaFattura = @tipologiafattura
+        AND tp.Descrizione = 'PAC'
+        AND rr.RelFatturata = 0
+        AND rr.Totale > 0
+        -- nessuna fattura, quindi non ancora inviata: compaiono con Tutte e con Non inviate
+        AND (@FatturaInviata IS NULL OR @FatturaInviata = 0)
+        -- nessuna fattura emessa per la stessa REL: evita la doppia riga se RelFatturata e' disallineato
+        AND NOT EXISTS (
+            SELECT 1 FROM pfd.FattureTestata ft
+            WHERE ft.FkIdEnte = rr.internal_organization_id
+              AND ft.CodiceContratto = rr.contract_id
+              AND ft.AnnoRiferimento = rr.year
+              AND ft.MeseRiferimento = rr.month
+              AND ft.FkTipologiaFattura = rr.TipologiaFattura
+        )
+        -- stessa esclusione dello staging di _sqlRel (posticipate ed eliminate)
+        AND NOT EXISTS (
+            SELECT 1 FROM cfg.GestioneFatture gf
+            WHERE gf.FkIdEnte = rr.internal_organization_id
+              AND gf.FkTipologiaFattura = rr.TipologiaFattura
+              AND gf.Anno = rr.year
+              AND gf.Mese = rr.month
               AND gf.Stato IN (0, 3)
         )";
 
@@ -328,6 +394,11 @@ public static class FattureRelExcelBuilder
     public static string SelectRel()
     {
         return _sqlRel;
+    }
+
+    public static string SelectRelPacNonFatturate()
+    {
+        return _sqlRelPacNonFatturate;
     }
 
     public static string SelectRelSospese()
