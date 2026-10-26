@@ -605,24 +605,147 @@ public class FattureReportExtensionsTests
         });
     }
 
-    /// <summary>Pregresso: ramo ANTICIPO produce il report ma senza "Non Fatturate" (non esistono sospese).</summary>
+    /// <summary>ANTICIPO senza posticipate/eliminate: report prodotto, senza sheet "Non Fatturate".</summary>
     [Test]
-    public async Task ReportNonInviate_Anticipo_ProduceReport_SenzaNonFatturate()
+    public async Task ReportNonInviate_Anticipo_SenzaGestioneFatture_NessunSheetNonFatturate()
     {
-        var m = new Mock<IMediator>();
-        m.Setup(x => x.Send(It.IsAny<NonFatturateTipologiaQueryRicerca>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((IEnumerable<AnniMesiTipologiaDto>?)Amt("ANTICIPO"));
-        m.Setup(x => x.Send(It.IsAny<FattureCommessaExcelQuery>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((List<IEnumerable<FattureCommessaExcelDto>>?)CommessaData());
-        m.Setup(x => x.Send(It.IsAny<GestioneFattureReportQuery>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((IEnumerable<GestioneFattureReportDto>?)new List<GestioneFattureReportDto>());
+        var m = MediatorForAnticipoAcconto("ANTICIPO", new List<GestioneFattureReportDto>());
 
         var request = new NonFatturateRicercaRequest { TipologiaFattura = new[] { "ANTICIPO" } };
         var reports = await request.ReportNonInviate(m.Object, AdminAuth());
 
         Assert.That(reports.ContainsKey("Lista ANTICIPO"), Is.True);
-        Assert.That(SheetNames(reports["Lista ANTICIPO"]), Does.Not.Contain("Non Fatturate"),
-            "Per ANTICIPO non esistono sospese: nessuno sheet 'Non Fatturate' (comportamento pregresso).");
+        Assert.That(SheetNames(reports["Lista ANTICIPO"]), Does.Not.Contain("Non Fatturate"));
+    }
+
+    // =================== PF-984: "Non Fatturate" anche per ANTICIPO e ACCONTO ===================
+    // Prima di PF-984 lo sheet c'era solo nei report dei saldi. Regola: stesso contenuto dei saldi
+    // (posticipate + eliminate della stessa tipologia, tutti i periodi); nome "Non Fatturate {mese}" in
+    // api/fatture/report, "Non Fatturate" nel report delle non inviate (che non ha un mese). Nessun file
+    // se non ci sono anticipi o acconti, anche con righe di gestione.
+
+    private static Mock<IMediator> MediatorForAnticipoAcconto(string tipologia, IEnumerable<GestioneFattureReportDto>? gestione, bool conDati = true)
+    {
+        var m = new Mock<IMediator>();
+        m.Setup(x => x.Send(It.IsAny<NonFatturateTipologiaQueryRicerca>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IEnumerable<AnniMesiTipologiaDto>?)Amt(tipologia));
+        m.Setup(x => x.Send(It.IsAny<FattureCommessaExcelQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((List<IEnumerable<FattureCommessaExcelDto>>?)(conDati ? CommessaData() : new()));
+        m.Setup(x => x.Send(It.IsAny<FattureAccontoExcelQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((List<IEnumerable<FattureAccontoExcelDto>>?)(conDati ? AccontoData() : new()));
+        m.Setup(x => x.Send(It.IsAny<GestioneFattureReportQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IEnumerable<GestioneFattureReportDto>?)gestione?.ToList());
+        return m;
+    }
+
+    private static readonly string[] AnticipoAcconto = { "ANTICIPO", "ACCONTO" };
+
+    [TestCaseSource(nameof(AnticipoAcconto))]
+    public async Task ReportFatture_AnticipoAcconto_ConGestioneFatture_IncludeSheetNonFatturateConMese(string tipologia)
+    {
+        var gestione = new[]
+        {
+            GfRow(tipologia, "POSTICIPATA", "Ente-POST"),
+            GfRow(tipologia, "ELIMINATA",   "Ente-ELIM"),
+        };
+        var m = MediatorForAnticipoAcconto(tipologia, gestione);
+        var request = new FatturaRicercaRequest { Anno = 2026, Mese = 2, TipologiaFattura = new[] { tipologia } };
+
+        var reports = await request.ReportFatture(m.Object, AdminAuth());
+        var xlsx = reports[$"Lista {tipologia} 2026 FEBBRAIO"];
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(SheetNames(xlsx), Does.Contain("Non Fatturate FEBBRAIO"));
+            Assert.That(SheetContains(xlsx, "Non Fatturate FEBBRAIO", "Ente-POST"), Is.True, "Deve contenere la posticipata.");
+            Assert.That(SheetContains(xlsx, "Non Fatturate FEBBRAIO", "Ente-ELIM"), Is.True, "Deve contenere l'eliminata.");
+        });
+    }
+
+    [TestCaseSource(nameof(AnticipoAcconto))]
+    public async Task ReportFatture_AnticipoAcconto_SoloRigheDiAltraTipologia_NessunSheetNonFatturate(string tipologia)
+    {
+        var m = MediatorForAnticipoAcconto(tipologia, new[] { GfRow("SECONDO SALDO", "POSTICIPATA", "Ente-SS") });
+        var request = new FatturaRicercaRequest { Anno = 2026, Mese = 2, TipologiaFattura = new[] { tipologia } };
+
+        var reports = await request.ReportFatture(m.Object, AdminAuth());
+
+        Assert.That(SheetNames(reports[$"Lista {tipologia} 2026 FEBBRAIO"]).Where(s => s.StartsWith("Non Fatturate")), Is.Empty,
+            "Le posticipate/eliminate di un'altra tipologia non devono finire nel report.");
+    }
+
+    [TestCaseSource(nameof(AnticipoAcconto))]
+    public async Task ReportFatture_AnticipoAcconto_SenzaGestioneFatture_NessunSheetNonFatturate(string tipologia)
+    {
+        var m = MediatorForAnticipoAcconto(tipologia, gestione: null);
+        var request = new FatturaRicercaRequest { Anno = 2026, Mese = 2, TipologiaFattura = new[] { tipologia } };
+
+        var reports = await request.ReportFatture(m.Object, AdminAuth());
+
+        Assert.That(SheetNames(reports[$"Lista {tipologia} 2026 FEBBRAIO"]).Where(s => s.StartsWith("Non Fatturate")), Is.Empty);
+    }
+
+    [TestCaseSource(nameof(AnticipoAcconto))]
+    public async Task ReportFatture_AnticipoAcconto_SenzaDati_ConGestioneFatture_NessunFile(string tipologia)
+    {
+        var m = MediatorForAnticipoAcconto(tipologia, new[] { GfRow(tipologia, "POSTICIPATA", "Ente-POST") }, conDati: false);
+        var request = new FatturaRicercaRequest { Anno = 2026, Mese = 2, TipologiaFattura = new[] { tipologia } };
+
+        var reports = await request.ReportFatture(m.Object, AdminAuth());
+
+        Assert.That(reports, Is.Empty, "Senza anticipi/acconti nel periodo non si produce il file, come per i saldi.");
+    }
+
+    [TestCaseSource(nameof(AnticipoAcconto))]
+    public async Task ReportNonInviate_AnticipoAcconto_ConGestioneFatture_IncludeSheetNonFatturate(string tipologia)
+    {
+        var gestione = new[]
+        {
+            GfRow(tipologia,       "POSTICIPATA", "Ente-POST"),
+            GfRow(tipologia,       "ELIMINATA",   "Ente-ELIM"),
+            GfRow("PRIMO SALDO",   "ELIMINATA",   "Ente-PS-altrui"),
+        };
+        var m = MediatorForAnticipoAcconto(tipologia, gestione);
+        var request = new NonFatturateRicercaRequest { TipologiaFattura = new[] { tipologia } };
+
+        var reports = await request.ReportNonInviate(m.Object, AdminAuth());
+        var xlsx = reports[$"Lista {tipologia}"];
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(SheetNames(xlsx), Does.Contain("Non Fatturate"),
+                "Senza mese il nome resta 'Non Fatturate', senza spazio finale, come per i saldi.");
+            Assert.That(SheetContains(xlsx, "Non Fatturate", "Ente-POST"), Is.True);
+            Assert.That(SheetContains(xlsx, "Non Fatturate", "Ente-ELIM"), Is.True);
+            Assert.That(SheetContains(xlsx, "Non Fatturate", "Ente-PS-altrui"), Is.False,
+                "Le righe di altra tipologia non devono comparire.");
+        });
+    }
+
+    /// <summary>Regressione: il report delle sospese (stessi builder dell'acconto) non riceve lo sheet.</summary>
+    [Test]
+    public async Task ReportFattureSospese_Acconto_NessunSheetNonFatturate()
+    {
+        var m = MediatorForAnticipoAcconto("ACCONTO", new[] { GfRow("ACCONTO", "POSTICIPATA", "Ente-POST") });
+        var request = new FatturaSospeseRicercaRequest { Anno = 2026, Mese = 2, TipologiaFattura = new[] { "ACCONTO" } };
+
+        var reports = await request.ReportFattureSospese(m.Object, AdminAuth());
+
+        Assert.That(reports.Values.SelectMany(SheetNames).Where(s => s.StartsWith("Non Fatturate")), Is.Empty);
+    }
+
+    /// <summary>Regressione: i saldi in api/fatture/report mantengono il nome "Non Fatturate" senza mese.</summary>
+    [Test]
+    public async Task ReportFatture_Saldo_SheetNonFatturate_SenzaMese()
+    {
+        var m = MediatorForSaldo(new[] { "SECONDO SALDO" }, new[] { GfRow("SECONDO SALDO", "POSTICIPATA", "Ente-SS") });
+        m.Setup(x => x.Send(It.IsAny<FattureSospeseRelExcelQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((List<IEnumerable<FattureRelSospeseExcelDto>>?)SospeseData());
+        var request = new FatturaRicercaRequest { Anno = 2026, Mese = 2, TipologiaFattura = new[] { "SECONDO SALDO" } };
+
+        var reports = await request.ReportFatture(m.Object, AdminAuth());
+
+        Assert.That(SheetNames(reports["Lista SECONDO SALDO 2026 FEBBRAIO"]), Does.Contain("Non Fatturate"));
     }
 
     /// <summary>Pregresso: nessuna tipologia da elaborare -> nessun report.</summary>
