@@ -9,6 +9,7 @@ using PortaleFatture.BE.Api.Modules.SEND.Auth.Extensions;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
 using PortaleFatture.BE.Infrastructure.Common.Persistence.Schemas;
+using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Service;
 using PortaleFatture.BE.Infrastructure.Gateway;
 
 namespace PortaleFatture.BE.IntegrationTest.Http;
@@ -50,6 +51,11 @@ public class ApiTestFactory : WebApplicationFactory<Program>
             services.AddSingleton<IFattureDbContextFactory>(new DbContextFactory(LocalTestDb.ConnectionString, "pfw"));
             services.AddSingleton<ISelfCareDbContextFactory>(new DbContextFactory(LocalTestDb.ConnectionString, "pfd"));
             services.AddSingleton<IDbContextFactory>(new DbContextFactory(LocalTestDb.ConnectionString, "pfw"));
+
+            // 1b) Synapse: nessun test deve avviare una pipeline reale. Il fake registra le chiamate e
+            //     permette di simulare il fallimento dell'avvio (v. FakeSynapseService).
+            services.RemoveAll<ISynapseService>();
+            services.AddSingleton<ISynapseService>(FakeSynapseService.Instance);
 
             // 2) Autenticazione di test come schema di default (sostituisce JWT/api-key).
             services.AddAuthentication(o =>
