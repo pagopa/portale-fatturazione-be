@@ -1267,9 +1267,10 @@ SELECT [AnnoRiferimento] as Anno
             ON e.InternalIstitutionId = tft.FkIdEnte
             LEFT OUTER JOIN [pfd].[RelTestata] trt
             ON trt.year = tft.AnnoRiferimento 
-            AND trt.month = tft.MeseRiferimento 
-            --AND trt.TipologiaFattura = tft.FkTipologiaFattura
-            AND trt.internal_organization_id = tft.FkIdEnte 
+            AND trt.month = tft.MeseRiferimento
+            -- PF-976: una sola REL per fattura, quella della stessa tipologia (PRIMO SALDO per ACCONTO e ANTICIPO)
+            AND trt.TipologiaFattura = CASE WHEN tft.FkTipologiaFattura IN ('ACCONTO','ANTICIPO') THEN 'PRIMO SALDO' ELSE tft.FkTipologiaFattura END
+            AND trt.internal_organization_id = tft.FkIdEnte
             AND trt.contract_id = tft.CodiceContratto
             LEFT JOIN pfd.Contratti c
             ON c.internalistitutionid = e.InternalIstitutionId
@@ -1277,12 +1278,21 @@ SELECT [AnnoRiferimento] as Anno
             ON c.FkIdTipoContratto = tp.IdTipoContratto
             LEFT JOIN pfd.tmpFattureTestata tftt
             ON tftt.IdFattura = mf.FkIdFatturaTmp
-            LEFT JOIN pfd.tmpRelTestata tmprl
-            ON tftt.FkIdEnte = tmprl.internal_organization_id 
-            AND tftt.CodiceContratto = tmprl.contract_id
-            --AND tftt.FkTipologiaFattura = tmprl.TipologiaFattura
-            AND tftt.AnnoRiferimento = tmprl.year
-            AND tftt.MeseRiferimento = tmprl.month
+            -- PF-976: una sola REL temporanea per sospesa, con la stessa regola della REL definitiva
+            OUTER APPLY (
+                SELECT TOP 1
+                    r.[TotaleAnalogico], r.[TotaleDigitale],
+                    r.[TotaleNotificheAnalogiche], r.[TotaleNotificheDigitali],
+                    r.[Totale], r.[TotaleAnalogicoIva], r.[TotaleDigitaleIva], r.[TotaleIva],
+                    r.[Caricata], r.[RelFatturata]
+                FROM pfd.tmpRelTestata r
+                WHERE r.internal_organization_id = tftt.FkIdEnte
+                  AND r.contract_id = tftt.CodiceContratto
+                  AND r.year = tftt.AnnoRiferimento
+                  AND r.month = tftt.MeseRiferimento
+                  AND r.TipologiaFattura = CASE WHEN tftt.FkTipologiaFattura IN ('ACCONTO','ANTICIPO') THEN 'PRIMO SALDO' ELSE tftt.FkTipologiaFattura END
+                ORDER BY r.[RelFatturata] DESC
+            ) tmprl
             LEFT JOIN pfd.Iva iva
             ON iva.Anno = tft.AnnoRiferimento AND iva.Mese = tft.MeseRiferimento
              -- OUTER APPLY per fatture ANTICIPO

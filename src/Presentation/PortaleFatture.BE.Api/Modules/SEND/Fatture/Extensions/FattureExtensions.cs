@@ -770,12 +770,20 @@ public static class FattureExtensions
                 case TipologiaFattura.ANTICIPO:
                     var commesse = await handler.Send(request.Mapv3(authInfo));
                     if (commesse.IsNotEmpty())
-                        reports.Add($"Lista ANTICIPO {year} {month}", commesse!.ReportFattureModuloCommessa(request.Mese.GetMonth()));
+                    {
+                        // PF-984: sheet "Non Fatturate {mese}" anche per l'anticipo, come per i saldi
+                        var gestioneFattureTipologia = gestioneFattureReport?.Where(x => x.TipologiaFattura == tipologia).MapExport();
+                        reports.Add($"Lista ANTICIPO {year} {month}", commesse!.ReportFattureModuloCommessa(request.Mese.GetMonth(), gestioneFattureTipologia));
+                    }
                     break;
                 case TipologiaFattura.ACCONTO:
                     var acconto = await handler.Send(request.Mapv4(authInfo));
                     if (acconto.IsNotEmpty())
-                        reports.Add($"Lista ACCONTO {year} {month}", acconto!.ReportFattureAcconto(request.Mese.GetMonth()));
+                    {
+                        // PF-984: sheet "Non Fatturate {mese}" anche per l'acconto, come per i saldi
+                        var gestioneFattureTipologia = gestioneFattureReport?.Where(x => x.TipologiaFattura == tipologia).MapExport();
+                        reports.Add($"Lista ACCONTO {year} {month}", acconto!.ReportFattureAcconto(request.Mese.GetMonth(), gestioneFattureTipologia));
+                    }
                     break;
                 default:
                     break;
@@ -1106,9 +1114,12 @@ public static class FattureExtensions
                 .Select(s => (IEnumerable<FattureCommessaExcelDto>)s)
                 .ToList();
 
+            // PF-984: stesso sheet "Non Fatturate" dei saldi
+            var gestioneFattureTipologia = gestioneFattureReport?.Where(x => x.TipologiaFattura == tipologia).MapExport();
+
             reports.Add(
                 $"Lista {tipologia}",
-                commesseForReport.ReportFattureModuloCommessa(""));
+                commesseForReport.ReportFattureModuloCommessa("", gestioneFattureTipologia));
         }
 
         foreach (var kvp in dictAcconto)
@@ -1120,9 +1131,12 @@ public static class FattureExtensions
                 .Select(s => (IEnumerable<FattureAccontoExcelDto>)s)
                 .ToList();
 
+            // PF-984: stesso sheet "Non Fatturate" dei saldi
+            var gestioneFattureTipologia = gestioneFattureReport?.Where(x => x.TipologiaFattura == tipologia).MapExport();
+
             reports.Add(
                 $"Lista {tipologia}",
-                accontoForReport.ReportFattureSospeseAcconto(""));
+                accontoForReport.ReportFattureSospeseAcconto("", gestioneFattureTipologia));
         }
 
         return reports;
@@ -1143,7 +1157,15 @@ public static class FattureExtensions
         return true;
     }
 
-    public static byte[] ReportFattureModuloCommessa(this List<IEnumerable<FattureCommessaExcelDto>> commesse, string month)
+    // PF-984: sheet "Non Fatturate {mese}" (posticipate + eliminate) per anticipo e acconto. Senza mese,
+    // come nel report delle non inviate, il nome resta "Non Fatturate" come per i saldi.
+    private static void AddNonFatturate(this DataSet dataSet, IEnumerable<GestioneFattureReportExcelDto>? gestioneFatture, string month)
+    {
+        if (gestioneFatture is not null && gestioneFatture.Any())
+            dataSet.Tables.Add(gestioneFatture.FillOneTable($"Non Fatturate {month}".Trim()));
+    }
+
+    public static byte[] ReportFattureModuloCommessa(this List<IEnumerable<FattureCommessaExcelDto>> commesse, string month, IEnumerable<GestioneFattureReportExcelDto>? gestioneFatture = null)
     {
         DataSet? dataSet = new();
         for (var i = 0; i < commesse.Count; i++)
@@ -1161,6 +1183,7 @@ public static class FattureExtensions
             else
                 dataSet.Tables.Add(commesse[i]!.FillTableWithTotalsRel(0, $"Com. eliminate fatt. {month}"));
         }
+        dataSet.AddNonFatturate(gestioneFatture, month);
 
         using var memory = dataSet!.ToExcel();
         return memory.ToArray();
@@ -1189,7 +1212,7 @@ public static byte[] ReportFattureSospeseModuloCommessa(this List<IEnumerable<Fa
         return memory.ToArray();
     }
 
-    public static byte[] ReportFattureAcconto(this List<IEnumerable<FattureAccontoExcelDto>> commesse, string month)
+    public static byte[] ReportFattureAcconto(this List<IEnumerable<FattureAccontoExcelDto>> commesse, string month, IEnumerable<GestioneFattureReportExcelDto>? gestioneFatture = null)
     {
         DataSet? dataSet = new();
         for (var i = 0; i < commesse.Count; i++)
@@ -1201,11 +1224,12 @@ public static byte[] ReportFattureSospeseModuloCommessa(this List<IEnumerable<Fa
             if (!fatturezero.IsNullNotAny())
                 dataSet.Tables.Add(fatturezero!.FillTableWithTotalsRel(0, $"Acconto a zero {month}"));
         }
+        dataSet.AddNonFatturate(gestioneFatture, month);
         using var memory = dataSet!.ToExcel();
         return memory.ToArray();
     }
 
-    public static byte[] ReportFattureSospeseAcconto(this List<IEnumerable<FattureAccontoExcelDto>> commesse, string month)
+    public static byte[] ReportFattureSospeseAcconto(this List<IEnumerable<FattureAccontoExcelDto>> commesse, string month, IEnumerable<GestioneFattureReportExcelDto>? gestioneFatture = null)
     {
         DataSet? dataSet = new();
         for (var i = 0; i < commesse.Count; i++)
@@ -1217,6 +1241,7 @@ public static byte[] ReportFattureSospeseModuloCommessa(this List<IEnumerable<Fa
             if (!fatturezero.IsNullNotAny())
                 dataSet.Tables.Add(fatturezero!.FillTableWithTotalsRel(0, $"Acconto a zero Sosp. {month}"));
         }
+        dataSet.AddNonFatturate(gestioneFatture, month);
         using var memory = dataSet!.ToExcel();
         return memory.ToArray();
     }
