@@ -568,6 +568,17 @@ CREATE TABLE [pfd].[MesiFatture](
 );
 GO
 
+-- pfd.Iva: DDL reale (fornito il 22/10/2026). La legge in LEFT JOIN la query del dettaglio emesso
+-- (FattureQueryRicercaBuilder._sqlSelectDettaglioEmesso, PF-976). Nel DB reale non ha chiave primaria.
+-- Nessuna riga seedata: i test inseriscono l'aliquota del proprio periodo dentro la loro transazione.
+IF OBJECT_ID('pfd.Iva', 'U') IS NULL
+CREATE TABLE [pfd].[Iva](
+	[Anno] [int] NOT NULL,
+	[Mese] [int] NOT NULL,
+	[Iva] [decimal](4, 2) NOT NULL
+);
+GO
+
 -- Ramo VIEW: 7001 ente1 (TOKEN-E1, PAC/tipo2), 2 righe non-storno, CON MesiFatture -> RelNonFirmata='Rel in attesa di firma'.
 -- Ramo NOTE: 7002 ente3 (TOKEN-E3, PAL/tipo1), riga STORNO, SENZA MesiFatture, SENZA rel -> RelNonFirmata=''.
 -- Nota: 7002 (mf NULL) compare anche nel ramo VIEW (RelNonFirmata='') -- corretto: la UNION dedupa.
