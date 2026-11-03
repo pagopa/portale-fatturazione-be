@@ -9,6 +9,7 @@ using PortaleFatture.BE.Core.Extensions;
 using WkHtmlToPdfDotNet;
 
 namespace PortaleFatture.BE.Infrastructure.Common.SEND.Documenti;
+
 public class DocumentBuilder : IDocumentBuilder
 {
     private static string _fileEmailPrimoSaldo = $"primo_saldo.html";
@@ -16,6 +17,7 @@ public class DocumentBuilder : IDocumentBuilder
     private static string _fileVarSemestrale = $"var_semestrale.html";
     private static string _filePrimoSaldoRel = $"PRIMO_SALDO_rel.html";
     private static string _fileSecondoSaldoRel = $"SECONDO_SALDO_rel.html";
+    private static string _fileSemSospesiRel = $"SEM_SOSPESI_rel.html";
     private static string _fileModuloCommessa = $"daticommessa.html";
     private static string _directory = $"Infrastructure/Documenti/";
     private static string _fileDettaglioFatturaSospesaPac = $"pac_fattura_sospesa_singola V2.html";
@@ -100,6 +102,10 @@ public class DocumentBuilder : IDocumentBuilder
         {
             fileRel = _fileSecondoSaldoRel;
         }
+        else if (dati.TipologiaFattura == TipologiaFattura.SEMESTRALE_SOSPESI)
+        {
+            fileRel = _fileSemSospesiRel;
+        }
         else
         {
             throw new Exception("Tipologia fattura non valida");
@@ -120,6 +126,10 @@ public class DocumentBuilder : IDocumentBuilder
         else if (dati.TipologiaFattura == TipologiaFattura.SECONDOSALDO)
         {
             fileRel = _fileSecondoSaldoRel;
+        }
+        else if (dati.TipologiaFattura == TipologiaFattura.SEMESTRALE_SOSPESI)
+        {
+            fileRel = _fileSemSospesiRel;
         }
         else
         {
