@@ -78,6 +78,9 @@
       <None Update="Infrastructure\Documenti\rel.html">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
+      <None Update="Infrastructure\Documenti\SEM_SOSPESI_rel.html">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
       <None Update="Infrastructure\Documenti\SECONDO_SALDO_rel.html">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
