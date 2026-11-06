@@ -28,6 +28,10 @@ if [ "$1" = '/opt/mssql/bin/sqlservr' ]; then
       # schema/tabelle/seed per i test CRUD di Gestione Fatture (PF-672)
       "$SQLCMD" -C -S localhost -U sa -P 52JdGnzZaANhf -d master -i /scripts/gestione_fatture.sql
 
+      # Invio a SAP (PF-965/PF-735): tabelle di DATA, pfd.Messaggi, lookup e seed 2003. Dopo
+      # gestione_fatture.sql (FK verso pfd.FattureTestata) e prima di views/ (viste A0-A3).
+      "$SQLCMD" -C -S localhost -U sa -P 52JdGnzZaANhf -d master -i /scripts/invio_sap.sql
+
       # ente/contratto con codiceSDI per i test su DatiFatturazione (PF-705)
       "$SQLCMD" -C -S localhost -U sa -P 52JdGnzZaANhf -d master -i /scripts/dati_fatturazione.sql
 

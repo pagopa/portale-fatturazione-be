@@ -206,8 +206,126 @@ public class FattureReportNonFatturateHttpTests
     }
 
     // =============================================================================================
+    // PF-984 (PF-981): lo sheet "Non Fatturate" anche nei report di ANTICIPO e ACCONTO.
+    //
+    // Prima di PF-984 c'era solo nei report dei saldi. Regola: stesso contenuto dei saldi (posticipate
+    // + eliminate della STESSA tipologia), nome "Non Fatturate {mese}" nel report per periodo e
+    // "Non Fatturate" nel report delle non inviate. A unit (FattureReportExtensionsTests) e' coperto
+    // con IMediator finto; qui sul DB seedato, con le query vere: fatture 2001 (ANTICIPO) e 2002
+    // (ACCONTO), ente 3 (PAL), periodo 2026/5.
+    // =============================================================================================
+
+    private const int AnnoAnticipo = 2026;
+    private const int MeseAnticipo = 5;
+    private const string MeseAnticipoNome = "MAGGIO";
+
+    /// <summary>
+    /// Le query dei report di anticipo e acconto leggono quattro viste LEGACY che non sono nel seed:
+    /// senza, la rotta risponde 500 per qualunque periodo. Serve la DDL reale da DATA (non si
+    /// ricostruiscono a mano); fino ad allora i test PF-984 qui sotto restano GIALLI.
+    /// </summary>
+    private static void SkipSeMancanoLeVistePf984() =>
+        TestDb.SkipSeOggettoAssente(LocalTestDb.ConnectionString,
+            "pfd.vModuloCommessaTotali", "pfd.vModuloCommessaParziali", "pfd.vFattureAnticipo", "pfd.vFattureAcconto");
+
+    [TestCase("ANTICIPO")]
+    [TestCase("ACCONTO")]
+    public async Task AnticipoAcconto_ConPosticipata_SheetNonFatturateConMese(string tipologia)
+    {
+        SkipSeMancanoLeVistePf984();
+        SeminaStaging(tipologia, 1);
+
+        var (stato, fogli, _, perFoglio) = await ReportPeriodo(AnnoAnticipo, MeseAnticipo, tipologia);
+
+        Assert.That(stato, Is.EqualTo(HttpStatusCode.OK), "Senza report (404) mancano i dati di supporto, non il fix.");
+        var nome = $"Non Fatturate {MeseAnticipoNome}";
+        Assert.That(fogli, Does.Contain(nome), $"PF-984: il report {tipologia} deve avere lo sheet '{nome}'.");
+        Assert.That(perFoglio[nome], Does.Contain(tipologia).And.Contain("POSTICIPATA"));
+    }
+
+    [TestCase("ANTICIPO")]
+    [TestCase("ACCONTO")]
+    public async Task AnticipoAcconto_ConEliminata_SheetNonFatturate(string tipologia)
+    {
+        SkipSeMancanoLeVistePf984();
+        SeminaStaging(tipologia, 2, stato: 3, azione: "ELIMINATA");
+
+        var (stato, fogli, _, perFoglio) = await ReportPeriodo(AnnoAnticipo, MeseAnticipo, tipologia);
+
+        Assert.That(stato, Is.EqualTo(HttpStatusCode.OK));
+        var nome = $"Non Fatturate {MeseAnticipoNome}";
+        Assert.That(fogli, Does.Contain(nome));
+        Assert.That(perFoglio[nome], Does.Contain("ELIMINATA"), "Le eliminate entrano come le posticipate.");
+    }
+
+    [TestCase("ANTICIPO", "ACCONTO")]
+    [TestCase("ACCONTO", "ANTICIPO")]
+    [TestCase("ANTICIPO", "PRIMO SALDO")]
+    public async Task AnticipoAcconto_SoloStagingDiAltraTipologia_NessunoSheet(string tipologia, string altra)
+    {
+        SkipSeMancanoLeVistePf984();
+        // Adversarial: lo sheet e' per tipologia anche qui. Una posticipata di un'altra tipologia non
+        // deve far comparire lo sheet nel report di questa.
+        SeminaStaging(altra, 1);
+
+        var (stato, fogli, _, _) = await ReportPeriodo(AnnoAnticipo, MeseAnticipo, tipologia);
+
+        Assert.That(stato, Is.EqualTo(HttpStatusCode.OK));
+        Assert.That(fogli, Is.Not.Empty, "Il report ha i suoi fogli: il confronto e' significativo.");
+        Assert.That(fogli.Any(f => f.StartsWith("Non Fatturate")), Is.False,
+            $"Solo staging di {altra}: nel report {tipologia} lo sheet non va aggiunto.");
+    }
+
+    [Test]
+    public async Task AnticipoEAcconto_NelloStessoZip_OgnunoConLaPropriaTipologia()
+    {
+        SkipSeMancanoLeVistePf984();
+        SeminaStaging("ANTICIPO", 1);
+        SeminaStaging("ACCONTO", 2, stato: 3, azione: "ELIMINATA");
+
+        var (stato, fogli, _, _) = await ReportPeriodo(AnnoAnticipo, MeseAnticipo, "ANTICIPO", "ACCONTO");
+
+        Assert.That(stato, Is.EqualTo(HttpStatusCode.OK));
+        Assert.That(fogli.Count(f => f == $"Non Fatturate {MeseAnticipoNome}"), Is.EqualTo(2),
+            "Uno sheet per xlsx (uno per tipologia), non uno condiviso.");
+    }
+
+    [Test]
+    public async Task Anticipo_PeriodoSenzaFatture_404AncheConStaging()
+    {
+        SkipSeMancanoLeVistePf984();
+        // Lo sheet non crea il report: senza fatture di anticipo nel periodo il report non esiste,
+        // e la posticipata non compare da nessuna parte (stessa conseguenza documentata per i saldi).
+        SeminaStaging("ANTICIPO", 1);
+
+        var (stato, _, _, _) = await ReportPeriodo(AnnoAnticipo, 11, "ANTICIPO");
+
+        Assert.That(stato, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
+    [Test]
+    public async Task Anticipo_StagingCancellato_NessunoSheet()
+    {
+        SkipSeMancanoLeVistePf984();
+        // Stato 2 = CANCELLATA: non e' ne' posticipata ne' eliminata, quindi non e' "non fatturata".
+        SeminaStaging("ANTICIPO", 1, stato: 2, azione: "CANCELLATA");
+
+        var (stato, fogli, _, _) = await ReportPeriodo(AnnoAnticipo, MeseAnticipo, "ANTICIPO");
+
+        Assert.That(stato, Is.EqualTo(HttpStatusCode.OK));
+        Assert.That(fogli.Any(f => f.StartsWith("Non Fatturate")), Is.False);
+    }
+
+    // =============================================================================================
     // Helper
     // =============================================================================================
+
+    private Task<(HttpStatusCode stato, List<string> fogli, string testo,
+        Dictionary<string, string> perFoglio)> ReportPeriodo(int anno, int mese, params string[] tipologie)
+    {
+        var elenco = string.Join(",", tipologie.Select(t => $"\"{t}\""));
+        return Scarica(Rotta, $$"""{ "anno": {{anno}}, "mese": {{mese}}, "tipologiaFattura": [{{elenco}}] }""");
+    }
 
     /// <summary>
     /// Scarica il report e ne restituisce i **nomi dei fogli** e il **testo** di tutti i fogli.

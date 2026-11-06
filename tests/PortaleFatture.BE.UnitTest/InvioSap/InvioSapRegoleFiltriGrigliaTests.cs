@@ -133,8 +133,8 @@ public class InvioSapRegoleFiltriGrigliaTests
         Assert.That(Valida(stato: stato), Is.Empty);
     }
 
-    [TestCase("INVIATA", TestName = "Stato(INVIATA: e' lo stato fattura, non il filtro)")]
-    [TestCase("REINVIATE", TestName = "Stato(REINVIATE: e' il booleano, non uno stato)")]
+    [TestCase("INVIATA", TestName = "Stato(INVIATA: singolare, non e' un codice)")]
+    [TestCase("REINVIATE", TestName = "Stato(REINVIATE: hanno il loro download)")]
     [TestCase("2", TestName = "Stato(numerico legacy)")]
     [TestCase("DROP TABLE", TestName = "Stato(ostile)")]
     public void StatoNonAmmesso_ShouldEssereRifiutato(string stato)
@@ -150,45 +150,71 @@ public class InvioSapRegoleFiltriGrigliaTests
     }
 
     // =============================================================================================
-    // Vocabolari
+    // Dettaglio di un rigo (C1: niente dettaglio per DA_INVIARE)
     // =============================================================================================
 
-    [Test]
-    public void FiltroStato_StatoFattura_ShouldMappare()
+    private static IReadOnlyList<string> ValidaDettaglio(int? anno = 2093, int? mese = 1, string? tipologia = "PRIMO SALDO",
+        string? stato = "INVIATE", string? ragione = null, string? numero = null, int? page = 1, int? size = 10) =>
+        InvioSapRegole.ValidaFiltriDettaglio(anno, mese, tipologia, stato, ragione, numero, page, size);
+
+    [TestCase("INVIATE", TestName = "Dettaglio(INVIATE)")]
+    [TestCase("in_elaborazione", TestName = "Dettaglio(IN_ELABORAZIONE minuscolo, sola lettura)")]
+    public void Dettaglio_RigoConStorico_ShouldEssereValido(string stato)
     {
-        Assert.Multiple(() =>
-        {
-            Assert.That(FiltroStatoInvioSap.StatoFattura("TUTTE"), Is.Null);
-            Assert.That(FiltroStatoInvioSap.StatoFattura(null), Is.Null);
-            Assert.That(FiltroStatoInvioSap.StatoFattura("DA_INVIARE"), Is.EqualTo(StatoInvioSap.DA_INVIARE));
-            Assert.That(FiltroStatoInvioSap.StatoFattura("IN_ELABORAZIONE"), Is.EqualTo(StatoInvioSap.IN_ELABORAZIONE));
-            Assert.That(FiltroStatoInvioSap.StatoFattura("inviate"), Is.EqualTo(StatoInvioSap.INVIATA));
-        });
+        Assert.That(ValidaDettaglio(stato: stato), Is.Empty);
     }
 
     [Test]
-    public void StatoInvioSap_IsValido_ShouldEssereCaseSensitive()
+    public void Dettaglio_RigoDaInviare_ShouldEssereRifiutato()
     {
-        // I valori viaggiano nelle viste e nel contratto: una variante di maiuscole e' un dato sporco.
-        Assert.Multiple(() =>
-        {
-            Assert.That(StatoInvioSap.IsValido("INVIATA"), Is.True);
-            Assert.That(StatoInvioSap.IsValido("inviata"), Is.False);
-            Assert.That(StatoInvioSap.IsValido(null), Is.False);
-            Assert.That(StatoInvioSap.Tutti, Has.Length.EqualTo(3));
-        });
+        Assert.That(ValidaDettaglio(stato: "DA_INVIARE"), Is.EqualTo(new[] { InvioSapRegole.ErroreDettaglioDaInviare }));
+    }
+
+    [TestCase(null, TestName = "DettaglioStato(assente)")]
+    [TestCase("TUTTE", TestName = "DettaglioStato(TUTTE: non e' un rigo)")]
+    [TestCase("INVIATA", TestName = "DettaglioStato(sconosciuto)")]
+    public void Dettaglio_StatoNonDiUnRigo_ShouldEssereRifiutato(string? stato)
+    {
+        Assert.That(ValidaDettaglio(stato: stato), Does.Contain(InvioSapRegole.ErroreStatoDettaglio));
     }
 
     [Test]
-    public void StatoBatchSap_IsTerminale_ShouldEssereVeroSoloPerCompletatoEFallito()
+    public void Dettaglio_RigoIncompleto_ShouldRiportareTuttiGliErrori()
     {
-        Assert.Multiple(() =>
-        {
-            Assert.That(StatoBatchSap.IsTerminale(StatoBatchSap.COMPLETATO), Is.True);
-            Assert.That(StatoBatchSap.IsTerminale(StatoBatchSap.FALLITO), Is.True);
-            Assert.That(StatoBatchSap.IsTerminale(StatoBatchSap.IN_ELABORAZIONE), Is.False);
-            Assert.That(StatoBatchSap.IsTerminale(null), Is.False);
-            Assert.That(StatoBatchSap.IsTerminale("ANNULLATO"), Is.False, "Non previsto: un batch si chiude solo COMPLETATO o FALLITO.");
-        });
+        var errori = ValidaDettaglio(anno: null, mese: 13, tipologia: " ");
+        Assert.That(errori, Is.EquivalentTo(new[] { InvioSapRegole.ErroreAnno, InvioSapRegole.ErroreMese, InvioSapRegole.ErroreTipologia }));
+    }
+
+    [TestCase(0, 10, TestName = "Pagina(0)")]
+    [TestCase(-1, 10, TestName = "Pagina(negativa)")]
+    [TestCase(1, 0, TestName = "PageSize(0)")]
+    [TestCase(1, -5, TestName = "PageSize(negativo)")]
+    [TestCase(1, InvioSapRegole.MaxPageSize + 1, TestName = "PageSize(oltre il massimo)")]
+    [TestCase(1, int.MaxValue, TestName = "PageSize(int.MaxValue)")]
+    [TestCase(1, null, TestName = "Pagina senza pageSize")]
+    public void Dettaglio_PaginazioneNonValida_ShouldEssereRifiutata(int? page, int? size)
+    {
+        Assert.That(ValidaDettaglio(page: page, size: size), Does.Contain(InvioSapRegole.ErrorePaginazione));
+    }
+
+    [Test]
+    public void Dettaglio_SenzaPaginazione_ShouldEssereValido()
+    {
+        Assert.That(ValidaDettaglio(page: null, size: null), Is.Empty);
+    }
+
+    [Test]
+    public void Dettaglio_FiltriTroppoLunghi_ShouldEssereRifiutati()
+    {
+        var errori = ValidaDettaglio(ragione: new string('x', InvioSapRegole.MaxRagioneSociale + 1),
+            numero: new string('9', InvioSapRegole.MaxNumeroFattura + 1));
+        Assert.That(errori, Is.EquivalentTo(new[] { InvioSapRegole.ErroreRagioneSociale, InvioSapRegole.ErroreNumeroFattura }));
+    }
+
+    [Test]
+    public void Dettaglio_FiltriOstili_ShouldEssereSoloValori()
+    {
+        // L'escape del LIKE e il parametro Dapper difendono dall'injection: la regola non li rifiuta per forma.
+        Assert.That(ValidaDettaglio(ragione: "%_[' OR 1=1 --", numero: "';--"), Is.Empty);
     }
 }

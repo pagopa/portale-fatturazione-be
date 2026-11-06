@@ -1,44 +1,42 @@
 using System.Net;
-using System.Text;
 using System.Text.Json;
-using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.IntegrationTest.InvioSap;
+using static PortaleFatture.BE.IntegrationTest.Http.InvioSapHttp;
 
 namespace PortaleFatture.BE.IntegrationTest.Http;
 
 /// <summary>
-/// End-to-end di <c>PUT api/fatture/invio-sap/genera</c> attraverso la pipeline reale (routing,
-/// autorizzazione, binding, regole, SP, Storico, Messaggi, Synapse finto) sul DB seedato. Copre le storie
-/// US2 (generazione) e US3 (lock, completamento) del piano: T021, T028, T030, T033.
-///
-/// Due gruppi di casi:
-///  - **400 formali**: non toccano il DB (la regola rifiuta prima), quindi girano anche senza la DDL di DATA;
-///  - **202/404/409/500**: hanno bisogno delle tabelle e della SP, e restano gialli finche' mancano.
-///
-/// Il completamento lo simula il test scrivendo le tabelle come fa DATA (decisione 27/10: nessuna callback).
-/// La pipeline Synapse e' <see cref="FakeSynapseService"/>: l'esito e' impostabile, per provare il ramo
-/// "pipeline non avviata" senza raggiungere Azure.
+/// End-to-end di <c>PUT api/fatture/invio-sap/genera</c> sul seed 2003 (be-invio-sap.md §3.3, §8.5, §13.3):
+/// pipeline reale fino al DB, Synapse finto. Copre lock (vista, PK, riga non rilasciata), primo invio del rigo
+/// intero, re-invio con storno, la prova "solo INSERT", il rollback su Synapse KO o eccezione e la concorrenza.
+/// Ogni test parte dallo stato del seed (riga di lock scaduta) e lo ripristina.
 /// </summary>
 [Category("InvioSap")]
-[Explicit("PF-965: rotte non ancora mappate (fase 3-4). Eseguire con --filter Category=InvioSap.")]
+[NonParallelizable]
 public class InvioSapGeneraHttpTests
 {
     private ApiTestFactory _factory = null!;
+    private const int Anno = InvioSapTestData.Anno;
 
     [OneTimeSetUp]
-    public void Setup() => _factory = new ApiTestFactory();
+    public void Setup()
+    {
+        TestDb.SkipIfUnavailable(LocalTestDb.ConnectionString);
+        InvioSapTestData.SkipSeOggettiAssenti();
+        _factory = new ApiTestFactory();
+    }
 
     [OneTimeTearDown]
     public void TearDown()
     {
         InvioSapTestData.Pulisci();
+        FakeSynapseService.Instance.Reset();
         _factory?.Dispose();
     }
 
     [SetUp]
     public void Reset()
     {
-        TestDb.SkipIfUnavailable(LocalTestDb.ConnectionString);
         FakeSynapseService.Instance.Reset();
         InvioSapTestData.Pulisci();
     }
@@ -46,322 +44,347 @@ public class InvioSapGeneraHttpTests
     [TearDown]
     public void Cleanup() => InvioSapTestData.Pulisci();
 
-    // =============================================================================================
-    // 400 formali (senza DB)
-    // =============================================================================================
+    private Task<HttpResponseMessage> Genera(string body) => Put(_factory, InvioSapTestData.RottaGenera, body);
 
-    [TestCase("""{ "anno": 2026, "mese": 7, "tipologiaFattura": "SECONDO SALDO", "idFatture": [1001] }""", "nota", TestName = "400(nota assente)")]
-    [TestCase("""{ "anno": 2026, "mese": 7, "tipologiaFattura": "SECONDO SALDO", "idFatture": [1001], "nota": "   " }""", "nota", TestName = "400(nota di spazi)")]
-    [TestCase("""{ "anno": 2026, "mese": 7, "tipologiaFattura": "SECONDO SALDO", "idFatture": [], "nota": "x" }""", "almeno una", TestName = "400(selezione vuota)")]
-    [TestCase("""{ "anno": 2026, "mese": 7, "tipologiaFattura": "SECONDO SALDO", "nota": "x" }""", "almeno una", TestName = "400(idFatture assente)")]
-    [TestCase("""{ "anno": 2026, "mese": 7, "tipologiaFattura": "SECONDO SALDO", "idFatture": [1001, 1001], "nota": "x" }""", "ripetute", TestName = "400(duplicati)")]
-    [TestCase("""{ "anno": 2026, "mese": 7, "tipologiaFattura": "SECONDO SALDO", "idFatture": [0], "nota": "x" }""", "non valido", TestName = "400(id zero)")]
-    [TestCase("""{ "mese": 7, "tipologiaFattura": "SECONDO SALDO", "idFatture": [1001], "nota": "x" }""", "Anno", TestName = "400(anno assente)")]
-    [TestCase("""{ "anno": 2026, "mese": 13, "tipologiaFattura": "SECONDO SALDO", "idFatture": [1001], "nota": "x" }""", "Mese", TestName = "400(mese 13)")]
-    [TestCase("""{ "anno": 2026, "mese": 7, "idFatture": [1001], "nota": "x" }""", "Tipologia", TestName = "400(tipologia assente)")]
-    [TestCase("{}", "", TestName = "400(body vuoto)")]
-    public async Task BodyNonValido_ShouldRispondere400_ConIlMotivo(string body, string frammentoAtteso)
+    private static string PrimoInvio(string nota = "Primo invio di febbraio") =>
+        BodyGenera(Anno, InvioSapTestData.MesePrimoInvio, InvioSapTestData.TipologiaPrimoInvio, nota);
+
+    private static string ReInvio(long[]? ids = null, string? storno = "NC-2003-0100", string nota = "Re-invio dopo correzione") =>
+        BodyGenera(Anno, InvioSapTestData.MeseReInvio, InvioSapTestData.TipologiaReInvio, nota, ids ?? InvioSapTestData.FattureRigoInviate, storno);
+
+    private static void NessunaScrittura(InvioSapTestData.Fotografia prima, string perche)
     {
-        var resp = await Genera(body);
-        var testo = await resp.Content.ReadAsStringAsync();
-
         Assert.Multiple(() =>
         {
-            Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
-            Assert.That(testo, Does.Contain(frammentoAtteso).IgnoreCase, "Il 400 deve dire all'admin cosa manca.");
-            Assert.That(FakeSynapseService.Instance.Chiamate, Is.Empty, "Nessuna pipeline avviata su body non valido.");
+            Assert.That(InvioSapTestData.BatchDeiTest(), Is.Empty, $"Nessun batch: {perche}");
+            Assert.That(InvioSapTestData.ContaLogDeiTest(), Is.EqualTo(0), $"Nessun log: {perche}");
+            Assert.That(InvioSapTestData.Scalar("SELECT COUNT(*) FROM pfd.Messaggi WHERE IdMessaggio > @m", ("@m", prima.MaxMessaggio)), Is.EqualTo(0), $"Nessun messaggio: {perche}");
+            Assert.That(InvioSapTestData.FotografiaTabelle(), Is.EqualTo(prima), $"Righe preesistenti invariate: {perche}");
         });
     }
 
-    [TestCase("""{ "anno": 2026, "mese": 7, "tipologiaFattura": "SECONDO SALDO", "idFatture": ["abc"], "nota": "x" }""", TestName = "400(id non numerico)")]
-    [TestCase("""{ "anno": 2026, "mese": 7, "tipologiaFattura": "SECONDO SALDO", "idFatture": 1001, "nota": "x" }""", TestName = "400(idFatture scalare)")]
-    [TestCase("""non-json""", TestName = "400(non JSON)")]
-    [TestCase("", TestName = "400(body assente)")]
-    public async Task BodyMalformato_ShouldRispondere400_Non500(string body)
+    // =============================================================================================
+    // Lock
+    // =============================================================================================
+
+    [Test]
+    public async Task LockAttivo_ShouldEssere409_PrimaDiOgniAltraCosa_SenzaScritture()
     {
-        var resp = await Genera(body);
+        InvioSapTestData.AttivaLock(InvioSapTestData.BatchErrore);
+        var prima = InvioSapTestData.FotografiaTabelle();
+
+        var resp = await Genera("""{ "anno": 2003 }"""); // body non valido: il lock viene prima (richiesta di DATA)
+        var corpo = await Json(resp);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.Conflict));
+            Assert.That(corpo.GetProperty("motivo").GetString(), Is.EqualTo("LOCK_ATTIVO"));
+            Assert.That(corpo.GetProperty("batchId").GetInt32(), Is.EqualTo(InvioSapTestData.BatchErrore));
+            Assert.That(corpo.GetProperty("lockTimeout").ValueKind, Is.EqualTo(JsonValueKind.String));
+            Assert.That(FakeSynapseService.Instance.Chiamate, Is.Empty);
+        });
+        NessunaScrittura(prima, "lock attivo");
+    }
+
+    [Test]
+    public async Task RigaDiLockScadutaNonCancellata_ShouldEssere409_LockNonRilasciato_SenzaScritture()
+    {
+        // Stato del seed (C9): la vista e' vuota, ma la PK su FkIdAzione rifiuta l'INSERT. La pulizia e' di DATA.
+        var prima = InvioSapTestData.FotografiaTabelle();
+
+        var resp = await Genera(PrimoInvio());
+        var corpo = await Json(resp);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.Conflict));
+            Assert.That(corpo.GetProperty("motivo").GetString(), Is.EqualTo("LOCK_NON_RILASCIATO"));
+            Assert.That(InvioSapTestData.BatchDelLock(), Is.EqualTo(InvioSapTestData.BatchErrore), "Il BE non tocca la riga di DATA.");
+            Assert.That(FakeSynapseService.Instance.Chiamate, Is.Empty);
+        });
+        NessunaScrittura(prima, "riga di lock non rilasciata");
+    }
+
+    [Test]
+    public async Task TipoAzioneMancante_ShouldEssere500_ERollback()
+    {
+        InvioSapTestData.RilasciaLockComeData();
+        InvioSapTestData.Esegui($"DELETE FROM {InvioSapTestData.TipoAzione} WHERE IdAzione = @a", ("@a", InvioSapTestData.IdAzione));
+        var prima = InvioSapTestData.FotografiaTabelle();
+
+        var resp = await Genera(PrimoInvio());
+
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.InternalServerError));
+        NessunaScrittura(prima, "configurazione mancante");
+        // Pulisci() rimette la riga di TipoAzione.
+    }
+
+    // =============================================================================================
+    // Primo invio: il rigo DA_INVIARE intero
+    // =============================================================================================
+
+    [Test]
+    public async Task PrimoInvio_ShouldInserireEsattamenteLeFattureDelRigo_ConSoliInsert()
+    {
+        InvioSapTestData.RilasciaLockComeData();
+        var prima = InvioSapTestData.FotografiaTabelle();
+
+        var resp = await Genera(PrimoInvio("Nota con \"apici\", \\ barre, a capo\n ed emoji 🚀"));
+        var corpo = await Json(resp);
+        var batchId = corpo.GetProperty("batchId").GetInt32();
+
+        var righe = InvioSapTestData.Lista<string>($@"SELECT CONCAT(FkIdFattura, ':', FkStatoPrecedente, '>', FkStato, ':', ISNULL(NumeroDocStorno, '-'))
+            FROM {InvioSapTestData.Dettaglio} WHERE FkBatchId = @b ORDER BY FkIdFattura", ("@b", batchId));
+        Assert.Multiple(() =>
+        {
+            Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.Accepted));
+            Assert.That(corpo.GetProperty("stato").GetString(), Is.EqualTo("IN_ELABORAZIONE"));
+            Assert.That(corpo.GetProperty("numeroFatture").GetInt32(), Is.EqualTo(2));
+            Assert.That(corpo.GetProperty("idFatture").EnumerateArray().Select(e => e.GetInt64()), Is.EqualTo(InvioSapTestData.FattureRigoDaInviare));
+            Assert.That(corpo.TryGetProperty("nomeFileJson", out _), Is.False, "Il nome lo scrive DATA.");
+            Assert.That(righe, Is.EqualTo(new[] { "9505:4>5:-", "9506:4>5:-" }),
+                "Solo 9505 e 9506: escluse 9507 (inviata), 9508 (NULL) e 9509 (altra tipologia).");
+        });
+
+        // Registro, lock, nota, log, messaggio.
+        Assert.Multiple(() =>
+        {
+            Assert.That(InvioSapTestData.Scalar($"SELECT CONCAT(Stato, '|', IdUtente, '|', CountFatture) FROM {InvioSapTestData.Registro} WHERE BatchId = @b", ("@b", batchId)),
+                Is.EqualTo("IN_ELABORAZIONE|integration-test-user|2"), "CountFatture = NumeroFatture del rigo in griglia (D10).");
+            Assert.That(InvioSapTestData.BatchDelLock(), Is.EqualTo(batchId));
+            Assert.That(InvioSapTestData.Scalar($"SELECT DATEDIFF(MINUTE, lockStart, lockTimeout) FROM {InvioSapTestData.Lock}"), Is.EqualTo(60),
+                "Timeout da pfw.TipoAzione (3.600.000 ms).");
+            Assert.That(InvioSapTestData.Scalar($"SELECT COUNT(*) FROM {InvioSapTestData.Dettaglio} WHERE FkBatchId = @b AND ISJSON(CAST(Nota AS nvarchar(max))) = 1 AND JSON_VALUE(CAST(Nota AS nvarchar(max)), '$.Azione') = 'GeneraJsonFatture'", ("@b", batchId)),
+                Is.EqualTo(2));
+            Assert.That(InvioSapTestData.Scalar($"SELECT JSON_VALUE(CAST(Nota AS nvarchar(max)), '$.Testo') FROM {InvioSapTestData.Dettaglio} WHERE FkBatchId = @b AND FkIdFattura = 9505", ("@b", batchId)),
+                Is.EqualTo("Nota con \"apici\", \\ barre, a capo\n ed emoji 🚀"));
+            Assert.That(InvioSapTestData.ContaLogDeiTest(), Is.EqualTo(1));
+            Assert.That(InvioSapTestData.Scalar("SELECT CAST(JsonTransazione AS nvarchar(max)) FROM pfw.Log WHERE IdUtente = @u AND DescrizioneEvento = 'ISAP'", ("@u", InvioSapTestData.UtenteTest)) as string,
+                Does.Contain("GENERAZIONE_JSON").And.Not.Contains("apici"), "Il log non contiene la nota.");
+        });
+
+        var messaggio = InvioSapTestData.Scalar("SELECT CONCAT(IdMessaggio, '|', Hash, '|', TipologiaDocumento, '|', Stato) FROM pfd.Messaggi WHERE IdMessaggio > @m", ("@m", prima.MaxMessaggio)) as string;
+        var richiesta = FakeSynapseService.Instance.RichiesteGenerazione.Single();
+        Assert.Multiple(() =>
+        {
+            Assert.That(messaggio, Is.EqualTo($"{richiesta.IdMessaggio}|{batchId}|INVIO SAP|1"));
+            Assert.That(InvioSapTestData.Scalar("SELECT JSON_VALUE(CAST(Json AS nvarchar(max)), '$.batchId') FROM pfd.Messaggi WHERE IdMessaggio = @m", ("@m", richiesta.IdMessaggio)),
+                Is.EqualTo(batchId.ToString()), "Il Json del messaggio non deve essere '{}' (proprieta' read-only dei tipi anonimi).");
+            Assert.That(richiesta.BatchId, Is.EqualTo(batchId), "Il body di createRun porta il BatchId scritto.");
+            Assert.That(richiesta.Parametri![0].MesiDaFatturare, Is.EqualTo(new[] { "200302" }));
+        });
+
+        // Solo INSERT: nessuna riga preesistente cambiata, FatturaInviata compresa (la scrive DATA).
+        var dopo = InvioSapTestData.FotografiaTabelle(prima.MaxMessaggio);
+        Assert.Multiple(() =>
+        {
+            Assert.That(dopo.Registro, Is.EqualTo(prima.Registro));
+            Assert.That(dopo.Dettaglio, Is.EqualTo(prima.Dettaglio));
+            Assert.That(dopo.Fatture, Is.EqualTo(prima.Fatture));
+            Assert.That(dopo.Messaggi, Is.EqualTo(prima.Messaggi));
+            Assert.That(dopo.Log, Is.EqualTo(prima.Log));
+        });
+    }
+
+    [Test]
+    public async Task PrimoInvio_RigoSenzaFattureDaInviare_ShouldEssere404_SenzaScritture()
+    {
+        InvioSapTestData.RilasciaLockComeData();
+        var prima = InvioSapTestData.FotografiaTabelle();
+
+        var resp = await Genera(BodyGenera(Anno, 1, "PRIMO SALDO", "Rigo gia' inviato"));
+
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+        NessunaScrittura(prima, "rigo senza fatture da inviare");
+    }
+
+    [Test]
+    public async Task PrimoInvio_ConStorno_ShouldEssere400()
+    {
+        InvioSapTestData.RilasciaLockComeData();
+        var resp = await Genera(BodyGenera(Anno, 2, "PRIMO SALDO", "x", null, "NC-1"));
+        Assert.That(await resp.Content.ReadAsStringAsync(), Does.Contain("non e' ammesso"));
+    }
+
+    [Test]
+    public async Task PrimoInvio_RigoCambiatoFraLetturaEInsert_ShouldEssere409_GruppoCambiato()
+    {
+        // Simula un cambio fra lettura e INSERT: un trigger aggiunge una fattura al rigo quando nasce il batch.
+        InvioSapTestData.RilasciaLockComeData();
+        InvioSapTestData.Esegui($@"CREATE OR ALTER TRIGGER pfw.trTestInvioSapGruppoCambiato ON {InvioSapTestData.Registro} AFTER INSERT AS
+            UPDATE pfd.FattureTestata SET FatturaInviata = 0 WHERE IdFattura = 9507;");
+        try
+        {
+            var resp = await Genera(PrimoInvio());
+            var corpo = await Json(resp);
+            Assert.Multiple(() =>
+            {
+                Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.Conflict));
+                Assert.That(corpo.GetProperty("motivo").GetString(), Is.EqualTo("GRUPPO_CAMBIATO"));
+                Assert.That(InvioSapTestData.BatchDeiTest(), Is.Empty, "Rollback.");
+                Assert.That(InvioSapTestData.Scalar("SELECT CAST(FatturaInviata AS int) FROM pfd.FattureTestata WHERE IdFattura = 9507"), Is.EqualTo(1),
+                    "Anche la modifica del trigger e' annullata dal rollback.");
+            });
+        }
+        finally
+        {
+            InvioSapTestData.Esegui("DROP TRIGGER IF EXISTS pfw.trTestInvioSapGruppoCambiato");
+        }
+    }
+
+    // =============================================================================================
+    // Re-invio: fatture scelte nel dettaglio di un rigo INVIATE
+    // =============================================================================================
+
+    [Test]
+    public async Task ReInvio_ShouldInserireLeFattureScelte_DaInviataAInviata_ConStorno()
+    {
+        InvioSapTestData.RilasciaLockComeData();
+        var resp = await Genera(ReInvio());
+        var corpo = await Json(resp);
+        var batchId = corpo.GetProperty("batchId").GetInt32();
+        var righe = InvioSapTestData.Lista<string>($@"SELECT CONCAT(FkIdFattura, ':', FkStatoPrecedente, '>', FkStato, ':', NumeroDocStorno)
+            FROM {InvioSapTestData.Dettaglio} WHERE FkBatchId = @b ORDER BY FkIdFattura", ("@b", batchId));
+        Assert.Multiple(() =>
+        {
+            Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.Accepted));
+            Assert.That(corpo.GetProperty("numeroFatture").GetInt32(), Is.EqualTo(2));
+            Assert.That(righe, Is.EqualTo(new[] { "9502:5>5:NC-2003-0100", "9503:5>5:NC-2003-0100" }));
+        });
+    }
+
+    [Test]
+    public async Task ReInvio_FatturaMaiInviata_ShouldEssere404()
+    {
+        InvioSapTestData.RilasciaLockComeData();
+        var resp = await Genera(BodyGenera(Anno, 2, "PRIMO SALDO", "x", [9505], "NC-1"));
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.NotFound), "9505 non ha storico: per il re-invio non esiste (C1).");
+    }
+
+    [Test]
+    public async Task ReInvio_FatturaDiUnAltroRigo_ShouldEssere400()
+    {
+        InvioSapTestData.RilasciaLockComeData();
+        var resp = await Genera(ReInvio(ids: [9502, 9504]));
+        var testo = await resp.Content.ReadAsStringAsync();
+        Assert.Multiple(() =>
+        {
+            Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+            Assert.That(testo, Does.Contain("anno, al mese e alla tipologia"));
+        });
+    }
+
+    [Test]
+    public async Task ReInvio_FatturaInElaborazione_ShouldEssere400()
+    {
+        // 9502 diventa NULL (DATA ha avviato un altro batch): non si puo' re-inviare.
+        InvioSapTestData.RilasciaLockComeData();
+        InvioSapTestData.Esegui("UPDATE pfd.FattureTestata SET FatturaInviata = NULL WHERE IdFattura = 9502");
+        var resp = await Genera(ReInvio());
         Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
     }
 
+    [Test]
+    public async Task ReInvio_SenzaStorno_ShouldEssere400()
+    {
+        InvioSapTestData.RilasciaLockComeData();
+        var resp = await Genera(ReInvio(storno: null));
+        Assert.That(await resp.Content.ReadAsStringAsync(), Does.Contain("storno obbligatorio"));
+    }
+
     // =============================================================================================
-    // 404 / 409 / 202 / 500 (con DB e DDL di DATA)
+    // Rollback: Synapse KO o eccezione → nulla resta scritto
     // =============================================================================================
 
     [Test]
-    public async Task FatturaInesistente_ShouldRispondere404()
+    public async Task SynapseKo_ShouldEssere500_ENessunaRiga()
     {
-        InvioSapTestData.SkipSeOggettiAssenti();
-
-        var resp = await Genera(Body([999_999_999], nota: "inesistente"));
-
-        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
-        Assert.That(FakeSynapseService.Instance.Chiamate, Is.Empty);
-    }
-
-    [Test]
-    public async Task FatturaDiEntePagoPA_ShouldRispondere404_FuoriPerimetro()
-    {
-        // L'ente PagoPA e' escluso dalla vista: per il client la fattura "non esiste" (stesso 404 delle inesistenti).
-        InvioSapTestData.SkipSeOggettiAssenti();
-        var id = InvioSapTestData.Scalar(
-            "SELECT TOP 1 IdFattura FROM pfd.FattureTestata WHERE FkIdEnte = @e", ("@e", InvioSapTestData.EntePagoPA)) as long?;
-        if (id is null) Assert.Ignore("Il seed non ha fatture dell'ente PagoPA.");
-
-        var resp = await Genera(Body([id!.Value], nota: "pagopa"));
-        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
-    }
-
-    [Test]
-    public async Task PrimoInvio_ShouldRispondere202_EScrivereBatchDettaglioStoricoMessaggio()
-    {
-        InvioSapTestData.SkipSeOggettiAssenti();
-        var ids = IdsDaInviare(2);
-
-        var resp = await Genera(Body(ids, nota: "primo invio"));
-        var json = await resp.Content.ReadAsStringAsync();
-        TestContext.Out.WriteLine(json);
-
-        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.Accepted), json);
-        using var doc = JsonDocument.Parse(json);
-        var root = doc.RootElement;
-        var batchId = root.GetProperty("batchId").GetGuid();
-        var nomeFile = root.GetProperty("nomeFileJson").GetString();
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(root.GetProperty("stato").GetString(), Is.EqualTo("IN_ELABORAZIONE"));
-            Assert.That(nomeFile, Does.Match(@"^sap-\d{8}-\d{6}-[0-9a-f-]{36}\.json$"));
-            Assert.That(nomeFile, Does.Contain(batchId.ToString("D")), "Il nome file porta il batchId: e' il contratto con DATA.");
-            Assert.That(root.GetProperty("idFatture").EnumerateArray().Select(e => e.GetInt64()), Is.EquivalentTo(ids));
-
-            // Registro + Dettaglio
-            Assert.That(InvioSapTestData.StatoBatch(batchId), Is.EqualTo("IN_ELABORAZIONE"));
-            Assert.That(InvioSapTestData.Scalar($"SELECT COUNT(*) FROM {InvioSapTestData.Dettaglio} WHERE FkBatchId = @b", ("@b", batchId)),
-                Is.EqualTo(ids.Count), "Una riga di dettaglio per fattura selezionata.");
-            Assert.That(InvioSapTestData.Scalar($"SELECT COUNT(*) FROM {InvioSapTestData.Dettaglio} WHERE FkBatchId = @b AND statoPrecedente = 'DA_INVIARE'", ("@b", batchId)),
-                Is.EqualTo(ids.Count), "statoPrecedente = DA_INVIARE: e' cio' che si ripristina in caso di errore.");
-
-            // Stato derivato e lock
-            foreach (var id in ids) Assert.That(InvioSapTestData.StatoFattura(id), Is.EqualTo("IN_ELABORAZIONE"), $"fattura {id}");
-            Assert.That(InvioSapTestData.BatchCheDetieneIlLock(), Is.EqualTo(batchId));
-
-            // Storico ISAP e Messaggio (Hash = batchId, nessun link, stato elaborazione)
-            Assert.That(InvioSapTestData.Scalar("SELECT COUNT(*) FROM pfw.Log WHERE DescrizioneEvento = 'ISAP' AND JsonTransazione LIKE @b", ("@b", $"%{batchId}%")),
-                Is.GreaterThanOrEqualTo(1));
-            Assert.That(InvioSapTestData.Scalar("SELECT COUNT(*) FROM pfd.Messaggi WHERE Hash = @h AND LinkDocumento IS NULL AND Stato = 1", ("@h", batchId.ToString())),
-                Is.EqualTo(1), "Un messaggio 'generazione in corso', senza link (RF-14).");
-
-            // Synapse chiamata una volta
-            Assert.That(FakeSynapseService.Instance.Chiamate, Has.Count.EqualTo(1));
-        });
-    }
-
-    [Test]
-    public async Task Reinvio_SenzaStorno_ShouldRispondere400_SenzaToccareNulla()
-    {
-        InvioSapTestData.SkipSeOggettiAssenti();
-        var inviata = InvioSapTestData.Scalar(
-            $"SELECT TOP 1 IdFattura FROM {InvioSapTestData.VistaDettaglio} WHERE StatoInvio = 'INVIATA' AND FkTipologiaFattura = @t AND AnnoRiferimento = @a AND MeseRiferimento = @m",
-            ("@t", InvioSapTestData.Tipologia), ("@a", InvioSapTestData.Anno), ("@m", InvioSapTestData.Mese)) as long?;
-        if (inviata is null) Assert.Ignore("Il seed non ha una fattura INVIATA nel gruppo di test.");
-
-        var batchPrima = InvioSapTestData.Scalar($"SELECT COUNT(*) FROM {InvioSapTestData.Registro}");
-
-        var resp = await Genera(Body([inviata!.Value], nota: "re-invio senza storno"));
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
-            Assert.That(InvioSapTestData.StatoFattura(inviata.Value), Is.EqualTo("INVIATA"), "Nessuna transizione.");
-            Assert.That(InvioSapTestData.Scalar($"SELECT COUNT(*) FROM {InvioSapTestData.Registro}"), Is.EqualTo(batchPrima), "Nessun batch creato.");
-            Assert.That(FakeSynapseService.Instance.Chiamate, Is.Empty);
-        });
-    }
-
-    [Test]
-    public async Task SecondaRichiesta_ConBatchAttivo_ShouldRispondere409_LockAttivo()
-    {
-        InvioSapTestData.SkipSeOggettiAssenti();
-        var ids = IdsDaInviare(3);
-
-        var prima = await Genera(Body(ids.Take(1).ToList(), nota: "primo batch"));
-        Assert.That(prima.StatusCode, Is.EqualTo(HttpStatusCode.Accepted));
-
-        // Nuovo sottoinsieme, stesso admin: il lock e' globale (RF-10), non per fattura.
-        var seconda = await Genera(Body(ids.Skip(1).ToList(), nota: "secondo batch"));
-        var testo = await seconda.Content.ReadAsStringAsync();
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(seconda.StatusCode, Is.EqualTo(HttpStatusCode.Conflict));
-            Assert.That(testo, Does.Contain("LOCK_ATTIVO"));
-            Assert.That(FakeSynapseService.Instance.Chiamate, Has.Count.EqualTo(1), "La seconda non arriva a Synapse.");
-        });
-    }
-
-    [Test]
-    public async Task RichiesteConcorrenti_ShouldAccettarneUnaSola()
-    {
-        // Il cuore di US3: N admin premono insieme, una sola 202, le altre 409, un solo batch, un solo lock.
-        InvioSapTestData.SkipSeOggettiAssenti();
-        var ids = IdsDaInviare(1);
-        FakeSynapseService.Instance.Ritardo = TimeSpan.FromMilliseconds(300);
-
-        var risposte = await Task.WhenAll(Enumerable.Range(0, 6)
-            .Select(i => Genera(Body(ids, nota: $"concorrente {i}"))));
-
-        var codici = risposte.Select(r => (int)r.StatusCode).ToList();
-        TestContext.Out.WriteLine(string.Join(",", codici));
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(codici.Count(c => c == 202), Is.EqualTo(1), "Esattamente una richiesta vince il lock.");
-            Assert.That(codici.Count(c => c == 409), Is.EqualTo(5));
-            Assert.That(InvioSapTestData.Scalar($"SELECT COUNT(*) FROM {InvioSapTestData.Registro} WHERE idUtente = @u AND stato = 'IN_ELABORAZIONE'", ("@u", InvioSapTestData.UtenteTest)),
-                Is.EqualTo(1));
-            Assert.That(FakeSynapseService.Instance.Chiamate, Has.Count.EqualTo(1));
-        });
-    }
-
-    [Test]
-    public async Task CompletamentoDiData_ShouldPortareAInviata_ELiberareIlLock()
-    {
-        InvioSapTestData.SkipSeOggettiAssenti();
-        var ids = IdsDaInviare(1);
-        var batchId = await AvviaBatch(ids, "da completare");
-
-        InvioSapTestData.ChiudiBatchComeData(batchId, "COMPLETATO");
-
-        // La griglia riconcilia in lettura (nessuna callback): dopo averla letta il messaggio e' chiuso.
-        var griglia = await Griglia();
-        var stato = await StatoBatchViaApi(batchId);
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(griglia.StatusCode, Is.EqualTo(HttpStatusCode.OK).Or.EqualTo(HttpStatusCode.NotFound));
-            Assert.That(InvioSapTestData.StatoFattura(ids[0]), Is.EqualTo("INVIATA"));
-            Assert.That(InvioSapTestData.BatchCheDetieneIlLock(), Is.Null);
-            Assert.That(stato.GetProperty("stato").GetString(), Is.EqualTo("COMPLETATO"));
-            Assert.That(InvioSapTestData.Scalar("SELECT Stato FROM pfd.Messaggi WHERE Hash = @h", ("@h", batchId.ToString())),
-                Is.EqualTo((short)2), "Messaggio chiuso (Completato) dalla riconciliazione.");
-        });
-
-        // E ora una nuova generazione e' di nuovo ammessa.
-        var nuova = await Genera(Body(IdsDaInviare(1), nota: "dopo il completamento", storno: null));
-        Assert.That((int)nuova.StatusCode, Is.EqualTo(202).Or.EqualTo(400),
-            "Il lock e' libero: la risposta dipende dai dati (400 se la fattura ora e' INVIATA e manca lo storno), non dal lock.");
-    }
-
-    [Test]
-    public async Task FallimentoDiData_ShouldRipristinareLoStatoPrecedente()
-    {
-        InvioSapTestData.SkipSeOggettiAssenti();
-        var ids = IdsDaInviare(1);
-        var batchId = await AvviaBatch(ids, "fallira'");
-
-        InvioSapTestData.ChiudiBatchComeData(batchId, "FALLITO", errore: "ERRORE_DATA");
-        await Griglia();
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(InvioSapTestData.StatoFattura(ids[0]), Is.EqualTo("DA_INVIARE"), "statoPrecedente ripristinato.");
-            Assert.That(InvioSapTestData.BatchCheDetieneIlLock(), Is.Null);
-        });
-    }
-
-    [Test]
-    public async Task LockScaduto_ShouldEssereRiconciliato_ABatchFallitoPerTimeout()
-    {
-        InvioSapTestData.SkipSeOggettiAssenti();
-        var ids = IdsDaInviare(1);
-        var batchId = await AvviaBatch(ids, "si bloccherà");
-
-        InvioSapTestData.ScadiLock(batchId);
-        var stato = await StatoBatchViaApi(batchId);
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(stato.GetProperty("stato").GetString(), Is.EqualTo("FALLITO"));
-            Assert.That(stato.GetProperty("errore").GetString(), Is.EqualTo("TIMEOUT"));
-            Assert.That(InvioSapTestData.StatoFattura(ids[0]), Is.EqualTo("DA_INVIARE"));
-            Assert.That(InvioSapTestData.BatchCheDetieneIlLock(), Is.Null, "Il lock scaduto e' stato liberato.");
-        });
-    }
-
-    [Test]
-    public async Task PipelineNonAvviata_ShouldRispondere500_EMarcareFallito_ELiberareIlLock()
-    {
-        InvioSapTestData.SkipSeOggettiAssenti();
-        var ids = IdsDaInviare(1);
+        InvioSapTestData.RilasciaLockComeData();
         FakeSynapseService.Instance.Esito = false;
+        var prima = InvioSapTestData.FotografiaTabelle();
 
-        var resp = await Genera(Body(ids, nota: "synapse giu'"));
-
-        var batch = InvioSapTestData.Scalar(
-            $"SELECT TOP 1 batchId FROM {InvioSapTestData.Registro} WHERE idUtente = @u ORDER BY dataAvvio DESC", ("@u", InvioSapTestData.UtenteTest)) as Guid?;
+        var resp = await Genera(PrimoInvio());
 
         Assert.Multiple(() =>
         {
             Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.InternalServerError));
-            Assert.That(batch, Is.Not.Null, "Il batch resta come traccia dell'errore.");
-            Assert.That(InvioSapTestData.StatoBatch(batch!.Value), Is.EqualTo("FALLITO"));
-            Assert.That(InvioSapTestData.StatoFattura(ids[0]), Is.EqualTo("DA_INVIARE"));
-            Assert.That(InvioSapTestData.BatchCheDetieneIlLock(), Is.Null, "Altrimenti nessuno potrebbe riprovare.");
+            Assert.That(FakeSynapseService.Instance.RichiesteGenerazione, Has.Count.EqualTo(1), "La pipeline e' stata chiamata, ma ha rifiutato.");
+            Assert.That(InvioSapTestData.ContaRighe(InvioSapTestData.Lock), Is.EqualTo(0), "Nemmeno il lock: l'admin puo' riprovare subito.");
+        });
+        NessunaScrittura(prima, "Synapse KO");
+    }
+
+    [Test]
+    public async Task EccezioneDuranteLAvvio_ShouldFareRollbackCompleto()
+    {
+        InvioSapTestData.RilasciaLockComeData();
+        FakeSynapseService.Instance.Eccezione = new HttpRequestException("rete giu'");
+        var prima = InvioSapTestData.FotografiaTabelle();
+
+        var resp = await Genera(ReInvio());
+
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.InternalServerError));
+        NessunaScrittura(prima, "eccezione a meta' transazione");
+        Assert.That(InvioSapTestData.ContaRighe(InvioSapTestData.Lock), Is.EqualTo(0));
+    }
+
+    // =============================================================================================
+    // Concorrenza e ciclo completo con DATA
+    // =============================================================================================
+
+    [Test]
+    public async Task DueGeneraInParallelo_ShouldDareUn202EUn409_UnSoloBatch()
+    {
+        InvioSapTestData.RilasciaLockComeData();
+        FakeSynapseService.Instance.Ritardo = TimeSpan.FromSeconds(2);
+
+        var risposte = await Task.WhenAll(Genera(PrimoInvio()), Genera(ReInvio()));
+        var codici = risposte.Select(r => r.StatusCode).OrderBy(c => c).ToList();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(codici, Is.EqualTo(new[] { HttpStatusCode.Accepted, HttpStatusCode.Conflict }));
+            Assert.That(InvioSapTestData.BatchDeiTest(), Has.Count.EqualTo(1));
+            Assert.That(InvioSapTestData.ContaRighe(InvioSapTestData.Lock), Is.EqualTo(1));
         });
     }
 
     [Test]
-    public async Task BatchSconosciuto_ShouldRispondere404()
+    public async Task DoppioClick_ShouldDareUn202EUn409()
     {
-        var resp = await _factory.CreateClientAs(Ruolo.ADMIN)
-            .GetAsync(_factory.WithNonce($"{InvioSapTestData.RottaGenerazioni}/{Guid.NewGuid()}"));
-        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+        InvioSapTestData.RilasciaLockComeData();
+        var primo = await Genera(PrimoInvio());
+        var secondo = await Genera(PrimoInvio());
+        var motivo = (await Json(secondo)).GetProperty("motivo").GetString();
+        Assert.Multiple(() =>
+        {
+            Assert.That(primo.StatusCode, Is.EqualTo(HttpStatusCode.Accepted));
+            Assert.That(secondo.StatusCode, Is.EqualTo(HttpStatusCode.Conflict));
+            Assert.That(motivo, Is.EqualTo("LOCK_ATTIVO"));
+        });
     }
 
-    // =============================================================================================
-    // Helper
-    // =============================================================================================
-
-    private static string Body(IReadOnlyList<long> ids, string nota, string? storno = null) => $$"""
-        { "anno": {{InvioSapTestData.Anno}}, "mese": {{InvioSapTestData.Mese}}, "tipologiaFattura": "{{InvioSapTestData.Tipologia}}",
-          "idFatture": [{{string.Join(",", ids)}}], "nota": "{{InvioSapTestData.MarcatoreNota}} {{nota}}",
-          "numeroDocumentoStorno": {{(storno is null ? "null" : $"\"{storno}\"")}} }
-        """;
-
-    private static List<long> IdsDaInviare(int quante)
+    [Test]
+    public async Task DopoLaChiusuraDiData_ShouldPoterGenerareDiNuovo_ELeFattureCompaionoNelDettaglio()
     {
-        var ids = InvioSapTestData.IdFattureDaInviare(max: quante);
-        if (ids.Count < quante)
-            Assert.Ignore($"Servono {quante} fatture DA_INVIARE in {InvioSapTestData.Tipologia} {InvioSapTestData.Anno}/{InvioSapTestData.Mese}: il seed ne ha {ids.Count}.");
-        return ids;
-    }
+        InvioSapTestData.RilasciaLockComeData();
+        var corpo = await Json(await Genera(PrimoInvio()));
+        var batchId = corpo.GetProperty("batchId").GetInt32();
 
-    private async Task<HttpResponseMessage> Genera(string body)
-    {
-        var client = _factory.CreateClientAs(Ruolo.ADMIN);
-        var resp = await client.PutAsync(_factory.WithNonce(InvioSapTestData.RottaGenera),
-            new StringContent(body, Encoding.UTF8, "application/json"));
-        TestContext.Out.WriteLine($"genera -> {(int)resp.StatusCode}");
-        return resp;
-    }
+        InvioSapTestData.ChiudiBatchComeData(batchId); // DATA: COMPLETATO, FatturaInviata = 1, DELETE del lock
 
-    private async Task<Guid> AvviaBatch(IReadOnlyList<long> ids, string nota)
-    {
-        var resp = await Genera(Body(ids, nota));
-        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.Accepted), await resp.Content.ReadAsStringAsync());
-        using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
-        return doc.RootElement.GetProperty("batchId").GetGuid();
-    }
+        var lockDopo = await Get(_factory, InvioSapTestData.RottaLock);
+        var dettaglio = await Json(await Post(_factory, InvioSapTestData.RottaDettaglio,
+            """{ "annoRiferimento": 2003, "meseRiferimento": 2, "tipologiaFattura": "PRIMO SALDO", "statoInvio": "INVIATE" }"""));
+        var reInvio = await Genera(BodyGenera(Anno, 2, "PRIMO SALDO", "Re-invio dopo il primo", [9505], "NC-2003-0200"));
 
-    private Task<HttpResponseMessage> Griglia() =>
-        _factory.CreateClientAs(Ruolo.ADMIN).PostAsync(_factory.WithNonce(InvioSapTestData.RottaGriglia),
-            new StringContent($$"""{ "anno": {{InvioSapTestData.Anno}} }""", Encoding.UTF8, "application/json"));
-
-    private async Task<JsonElement> StatoBatchViaApi(Guid batchId)
-    {
-        var resp = await _factory.CreateClientAs(Ruolo.ADMIN)
-            .GetAsync(_factory.WithNonce($"{InvioSapTestData.RottaGenerazioni}/{batchId}"));
-        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-        return JsonDocument.Parse(await resp.Content.ReadAsStringAsync()).RootElement.Clone();
+        Assert.Multiple(() =>
+        {
+            Assert.That(lockDopo.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+            Assert.That(dettaglio.GetProperty("fatture").EnumerateArray().Select(f => f.GetProperty("idFattura").GetInt64()),
+                Is.EquivalentTo(new long[] { 9505, 9506, 9507 }), "Le fatture del primo invio ora hanno storico.");
+            Assert.That(reInvio.StatusCode, Is.EqualTo(HttpStatusCode.Accepted), "BE-SAP-M11: dopo la chiusura si genera subito.");
+        });
     }
 }

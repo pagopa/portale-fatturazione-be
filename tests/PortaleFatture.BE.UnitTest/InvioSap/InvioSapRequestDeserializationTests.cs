@@ -128,7 +128,7 @@ public class InvioSapRequestDeserializationTests
     public void Griglia_BodyCompleto_ShouldDeserializzare()
     {
         var json = """
-        { "anno": 2026, "mesi": [5, 6], "tipologieFattura": ["PRIMO SALDO"], "statoInvio": "INVIATE", "soloReinviate": true }
+        { "anno": 2026, "mesi": [5, 6], "tipologieFattura": ["PRIMO SALDO"], "statoInvio": "INVIATE" }
         """;
 
         var req = JsonSerializer.Deserialize<InvioSapGrigliaRequest>(json, Web)!;
@@ -139,7 +139,6 @@ public class InvioSapRequestDeserializationTests
             Assert.That(req.Mesi, Is.EqualTo(new[] { 5, 6 }));
             Assert.That(req.TipologieFattura, Is.EqualTo(new[] { "PRIMO SALDO" }));
             Assert.That(req.StatoInvio, Is.EqualTo("INVIATE"));
-            Assert.That(req.SoloReinviate, Is.True);
         });
     }
 
@@ -159,11 +158,23 @@ public class InvioSapRequestDeserializationTests
     }
 
     [Test]
-    public void Griglia_SoloReinviateComeStringa_ShouldLanciare()
+    public void Griglia_SoloReinviate_ShouldEssereIgnorato()
     {
-        // I booleani NON hanno la lettura da stringa: "true" tra virgolette e' un body non valido (400).
-        Assert.Throws<JsonException>(() =>
-            JsonSerializer.Deserialize<InvioSapGrigliaRequest>("""{ "anno": 2026, "soloReinviate": "true" }""", Web));
+        // Tolto nella v2.0 (le re-inviate hanno il loro download): un FE non ancora allineato non riceve un 400.
+        var req = JsonSerializer.Deserialize<InvioSapGrigliaRequest>("""{ "anno": 2026, "soloReinviate": "true" }""", Web)!;
+        Assert.That(req.Anno, Is.EqualTo(2026));
+    }
+
+    [Test]
+    public void Reinviate_BodyCompleto_ShouldDeserializzare()
+    {
+        var req = JsonSerializer.Deserialize<InvioSapReinviateRequest>("""{ "anno": 2093, "mesi": [1], "tipologieFattura": ["PRIMO SALDO"] }""", Web)!;
+        Assert.Multiple(() =>
+        {
+            Assert.That(req.Anno, Is.EqualTo(2093));
+            Assert.That(req.Mesi, Is.EqualTo(new[] { 1 }));
+            Assert.That(req.TipologieFattura, Is.EqualTo(new[] { "PRIMO SALDO" }));
+        });
     }
 
     [Test]
@@ -172,7 +183,7 @@ public class InvioSapRequestDeserializationTests
         var req = JsonSerializer.Deserialize<InvioSapGrigliaRequest>("{}", Web)!;
         Assert.That(req.Anno, Is.Null);
         Assert.That(req.Mesi, Is.Null);
-        Assert.That(req.SoloReinviate, Is.Null);
+        Assert.That(req.StatoInvio, Is.Null);
     }
 
     // =============================================================================================

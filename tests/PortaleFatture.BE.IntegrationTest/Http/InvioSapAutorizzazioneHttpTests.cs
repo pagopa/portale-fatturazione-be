@@ -6,7 +6,7 @@ using PortaleFatture.BE.IntegrationTest.InvioSap;
 namespace PortaleFatture.BE.IntegrationTest.Http;
 
 /// <summary>
-/// Matrice **identita' × rotta** per le sei rotte di Invio a SAP (PF-735 RF-2, RF-11: tutto e solo ADMIN).
+/// Matrice **identita' × rotta** per le sette rotte di Invio a SAP (PF-735 RF-2, RF-11: tutto e solo ADMIN).
 ///
 /// | identita' | atteso | perche' |
 /// |---|---|---|
@@ -16,12 +16,11 @@ namespace PortaleFatture.BE.IntegrationTest.Http;
 /// | ADMIN (PAGOPA) | non 401/403 | autorizzato: l'esito dipende dai dati, non dall'identita' |
 /// | ADMIN senza nonce | non 2xx | il middleware multi-tab blocca prima dell'endpoint |
 ///
-/// Gli incroci non toccano il DB: l'autorizzazione decide prima che l'endpoint venga invocato, quindi
-/// questi test non hanno bisogno del seed ne' della DDL di DATA. Sono pero' <c>[Explicit]</c> finche' le
-/// rotte non esistono: oggi risponderebbero 404 a chiunque.
+/// Gli incroci non toccano il DB: l'autorizzazione decide prima che l'endpoint venga invocato. Il body del
+/// Genera e' senza nota, quindi anche per l'admin si ferma alla validazione (o al lock) e non scrive nulla.
 /// </summary>
 [Category("InvioSap")]
-[Explicit("PF-965: rotte non ancora mappate (fase 2-4). Eseguire con --filter Category=InvioSap.")]
+[NonParallelizable]
 public class InvioSapAutorizzazioneHttpTests
 {
     private ApiTestFactory _factory = null!;
@@ -32,19 +31,20 @@ public class InvioSapAutorizzazioneHttpTests
     [OneTimeTearDown]
     public void TearDown() => _factory?.Dispose();
 
-    /// <summary>Le sei rotte con verbo e body minimo valido per forma (l'autorizzazione non legge il body).</summary>
+    /// <summary>Le sette rotte con verbo e body minimo (l'autorizzazione non legge il body).</summary>
     public static IEnumerable<TestCaseData> Rotte()
     {
-        const string griglia = """{ "anno": 2026 }""";
-        const string dettaglio = """{ "annoRiferimento": 2026, "meseRiferimento": 7, "tipologiaFattura": "SECONDO SALDO", "statoInvio": "DA_INVIARE" }""";
-        const string genera = """{ "anno": 2026, "mese": 7, "tipologiaFattura": "SECONDO SALDO", "idFatture": [1001], "nota": "x" }""";
+        const string griglia = """{ "anno": 2003 }""";
+        const string dettaglio = """{ "annoRiferimento": 2003, "meseRiferimento": 1, "tipologiaFattura": "PRIMO SALDO", "statoInvio": "INVIATE" }""";
+        const string genera = """{ "anno": 2003, "mese": 2, "tipologiaFattura": "PRIMO SALDO" }""";
 
         yield return new TestCaseData(HttpMethod.Post, InvioSapTestData.RottaGriglia, griglia).SetName("{m}(griglia)");
         yield return new TestCaseData(HttpMethod.Post, InvioSapTestData.RottaDettaglio, dettaglio).SetName("{m}(dettaglio)");
         yield return new TestCaseData(HttpMethod.Post, InvioSapTestData.RottaDownload, griglia).SetName("{m}(download)");
         yield return new TestCaseData(HttpMethod.Post, InvioSapTestData.RottaDownloadReinviate, griglia).SetName("{m}(download reinviate)");
         yield return new TestCaseData(HttpMethod.Put, InvioSapTestData.RottaGenera, genera).SetName("{m}(genera)");
-        yield return new TestCaseData(HttpMethod.Get, $"{InvioSapTestData.RottaGenerazioni}/{Guid.NewGuid()}", null).SetName("{m}(generazioni/batchId)");
+        yield return new TestCaseData(HttpMethod.Get, InvioSapTestData.RottaLock, null).SetName("{m}(lock)");
+        yield return new TestCaseData(HttpMethod.Get, InvioSapTestData.RottaStati, null).SetName("{m}(stati)");
     }
 
     [TestCaseSource(nameof(Rotte))]

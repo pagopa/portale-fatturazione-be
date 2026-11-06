@@ -1,291 +1,251 @@
 using System.Net;
-using System.Text;
 using System.Text.Json;
-using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.IntegrationTest.InvioSap;
+using static PortaleFatture.BE.IntegrationTest.Http.InvioSapHttp;
 
 namespace PortaleFatture.BE.IntegrationTest.Http;
 
 /// <summary>
-/// Passata **adversarial** sulla superficie di lettura e download di Invio a SAP: filtri ostili, valori
-/// estremi, body sbagliati, identificativi inventati. La regola di giudizio e' sempre la stessa: un
-/// input assurdo e' un errore del client (400/404) o un risultato vuoto, **mai un 500**, e non deve
-/// allargare il perimetro dei dati ne' toccare le tabelle.
-///
-/// I casi "solo rotta" (anno assente, stato sconosciuto, GUID malformato) girano senza la DDL di DATA; quelli
-/// che leggono le viste restano gialli finche' gli oggetti non ci sono.
+/// Passata adversarial sulle sette rotte dell'Invio a SAP: filtri ostili, valori estremi, body sbagliati,
+/// injection, liste enormi. Regola di giudizio: un input assurdo e' un errore del client (400/404/409) o un
+/// risultato vuoto, mai un 500 con stack trace, e non scrive nulla (be-invio-sap.md §13.3).
 /// </summary>
 [Category("InvioSap")]
-[Explicit("PF-965: rotte non ancora mappate (fase 2-5). Eseguire con --filter Category=InvioSap.")]
+[NonParallelizable]
 public class InvioSapAdversarialHttpTests
 {
     private ApiTestFactory _factory = null!;
 
     [OneTimeSetUp]
-    public void Setup() => _factory = new ApiTestFactory();
+    public void Setup()
+    {
+        TestDb.SkipIfUnavailable(LocalTestDb.ConnectionString);
+        InvioSapTestData.SkipSeOggettiAssenti();
+        _factory = new ApiTestFactory();
+    }
 
     [OneTimeTearDown]
-    public void TearDown() => _factory?.Dispose();
+    public void TearDown()
+    {
+        InvioSapTestData.Pulisci();
+        _factory?.Dispose();
+    }
 
     [SetUp]
-    public void CheckDb() => TestDb.SkipIfUnavailable(LocalTestDb.ConnectionString);
+    public void Reset()
+    {
+        FakeSynapseService.Instance.Reset();
+        InvioSapTestData.Pulisci();
+    }
+
+    private static async Task SenzaStackTrace(HttpResponseMessage resp)
+    {
+        var testo = await resp.Content.ReadAsStringAsync();
+        Assert.That(testo, Does.Not.Contain("   at ").And.Not.Contain("SqlException").And.Not.Contain("Exception:"));
+    }
 
     // =============================================================================================
-    // Griglia: filtri obbligatori e vocabolario (RF-15)
+    // Griglia e download: filtri
     // =============================================================================================
 
-    [TestCase("{}", TestName = "Griglia400(body vuoto: anno obbligatorio)")]
+    [TestCase("{}", TestName = "Griglia400(anno assente)")]
     [TestCase("""{ "anno": null }""", TestName = "Griglia400(anno null)")]
     [TestCase("""{ "anno": 1999 }""", TestName = "Griglia400(anno sotto il minimo)")]
     [TestCase("""{ "anno": 2099 }""", TestName = "Griglia400(anno lontano)")]
-    [TestCase("""{ "anno": 2026, "mesi": [13] }""", TestName = "Griglia400(mese 13)")]
-    [TestCase("""{ "anno": 2026, "mesi": [0] }""", TestName = "Griglia400(mese 0)")]
-    [TestCase("""{ "anno": 2026, "mesi": [5, 5] }""", TestName = "Griglia400(mesi ripetuti)")]
-    [TestCase("""{ "anno": 2026, "statoInvio": "REINVIATE" }""", TestName = "Griglia400(stato non ammesso)")]
-    [TestCase("""{ "anno": 2026, "statoInvio": "'; DROP TABLE pfw.RegistroInvioSAP; --" }""", TestName = "Griglia400(stato ostile)")]
-    [TestCase("""{ "anno": 2026, "tipologieFattura": [""] }""", TestName = "Griglia400(tipologia vuota)")]
+    [TestCase("""{ "anno": 2003, "mesi": [13] }""", TestName = "Griglia400(mese 13)")]
+    [TestCase("""{ "anno": 2003, "mesi": [0] }""", TestName = "Griglia400(mese 0)")]
+    [TestCase("""{ "anno": 2003, "mesi": [5, 5] }""", TestName = "Griglia400(mesi ripetuti)")]
+    [TestCase("""{ "anno": 2003, "statoInvio": "REINVIATE" }""", TestName = "Griglia400(stato non ammesso)")]
+    [TestCase("""{ "anno": 2003, "statoInvio": "INVIATA" }""", TestName = "Griglia400(stato singolare)")]
+    [TestCase("""{ "anno": 2003, "statoInvio": "'; DROP TABLE pfw.RegistroInvioSAP; --" }""", TestName = "Griglia400(stato ostile)")]
+    [TestCase("""{ "anno": 2003, "tipologieFattura": [""] }""", TestName = "Griglia400(tipologia vuota)")]
     public async Task Griglia_FiltriNonValidi_ShouldRispondere400(string body)
     {
-        var resp = await Post(InvioSapTestData.RottaGriglia, body);
-        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
-    }
-
-    [TestCase("""{ "anno": "duemilaventisei" }""", TestName = "GrigliaBinding(anno testo)")]
-    [TestCase("""{ "anno": 2026, "mesi": "5" }""", TestName = "GrigliaBinding(mesi scalare)")]
-    [TestCase("""{ "anno": 2026, "soloReinviate": "si" }""", TestName = "GrigliaBinding(booleano testo)")]
-    [TestCase("[]", TestName = "GrigliaBinding(array invece di oggetto)")]
-    [TestCase("null", TestName = "GrigliaBinding(null)")]
-    public async Task Griglia_BodyMalformato_ShouldRispondere400_Non500(string body)
-    {
-        var resp = await Post(InvioSapTestData.RottaGriglia, body);
-        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
-    }
-
-    [TestCase("' OR '1'='1", TestName = "GrigliaInjection(OR 1=1)")]
-    [TestCase("'; DROP TABLE pfd.FattureTestata; --", TestName = "GrigliaInjection(DROP TABLE)")]
-    [TestCase("' UNION SELECT NULL,NULL,NULL --", TestName = "GrigliaInjection(UNION)")]
-    [TestCase("PRIMO SALDO' --", TestName = "GrigliaInjection(commento)")]
-    public async Task Griglia_TipologiaOstile_ShouldRestareUnValore_ELaTabellaSopravvive(string ostile)
-    {
-        InvioSapTestData.SkipSeOggettiAssenti(InvioSapTestData.VistaGriglia);
-        var fatture = InvioSapTestData.Scalar("SELECT COUNT(*) FROM pfd.FattureTestata");
-
-        var resp = await Post(InvioSapTestData.RottaGriglia, $$"""{ "anno": 2026, "tipologieFattura": [{{JsonSerializer.Serialize(ostile)}}] }""");
-
-        Assert.Multiple(() =>
+        foreach (var rotta in new[] { InvioSapTestData.RottaGriglia, InvioSapTestData.RottaDownload })
         {
-            Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.NotFound).Or.EqualTo(HttpStatusCode.OK),
-                "Trattato come valore: nessun gruppo ha quella tipologia (404 o lista vuota).");
-            Assert.That(InvioSapTestData.Scalar("SELECT COUNT(*) FROM pfd.FattureTestata"), Is.EqualTo(fatture),
-                "Se il numero cambia, l'input e' diventato SQL.");
-        });
-    }
-
-    [Test]
-    public async Task Griglia_ListeEnormi_ShouldNonDare500()
-    {
-        // 10.000 tipologie e tutti i mesi: o 400 (troppi) o un risultato, mai un errore del server.
-        var tipologie = string.Join(",", Enumerable.Range(0, 10_000).Select(i => $"\"T{i}\""));
-        var resp = await Post(InvioSapTestData.RottaGriglia,
-            $$"""{ "anno": 2026, "mesi": [1,2,3,4,5,6,7,8,9,10,11,12], "tipologieFattura": [{{tipologie}}] }""");
-
-        Assert.That((int)resp.StatusCode, Is.LessThan(500));
-    }
-
-    [Test]
-    public async Task Griglia_UnSoloAnno_ShouldNonMostrareAltriAnni()
-    {
-        // RF-15: la griglia non mescola mai anni. Si verifica sul risultato, non sulla regola.
-        InvioSapTestData.SkipSeOggettiAssenti(InvioSapTestData.VistaGriglia);
-        var resp = await Post(InvioSapTestData.RottaGriglia, """{ "anno": 2026 }""");
-        if (resp.StatusCode == HttpStatusCode.NotFound) Assert.Ignore("Nessun gruppo 2026 nel seed.");
-
-        using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
-        var anni = doc.RootElement.EnumerateArray().Select(g => g.GetProperty("annoRiferimento").GetInt32()).Distinct().ToList();
-
-        Assert.That(anni, Is.EqualTo(new[] { 2026 }));
-    }
-
-    [Test]
-    public async Task Griglia_OgniRigo_ShouldAvereUnoStatoAmmesso_EContatoriCoerenti()
-    {
-        InvioSapTestData.SkipSeOggettiAssenti(InvioSapTestData.VistaGriglia);
-        var resp = await Post(InvioSapTestData.RottaGriglia, """{ "anno": 2026 }""");
-        if (resp.StatusCode == HttpStatusCode.NotFound) Assert.Ignore("Nessun gruppo 2026 nel seed.");
-
-        using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
-        foreach (var g in doc.RootElement.EnumerateArray())
-        {
-            Assert.Multiple(() =>
-            {
-                Assert.That(g.GetProperty("statoInvio").GetString(), Is.AnyOf("DA_INVIARE", "IN_ELABORAZIONE", "INVIATA"));
-                Assert.That(g.GetProperty("numeroFatture").GetInt32(), Is.GreaterThan(0), "Un gruppo vuoto non deve comparire.");
-                Assert.That(g.GetProperty("numeroReinviate").GetInt32(), Is.LessThanOrEqualTo(g.GetProperty("numeroFatture").GetInt32()));
-                Assert.That(g.GetProperty("meseRiferimento").GetInt32(), Is.InRange(1, 12));
-            });
+            var resp = await Post(_factory, rotta, body);
+            Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest), rotta);
+            await SenzaStackTrace(resp);
         }
     }
 
-    [Test]
-    public async Task Griglia_SoloReinviate_ShouldRestituireSoloGruppiConReinviate()
+    [TestCase("""{ "anno": 2003, "tipologieFattura": ["' OR 1=1 --"] }""", TestName = "Griglia404(injection nella tipologia)")]
+    [TestCase("""{ "anno": 2003, "tipologieFattura": ["PRIMO SALDO' --"] }""", TestName = "Griglia404(apice nella tipologia)")]
+    public async Task Griglia_TipologiaOstile_ShouldEssereSoloUnValore(string body)
     {
-        InvioSapTestData.SkipSeOggettiAssenti(InvioSapTestData.VistaGriglia);
-        var resp = await Post(InvioSapTestData.RottaGriglia, """{ "anno": 2026, "soloReinviate": true }""");
-        if (resp.StatusCode == HttpStatusCode.NotFound) return; // ammesso: nessuna re-inviata nel seed
+        var resp = await Post(_factory, InvioSapTestData.RottaGriglia, body);
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.NotFound), "Il parametro Dapper la tratta come testo: nessun rigo.");
+    }
 
-        using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
-        foreach (var g in doc.RootElement.EnumerateArray())
-            Assert.That(g.GetProperty("numeroReinviate").GetInt32(), Is.GreaterThan(0));
+    [Test]
+    public async Task Griglia_TipologieInMassa_ShouldNonRompere()
+    {
+        var tipologie = Enumerable.Range(0, 1000).Select(i => $"T{i}").Append("PRIMO SALDO").ToArray();
+        var resp = await Post(_factory, InvioSapTestData.RottaGriglia, JsonSerializer.Serialize(new { anno = 2003, tipologieFattura = tipologie }, Web));
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+    }
+
+    /// <summary>
+    /// Caratterizzazione di un comportamento di TUTTA l'API, non dell'Invio a SAP: con
+    /// <c>ThrowOnBadRequest = true</c> (ModuleExtensions) l'errore di binding del body diventa un 500 nel gestore
+    /// globale, come in AppIoContrattiAdversarialHttpTests e PSPAdversarialHttpTests. Portarlo a 400 cambia il
+    /// contratto di tutte le rotte: va deciso col FE, non qui. Si verifica almeno che lo stack trace non esca.
+    /// </summary>
+    [TestCase("""{ "anno": "duemilatre" }""", TestName = "Griglia500(anno testo, caratterizzazione)")]
+    [TestCase("""{ "anno": 2003, "mesi": 5 }""", TestName = "Griglia500(mesi scalare, caratterizzazione)")]
+    [TestCase("non-json", TestName = "Griglia500(non JSON, caratterizzazione)")]
+    public async Task Griglia_BodyMalformato_ShouldRispondere500_Caratterizzazione(string body)
+    {
+        var resp = await Post(_factory, InvioSapTestData.RottaGriglia, body);
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.InternalServerError));
+        await SenzaStackTrace(resp);
+    }
+
+    [Test]
+    public async Task DownloadReinviate_SenzaAnno_ShouldEssere400()
+    {
+        var resp = await Post(_factory, InvioSapTestData.RottaDownloadReinviate, "{}");
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
     }
 
     // =============================================================================================
-    // Dettaglio: perimetro del gruppo (RF-3, RF-6)
+    // Dettaglio
     // =============================================================================================
 
+    [TestCase("""{ "annoRiferimento": 2003, "meseRiferimento": 1, "tipologiaFattura": "PRIMO SALDO", "statoInvio": "INVIATE", "ragioneSociale": "%" }""", 0, TestName = "Dettaglio(% letterale)")]
+    [TestCase("""{ "annoRiferimento": 2003, "meseRiferimento": 1, "tipologiaFattura": "PRIMO SALDO", "statoInvio": "INVIATE", "ragioneSociale": "_" }""", 0, TestName = "Dettaglio(_ letterale)")]
+    [TestCase("""{ "annoRiferimento": 2003, "meseRiferimento": 1, "tipologiaFattura": "PRIMO SALDO", "statoInvio": "INVIATE", "ragioneSociale": "[E]" }""", 0, TestName = "Dettaglio([ letterale)")]
+    [TestCase("""{ "annoRiferimento": 2003, "meseRiferimento": 1, "tipologiaFattura": "PRIMO SALDO", "statoInvio": "INVIATE", "ragioneSociale": "' OR 1=1 --" }""", 0, TestName = "Dettaglio(injection)")]
+    [TestCase("""{ "annoRiferimento": 2003, "meseRiferimento": 1, "tipologiaFattura": "PRIMO SALDO", "statoInvio": "INVIATE", "numeroFattura": "%" }""", 0, TestName = "Dettaglio(numero %)")]
+    public async Task Dettaglio_CaratteriSpecialiDelLike_ShouldEssereLetterali(string body, int attese)
+    {
+        var resp = await Post(_factory, InvioSapTestData.RottaDettaglio, body);
+        Assert.That(resp.StatusCode, Is.EqualTo(attese == 0 ? HttpStatusCode.NotFound : HttpStatusCode.OK),
+            "Escapati: '%' non deve allargare il filtro a tutte le fatture.");
+    }
+
+    [TestCase("""{ "annoRiferimento": 2003, "meseRiferimento": 1, "tipologiaFattura": "PRIMO SALDO", "statoInvio": "INVIATE", "page": 0, "pageSize": 10 }""", TestName = "Dettaglio400(page 0)")]
+    [TestCase("""{ "annoRiferimento": 2003, "meseRiferimento": 1, "tipologiaFattura": "PRIMO SALDO", "statoInvio": "INVIATE", "page": -1, "pageSize": 10 }""", TestName = "Dettaglio400(page negativa)")]
+    [TestCase("""{ "annoRiferimento": 2003, "meseRiferimento": 1, "tipologiaFattura": "PRIMO SALDO", "statoInvio": "INVIATE", "page": 1, "pageSize": 2147483647 }""", TestName = "Dettaglio400(pageSize int.MaxValue)")]
+    [TestCase("""{ "annoRiferimento": 2003, "meseRiferimento": 1, "tipologiaFattura": "PRIMO SALDO" }""", TestName = "Dettaglio400(stato assente)")]
+    [TestCase("""{ "annoRiferimento": 2003, "meseRiferimento": 1, "tipologiaFattura": "PRIMO SALDO", "statoInvio": "TUTTE" }""", TestName = "Dettaglio400(TUTTE non e' un rigo)")]
     [TestCase("{}", TestName = "Dettaglio400(body vuoto)")]
-    [TestCase("""{ "annoRiferimento": 2026, "meseRiferimento": 7, "tipologiaFattura": "SECONDO SALDO" }""", TestName = "Dettaglio400(stato assente)")]
-    [TestCase("""{ "annoRiferimento": 2026, "meseRiferimento": 7, "statoInvio": "DA_INVIARE" }""", TestName = "Dettaglio400(tipologia assente)")]
-    [TestCase("""{ "annoRiferimento": 2026, "tipologiaFattura": "SECONDO SALDO", "statoInvio": "DA_INVIARE" }""", TestName = "Dettaglio400(mese assente)")]
-    [TestCase("""{ "annoRiferimento": 2026, "meseRiferimento": 7, "tipologiaFattura": "SECONDO SALDO", "statoInvio": "INVIATE" }""", TestName = "Dettaglio400(stato del filtro, non della fattura)")]
-    [TestCase("""{ "annoRiferimento": 2026, "meseRiferimento": 7, "tipologiaFattura": "SECONDO SALDO", "statoInvio": "DA_INVIARE", "page": 0 }""", TestName = "Dettaglio400(page 0)")]
-    [TestCase("""{ "annoRiferimento": 2026, "meseRiferimento": 7, "tipologiaFattura": "SECONDO SALDO", "statoInvio": "DA_INVIARE", "pageSize": -1 }""", TestName = "Dettaglio400(pageSize negativa)")]
-    public async Task Dettaglio_RichiestaNonValida_ShouldRispondere400(string body)
+    public async Task Dettaglio_ParametriOstili_ShouldEssere4xx_MaiUn500(string body)
     {
-        // page 0 / size negativa sono il difetto noto della griglia Gestione Fatture (OFFSET negativo → 500):
-        // qui si pretende da subito il comportamento giusto.
-        var resp = await Post(InvioSapTestData.RottaDettaglio, body);
-        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        var resp = await Post(_factory, InvioSapTestData.RottaDettaglio, body);
+        Assert.That((int)resp.StatusCode, Is.InRange(400, 499));
+        await SenzaStackTrace(resp);
     }
 
+    /// <summary>
+    /// Page vicino a int.MaxValue: (Page - 1) * PageSize in int andava in overflow (500). Con l'offset in bigint
+    /// e' una pagina oltre la fine: 200, conteggio vero e lista vuota, come ogni pagina oltre l'ultima.
+    /// </summary>
     [Test]
-    public async Task Dettaglio_ShouldRestituireSoloFattureDelGruppo()
+    public async Task Dettaglio_PageEnorme_ShouldEssere200_PaginaVuota_SenzaOverflow()
     {
-        InvioSapTestData.SkipSeOggettiAssenti(InvioSapTestData.VistaDettaglio);
-        var resp = await Post(InvioSapTestData.RottaDettaglio, $$"""
-            { "annoRiferimento": {{InvioSapTestData.Anno}}, "meseRiferimento": {{InvioSapTestData.Mese}},
-              "tipologiaFattura": "{{InvioSapTestData.Tipologia}}", "statoInvio": "DA_INVIARE" }
-            """);
-        if (resp.StatusCode == HttpStatusCode.NotFound) Assert.Ignore("Nessuna fattura DA_INVIARE nel gruppo del seed.");
-
-        using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
-        foreach (var f in doc.RootElement.EnumerateArray())
-        {
-            Assert.Multiple(() =>
-            {
-                Assert.That(f.GetProperty("tipologiaFattura").GetString(), Is.EqualTo(InvioSapTestData.Tipologia));
-                Assert.That(f.GetProperty("statoInvio").GetString(), Is.EqualTo("DA_INVIARE"));
-                Assert.That(f.GetProperty("dataUltimaGenerazione").ValueKind, Is.EqualTo(JsonValueKind.Null), "Mai processata: vuota (RF-4).");
-                Assert.That(f.GetProperty("nomeFile").ValueKind, Is.EqualTo(JsonValueKind.Null));
-                Assert.That(f.GetProperty("numeroInvii").GetInt32(), Is.Zero);
-                Assert.That(f.GetProperty("idEnte").GetString(), Is.Not.EqualTo(InvioSapTestData.EntePagoPA).IgnoreCase);
-            });
-        }
-    }
-
-    [TestCase("ragioneSociale", "' OR 1=1 --", TestName = "DettaglioInjection(ragioneSociale)")]
-    [TestCase("numeroFattura", "1' OR '1'='1", TestName = "DettaglioInjection(numeroFattura)")]
-    public async Task Dettaglio_FiltroOstile_ShouldRestareUnValore(string campo, string ostile)
-    {
-        InvioSapTestData.SkipSeOggettiAssenti(InvioSapTestData.VistaDettaglio);
-        var fatture = InvioSapTestData.Scalar("SELECT COUNT(*) FROM pfd.FattureTestata");
-
-        var resp = await Post(InvioSapTestData.RottaDettaglio, $$"""
-            { "annoRiferimento": {{InvioSapTestData.Anno}}, "meseRiferimento": {{InvioSapTestData.Mese}},
-              "tipologiaFattura": "{{InvioSapTestData.Tipologia}}", "statoInvio": "DA_INVIARE", "{{campo}}": {{JsonSerializer.Serialize(ostile)}} }
-            """);
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.NotFound).Or.EqualTo(HttpStatusCode.OK));
-            Assert.That(InvioSapTestData.Scalar("SELECT COUNT(*) FROM pfd.FattureTestata"), Is.EqualTo(fatture));
-        });
-        if (resp.StatusCode == HttpStatusCode.OK)
-        {
-            using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
-            Assert.That(doc.RootElement.GetArrayLength(), Is.Zero, "Un OR 1=1 che allarga il risultato e' un'injection riuscita.");
-        }
-    }
-
-    // =============================================================================================
-    // Download (RF-12, RI-12)
-    // =============================================================================================
-
-    [TestCase(InvioSapTestData.RottaDownload, TestName = "Download400(anno assente)")]
-    [TestCase(InvioSapTestData.RottaDownloadReinviate, TestName = "DownloadReinviate400(anno assente)")]
-    public async Task Download_SenzaAnno_ShouldRispondere400(string rotta)
-    {
-        var resp = await Post(rotta, "{}");
-        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
-    }
-
-    [TestCase(InvioSapTestData.RottaDownload, TestName = "Download(xlsx)")]
-    [TestCase(InvioSapTestData.RottaDownloadReinviate, TestName = "DownloadReinviate(xlsx)")]
-    public async Task Download_ShouldRestituireUnXlsx_ONotFound(string rotta)
-    {
-        InvioSapTestData.SkipSeOggettiAssenti(InvioSapTestData.VistaDettaglio);
-        var resp = await Post(rotta, """{ "anno": 2026 }""");
-        if (resp.StatusCode == HttpStatusCode.NotFound) return; // nessuna riga nel perimetro: ammesso
-
-        var bytes = await resp.Content.ReadAsByteArrayAsync();
+        var resp = await Post(_factory, InvioSapTestData.RottaDettaglio,
+            """{ "annoRiferimento": 2003, "meseRiferimento": 1, "tipologiaFattura": "PRIMO SALDO", "statoInvio": "INVIATE", "page": 2147483647, "pageSize": 500 }""");
+        var corpo = await Json(resp);
         Assert.Multiple(() =>
         {
             Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-            Assert.That(resp.Content.Headers.ContentType?.MediaType, Does.Contain("spreadsheetml"));
-            Assert.That(bytes.Take(2), Is.EqualTo(new byte[] { 0x50, 0x4B }), "Un xlsx e' uno zip: inizia con PK.");
-            Assert.That(resp.Content.Headers.ContentDisposition?.FileName, Does.Contain("InvioSAP"));
+            Assert.That(corpo.GetProperty("count").GetInt32(), Is.GreaterThan(0));
+            Assert.That(corpo.GetProperty("fatture").GetArrayLength(), Is.Zero);
+        });
+    }
+
+    // =============================================================================================
+    // Genera
+    // =============================================================================================
+
+    /// <summary>Come Griglia_BodyMalformato_ShouldRispondere500_Caratterizzazione: comportamento di tutta l'API.</summary>
+    [TestCase("""{ "anno": 2003, "mese": 1, "tipologiaFattura": "PRIMO SALDO", "idFatture": ["abc"], "nota": "x" }""", TestName = "Genera500(id non numerico, caratterizzazione)")]
+    [TestCase("""{ "anno": 2003, "mese": 1, "tipologiaFattura": "PRIMO SALDO", "idFatture": 9502, "nota": "x" }""", TestName = "Genera500(idFatture scalare, caratterizzazione)")]
+    [TestCase("""{ "anno": 2003, "mese": 1, "tipologiaFattura": "PRIMO SALDO", "idFatture": [99999999999999999999], "nota": "x" }""", TestName = "Genera500(id oltre long, caratterizzazione)")]
+    [TestCase("non-json", TestName = "Genera500(non JSON, caratterizzazione)")]
+    public async Task Genera_BodyMalformato_ShouldRispondere500_SenzaScritture_Caratterizzazione(string body)
+    {
+        InvioSapTestData.RilasciaLockComeData();
+        var resp = await Put(_factory, InvioSapTestData.RottaGenera, body);
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.InternalServerError));
+        await SenzaStackTrace(resp);
+        Assert.That(InvioSapTestData.BatchDeiTest(), Is.Empty, "Il binding fallisce prima dell'handler: nessun batch.");
+    }
+
+    [TestCase("""{ "anno": 2003, "mese": 1, "tipologiaFattura": "PRIMO SALDO", "idFatture": [], "nota": "x", "numeroDocumentoStorno": "NC" }""", "Selezionare", TestName = "Genera400(idFatture vuota non e' assente)")]
+    [TestCase("""{ "anno": 2003, "mese": 1, "tipologiaFattura": "PRIMO SALDO", "idFatture": [-1, 0], "nota": "x", "numeroDocumentoStorno": "NC" }""", "non valido", TestName = "Genera400(id negativi)")]
+    [TestCase("""{ "anno": 2003, "mese": 2, "tipologiaFattura": "PRIMO SALDO" }""", "nota", TestName = "Genera400(nota assente)")]
+    [TestCase("{}", "Anno", TestName = "Genera400(body vuoto)")]
+    public async Task Genera_BodyNonValido_ShouldRispondere400_SenzaScritture(string body, string frammento)
+    {
+        InvioSapTestData.RilasciaLockComeData();
+        var resp = await Put(_factory, InvioSapTestData.RottaGenera, body);
+        var testo = await resp.Content.ReadAsStringAsync();
+        Assert.Multiple(() =>
+        {
+            Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+            Assert.That(testo, Does.Contain(frammento).IgnoreCase);
+            Assert.That(InvioSapTestData.BatchDeiTest(), Is.Empty);
+            Assert.That(FakeSynapseService.Instance.Chiamate, Is.Empty);
         });
     }
 
     [Test]
-    public async Task DownloadReinviate_ShouldContenereLaColonnaStorno()
+    public async Task Genera_NotaDa100KB_ShouldEssere400()
     {
-        InvioSapTestData.SkipSeOggettiAssenti(InvioSapTestData.VistaDettaglio);
-        var resp = await Post(InvioSapTestData.RottaDownloadReinviate, """{ "anno": 2026 }""");
-        if (resp.StatusCode == HttpStatusCode.NotFound) Assert.Ignore("Nessuna re-inviata nel seed.");
-
-        using var stream = await resp.Content.ReadAsStreamAsync();
-        using var wb = new ClosedXML.Excel.XLWorkbook(stream);
-        var intestazioni = wb.Worksheets.First().Row(1).CellsUsed().Select(c => c.GetString()).ToList();
-
-        Assert.That(intestazioni, Has.Some.Contains("storno").IgnoreCase, "US6: colonna Numero documento di storno.");
+        InvioSapTestData.RilasciaLockComeData();
+        var resp = await Put(_factory, InvioSapTestData.RottaGenera, BodyGenera(2003, 2, "PRIMO SALDO", new string('n', 100_000)));
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
     }
 
-    // =============================================================================================
-    // Stato batch
-    // =============================================================================================
-
-    [TestCase("non-un-guid", TestName = "Generazioni404(testo)")]
-    [TestCase("123", TestName = "Generazioni404(numero)")]
-    [TestCase("00000000-0000-0000-0000-000000000000", TestName = "Generazioni404(guid vuoto)")]
-    [TestCase("../../api/fatture", TestName = "Generazioni404(path traversal)")]
-    public async Task Generazioni_IdentificativoNonValido_ShouldRispondere404(string id)
+    [Test]
+    public async Task Genera_DiecimilaId_ShouldEssere400_NonUnaQueryEnorme()
     {
-        // Il vincolo {batchId:guid} fa fallire il routing: 404, non 400 e non 500.
-        var resp = await _factory.CreateClientAs(Ruolo.ADMIN)
-            .GetAsync(_factory.WithNonce($"{InvioSapTestData.RottaGenerazioni}/{id}"));
+        InvioSapTestData.RilasciaLockComeData();
+        var ids = Enumerable.Range(1, 10_000).Select(i => (long)i).ToArray();
+        var resp = await Put(_factory, InvioSapTestData.RottaGenera, BodyGenera(2003, 1, "PRIMO SALDO", "x", ids, "NC"));
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+    }
+
+    [Test]
+    public async Task Genera_IdEnorme_ShouldEssere404()
+    {
+        InvioSapTestData.RilasciaLockComeData();
+        var resp = await Put(_factory, InvioSapTestData.RottaGenera, BodyGenera(2003, 1, "PRIMO SALDO", "x", [long.MaxValue], "NC"));
         Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
     }
 
     [Test]
-    public async Task Generazioni_ShouldNonEsporreDatiDiAltriUtenti_NelMessaggioDiErrore()
+    public async Task Genera_TipologiaOstile_ShouldEssere404_SenzaScritture()
     {
-        var resp = await _factory.CreateClientAs(Ruolo.ADMIN)
-            .GetAsync(_factory.WithNonce($"{InvioSapTestData.RottaGenerazioni}/{Guid.NewGuid()}"));
-        var testo = await resp.Content.ReadAsStringAsync();
-
-        Assert.That(testo, Does.Not.Contain("Exception").And.Not.Contain("SqlException").And.Not.Contain("at PortaleFatture"),
-            "Un 404 non porta stack trace (T053).");
+        InvioSapTestData.RilasciaLockComeData();
+        var resp = await Put(_factory, InvioSapTestData.RottaGenera, BodyGenera(2003, 2, "PRIMO SALDO' OR 1=1 --", "x"));
+        Assert.Multiple(() =>
+        {
+            Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+            Assert.That(InvioSapTestData.BatchDeiTest(), Is.Empty);
+        });
     }
 
-    // =============================================================================================
-    // Helper
-    // =============================================================================================
-
-    private async Task<HttpResponseMessage> Post(string rotta, string body)
+    [Test]
+    public async Task Genera_StornoConApiciEUnicode_ShouldEssereScrittoTaleQuale()
     {
-        var client = _factory.CreateClientAs(Ruolo.ADMIN);
-        var resp = await client.PostAsync(_factory.WithNonce(rotta), new StringContent(body, Encoding.UTF8, "application/json"));
-        TestContext.Out.WriteLine($"{rotta} -> {(int)resp.StatusCode}");
-        return resp;
+        InvioSapTestData.RilasciaLockComeData();
+        const string storno = "NC-'2003'-ü-🚀";
+        var resp = await Put(_factory, InvioSapTestData.RottaGenera, BodyGenera(2003, 1, "PRIMO SALDO", "x", [9502], storno));
+        var batchId = (await Json(resp)).GetProperty("batchId").GetInt32();
+        Assert.That(InvioSapTestData.Scalar($"SELECT NumeroDocStorno FROM {InvioSapTestData.Dettaglio} WHERE FkBatchId = @b", ("@b", batchId)), Is.EqualTo(storno));
+    }
+
+    [Test]
+    public async Task RotteRimosse_ShouldEssere404_SenzaStackTrace()
+    {
+        foreach (var rotta in new[] { "/api/fatture/invio-sap/generazioni/9001", "/api/fatture/invio-sap/generazioni/corrente" })
+        {
+            var resp = await Get(_factory, rotta);
+            Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.NotFound), rotta);
+            await SenzaStackTrace(resp);
+        }
     }
 }

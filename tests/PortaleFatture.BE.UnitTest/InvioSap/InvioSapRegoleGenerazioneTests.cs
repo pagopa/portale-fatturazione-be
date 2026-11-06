@@ -3,382 +3,309 @@ using PortaleFatture.BE.Core.Entities.SEND.Fatture.InvioSap;
 namespace PortaleFatture.BE.UnitTest.InvioSap;
 
 /// <summary>
-/// Unit test PURI (nessun DB) sulle regole di <c>PUT api/fatture/invio-sap/genera</c> (PF-735 RF-6, RF-8,
-/// RF-10, RF-16). La matrice completa, con la corrispondenza fra caso e livello di automazione, e' in
-/// <c>coverage/invio-sap-matrice-test.md</c> del repo di contesto (sezione "Genera").
-///
-/// Ogni caso costruisce una richiesta e lo stato corrente delle fatture (quello che a runtime arriva
-/// dalla vista) e asserisce esito, messaggio e fatture coinvolte. La precedenza degli esiti e' parte
-/// del contratto: formale (400) → non trovate (404) → fuori gruppo (400) → in elaborazione (409) →
-/// storno mancante (400).
+/// Regole pure del Genera (be-invio-sap.md §3.3, §8.5). Due modalita' (D7): primo invio di un rigo
+/// <c>DA_INVIARE</c> intero (senza <c>idFatture</c>, senza storno) e re-invio di fatture scelte nel dettaglio di
+/// un rigo <c>INVIATE</c> (storno obbligatorio). Precedenza: lock 409 (handler) → formale 400 → non trovate 404 →
+/// fuori gruppo o non inviate 400.
 /// </summary>
 [Category("InvioSap")]
 public class InvioSapRegoleGenerazioneTests
 {
     private const string Tipologia = "PRIMO SALDO";
-    private const int Anno = 2026;
-    private const int Mese = 5;
+    private const int Anno = 2093;
+    private const int Mese = 1;
+    private const string Utente = "admin@test";
 
-    private static InvioSapFatturaCorrente DaInviare(long id) => new(id, Anno, Mese, Tipologia, StatoInvioSap.DA_INVIARE);
-    private static InvioSapFatturaCorrente Inviata(long id) => new(id, Anno, Mese, Tipologia, StatoInvioSap.INVIATA);
-    private static InvioSapFatturaCorrente InElaborazione(long id) => new(id, Anno, Mese, Tipologia, StatoInvioSap.IN_ELABORAZIONE);
+    private static InvioSapFatturaCorrente Fattura(long id, bool? inviata = true, int anno = Anno, int mese = Mese, string tipologia = Tipologia)
+        => new(id, anno, mese, tipologia, inviata);
 
-    private static InvioSapRichiestaGenerazione Richiesta(
-        long[]? idFatture = null, string? nota = "Invio di maggio", string? storno = null,
+    private static InvioSapRichiestaGenerazione PrimoInvio(string? nota = "Primo invio", string? storno = null,
         int? anno = Anno, int? mese = Mese, string? tipologia = Tipologia) => new()
         {
-            Anno = anno, Mese = mese, TipologiaFattura = tipologia,
-            IdFatture = idFatture ?? [2001, 2002], Nota = nota, NumeroDocumentoStorno = storno
+            Anno = anno, Mese = mese, TipologiaFattura = tipologia, Nota = nota, NumeroDocumentoStorno = storno
+        };
+
+    private static InvioSapRichiestaGenerazione ReInvio(long[]? ids = null, string? storno = "NC-2093-0042",
+        string? nota = "Re-invio", int? anno = Anno, int? mese = Mese, string? tipologia = Tipologia) => new()
+        {
+            Anno = anno, Mese = mese, TipologiaFattura = tipologia, IdFatture = ids ?? [9502, 9503],
+            Nota = nota, NumeroDocumentoStorno = storno
         };
 
     // =============================================================================================
-    // Percorso felice
+    // Modalita'
     // =============================================================================================
 
     [Test]
-    public void PrimoInvio_TutteDaInviare_SenzaStorno_ShouldEssereOk()
+    public void SenzaIdFatture_ShouldEssere_PrimoInvio()
     {
-        var esito = InvioSapRegole.ValidaGenerazione(Richiesta(), [DaInviare(2001), DaInviare(2002)]);
+        Assert.That(InvioSapRegole.Modalita(PrimoInvio()), Is.EqualTo(InvioSapModalita.PrimoInvio));
+    }
 
+    [Test]
+    public void ConIdFatture_AncheVuota_ShouldEssere_ReInvio()
+    {
         Assert.Multiple(() =>
         {
-            Assert.That(esito.Esito, Is.EqualTo(InvioSapEsito.Ok));
-            Assert.That(esito.Valida, Is.True);
-            Assert.That(esito.RichiedeStorno, Is.False, "Solo DA_INVIARE: non e' un re-invio.");
-            Assert.That(esito.Errori, Is.Empty);
+            Assert.That(InvioSapRegole.Modalita(ReInvio()), Is.EqualTo(InvioSapModalita.ReInvio));
+            Assert.That(InvioSapRegole.Modalita(ReInvio(ids: [])), Is.EqualTo(InvioSapModalita.ReInvio),
+                "idFatture: [] non equivale ad assente: e' un re-invio senza selezione, quindi 400.");
         });
     }
 
-    [Test]
-    public void Reinvio_TutteInviate_ConStorno_ShouldEssereOk_ERichiedeStorno()
-    {
-        var esito = InvioSapRegole.ValidaGenerazione(
-            Richiesta(storno: "NC-2026-0042"), [Inviata(2001), Inviata(2002)]);
+    // =============================================================================================
+    // Validazione formale
+    // =============================================================================================
 
+    [Test]
+    public void PrimoInvio_Completo_ShouldEssereValido()
+    {
+        Assert.That(InvioSapRegole.ValidaFormale(PrimoInvio(), Utente), Is.Empty);
+    }
+
+    [Test]
+    public void ReInvio_Completo_ShouldEssereValido()
+    {
+        Assert.That(InvioSapRegole.ValidaFormale(ReInvio(), Utente), Is.Empty);
+    }
+
+    [TestCase("NC-1", TestName = "PrimoInvio(storno presente)")]
+    [TestCase(" ", TestName = "PrimoInvio(storno di soli spazi)")]
+    public void PrimoInvio_ConStorno_ShouldEssereRifiutato(string storno)
+    {
+        Assert.That(InvioSapRegole.ValidaFormale(PrimoInvio(storno: storno), Utente),
+            Is.EqualTo(new[] { InvioSapRegole.ErroreStornoNonAmmesso }));
+    }
+
+    [TestCase(null, TestName = "ReInvio(storno null)")]
+    [TestCase("", TestName = "ReInvio(storno vuoto)")]
+    [TestCase("   ", TestName = "ReInvio(storno di spazi)")]
+    public void ReInvio_SenzaStorno_ShouldEssereRifiutato(string? storno)
+    {
+        Assert.That(InvioSapRegole.ValidaFormale(ReInvio(storno: storno), Utente),
+            Is.EqualTo(new[] { InvioSapRegole.ErroreStornoMancante }));
+    }
+
+    [Test]
+    public void ReInvio_StornoAlLimite_ShouldEssereValido_OltreRifiutato()
+    {
         Assert.Multiple(() =>
         {
-            Assert.That(esito.Esito, Is.EqualTo(InvioSapEsito.Ok));
-            Assert.That(esito.RichiedeStorno, Is.True);
+            Assert.That(InvioSapRegole.ValidaFormale(ReInvio(storno: new string('S', InvioSapRegole.MaxStorno)), Utente), Is.Empty);
+            Assert.That(InvioSapRegole.ValidaFormale(ReInvio(storno: new string('S', InvioSapRegole.MaxStorno + 1)), Utente),
+                Is.EqualTo(new[] { InvioSapRegole.ErroreStornoLungo }));
         });
     }
-
-    [Test]
-    public void Misto_DaInviareEInviata_ConStorno_ShouldEssereOk()
-    {
-        // RF-16: basta UNA inviata perche' lo storno serva; con lo storno il misto e' ammesso.
-        var esito = InvioSapRegole.ValidaGenerazione(
-            Richiesta(storno: "NC-1"), [DaInviare(2001), Inviata(2002)]);
-
-        Assert.That(esito.Esito, Is.EqualTo(InvioSapEsito.Ok));
-        Assert.That(esito.RichiedeStorno, Is.True);
-    }
-
-    [Test]
-    public void StornoFornitoMaNonNecessario_ShouldEssereOk_EIgnorato()
-    {
-        var esito = InvioSapRegole.ValidaGenerazione(
-            Richiesta(storno: "NC-inutile"), [DaInviare(2001), DaInviare(2002)]);
-
-        Assert.That(esito.Esito, Is.EqualTo(InvioSapEsito.Ok));
-        Assert.That(esito.RichiedeStorno, Is.False, "Lo storno non trasforma un primo invio in re-invio.");
-    }
-
-    [Test]
-    public void TipologiaConSpaziEMinuscole_ShouldEssereOk()
-    {
-        // Il confronto col gruppo e' case-insensitive e ignora gli spazi: il FE manda il valore del rigo.
-        var esito = InvioSapRegole.ValidaGenerazione(
-            Richiesta(tipologia: "  primo saldo "), [DaInviare(2001), DaInviare(2002)]);
-
-        Assert.That(esito.Esito, Is.EqualTo(InvioSapEsito.Ok));
-    }
-
-    [Test]
-    public void UnaSolaFattura_ShouldEssereOk()
-    {
-        var esito = InvioSapRegole.ValidaGenerazione(Richiesta(idFatture: [2001]), [DaInviare(2001)]);
-        Assert.That(esito.Esito, Is.EqualTo(InvioSapEsito.Ok));
-    }
-
-    // =============================================================================================
-    // 400 formale: matrice sui campi del body
-    // =============================================================================================
 
     [TestCase(null, TestName = "Nota(null)")]
     [TestCase("", TestName = "Nota(vuota)")]
-    [TestCase("   ", TestName = "Nota(solo spazi)")]
-    [TestCase("\t\n", TestName = "Nota(solo whitespace)")]
-    public void NotaMancante_ShouldEssereNonValida(string? nota)
+    [TestCase(" \t\n ", TestName = "Nota(solo spazi)")]
+    public void NotaMancante_ShouldEssereRifiutata(string? nota)
     {
-        var esito = InvioSapRegole.ValidaGenerazione(Richiesta(nota: nota), [DaInviare(2001), DaInviare(2002)]);
-
-        Assert.That(esito.Esito, Is.EqualTo(InvioSapEsito.NonValida));
-        Assert.That(esito.Errori, Does.Contain(InvioSapRegole.ErroreNota));
+        Assert.Multiple(() =>
+        {
+            Assert.That(InvioSapRegole.ValidaFormale(PrimoInvio(nota: nota), Utente), Does.Contain(InvioSapRegole.ErroreNota));
+            Assert.That(InvioSapRegole.ValidaFormale(ReInvio(nota: nota), Utente), Does.Contain(InvioSapRegole.ErroreNota));
+        });
     }
 
     [Test]
-    public void IdFattureNull_ShouldEssereNonValida()
+    public void Nota_AlLimite_ShouldEssereValida_OltreRifiutata()
     {
-        var richiesta = new InvioSapRichiestaGenerazione
-        { Anno = Anno, Mese = Mese, TipologiaFattura = Tipologia, IdFatture = null, Nota = "n" };
-
-        var esito = InvioSapRegole.ValidaGenerazione(richiesta, [DaInviare(2001)]);
-
-        Assert.That(esito.Esito, Is.EqualTo(InvioSapEsito.NonValida));
-        Assert.That(esito.Errori, Does.Contain(InvioSapRegole.ErroreSelezioneVuota));
+        Assert.Multiple(() =>
+        {
+            Assert.That(InvioSapRegole.ValidaFormale(PrimoInvio(nota: new string('n', InvioSapRegole.MaxNota)), Utente), Is.Empty);
+            Assert.That(InvioSapRegole.ValidaFormale(PrimoInvio(nota: new string('n', InvioSapRegole.MaxNota + 1)), Utente),
+                Is.EqualTo(new[] { InvioSapRegole.ErroreNotaLunga }));
+            Assert.That(InvioSapRegole.ValidaFormale(PrimoInvio(nota: new string('n', 100_000)), Utente),
+                Is.EqualTo(new[] { InvioSapRegole.ErroreNotaLunga }), "Nota da 100 KB: 400, non 500.");
+        });
     }
 
     [Test]
-    public void IdFattureVuota_ShouldEssereNonValida()
+    public void Nota_ConCaratteriSpeciali_ShouldEssereValida()
     {
-        var esito = InvioSapRegole.ValidaGenerazione(Richiesta(idFatture: []), [DaInviare(2001)]);
-
-        Assert.That(esito.Esito, Is.EqualTo(InvioSapEsito.NonValida));
-        Assert.That(esito.Errori, Does.Contain(InvioSapRegole.ErroreSelezioneVuota));
-    }
-
-    [Test]
-    public void IdFattureDuplicate_ShouldEssereNonValida()
-    {
-        // Un id ripetuto finirebbe due volte nel Dettaglio e violerebbe l'univocita' (batchId, idFattura).
-        var esito = InvioSapRegole.ValidaGenerazione(Richiesta(idFatture: [2001, 2001]), [DaInviare(2001)]);
-
-        Assert.That(esito.Esito, Is.EqualTo(InvioSapEsito.NonValida));
-        Assert.That(esito.Errori, Does.Contain(InvioSapRegole.ErroreSelezioneDuplicata));
-    }
-
-    [TestCase(0L, TestName = "IdFattura(zero)")]
-    [TestCase(-1L, TestName = "IdFattura(negativo)")]
-    [TestCase(long.MinValue, TestName = "IdFattura(long.MinValue)")]
-    public void IdFatturaNonPositivo_ShouldEssereNonValida(long id)
-    {
-        var esito = InvioSapRegole.ValidaGenerazione(Richiesta(idFatture: [id]), [DaInviare(2001)]);
-
-        Assert.That(esito.Esito, Is.EqualTo(InvioSapEsito.NonValida));
-        Assert.That(esito.Errori, Does.Contain(InvioSapRegole.ErroreIdNonValido));
-    }
-
-    [Test]
-    public void IdFatturaOltreInt32_ShouldEssereAccettato()
-    {
-        // IdFattura e' BIGINT: un id oltre int.MaxValue e' legittimo (stessa lezione di Gestione Fatture).
-        const long grande = 7770001234567L;
-        var esito = InvioSapRegole.ValidaGenerazione(
-            Richiesta(idFatture: [grande]), [DaInviare(grande)]);
-
-        Assert.That(esito.Esito, Is.EqualTo(InvioSapEsito.Ok));
+        Assert.That(InvioSapRegole.ValidaFormale(PrimoInvio(nota: "Nota con \"apici\", \\ barre, a capo\n ed emoji 🚀"), Utente), Is.Empty);
     }
 
     [TestCase(null, TestName = "Anno(null)")]
-    [TestCase(0, TestName = "Anno(zero)")]
     [TestCase(1999, TestName = "Anno(sotto il minimo)")]
-    [TestCase(-2026, TestName = "Anno(negativo)")]
-    public void AnnoNonValido_ShouldEssereNonValida(int? anno)
+    [TestCase(0, TestName = "Anno(zero)")]
+    [TestCase(-2093, TestName = "Anno(negativo)")]
+    [TestCase(10000, TestName = "Anno(cinque cifre)")]
+    public void AnnoNonValido_ShouldEssereRifiutato(int? anno)
     {
-        var esito = InvioSapRegole.ValidaGenerazione(Richiesta(anno: anno), [DaInviare(2001), DaInviare(2002)]);
-
-        Assert.That(esito.Esito, Is.EqualTo(InvioSapEsito.NonValida));
-        Assert.That(esito.Errori, Does.Contain(InvioSapRegole.ErroreAnno));
+        Assert.That(InvioSapRegole.ValidaFormale(PrimoInvio(anno: anno), Utente), Is.EqualTo(new[] { InvioSapRegole.ErroreAnno }));
     }
 
     [TestCase(null, TestName = "Mese(null)")]
     [TestCase(0, TestName = "Mese(zero)")]
     [TestCase(13, TestName = "Mese(13)")]
-    [TestCase(-5, TestName = "Mese(negativo)")]
-    public void MeseNonValido_ShouldEssereNonValida(int? mese)
+    [TestCase(-1, TestName = "Mese(negativo)")]
+    public void MeseNonValido_ShouldEssereRifiutato(int? mese)
     {
-        var esito = InvioSapRegole.ValidaGenerazione(Richiesta(mese: mese), [DaInviare(2001), DaInviare(2002)]);
-
-        Assert.That(esito.Esito, Is.EqualTo(InvioSapEsito.NonValida));
-        Assert.That(esito.Errori, Does.Contain(InvioSapRegole.ErroreMese));
+        Assert.That(InvioSapRegole.ValidaFormale(PrimoInvio(mese: mese), Utente), Is.EqualTo(new[] { InvioSapRegole.ErroreMese }));
     }
 
     [TestCase(null, TestName = "Tipologia(null)")]
     [TestCase("", TestName = "Tipologia(vuota)")]
     [TestCase("  ", TestName = "Tipologia(spazi)")]
-    public void TipologiaMancante_ShouldEssereNonValida(string? tipologia)
+    public void TipologiaMancante_ShouldEssereRifiutata(string? tipologia)
     {
-        var esito = InvioSapRegole.ValidaGenerazione(Richiesta(tipologia: tipologia), [DaInviare(2001), DaInviare(2002)]);
-
-        Assert.That(esito.Esito, Is.EqualTo(InvioSapEsito.NonValida));
-        Assert.That(esito.Errori, Does.Contain(InvioSapRegole.ErroreTipologia));
+        Assert.That(InvioSapRegole.ValidaFormale(PrimoInvio(tipologia: tipologia), Utente), Is.EqualTo(new[] { InvioSapRegole.ErroreTipologia }));
     }
 
     [Test]
-    public void PiuErroriFormali_ShouldEssereTuttiRiportati()
+    public void ReInvio_SelezioneVuota_ShouldEssereRifiutata()
     {
-        // L'admin deve vedere tutto cio' che manca in un colpo solo, non un errore per tentativo.
-        var richiesta = new InvioSapRichiestaGenerazione { Anno = null, Mese = 0, TipologiaFattura = "", IdFatture = [], Nota = " " };
+        Assert.That(InvioSapRegole.ValidaFormale(ReInvio(ids: []), Utente), Is.EqualTo(new[] { InvioSapRegole.ErroreSelezioneVuota }));
+    }
 
-        var esito = InvioSapRegole.ValidaGenerazione(richiesta, []);
+    [TestCase(new long[] { 0 }, TestName = "Id(zero)")]
+    [TestCase(new long[] { -1 }, TestName = "Id(negativo)")]
+    [TestCase(new long[] { 9502, long.MinValue }, TestName = "Id(long.MinValue)")]
+    public void ReInvio_IdNonValido_ShouldEssereRifiutato(long[] ids)
+    {
+        Assert.That(InvioSapRegole.ValidaFormale(ReInvio(ids: ids), Utente), Does.Contain(InvioSapRegole.ErroreIdNonValido));
+    }
 
-        Assert.That(esito.Esito, Is.EqualTo(InvioSapEsito.NonValida));
-        Assert.That(esito.Errori, Is.EquivalentTo(new[]
+    [Test]
+    public void ReInvio_IdDuplicati_ShouldEssereRifiutati()
+    {
+        Assert.That(InvioSapRegole.ValidaFormale(ReInvio(ids: [9502, 9502]), Utente), Does.Contain(InvioSapRegole.ErroreSelezioneDuplicata));
+    }
+
+    [Test]
+    public void ReInvio_MilleFatture_ShouldEssereValido_MilleEUnaRifiutate()
+    {
+        var mille = Enumerable.Range(1, InvioSapRegole.MaxFatture).Select(i => (long)i).ToArray();
+        var milleUno = Enumerable.Range(1, InvioSapRegole.MaxFatture + 1).Select(i => (long)i).ToArray();
+        Assert.Multiple(() =>
         {
-            InvioSapRegole.ErroreAnno, InvioSapRegole.ErroreMese, InvioSapRegole.ErroreTipologia,
-            InvioSapRegole.ErroreSelezioneVuota, InvioSapRegole.ErroreNota
+            Assert.That(InvioSapRegole.ValidaFormale(ReInvio(ids: mille), Utente), Is.Empty);
+            Assert.That(InvioSapRegole.ValidaFormale(ReInvio(ids: milleUno), Utente), Is.EqualTo(new[] { InvioSapRegole.ErroreSelezioneTroppoGrande }));
+        });
+    }
+
+    [Test]
+    public void ReInvio_IdEnorme_ShouldEssereFormalmenteValido()
+    {
+        // long.MaxValue non e' un errore di forma: e' una fattura che non esiste, quindi 404 piu' avanti.
+        Assert.That(InvioSapRegole.ValidaFormale(ReInvio(ids: [long.MaxValue]), Utente), Is.Empty);
+    }
+
+    [TestCase(null, TestName = "Utente(null)")]
+    [TestCase("", TestName = "Utente(vuoto)")]
+    public void UtenteMancante_ShouldEssereRifiutato(string? utente)
+    {
+        Assert.That(InvioSapRegole.ValidaFormale(PrimoInvio(), utente), Is.EqualTo(new[] { InvioSapRegole.ErroreUtente }));
+    }
+
+    [Test]
+    public void Utente_AlLimite_ShouldEssereValido_OltreRifiutato_SenzaTroncare()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(InvioSapRegole.ValidaFormale(PrimoInvio(), new string('u', InvioSapRegole.MaxIdUtente)), Is.Empty);
+            Assert.That(InvioSapRegole.ValidaFormale(PrimoInvio(), new string('u', InvioSapRegole.MaxIdUtente + 1)),
+                Is.EqualTo(new[] { InvioSapRegole.ErroreUtente }), "IdUtente e' NVARCHAR(50): non si tronca in silenzio.");
+        });
+    }
+
+    [Test]
+    public void PiuErrori_ShouldEssereTuttiRiportati()
+    {
+        var errori = InvioSapRegole.ValidaFormale(ReInvio(ids: [0, 0], storno: null, nota: " ", anno: null, mese: 0, tipologia: ""), Utente);
+        Assert.That(errori, Is.EquivalentTo(new[]
+        {
+            InvioSapRegole.ErroreAnno, InvioSapRegole.ErroreMese, InvioSapRegole.ErroreTipologia, InvioSapRegole.ErroreNota,
+            InvioSapRegole.ErroreIdNonValido, InvioSapRegole.ErroreSelezioneDuplicata, InvioSapRegole.ErroreStornoMancante
         }));
     }
 
-    [Test]
-    public void ErroreFormale_ShouldPrecedere_NonTrovate()
-    {
-        // Nota mancante E fattura inesistente: vince il 400, il client corregge prima il body.
-        var esito = InvioSapRegole.ValidaGenerazione(Richiesta(nota: null, idFatture: [9999]), [DaInviare(2001)]);
+    // =============================================================================================
+    // Re-invio: controlli sulle fatture lette dalla vista dettaglio
+    // =============================================================================================
 
-        Assert.That(esito.Esito, Is.EqualTo(InvioSapEsito.NonValida));
+    [Test]
+    public void ReInvio_TutteInviateNelGruppo_ShouldPassare()
+    {
+        Assert.That(InvioSapRegole.ValidaReInvio(ReInvio(), [Fattura(9502), Fattura(9503)]), Is.Null);
     }
 
-    // =============================================================================================
-    // 404 non trovate
-    // =============================================================================================
-
     [Test]
-    public void FatturaInesistente_ShouldEssereNonTrovata_ConIdIndicato()
+    public void ReInvio_FatturaAssenteDallaVista_ShouldEssere404_ConLeSoleMancanti()
     {
-        var esito = InvioSapRegole.ValidaGenerazione(Richiesta(idFatture: [2001, 9999]), [DaInviare(2001)]);
-
+        // 9505 non e' mai stata inviata: non ha dettaglio (C1), quindi per il re-invio non esiste.
+        var esito = InvioSapRegole.ValidaReInvio(ReInvio(ids: [9502, 9505]), [Fattura(9502)]);
         Assert.Multiple(() =>
         {
-            Assert.That(esito.Esito, Is.EqualTo(InvioSapEsito.NonTrovate));
-            Assert.That(esito.IdFattureCoinvolte, Is.EqualTo(new long[] { 9999 }));
-            Assert.That(esito.Errori, Does.Contain(InvioSapRegole.ErroreNonTrovate));
+            Assert.That(esito!.Tipo, Is.EqualTo(InvioSapGeneraEsitoTipo.NonTrovate));
+            Assert.That(esito.IdFattureCoinvolte, Is.EqualTo(new long[] { 9505 }));
+        });
+    }
+
+    [TestCase(2092, Mese, Tipologia, TestName = "FuoriGruppo(anno)")]
+    [TestCase(Anno, 2, Tipologia, TestName = "FuoriGruppo(mese)")]
+    [TestCase(Anno, Mese, "SECONDO SALDO", TestName = "FuoriGruppo(tipologia)")]
+    public void ReInvio_FatturaDiUnAltroRigo_ShouldEssere400(int anno, int mese, string tipologia)
+    {
+        var esito = InvioSapRegole.ValidaReInvio(ReInvio(), [Fattura(9502), Fattura(9503, anno: anno, mese: mese, tipologia: tipologia)]);
+        Assert.Multiple(() =>
+        {
+            Assert.That(esito!.Tipo, Is.EqualTo(InvioSapGeneraEsitoTipo.NonValida));
+            Assert.That(esito.Errori, Is.EqualTo(new[] { InvioSapRegole.ErroreFuoriGruppo }));
+            Assert.That(esito.IdFattureCoinvolte, Is.EqualTo(new long[] { 9503 }));
         });
     }
 
     [Test]
-    public void StatoCorrenteNull_ShouldTrattarloComeVuoto_ENonTrovare()
+    public void ReInvio_TipologiaConMaiuscoleESpazi_ShouldEssereNelGruppo()
     {
-        var esito = InvioSapRegole.ValidaGenerazione(Richiesta(), null);
-
-        Assert.That(esito.Esito, Is.EqualTo(InvioSapEsito.NonTrovate));
-        Assert.That(esito.IdFattureCoinvolte, Is.EquivalentTo(new long[] { 2001, 2002 }));
+        Assert.That(InvioSapRegole.ValidaReInvio(ReInvio(tipologia: " primo saldo "), [Fattura(9502), Fattura(9503)]), Is.Null);
     }
 
-    [Test]
-    public void NonTrovate_ShouldPrecedere_InElaborazione()
+    [TestCase(false, TestName = "NonInviata(FatturaInviata = 0)")]
+    [TestCase(null, TestName = "NonInviata(FatturaInviata = NULL, in elaborazione)")]
+    public void ReInvio_FatturaNonInviata_ShouldEssere400(bool? inviata)
     {
-        // Una inesistente e una in elaborazione: 404, perche' la selezione contiene un id che non c'e'.
-        var esito = InvioSapRegole.ValidaGenerazione(Richiesta(idFatture: [2001, 9999]), [InElaborazione(2001)]);
-
-        Assert.That(esito.Esito, Is.EqualTo(InvioSapEsito.NonTrovate));
-    }
-
-    // =============================================================================================
-    // 400 fuori gruppo (RF-6)
-    // =============================================================================================
-
-    [Test]
-    public void FatturaDiAltroMese_ShouldEssereNonValida_FuoriGruppo()
-    {
-        var altroMese = new InvioSapFatturaCorrente(2002, Anno, Mese + 1, Tipologia, StatoInvioSap.DA_INVIARE);
-
-        var esito = InvioSapRegole.ValidaGenerazione(Richiesta(), [DaInviare(2001), altroMese]);
-
+        var esito = InvioSapRegole.ValidaReInvio(ReInvio(), [Fattura(9502), Fattura(9503, inviata: inviata)]);
         Assert.Multiple(() =>
         {
-            Assert.That(esito.Esito, Is.EqualTo(InvioSapEsito.NonValida));
-            Assert.That(esito.Errori, Does.Contain(InvioSapRegole.ErroreFuoriGruppo));
-            Assert.That(esito.IdFattureCoinvolte, Is.EqualTo(new long[] { 2002 }));
+            Assert.That(esito!.Tipo, Is.EqualTo(InvioSapGeneraEsitoTipo.NonValida));
+            Assert.That(esito.Errori, Is.EqualTo(new[] { InvioSapRegole.ErroreNonInviate }));
+            Assert.That(esito.IdFattureCoinvolte, Is.EqualTo(new long[] { 9503 }));
         });
     }
 
     [Test]
-    public void FatturaDiAltroAnno_ShouldEssereNonValida_FuoriGruppo()
+    public void Precedenza_NonTrovate_PrimaDi_FuoriGruppo_PrimaDi_NonInviate()
     {
-        var altroAnno = new InvioSapFatturaCorrente(2002, Anno - 1, Mese, Tipologia, StatoInvioSap.DA_INVIARE);
-        var esito = InvioSapRegole.ValidaGenerazione(Richiesta(), [DaInviare(2001), altroAnno]);
-        Assert.That(esito.Esito, Is.EqualTo(InvioSapEsito.NonValida));
-        Assert.That(esito.IdFattureCoinvolte, Is.EqualTo(new long[] { 2002 }));
-    }
-
-    [Test]
-    public void FatturaDiAltraTipologia_ShouldEssereNonValida_FuoriGruppo()
-    {
-        var altraTipologia = new InvioSapFatturaCorrente(2002, Anno, Mese, "SECONDO SALDO", StatoInvioSap.DA_INVIARE);
-        var esito = InvioSapRegole.ValidaGenerazione(Richiesta(), [DaInviare(2001), altraTipologia]);
-        Assert.That(esito.Esito, Is.EqualTo(InvioSapEsito.NonValida));
-        Assert.That(esito.Errori, Does.Contain(InvioSapRegole.ErroreFuoriGruppo));
-    }
-
-    [Test]
-    public void FuoriGruppo_ShouldPrecedere_InElaborazione()
-    {
-        var altroMeseInElab = new InvioSapFatturaCorrente(2002, Anno, Mese + 1, Tipologia, StatoInvioSap.IN_ELABORAZIONE);
-        var esito = InvioSapRegole.ValidaGenerazione(Richiesta(), [DaInviare(2001), altroMeseInElab]);
-        Assert.That(esito.Esito, Is.EqualTo(InvioSapEsito.NonValida), "Prima si corregge la selezione, poi si guarda lo stato.");
-    }
-
-    // =============================================================================================
-    // 409 stato non ammesso (RF-10)
-    // =============================================================================================
-
-    [Test]
-    public void FatturaInElaborazione_ShouldEssereStatoNonAmmesso()
-    {
-        var esito = InvioSapRegole.ValidaGenerazione(Richiesta(), [DaInviare(2001), InElaborazione(2002)]);
-
+        var correnti = new[] { Fattura(1, inviata: null), Fattura(2, anno: 2092) };
         Assert.Multiple(() =>
         {
-            Assert.That(esito.Esito, Is.EqualTo(InvioSapEsito.StatoNonAmmesso));
-            Assert.That(esito.Errori, Does.Contain(InvioSapRegole.ErroreInElaborazione));
-            Assert.That(esito.IdFattureCoinvolte, Is.EqualTo(new long[] { 2002 }));
+            Assert.That(InvioSapRegole.ValidaReInvio(ReInvio(ids: [1, 2, 3]), correnti)!.Tipo, Is.EqualTo(InvioSapGeneraEsitoTipo.NonTrovate));
+            Assert.That(InvioSapRegole.ValidaReInvio(ReInvio(ids: [1, 2]), correnti)!.Errori, Is.EqualTo(new[] { InvioSapRegole.ErroreFuoriGruppo }));
+            Assert.That(InvioSapRegole.ValidaReInvio(ReInvio(ids: [1]), correnti)!.Errori, Is.EqualTo(new[] { InvioSapRegole.ErroreNonInviate }));
         });
     }
 
     [Test]
-    public void TutteInElaborazione_ShouldElencarleTutte()
+    public void ReInvio_RigheDuplicateDallaVista_ShouldEssereTollerate()
     {
-        var esito = InvioSapRegole.ValidaGenerazione(Richiesta(), [InElaborazione(2001), InElaborazione(2002)]);
-        Assert.That(esito.IdFattureCoinvolte, Is.EquivalentTo(new long[] { 2001, 2002 }));
-    }
-
-    [TestCase("", TestName = "StatoSconosciuto(vuoto)")]
-    [TestCase("inviata", TestName = "StatoSconosciuto(minuscolo)")]
-    [TestCase("ELABORAZIONE", TestName = "StatoSconosciuto(abbreviato)")]
-    [TestCase("2", TestName = "StatoSconosciuto(numerico legacy)")]
-    public void StatoSconosciuto_ShouldEssereStatoNonAmmesso(string stato)
-    {
-        // Difesa in profondita': se la vista un giorno esponesse un valore nuovo, non si parte alla cieca.
-        var strana = new InvioSapFatturaCorrente(2002, Anno, Mese, Tipologia, stato);
-        var esito = InvioSapRegole.ValidaGenerazione(Richiesta(), [DaInviare(2001), strana]);
-
-        Assert.That(esito.Esito, Is.EqualTo(InvioSapEsito.StatoNonAmmesso));
-        Assert.That(esito.Errori, Does.Contain(InvioSapRegole.ErroreStatoSconosciuto));
+        // Un ente con piu' contratti potrebbe duplicare righe nella vista (caso manuale BE-SAP-M9).
+        Assert.That(InvioSapRegole.ValidaReInvio(ReInvio(), [Fattura(9502), Fattura(9502), Fattura(9503)]), Is.Null);
     }
 
     [Test]
-    public void InElaborazione_ShouldPrecedere_StornoMancante()
+    public void Costanti_ShouldCoincidereConLeTabelleDiData()
     {
-        // Inviata senza storno + una in elaborazione: 409, perche' il 400 dello storno sarebbe
-        // inutile finche' il lock e' occupato.
-        var esito = InvioSapRegole.ValidaGenerazione(Richiesta(storno: null), [Inviata(2001), InElaborazione(2002)]);
-        Assert.That(esito.Esito, Is.EqualTo(InvioSapEsito.StatoNonAmmesso));
-    }
-
-    // =============================================================================================
-    // 400 storno mancante (RF-16)
-    // =============================================================================================
-
-    [TestCase(null, TestName = "Storno(null)")]
-    [TestCase("", TestName = "Storno(vuoto)")]
-    [TestCase("   ", TestName = "Storno(solo spazi)")]
-    public void Reinvio_SenzaStorno_ShouldEssereNonValida_ConRichiedeStorno(string? storno)
-    {
-        var esito = InvioSapRegole.ValidaGenerazione(Richiesta(storno: storno), [Inviata(2001), DaInviare(2002)]);
-
         Assert.Multiple(() =>
         {
-            Assert.That(esito.Esito, Is.EqualTo(InvioSapEsito.NonValida));
-            Assert.That(esito.Errori, Does.Contain(InvioSapRegole.ErroreStorno));
-            Assert.That(esito.RichiedeStorno, Is.True, "Il FE usa questo flag per mostrare il campo.");
-            Assert.That(esito.IdFattureCoinvolte, Is.EqualTo(new long[] { 2001 }), "Solo le gia' inviate.");
+            Assert.That(InvioSapRegole.IdAzioneGeneraJson, Is.EqualTo(Guid.Parse("0B102032-99F2-4AF9-BC5E-EBE844171DCC")));
+            Assert.That(InvioSapRegole.DescrizioneAzione, Is.EqualTo("GeneraJsonFatture"));
+            Assert.That(StatoFatturaSap.NonInviata, Is.EqualTo(4));
+            Assert.That(StatoFatturaSap.Inviata, Is.EqualTo(5));
         });
-    }
-
-    [Test]
-    public void RichiestaNull_ShouldLanciare()
-    {
-        Assert.Throws<ArgumentNullException>(() => InvioSapRegole.ValidaGenerazione(null!, []));
     }
 }

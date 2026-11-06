@@ -1,151 +1,113 @@
-using Microsoft.Data.SqlClient;
-
 namespace PortaleFatture.BE.IntegrationTest.InvioSap;
 
 /// <summary>
-/// Invarianti delle viste <c>be.vwInvioSAPDettaglio</c> e <c>be.vwInvioSAPGriglia</c>, provate con SQL
-/// diretto sul DB seedato (task T012/T037). Sono i contratti che il backend da' per scontati e che il
-/// compilatore non puo' verificare: se DATA cambia una vista, qui si vede.
-///
-/// Gli invarianti fissano anche le **correzioni alla bozza del 27/10** (WHERE hardcoded, LEFT JOIN che
-/// moltiplica le righe per batch): finche' non sono applicate, i primi due test sono rossi di proposito.
-/// Restano gialli finche' le viste non esistono nel seed.
+/// Contratto con DATA sulle quattro viste dell'Invio a SAP, sul seed 2003. Ogni caso fissa un comportamento
+/// osservato in DEV e confermato da DATA (C1-C14, be-invio-sap.md §5.4): se DATA cambia una vista, il test
+/// diventa rosso con il rimando al paragrafo, e il BE va riallineato consapevolmente.
 /// </summary>
 [Category("InvioSap")]
+[NonParallelizable]
 public class InvioSapVistaIntegrationTests
 {
-    [SetUp]
-    public void Setup() => InvioSapTestData.SkipSeOggettiAssenti(InvioSapTestData.VistaDettaglio, InvioSapTestData.VistaGriglia);
+    private const string Rif = "v. be-invio-sap.md §5.4";
 
-    [Test]
-    public void Dettaglio_ShouldAvereUnaRigaPerFattura()
+    [OneTimeSetUp]
+    public void Setup()
     {
-        // La bozza fa LEFT JOIN su DettaglioInvioSAP: una fattura con due batch compare due volte.
-        var duplicati = InvioSapTestData.Scalar($@"SELECT COUNT(*) FROM (
-            SELECT IdFattura FROM {InvioSapTestData.VistaDettaglio} GROUP BY IdFattura HAVING COUNT(*) > 1) d");
-
-        Assert.That(duplicati, Is.EqualTo(0), "Serve OUTER APPLY sull'ultimo batch, non un LEFT JOIN.");
+        TestDb.SkipIfUnavailable(LocalTestDb.ConnectionString);
+        InvioSapTestData.SkipSeOggettiAssenti();
+        InvioSapTestData.Pulisci();
     }
 
-    [Test]
-    public void Dettaglio_ShouldCoprirePiuPeriodi_NonSoloMaggio2026()
-    {
-        // La bozza ha `WHERE AnnoRiferimento = 2026 AND MeseRiferimento = 5` cablato.
-        var periodi = InvioSapTestData.Scalar($@"SELECT COUNT(DISTINCT CONCAT(AnnoRiferimento, '-', MeseRiferimento))
-            FROM {InvioSapTestData.VistaDettaglio}");
-
-        Assert.That(periodi, Is.GreaterThan(1), "Il filtro per periodo lo mette il backend, non la vista.");
-    }
+    private static List<long> IdNelDettaglio() =>
+        InvioSapTestData.Lista<long>($"SELECT IdFattura FROM {InvioSapTestData.VistaDettaglio} WHERE AnnoRiferimento = 2003 ORDER BY IdFattura");
 
     [Test]
-    public void Dettaglio_StatoInvio_ShouldEssereSempreUnoDeiTre()
+    public void Colonne_DelleViste_ShouldEssereQuelleUsateDalBackend()
     {
-        var fuori = InvioSapTestData.Scalar($@"SELECT COUNT(*) FROM {InvioSapTestData.VistaDettaglio}
-            WHERE StatoInvio IS NULL OR StatoInvio NOT IN ('DA_INVIARE','IN_ELABORAZIONE','INVIATA')");
-        Assert.That(fuori, Is.EqualTo(0));
-    }
-
-    [Test]
-    public void Dettaglio_DaInviare_ShouldAvereDataEFileVuoti_EZeroInvii()
-    {
-        // RF-4: mai processata => colonne vuote.
-        var incoerenti = InvioSapTestData.Scalar($@"SELECT COUNT(*) FROM {InvioSapTestData.VistaDettaglio}
-            WHERE StatoInvio = 'DA_INVIARE' AND (DataUltimaGenerazione IS NOT NULL OR NomeFile IS NOT NULL OR NumeroInvii > 0 OR Reinviata = 1)");
-        Assert.That(incoerenti, Is.EqualTo(0));
-    }
-
-    [Test]
-    public void Dettaglio_Reinviata_ShouldImplicareInviata_EReinviiMinoriDegliInvii()
-    {
-        var incoerenti = InvioSapTestData.Scalar($@"SELECT COUNT(*) FROM {InvioSapTestData.VistaDettaglio}
-            WHERE (Reinviata = 1 AND (StatoInvio <> 'INVIATA' OR NumeroReinvii = 0))
-               OR NumeroReinvii > NumeroInvii
-               OR (NumeroReinvii > 0 AND Reinviata = 0)");
-        Assert.That(incoerenti, Is.EqualTo(0), "NumeroReinvii esclude il primo invio; Reinviata = NumeroReinvii > 0.");
-    }
-
-    [Test]
-    public void Dettaglio_InElaborazione_ShouldCorrispondereAUnBatchAttivo_OAFatturaInviataNull()
-    {
-        var incoerenti = InvioSapTestData.Scalar($@"SELECT COUNT(*) FROM {InvioSapTestData.VistaDettaglio} v
-            JOIN pfd.FattureTestata ft ON ft.IdFattura = v.IdFattura
-            WHERE v.StatoInvio = 'IN_ELABORAZIONE'
-              AND ft.FatturaInviata IS NOT NULL
-              AND NOT EXISTS (SELECT 1 FROM {InvioSapTestData.Dettaglio} d JOIN {InvioSapTestData.Registro} r ON r.batchId = d.FkBatchId
-                              WHERE d.FkIdFattura = v.IdFattura AND r.stato = 'IN_ELABORAZIONE')");
-        Assert.That(incoerenti, Is.EqualTo(0));
-    }
-
-    [Test]
-    public void Dettaglio_InviataLegacy_ShouldRisultareInviata_SenzaBatch()
-    {
-        // Migrazione: fatture inviate prima di PF-735 (FatturaInviata = 1, nessun batch) => INVIATA, senza
-        // inventare storico (nota, batch, storno). RF: "nessuna nota, batch o numero di storno inventati".
-        var legacy = InvioSapTestData.Scalar($@"SELECT COUNT(*) FROM {InvioSapTestData.VistaDettaglio} v
-            JOIN pfd.FattureTestata ft ON ft.IdFattura = v.IdFattura
-            WHERE ft.FatturaInviata = 1 AND v.NumeroInvii = 0");
-        if (Convert.ToInt32(legacy) == 0) Assert.Ignore("Il seed non ha fatture inviate pre-PF-735.");
-
-        var sbagliate = InvioSapTestData.Scalar($@"SELECT COUNT(*) FROM {InvioSapTestData.VistaDettaglio} v
-            JOIN pfd.FattureTestata ft ON ft.IdFattura = v.IdFattura
-            WHERE ft.FatturaInviata = 1 AND v.NumeroInvii = 0
-              AND (v.StatoInvio <> 'INVIATA' OR v.NomeFile IS NOT NULL OR v.UltimoNumeroDocumentoStorno IS NOT NULL)");
-        Assert.That(sbagliate, Is.EqualTo(0));
-    }
-
-    [Test]
-    public void Dettaglio_ShouldEscludere_EntePagoPA_PosticipateEdEliminate()
-    {
-        var pagopa = InvioSapTestData.Scalar($"SELECT COUNT(*) FROM {InvioSapTestData.VistaDettaglio} WHERE FkIdEnte = @e", ("@e", InvioSapTestData.EntePagoPA));
-        var staging = InvioSapTestData.Scalar($@"SELECT COUNT(*) FROM {InvioSapTestData.VistaDettaglio} v
-            WHERE EXISTS (SELECT 1 FROM cfg.GestioneFatture gf
-                          WHERE gf.FkIdEnte = v.FkIdEnte AND gf.FkTipologiaFattura = v.FkTipologiaFattura
-                            AND gf.Anno = v.AnnoRiferimento AND gf.Mese = v.MeseRiferimento AND gf.Stato IN (0, 3))");
-
+        string Colonne(string vista) => string.Join(",", InvioSapTestData.Lista<string>(
+            "SELECT name FROM sys.columns WHERE object_id = OBJECT_ID(@v) ORDER BY column_id", ("@v", vista)));
         Assert.Multiple(() =>
         {
-            Assert.That(pagopa, Is.EqualTo(0), "L'ente PagoPA non si fattura a se stesso.");
-            Assert.That(staging, Is.EqualTo(0), "Posticipate (0) ed eliminate (3) fuori; ripristinate e cancellate dentro.");
+            Assert.That(Colonne(InvioSapTestData.VistaGriglia), Is.EqualTo("TipologiaFattura,StatoFattura,NumeroFatture,Anno,Mese,Importo Totale"));
+            Assert.That(Colonne(InvioSapTestData.VistaDettaglio), Is.EqualTo(
+                "IdFattura,FkIdTipoDocumento,FkTipologiaFattura,FkIdEnte,RagioneSociale,DataFattura,IdentificativoFattura,TotaleFattura," +
+                "AnnoRiferimento,MeseRiferimento,CausaleFattura,CodiceContratto,IdDocumento,DataDocumento,Progressivo,FatturaInviata," +
+                "Semestre,FaseFatturazione,DataUltimaGenerazione,NomeFile,NoteInvio"));
+            Assert.That(Colonne(InvioSapTestData.VistaReinviate), Is.EqualTo(
+                "IdFattura,TipoDocumento,TipologiaFattura,IdEnte,RagioneSociale,DataFattura,TotaleFattura,AnnoRiferimento," +
+                "MeseRiferimento,Progressivo,ConteggioInvio,Note"));
+            Assert.That(Colonne(InvioSapTestData.VistaLock), Is.EqualTo("IdAzione,Azione,LockStartUTC,LockTimeoutUTC,BatchId"));
         });
     }
 
     [Test]
-    public void Griglia_ShouldEssereLaSommaDelDettaglio()
+    public void C1_FattureMaiInviate_ShouldMancareDalDettaglio()
     {
-        // Un solo predicato per griglia e dettaglio (chiude il finding §11 per le nuove rotte).
-        var differenze = InvioSapTestData.Scalar($@"
-            WITH d AS (
-                SELECT FkTipologiaFattura, AnnoRiferimento, MeseRiferimento, StatoInvio,
-                       COUNT(*) AS n, SUM(TotaleFattura) AS imp, SUM(CASE WHEN Reinviata = 1 THEN 1 ELSE 0 END) AS rein
-                FROM {InvioSapTestData.VistaDettaglio}
-                GROUP BY FkTipologiaFattura, AnnoRiferimento, MeseRiferimento, StatoInvio)
-            SELECT COUNT(*) FROM d
-            FULL OUTER JOIN {InvioSapTestData.VistaGriglia} g
-              ON g.TipologiaFattura = d.FkTipologiaFattura AND g.AnnoRiferimento = d.AnnoRiferimento
-             AND g.MeseRiferimento = d.MeseRiferimento AND g.StatoInvio = d.StatoInvio
-            WHERE g.TipologiaFattura IS NULL OR d.FkTipologiaFattura IS NULL
-               OR g.NumeroFatture <> d.n OR ABS(g.ImportoTotale - d.imp) > 0.005 OR g.NumeroReinviate <> d.rein");
-
-        Assert.That(differenze, Is.EqualTo(0), "Griglia e dettaglio devono raccontare la stessa cosa.");
+        var ids = IdNelDettaglio();
+        Assert.Multiple(() =>
+        {
+            Assert.That(ids, Has.None.AnyOf(9505L, 9506L, 9509L, 9510L), $"C1: una fattura mai inviata non ha storico, {Rif}");
+            Assert.That(ids, Is.EqualTo(new long[] { 9501, 9502, 9503, 9504, 9507 }), $"C1, {Rif}");
+        });
     }
 
     [Test]
-    public void Dettaglio_Note_ShouldEssereJsonValido_EOrdinatoPerData()
+    public void C2_Griglia_ShouldAvereUnRigoPerStato_ConNullPerInElaborazione()
     {
-        using var conn = InvioSapTestData.Apri();
-        using var cmd = conn.CreateCommand();
-        cmd.CommandText = $"SELECT TOP 20 Note FROM {InvioSapTestData.VistaDettaglio} WHERE NumeroInvii > 0";
-        using var reader = cmd.ExecuteReader();
-        var letti = 0;
-        while (reader.Read())
+        var righi = InvioSapTestData.Lista<string>($@"SELECT CONCAT(ISNULL(CAST(StatoFattura AS varchar), 'NULL'), ':', NumeroFatture)
+            FROM {InvioSapTestData.VistaGriglia} WHERE Anno = 2003 AND Mese = 2 AND TipologiaFattura = 'PRIMO SALDO' ORDER BY StatoFattura");
+        Assert.That(righi, Is.EqualTo(new[] { "NULL:1", "0:2", "1:1" }), $"C2: 0 da inviare, 1 inviata, NULL in elaborazione, {Rif}");
+    }
+
+    [Test]
+    public void C3_C13_Reinviate_ShouldContareSoloIBatchCompletati()
+    {
+        var conteggio = InvioSapTestData.Scalar($"SELECT ConteggioInvio FROM {InvioSapTestData.VistaReinviate} WHERE IdFattura = 9502");
+        var note = InvioSapTestData.Scalar($"SELECT Note FROM {InvioSapTestData.VistaReinviate} WHERE IdFattura = 9502") as string;
+        var migrata = InvioSapTestData.Scalar($"SELECT COUNT(*) FROM {InvioSapTestData.VistaReinviate} WHERE IdFattura = 9501");
+        Assert.Multiple(() =>
         {
-            letti++;
-            var note = reader.IsDBNull(0) ? null : reader.GetString(0);
-            Assert.That(note, Is.Not.Null.And.Not.Empty);
-            using var doc = System.Text.Json.JsonDocument.Parse(note!);
-            var date = doc.RootElement.EnumerateArray().Select(e => e.GetProperty("Data").GetDateTime()).ToList();
-            Assert.That(date, Is.Ordered, "Storico in ordine cronologico (N.invio crescente).");
-        }
-        if (letti == 0) Assert.Ignore("Nessuna fattura con storico nel seed.");
+            Assert.That(conteggio, Is.EqualTo(2), $"C13: 9001 e 9004 COMPLETATO; 9003 in ERRORE non conta, {Rif}");
+            Assert.That(Core.Entities.SEND.Fatture.InvioSap.InvioSapNota.ParseNoteInvio(note), Has.Count.EqualTo(3), $"C13: le note includono il batch in errore, {Rif}");
+            Assert.That(migrata, Is.EqualTo(0), $"C3: una sola migrazione non e' un re-invio, {Rif}");
+        });
+    }
+
+    [Test]
+    public void C4_C6_UltimaGenerazione_ShouldEssereIlBatchCompletatoPiuRecente()
+    {
+        var nome9502 = InvioSapTestData.Scalar($"SELECT NomeFile FROM {InvioSapTestData.VistaDettaglio} WHERE IdFattura = 9502");
+        var nome9504 = InvioSapTestData.Scalar($"SELECT NomeFile FROM {InvioSapTestData.VistaDettaglio} WHERE IdFattura = 9504");
+        var data9502 = (DateTime?)InvioSapTestData.Scalar($"SELECT DataUltimaGenerazione FROM {InvioSapTestData.VistaDettaglio} WHERE IdFattura = 9502");
+        Assert.Multiple(() =>
+        {
+            Assert.That(data9502, Is.EqualTo(new DateTime(2003, 4, 3, 9, 5, 0)), $"C4: il batch 9003 in ERRORE ha data NULL e va in fondo, {Rif}");
+            Assert.That(nome9502, Is.EqualTo(nome9504), $"C6: due batch diversi possono avere lo stesso NomeFile, {Rif}");
+        });
+    }
+
+    [Test]
+    public void C9_LockScaduto_ShouldMancareDallaVista_MaRestareInTabella()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(InvioSapTestData.Scalar($"SELECT COUNT(*) FROM {InvioSapTestData.VistaLock}"), Is.EqualTo(0), $"C9, {Rif}");
+            Assert.That(InvioSapTestData.BatchDelLock(), Is.EqualTo(InvioSapTestData.BatchErrore), "La riga resta finche' DATA non la cancella.");
+        });
+    }
+
+    [Test]
+    public void C11_IdDocumentoVuoto_ShouldArrivareComeStringaVuota()
+    {
+        Assert.That(InvioSapTestData.Scalar($"SELECT IdDocumento FROM {InvioSapTestData.VistaDettaglio} WHERE IdFattura = 9503"), Is.EqualTo(string.Empty),
+            $"C11: il BE la converte in null nella response, {Rif}");
+    }
+
+    [Test]
+    public void C14_Griglia_ShouldIncludereLEntePagoPA()
+    {
+        Assert.That(InvioSapTestData.Scalar($"SELECT NumeroFatture FROM {InvioSapTestData.VistaGriglia} WHERE Anno = 2003 AND Mese = 3 AND TipologiaFattura = 'ACCONTO'"),
+            Is.EqualTo(1), $"C14: la griglia non filtra l'ente PagoPA, {Rif}");
     }
 }
