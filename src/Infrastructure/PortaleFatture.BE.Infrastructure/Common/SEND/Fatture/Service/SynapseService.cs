@@ -75,6 +75,51 @@ public class SynapseService : ISynapseService
         }
     }
 
+    /// <summary>
+    /// Timeout di <c>createRun</c> per la generazione JSON: la chiamata avviene a transazione aperta, quindi
+    /// deve restare ben sotto il timeout del gateway (~60 s).
+    /// </summary>
+    public static readonly TimeSpan TimeoutAvvioGenerazione = TimeSpan.FromSeconds(20);
+
+    public async Task<SynapseRunResult> AvviaGenerazioneJsonSap(string? pipelineName, InvioSapPipelineRequest richiesta, CancellationToken ct = default)
+    {
+        try
+        {
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeout.CancelAfter(TimeoutAvvioGenerazione);
+
+            var credential = new DefaultAzureCredential();
+            var token = await credential.GetTokenAsync(new Azure.Core.TokenRequestContext(["https://dev.azuresynapse.net/.default"]), timeout.Token);
+            var requestUri = $"https://{_workspaceName}.dev.azuresynapse.net/pipelines/{pipelineName}/createRun?api-version=2021-06-01";
+
+            using var httpClient = new HttpClient { Timeout = TimeoutAvvioGenerazione };
+            httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {token.Token}");
+            using var response = await httpClient.PostAsJsonAsync(requestUri, richiesta, timeout.Token);
+
+            string? runId = null;
+            if (response.IsSuccessStatusCode)
+            {
+                try
+                {
+                    var corpo = await response.Content.ReadFromJsonAsync<Dictionary<string, object?>>(cancellationToken: timeout.Token);
+                    runId = corpo is not null && corpo.TryGetValue("runId", out var valore) ? valore?.ToString() : null;
+                }
+                catch (Exception) { /* il runId serve solo ai log */ }
+            }
+            else
+            {
+                // Mai il body in chiaro: contiene solo id, ma la regola dei log e' una (be-invio-sap.md §12).
+                _logger.LogError("AvviaGenerazioneJsonSap|batch {BatchId}|status {Status}", richiesta.BatchId, (int)response.StatusCode);
+            }
+            return new SynapseRunResult(response.IsSuccessStatusCode, (int)response.StatusCode, runId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("AvviaGenerazioneJsonSap|batch {BatchId}|{Errore}", richiesta.BatchId, ex.GetType().Name);
+            return new SynapseRunResult(false, null, null);
+        }
+    }
+
     public async Task<bool> InviaASapFattureMultiplo(string? pipelineName, List<FatturaInvioSap> parameters)
     {
         var pars = parameters.Select(x => ReturnParameter(x.TipologiaFattura!, x.AnnoRiferimento, x.MeseRiferimento)).ToList();
