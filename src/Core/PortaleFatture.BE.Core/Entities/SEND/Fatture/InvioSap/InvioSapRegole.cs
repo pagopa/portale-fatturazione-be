@@ -1,118 +1,138 @@
-using PortaleFatture.BE.Core.Extensions;
-
 namespace PortaleFatture.BE.Core.Entities.SEND.Fatture.InvioSap;
 
-/// <summary>Stato corrente di una fattura, come letto dalla vista al momento della richiesta.</summary>
-public sealed record InvioSapFatturaCorrente(
-    long IdFattura,
-    int Anno,
-    int Mese,
-    string TipologiaFattura,
-    string StatoInvio);
+/// <summary>Le due cose che si possono generare (D7 di be-invio-sap.md).</summary>
+public enum InvioSapModalita
+{
+    /// <summary>Rigo <c>DA_INVIARE</c> della griglia, intero: nessuna selezione, nessuno storno.</summary>
+    PrimoInvio,
+    /// <summary>Fatture scelte nel dettaglio di un rigo <c>INVIATE</c>, con storno obbligatorio.</summary>
+    ReInvio
+}
 
-/// <summary>Richiesta di generazione JSON (body di <c>PUT api/fatture/invio-sap/genera</c>), gia' deserializzata.</summary>
+/// <summary>Body di <c>PUT api/fatture/invio-sap/genera</c>, gia' deserializzato.</summary>
 public sealed class InvioSapRichiestaGenerazione
 {
     public int? Anno { get; init; }
     public int? Mese { get; init; }
     public string? TipologiaFattura { get; init; }
+    /// <summary>Assente = primo invio del rigo; presente (anche vuota) = re-invio.</summary>
     public IReadOnlyList<long>? IdFatture { get; init; }
     public string? Nota { get; init; }
     public string? NumeroDocumentoStorno { get; init; }
 }
 
-/// <summary>Esito della validazione, nell'ordine in cui l'endpoint lo traduce in HTTP.</summary>
-public enum InvioSapEsito
-{
-    /// <summary>202: si puo' avviare il batch.</summary>
-    Ok,
-    /// <summary>400: richiesta malformata o incompleta (anche storno mancante su fatture gia' inviate).</summary>
-    NonValida,
-    /// <summary>404: almeno una fattura selezionata non esiste nel perimetro.</summary>
-    NonTrovate,
-    /// <summary>409: almeno una fattura e' gia' in elaborazione (stato non piu' atteso).</summary>
-    StatoNonAmmesso
-}
-
-public sealed class InvioSapValidazione
-{
-    public InvioSapEsito Esito { get; init; }
-    public IReadOnlyList<string> Errori { get; init; } = [];
-    /// <summary>Le fatture che hanno causato l'esito negativo (non trovate, fuori gruppo, in elaborazione).</summary>
-    public IReadOnlyList<long> IdFattureCoinvolte { get; init; } = [];
-    /// <summary>Vero se almeno una fattura selezionata e' gia' INVIATA: il batch e' un re-invio (RF-16).</summary>
-    public bool RichiedeStorno { get; init; }
-    public bool Valida => Esito == InvioSapEsito.Ok;
-}
+/// <summary>Una fattura scelta per il re-invio, come la legge la vista dettaglio.</summary>
+public sealed record InvioSapFatturaCorrente(
+    long IdFattura,
+    int Anno,
+    int Mese,
+    string TipologiaFattura,
+    bool? FatturaInviata);
 
 /// <summary>
-/// Regole pure (nessun DB) del flusso "Genera JSON" di PF-735 (RF-6, RF-8, RF-10, RF-16; RI-7, RI-16).
-/// Le usa il command handler prima di chiamare la stored procedure di avvio batch, che ripete i soli
-/// controlli di stato in transazione (la verita' sullo stato e' nel DB, qui si evita un giro inutile).
-///
-/// Precedenza degli esiti, dalla piu' "colpa del client" alla piu' "colpa del momento":
-/// formale (400) → non trovate (404) → fuori gruppo (400) → in elaborazione (409) → storno mancante (400).
+/// Regole pure (nessun DB) del Genera e dei filtri. Precedenza degli esiti del Genera:
+/// lock 409 (nell'handler) → formale 400 → non trovate 404 → fuori gruppo o stato 400.
+/// Lo storno e' parte della validazione formale, perche' dipende solo dalla modalita'.
 /// </summary>
 public static class InvioSapRegole
 {
+    /// <summary><c>pfw.TipoAzione</c> "GeneraJsonFatture".</summary>
+    public static readonly Guid IdAzioneGeneraJson = new("0B102032-99F2-4AF9-BC5E-EBE844171DCC");
+    public const string DescrizioneAzione = "GeneraJsonFatture";
+
     public const int AnnoMinimo = 2000;
-    public const string NomeFilePrefisso = "sap";
+    public const int MaxFatture = 1000;
+    public const int MaxNota = 2000;
+    public const int MaxStorno = 255;
+    public const int MaxIdUtente = 50;
+    public const int MaxRagioneSociale = 255;
+    public const int MaxNumeroFattura = 50;
+    public const int MaxPageSize = 500;
 
     // Messaggi: li legge l'admin nel 400, quindi in italiano e senza dettagli tecnici.
     public const string ErroreAnno = "Anno obbligatorio";
     public const string ErroreMese = "Mese obbligatorio, da 1 a 12";
     public const string ErroreTipologia = "Tipologia fattura obbligatoria";
     public const string ErroreSelezioneVuota = "Selezionare almeno una fattura";
+    public const string ErroreSelezioneTroppoGrande = "Si possono re-inviare al massimo 1000 fatture per volta";
     public const string ErroreSelezioneDuplicata = "La selezione contiene fatture ripetute";
     public const string ErroreIdNonValido = "Identificativo fattura non valido";
     public const string ErroreNota = "La nota e' obbligatoria";
-    public const string ErroreStorno = "Numero documento di storno obbligatorio: la selezione contiene fatture gia' inviate";
+    public const string ErroreNotaLunga = "La nota supera i 2000 caratteri";
+    public const string ErroreStornoMancante = "Numero documento di storno obbligatorio per il re-invio";
+    public const string ErroreStornoNonAmmesso = "Il numero documento di storno non e' ammesso nel primo invio";
+    public const string ErroreStornoLungo = "Il numero documento di storno supera i 255 caratteri";
+    public const string ErroreUtente = "Utente non valido";
     public const string ErroreNonTrovate = "Una o piu' fatture selezionate non esistono";
-    public const string ErroreFuoriGruppo = "Tutte le fatture devono appartenere allo stesso anno, mese e tipologia";
-    public const string ErroreInElaborazione = "Una o piu' fatture selezionate sono gia' in elaborazione";
-    public const string ErroreStatoSconosciuto = "Stato di invio non riconosciuto";
+    public const string ErroreFuoriGruppo = "Tutte le fatture devono appartenere all'anno, al mese e alla tipologia indicati";
+    public const string ErroreNonInviate = "Si possono re-inviare solo fatture gia' inviate";
+    public const string ErroreStatoFiltro = "Stato invio non valido: ammessi TUTTE, DA_INVIARE, INVIATE, IN_ELABORAZIONE";
+    public const string ErroreDettaglioDaInviare = "Il dettaglio non e' disponibile per le fatture da inviare: il rigo si genera per intero";
+    public const string ErroreStatoDettaglio = "Stato del rigo obbligatorio: DA_INVIARE, INVIATE o IN_ELABORAZIONE";
+    public const string ErrorePaginazione = "Paginazione non valida";
+    public const string ErroreRagioneSociale = "Ragione sociale troppo lunga";
+    public const string ErroreNumeroFattura = "Numero fattura troppo lungo";
 
-    public static InvioSapValidazione ValidaGenerazione(
-        InvioSapRichiestaGenerazione richiesta,
-        IReadOnlyCollection<InvioSapFatturaCorrente>? fattureCorrenti)
+    public static InvioSapModalita Modalita(InvioSapRichiestaGenerazione richiesta) =>
+        richiesta.IdFatture is null ? InvioSapModalita.PrimoInvio : InvioSapModalita.ReInvio;
+
+    /// <summary>Tutto cio' che si vede dal solo body (e dall'utente): 400.</summary>
+    public static IReadOnlyList<string> ValidaFormale(InvioSapRichiestaGenerazione richiesta, string? idUtente)
     {
         ArgumentNullException.ThrowIfNull(richiesta);
         var errori = new List<string>();
 
-        // 1. Formale: tutto cio' che si vede dal solo body.
-        if (richiesta.Anno is null || richiesta.Anno < AnnoMinimo) errori.Add(ErroreAnno);
-        if (richiesta.Mese is null || richiesta.Mese is < 1 or > 12) errori.Add(ErroreMese);
+        if (richiesta.Anno is null || richiesta.Anno < AnnoMinimo || richiesta.Anno > 9999) errori.Add(ErroreAnno);
+        if (richiesta.Mese is null or < 1 or > 12) errori.Add(ErroreMese);
         if (string.IsNullOrWhiteSpace(richiesta.TipologiaFattura)) errori.Add(ErroreTipologia);
 
-        var ids = richiesta.IdFatture ?? [];
-        if (ids.Count == 0) errori.Add(ErroreSelezioneVuota);
+        if (string.IsNullOrWhiteSpace(richiesta.Nota)) errori.Add(ErroreNota);
+        else if (richiesta.Nota.Length > MaxNota) errori.Add(ErroreNotaLunga);
+
+        if (string.IsNullOrWhiteSpace(idUtente) || idUtente.Length > MaxIdUtente) errori.Add(ErroreUtente);
+
+        var storno = richiesta.NumeroDocumentoStorno;
+        if (Modalita(richiesta) == InvioSapModalita.PrimoInvio)
+        {
+            if (!string.IsNullOrEmpty(storno)) errori.Add(ErroreStornoNonAmmesso);
+        }
         else
         {
-            if (ids.Any(id => id <= 0)) errori.Add(ErroreIdNonValido);
-            if (ids.Distinct().Count() != ids.Count) errori.Add(ErroreSelezioneDuplicata);
+            var ids = richiesta.IdFatture!;
+            if (ids.Count == 0) errori.Add(ErroreSelezioneVuota);
+            else
+            {
+                if (ids.Count > MaxFatture) errori.Add(ErroreSelezioneTroppoGrande);
+                if (ids.Any(id => id <= 0)) errori.Add(ErroreIdNonValido);
+                if (ids.Distinct().Count() != ids.Count) errori.Add(ErroreSelezioneDuplicata);
+            }
+
+            if (string.IsNullOrWhiteSpace(storno)) errori.Add(ErroreStornoMancante);
+            else if (storno.Length > MaxStorno) errori.Add(ErroreStornoLungo);
         }
 
-        if (string.IsNullOrWhiteSpace(richiesta.Nota)) errori.Add(ErroreNota);
+        return errori;
+    }
 
-        if (errori.Count > 0)
-            return new InvioSapValidazione { Esito = InvioSapEsito.NonValida, Errori = errori };
+    /// <summary>
+    /// Controlli del re-invio sulle fatture lette dalla vista dettaglio. Non trovate → 404; fuori gruppo o
+    /// non inviate (0 o NULL) → 400. <c>null</c> se tutto torna.
+    /// </summary>
+    public static InvioSapGeneraEsito? ValidaReInvio(
+        InvioSapRichiestaGenerazione richiesta,
+        IReadOnlyCollection<InvioSapFatturaCorrente> correnti)
+    {
+        ArgumentNullException.ThrowIfNull(richiesta);
+        var ids = richiesta.IdFatture ?? [];
+        var perId = correnti.GroupBy(f => f.IdFattura).ToDictionary(g => g.Key, g => g.First());
 
-        // 2. Non trovate (404): id che la vista non restituisce (inesistenti, o esclusi dal perimetro:
-        //    ente PagoPA, posticipate, eliminate — per il client e' lo stesso: non ci sono).
-        var correnti = (fattureCorrenti ?? []).ToDictionary(f => f.IdFattura);
-        var nonTrovate = ids.Where(id => !correnti.ContainsKey(id)).ToList();
+        var nonTrovate = ids.Where(id => !perId.ContainsKey(id)).ToList();
         if (nonTrovate.Count > 0)
-            return new InvioSapValidazione
-            {
-                Esito = InvioSapEsito.NonTrovate,
-                Errori = [ErroreNonTrovate],
-                IdFattureCoinvolte = nonTrovate
-            };
+            return InvioSapGeneraEsito.NonTrovate(nonTrovate);
 
-        var selezionate = ids.Select(id => correnti[id]).ToList();
-
-        // 3. Fuori gruppo (400): la selezione e' confinata al rigo espanso (RF-6).
+        var selezionate = ids.Select(id => perId[id]).ToList();
         var tipologia = richiesta.TipologiaFattura!.Trim();
+
         var fuoriGruppo = selezionate
             .Where(f => f.Anno != richiesta.Anno
                      || f.Mese != richiesta.Mese
@@ -120,59 +140,16 @@ public static class InvioSapRegole
             .Select(f => f.IdFattura)
             .ToList();
         if (fuoriGruppo.Count > 0)
-            return new InvioSapValidazione
-            {
-                Esito = InvioSapEsito.NonValida,
-                Errori = [ErroreFuoriGruppo],
-                IdFattureCoinvolte = fuoriGruppo
-            };
+            return InvioSapGeneraEsito.NonValida([ErroreFuoriGruppo], fuoriGruppo);
 
-        // 4. Stato (409): nessuna fattura in elaborazione, nessuno stato sconosciuto.
-        var inElaborazione = selezionate
-            .Where(f => f.StatoInvio == StatoInvioSap.IN_ELABORAZIONE)
-            .Select(f => f.IdFattura)
-            .ToList();
-        if (inElaborazione.Count > 0)
-            return new InvioSapValidazione
-            {
-                Esito = InvioSapEsito.StatoNonAmmesso,
-                Errori = [ErroreInElaborazione],
-                IdFattureCoinvolte = inElaborazione
-            };
+        var nonInviate = selezionate.Where(f => f.FatturaInviata != true).Select(f => f.IdFattura).ToList();
+        if (nonInviate.Count > 0)
+            return InvioSapGeneraEsito.NonValida([ErroreNonInviate], nonInviate);
 
-        var sconosciute = selezionate
-            .Where(f => !StatoInvioSap.IsValido(f.StatoInvio))
-            .Select(f => f.IdFattura)
-            .ToList();
-        if (sconosciute.Count > 0)
-            return new InvioSapValidazione
-            {
-                Esito = InvioSapEsito.StatoNonAmmesso,
-                Errori = [ErroreStatoSconosciuto],
-                IdFattureCoinvolte = sconosciute
-            };
-
-        // 5. Storno (400): obbligatorio se almeno una selezionata e' gia' INVIATA (RF-16).
-        var richiedeStorno = selezionate.Any(f => f.StatoInvio == StatoInvioSap.INVIATA);
-        if (richiedeStorno && string.IsNullOrWhiteSpace(richiesta.NumeroDocumentoStorno))
-            return new InvioSapValidazione
-            {
-                Esito = InvioSapEsito.NonValida,
-                Errori = [ErroreStorno],
-                RichiedeStorno = true,
-                IdFattureCoinvolte = selezionate
-                    .Where(f => f.StatoInvio == StatoInvioSap.INVIATA)
-                    .Select(f => f.IdFattura)
-                    .ToList()
-            };
-
-        return new InvioSapValidazione { Esito = InvioSapEsito.Ok, RichiedeStorno = richiedeStorno };
+        return null;
     }
 
-    /// <summary>
-    /// Filtri della griglia (RF-15: anno obbligatorio e singolo). <paramref name="annoCorrente"/> e'
-    /// passato dal chiamante per rendere la regola testabile senza dipendere dall'orologio.
-    /// </summary>
+    /// <summary>Filtri di griglia e download. <paramref name="annoCorrente"/> rende la regola testabile.</summary>
     public static IReadOnlyList<string> ValidaFiltriGriglia(
         int? anno,
         IEnumerable<int>? mesi,
@@ -192,19 +169,37 @@ public static class InvioSapRegole
         var listaTipologie = tipologieFattura?.ToList() ?? [];
         if (listaTipologie.Any(string.IsNullOrWhiteSpace)) errori.Add(ErroreTipologia);
 
-        if (!FiltroStatoInvioSap.IsValido(statoInvio))
-            errori.Add($"Stato invio non valido: ammessi {string.Join(", ", FiltroStatoInvioSap.Tutti)}");
+        if (!FiltroStatoInvioSap.IsValido(statoInvio)) errori.Add(ErroreStatoFiltro);
 
         return errori;
     }
 
     /// <summary>
-    /// <c>sap-yyyyMMdd-HHmmss-&lt;batchId&gt;.json</c>, data in orario italiano (RI-9). Lo genera il
-    /// backend e lo scrive nel Registro prima di avviare la pipeline: DATA deve usare esattamente questo nome.
+    /// Filtri del dettaglio di un rigo: i quattro campi del rigo sono obbligatori; il dettaglio non esiste
+    /// per i righi <c>DA_INVIARE</c> (C1: le fatture mai inviate non hanno storico).
     /// </summary>
-    public static string NomeFileJson(DateTime utcNow, Guid batchId)
+    public static IReadOnlyList<string> ValidaFiltriDettaglio(
+        int? anno, int? mese, string? tipologia, string? statoInvio,
+        string? ragioneSociale, string? numeroFattura, int? page, int? pageSize)
     {
-        var locale = utcNow.ItalianTime();
-        return $"{NomeFilePrefisso}-{locale:yyyyMMdd}-{locale:HHmmss}-{batchId:D}.json";
+        var errori = new List<string>();
+        if (anno is null || anno < AnnoMinimo || anno > 9999) errori.Add(ErroreAnno);
+        if (mese is null or < 1 or > 12) errori.Add(ErroreMese);
+        if (string.IsNullOrWhiteSpace(tipologia)) errori.Add(ErroreTipologia);
+
+        var stato = FiltroStatoInvioSap.Normalizza(statoInvio);
+        if (string.IsNullOrWhiteSpace(statoInvio) || stato == FiltroStatoInvioSap.TUTTE || !FiltroStatoInvioSap.IsValido(stato))
+            errori.Add(ErroreStatoDettaglio);
+        else if (stato == StatoInvioSap.DA_INVIARE)
+            errori.Add(ErroreDettaglioDaInviare);
+
+        if (ragioneSociale?.Length > MaxRagioneSociale) errori.Add(ErroreRagioneSociale);
+        if (numeroFattura?.Length > MaxNumeroFattura) errori.Add(ErroreNumeroFattura);
+
+        if (page is not null && page < 1) errori.Add(ErrorePaginazione);
+        else if (pageSize is not null && pageSize is < 1 or > MaxPageSize) errori.Add(ErrorePaginazione);
+        else if ((page is null) != (pageSize is null)) errori.Add(ErrorePaginazione);
+
+        return errori;
     }
 }
