@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 using System.Security;
 using System.Security.Claims;
 using System.Collections;
@@ -16,6 +16,7 @@ using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries;
 
 namespace PortaleFatture.BE.UnitTest;
 
+[Category("GestioneFatture")]
 public class GestioneFattureEndpointUnitTests
 {
     [Test]

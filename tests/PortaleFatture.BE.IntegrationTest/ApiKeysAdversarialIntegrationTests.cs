@@ -22,6 +22,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 ///
 /// Sandbox: IP in 203.0.113.0/24, chiavi con prefisso riconoscibile, cleanup per ente.
 /// </summary>
+[Category("Autenticazione")]
 public class ApiKeysAdversarialIntegrationTests
 {
     private const string Ente = "11111111-1111-1111-1111-111111111111";
@@ -60,9 +61,9 @@ public class ApiKeysAdversarialIntegrationTests
     /// un messaggio che gli dica di accorciare la chiave. E la chiave la sceglie lui — non è generata
     /// dal server. Il rimedio naturale è un limite di lunghezza sull'endpoint.
     /// </summary>
-    [TestCase(100, TestName = "ApiKey · 100 caratteri")]
-    [TestCase(250, TestName = "ApiKey · 250 caratteri")]
-    [TestCase(400, TestName = "ApiKey · 400 caratteri (limite della colonna in chiaro)")]
+    [TestCase(100, TestName = "ApiKeyLunga_ShouldFallireOSalvareIntegra_MaiTroncare(ApiKey - 100 caratteri)")]
+    [TestCase(250, TestName = "ApiKeyLunga_ShouldFallireOSalvareIntegra_MaiTroncare(ApiKey - 250 caratteri)")]
+    [TestCase(400, TestName = "ApiKeyLunga_ShouldFallireOSalvareIntegra_MaiTroncare(ApiKey - 400 caratteri: limite della colonna in chiaro)")]
     public async Task ApiKeyLunga_ShouldFallireOSalvareIntegra_MaiTroncare(int lunghezza)
     {
         var chiaveInChiaro = "K" + new string('x', lunghezza - 1);
@@ -175,8 +176,8 @@ public class ApiKeysAdversarialIntegrationTests
     /// Il rimedio è spostare `VerifyIp` nel command/handler. Cambia il comportamento del dominio,
     /// quindi va deciso, non fatto di slancio: per ora il test fissa cosa succede davvero.
     /// </summary>
-    [TestCase("", TestName = "CreaIp · stringa vuota")]
-    [TestCase("   ", TestName = "CreaIp · soli spazi")]
+    [TestCase("", TestName = "CreaIp_ValoriVuoti_VengonoAccettatiDalCommand_Caratterizzazione(CreaIp - stringa vuota)")]
+    [TestCase("   ", TestName = "CreaIp_ValoriVuoti_VengonoAccettatiDalCommand_Caratterizzazione(CreaIp - soli spazi)")]
     public async Task CreaIp_ValoriVuoti_VengonoAccettatiDalCommand_Caratterizzazione(string ip)
     {
         var esito = await _handler.Send(new CreateIpsCommand(Auth(Ente)) { IpAddress = ip });

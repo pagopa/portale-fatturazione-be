@@ -20,6 +20,7 @@ namespace PortaleFatture.BE.IntegrationTest.Http;
 /// Seed (tests/Data/ppa_contracts.sql): trimestre più recente 2026_1 con T01…T05; T01 'ABI01234' e
 /// T03 'ABI01235,BICGAMMA' condividono il prefisso 0123.
 /// </summary>
+[Category("PagoPA")]
 public class PSPAdversarialHttpTests
 {
     private const string Base = "/api/v2/pagopa/psps";

@@ -9,6 +9,7 @@ namespace PortaleFatture.BE.UnitTest;
 /// "Rel Non Firmata" sia esposta SOLO da FattureRelSospeseExcelDto e NON da FattureRelExcelDto
 /// (report emesse non sospese). La visibilità colonna nell'Excel deriva da [HeaderAttributev2].
 /// </summary>
+[Category("Fatture")]
 public class FattureRelDtoMetadataTests
 {
     private const string RelNonFirmataCaption = "Rel Non Firmata";

@@ -18,6 +18,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// (altre aree possono aggiungere fatture non inviate): senza filtri si asserisce per inclusione.
 /// Container spento → i test si ignorano.
 /// </summary>
+[Category("InvioSap")]
 public class FattureInvioSapMultiploPeriodoIntegrationTests
 {
     private const string Ente1 = "11111111-1111-1111-1111-111111111111";
@@ -50,7 +51,11 @@ public class FattureInvioSapMultiploPeriodoIntegrationTests
     {
         CleanAllSeedPeriods(); // le 5 fatture seed devono essere tutte "da inviare" (non in staging)
 
-        var ids = ((await Query(null, null, null))?.ToList() ?? []).Select(r => r.IdFattura).ToList();
+        // Solo il seed di questa vista (anno 2026): l'anno 2003 e' riservato al seed dell'Invio a SAP
+        // (tests/Data/invio_sap.sql, fatture 9501-9510), che ha anch'esso fatture non inviate.
+        var ids = ((await Query(null, null, null))?.ToList() ?? [])
+            .Where(r => r.AnnoRiferimento != 2003)
+            .Select(r => r.IdFattura).ToList();
 
         // 7501 e' entrata nel seed il 31/08/2026 per i casi di posticipa/elimina su fattura "emessa ma
         // NON inviata" (VAR. SEMESTRALE 2026/7, ente dedicato): essendo non inviata e non in staging,

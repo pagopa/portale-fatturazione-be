@@ -23,6 +23,7 @@ namespace PortaleFatture.BE.IntegrationTest.Http;
 /// valutate solo dal middleware; un unit test dovrebbe ridichiararle, verificando la propria copia
 /// invece del prodotto. Per questo la copertura vive qui.
 /// </summary>
+[Category("Autenticazione")]
 public class PolicyAuthorizationHttpTests
 {
     // Rotte rappresentative delle quattro policy (nessuna in whitelist del nonce: v. WithNonce).

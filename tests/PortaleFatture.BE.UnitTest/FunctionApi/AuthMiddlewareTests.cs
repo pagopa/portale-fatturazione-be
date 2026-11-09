@@ -26,6 +26,7 @@ namespace PortaleFatture.BE.UnitTest.FunctionApi;
 /// ApiKeysQueryIntegrationTests.
 /// </summary>
 [TestFixture]
+[Category("IntegrationApi")]
 public class AuthMiddlewareTests
 {
     private const string RottaBusiness = "https://integration.uat.portalefatturazione.pagopa.it/api/v1/notifiche/periodo";

@@ -7,6 +7,7 @@ using PortaleFatture.BE.Infrastructure.Gateway;
 namespace PortaleFatture.BE.IntegrationTest;
 
 
+[Category("Autenticazione")]
 public class SelfCareTokenServiceTests
 {
     private ILogger<SelfCareTokenServiceTests> _logger;

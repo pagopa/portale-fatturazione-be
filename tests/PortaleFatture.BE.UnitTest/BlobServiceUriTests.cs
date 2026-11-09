@@ -14,6 +14,7 @@ namespace PortaleFatture.BE.UnitTest;
 /// dirotterebbe ogni upload di produzione lasciando l'intera suite verde: e' esattamente il tipo di
 /// difetto che non si manifesta finche' non e' in produzione.
 /// </summary>
+[Category("Infrastruttura")]
 public class BlobServiceUriTests
 {
     private const string Account = "fatpsa";

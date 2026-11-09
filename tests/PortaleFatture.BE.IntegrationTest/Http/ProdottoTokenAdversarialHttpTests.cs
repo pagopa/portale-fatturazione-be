@@ -24,6 +24,7 @@ namespace PortaleFatture.BE.IntegrationTest.Http;
 /// I rifiuti (419, 500) non toccano il DB: decidono prima dell'endpoint. I casi che superano auth e
 /// nonce arrivano invece al DB seedato e asseriscono 200 con dati sul periodo 2026/2.
 /// </summary>
+[Category("Autenticazione")]
 public class ProdottoTokenAdversarialHttpTests
 {
     private const int SessionExpired = 419;

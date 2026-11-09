@@ -24,6 +24,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// Sandbox: enti già nel seed, chiavi con prefisso riconoscibile, cleanup per ente (i valori a DB
 /// sono cifrati, quindi una WHERE sul testo in chiaro non cancellerebbe nulla).
 /// </summary>
+[Category("Autenticazione")]
 public class ApiKeysQueryIntegrationTests
 {
     private const string EnteAbilitato = "11111111-1111-1111-1111-111111111111";

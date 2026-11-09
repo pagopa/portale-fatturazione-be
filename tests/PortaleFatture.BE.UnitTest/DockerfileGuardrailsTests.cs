@@ -18,6 +18,7 @@ namespace PortaleFatture.BE.UnitTest;
 /// (chiusura transitiva dei COPY, pin per digest, coerenza fra codice e librerie native installate).
 /// La prova che l'immagine si costruisce davvero resta il `docker build`, che va fatto a mano.
 /// </summary>
+[Category("Infrastruttura")]
 public class DockerfileGuardrailsTests
 {
     private const string Api = @"src\Presentation\PortaleFatture.BE.Api\PortaleFatture.BE.Api.csproj";

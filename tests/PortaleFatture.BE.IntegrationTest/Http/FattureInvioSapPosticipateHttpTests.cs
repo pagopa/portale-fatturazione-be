@@ -29,6 +29,7 @@ namespace PortaleFatture.BE.IntegrationTest.Http;
 ///
 /// Richiede il container di test attivo (da tests/: docker compose up -d --build).
 /// </summary>
+[Category("InvioSap")]
 public class FattureInvioSapPosticipateHttpTests
 {
     private const string RottaAzione = "/api/fatture/pagopa/gestione-fatture/azione";

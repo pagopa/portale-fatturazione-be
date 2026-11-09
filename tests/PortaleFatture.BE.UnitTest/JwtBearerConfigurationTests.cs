@@ -30,6 +30,7 @@ namespace PortaleFatture.BE.UnitTest;
 /// NUnit pretende il tipo ESATTO e legherebbe i test alla versione dello stack: devono restare
 /// validi anche se lo stack venisse alzato o abbassato.
 /// </summary>
+[Category("Autenticazione")]
 public class JwtBearerConfigurationTests
 {
     // HmacSha256 vuole una chiave di almeno 256 bit: sotto i 32 caratteri IdentityModel rifiuta.
@@ -179,9 +180,9 @@ public class JwtBearerConfigurationTests
         Assert.That(contesto.Response.Headers.ContainsKey("IS-TOKEN-EXPIRED"), Is.False);
     }
 
-    [TestCase(null, Audience, Secret, TestName = "Senza ValidIssuer")]
-    [TestCase(Issuer, null, Secret, TestName = "Senza ValidAudience")]
-    [TestCase(Issuer, Audience, null, TestName = "Senza Secret")]
+    [TestCase(null, Audience, Secret, TestName = "JwtAuthenticationConfiguration_ConConfigurazioneIncompleta_ShouldThrow(Senza ValidIssuer)")]
+    [TestCase(Issuer, null, Secret, TestName = "JwtAuthenticationConfiguration_ConConfigurazioneIncompleta_ShouldThrow(Senza ValidAudience)")]
+    [TestCase(Issuer, Audience, null, TestName = "JwtAuthenticationConfiguration_ConConfigurazioneIncompleta_ShouldThrow(Senza Secret)")]
     public void JwtAuthenticationConfiguration_ConConfigurazioneIncompleta_ShouldThrow(
         string? issuer, string? audience, string? secret)
     {

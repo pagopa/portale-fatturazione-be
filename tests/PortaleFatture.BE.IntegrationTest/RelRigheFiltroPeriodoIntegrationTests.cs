@@ -33,6 +33,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// maggio/giugno con lo **stesso** `FlagConguaglio '2026-S1'`, quindi a parità di dati l'unica cosa
 /// che può cambiare il risultato è il ramo scelto dal codice.
 /// </summary>
+[Category("Rel")]
 public class RelRigheFiltroPeriodoIntegrationTests
 {
     private const string Ente = "11111111-1111-1111-1111-111111111111";

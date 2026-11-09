@@ -10,6 +10,7 @@ namespace PortaleFatture.BE.UnitTest;
 /// Se qualcuno riportasse la proprieta' a int?, questi test diventerebbero rossi.
 /// Le opzioni sono quelle di ASP.NET Core (JsonSerializerDefaults.Web).
 /// </summary>
+[Category("GestioneFatture")]
 public class GestioneFattureAzioneRequestDeserializationTests
 {
     private static readonly JsonSerializerOptions Web = new(JsonSerializerDefaults.Web);

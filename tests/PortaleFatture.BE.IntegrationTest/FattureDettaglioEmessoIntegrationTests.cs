@@ -26,6 +26,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// Periodo dedicato 2094, ente1 del seed (PAC, TOKEN-E1), tutto in una transazione annullata nel TearDown.
 /// </summary>
 [NonParallelizable]
+[Category("Fatture")]
 public class FattureDettaglioEmessoIntegrationTests
 {
     private const int Anno = 2094;

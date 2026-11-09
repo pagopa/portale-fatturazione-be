@@ -21,6 +21,7 @@ namespace PortaleFatture.BE.UnitTest;
 /// che rompe un consumatore esterno se qualcuno rinomina una proprieta' o cambia il serializzatore.
 /// Nessun test lo presidiava, e il compilatore non puo' accorgersene.
 /// </summary>
+[Category("Rel")]
 public class RispostaRelRigheContrattoTests
 {
     private static readonly string[] ProprietaAttese =

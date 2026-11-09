@@ -68,6 +68,22 @@ internal static class AzureLanguageTestbed
     /// </summary>
     public const string VariabileOptIn = "PF_RUN_AZURE_LANGUAGE_TESTS";
 
+    /// <summary>
+    /// Dal 06/11/2026 la funzionalita' Azure AI Language non verra' utilizzata: le fixture sul servizio
+    /// reale (`LanguageServiceRealeIntegrationTests`, `LanguageServiceAdversarialIntegrationTests`)
+    /// risultano verdi senza eseguire nulla. Meccanismo, in due pezzi:
+    /// - il `OneTimeSetUp` esce subito, senza costruire il servizio ne' leggere i secrets;
+    /// - un `[SetUp]` chiama <c>Assert.Pass</c>, che chiude ogni test in verde PRIMA del suo corpo.
+    ///
+    /// ⚠️ Non spostare `Assert.Pass` nel `OneTimeSetUp`: in NUnit 4 interrompe solo il setup e poi i
+    /// test girano lo stesso, con il servizio non inizializzato (misurato il 06/11/2026: 24 rossi).
+    /// Per riattivarle: <see cref="Deprecata"/> a <c>false</c> e rimettere `[Explicit]` sulle fixture.
+    /// </summary>
+    public static readonly bool Deprecata = true;
+
+    public const string FunzionalitaDeprecata =
+        "Funzionalità deprecata: Azure AI Language non verrà utilizzato. Test non eseguito, nessuna chiamata ad Azure.";
+
     public sealed record Configurato(
         LanguageService Servizio,
         string Endpoint,

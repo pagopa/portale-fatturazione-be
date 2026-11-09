@@ -17,6 +17,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 ///
 /// Stati GestioneFatture: 0 = POSTICIPATA, 1 = RIPRISTINATA, 2 = CANCELLATA, 3 = ELIMINATA.
 /// </summary>
+[Category("GestioneFatture")]
 public class GestioneFattureAzioneHappyPathIntegrationTests
 {
     // Connessione al container locale (SA/porta noti, gia' nei file docker); override da config se serve.

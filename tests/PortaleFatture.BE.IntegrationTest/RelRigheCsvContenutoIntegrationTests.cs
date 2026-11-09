@@ -26,6 +26,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 ///
 /// Gira sul DB seedato; container spento -> i test si ignorano.
 /// </summary>
+[Category("Rel")]
 public class RelRigheCsvContenutoIntegrationTests
 {
     private const string Ente = "11111111-1111-1111-1111-111111111111";

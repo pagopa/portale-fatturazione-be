@@ -27,6 +27,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// in piu' su un periodo condiviso cambia l'esito dei test dell'Orchestratore e dei report sospese
 /// (v. `docs/test-integrazione-db-seedato.md`, § periodi riservati).
 /// </summary>
+[Category("Rel")]
 public class RelRigheAnnoNotificaIntegrationTests
 {
     private const string Ente = "11111111-1111-1111-1111-111111111111";

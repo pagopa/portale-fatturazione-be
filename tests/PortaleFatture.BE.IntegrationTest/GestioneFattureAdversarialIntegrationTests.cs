@@ -10,6 +10,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// input malformati, injection, overflow, chiavi incoerenti, note ostili. Verificano che il sistema
 /// o rifiuti in modo controllato o faccia no-op, senza corruzione dati.
 /// </summary>
+[Category("GestioneFatture")]
 public class GestioneFattureAdversarialIntegrationTests
 {
     private const string Ente1 = "11111111-1111-1111-1111-111111111111";

@@ -20,6 +20,7 @@ namespace PortaleFatture.BE.IntegrationTest.Http;
 ///
 /// Richiede il container di test attivo (da tests/: docker compose up -d --build).
 /// </summary>
+[Category("Rel")]
 public class RelDettaglioHttpTests
 {
     private const string Ente1 = "11111111-1111-1111-1111-111111111111";

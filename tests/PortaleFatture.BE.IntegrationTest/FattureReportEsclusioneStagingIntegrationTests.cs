@@ -28,6 +28,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// I due enti sono distinti apposta: ogni test posticipa **un solo** periodo e verifica che l'altra
 /// fattura resti — cosi' un'esclusione troppo larga (che svuotasse il report) verrebbe intercettata.
 /// </summary>
+[Category("Fatture")]
 public class FattureReportEsclusioneStagingIntegrationTests
 {
     private const int Anno = 2026;

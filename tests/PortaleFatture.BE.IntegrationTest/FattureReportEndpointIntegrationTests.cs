@@ -17,6 +17,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// ramo emesse; tmp* 7001/7002 per il ramo sospese) rende deterministici anche i test "data-dependent"
 /// (Assert, non piu' Assume/Inconclusive). I report sono restituiti come Dictionary&lt;nomeFile, bytesExcel&gt;.
 /// </summary>
+[Category("Fatture")]
 public class FattureReportEndpointIntegrationTests
 {
     private const string RelNonFirmataCaption = "Rel Non Firmata";

@@ -3,6 +3,7 @@ using System.Collections.Specialized;
 
 namespace PortaleFatture.BE.UnitTest;
 
+[Category("Email")]
 public class PreviewDefaultTests
 {
     [Test]

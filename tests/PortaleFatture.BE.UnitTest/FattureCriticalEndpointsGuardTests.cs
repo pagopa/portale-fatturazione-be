@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 
 namespace PortaleFatture.BE.UnitTest;
 
+[Category("Fatture")]
 public class FattureCriticalEndpointsGuardTests
 {
     private static readonly string[] CriticalRoutes =

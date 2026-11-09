@@ -12,6 +12,7 @@ namespace PortaleFatture.BE.UnitTest;
 /// PSPSQLBuilder è internal e non è visibile dai progetti di test: le query sono coperte su DB
 /// seedato dagli integration test dell'area.
 /// </summary>
+[Category("PagoPA")]
 public class AnagraficaPSPExtensionsTests
 {
     /// <summary>

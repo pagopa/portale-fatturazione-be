@@ -13,12 +13,20 @@ using PortaleFatture.BE.UnitTest.Common;
 
 namespace PortaleFatture.BE.UnitTest;
 
+[Category("ModuloCommessa")]
 public class DatiModuloCommessaCreateTests
 {
     private IDbContextFactory _factory;
     private ILogger<DatiModuloCommessaCreateTests> _logger;
     private IStringLocalizer<Localization> _localizer;
     private IMediator _handler;
+
+    // Crea configurazione globale tramite CommonFactory: v. ConfigurazioneModuloCommessaSnapshot.
+    [OneTimeSetUp]
+    public void FotografaConfigurazione() => ConfigurazioneModuloCommessaSnapshot.Fotografa();
+
+    [OneTimeTearDown]
+    public void RipristinaConfigurazione() => ConfigurazioneModuloCommessaSnapshot.Ripristina();
 
     [SetUp]
     public void Setup()

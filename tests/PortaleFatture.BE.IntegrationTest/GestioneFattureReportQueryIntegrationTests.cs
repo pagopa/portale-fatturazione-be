@@ -19,6 +19,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// composta di cfg.GestioneFatture rende una riga dimenticata un problema per gli altri test.
 /// Richiede il container attivo (tests/: docker compose up -d --build).
 /// </summary>
+[Category("GestioneFatture")]
 public class GestioneFattureReportQueryIntegrationTests
 {
     // Ente presente nel seed (dati_fatturazione.sql) con Enti + Contratti: la vista fa INNER JOIN su

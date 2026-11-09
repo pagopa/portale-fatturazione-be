@@ -23,6 +23,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// conserva di proposito la vecchia scelta testuale del periodo (chiarito il 22/09/2026, v.
 /// `docs/pipeline-dati-send.md`). Le due query divergono, ed e' voluto.
 /// </summary>
+[Category("Rel")]
 public class CreateRelSospeseAttivitaIntegrationTests
 {
     // Periodo senza alcuna tmpRelTestata nel seed. Volutamente distinto sia dai periodi delle altre

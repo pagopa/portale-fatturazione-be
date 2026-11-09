@@ -36,6 +36,7 @@ namespace PortaleFatture.BE.IntegrationTest.Http;
 ///
 /// Richiede il container di test attivo (da tests/: docker compose up -d --build).
 /// </summary>
+[Category("GestioneFatture")]
 public class GestioneFattureRipristinaHttpTests
 {
     private const string Rotta = "/api/fatture/pagopa/gestione-fatture/azione";

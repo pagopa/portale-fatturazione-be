@@ -16,6 +16,7 @@ namespace PortaleFatture.BE.UnitTest;
 /// per i suoi EFFETTI negli integration test. Aprire gli internal sarebbe possibile, ma e' una
 /// modifica a un assembly di produzione: da decidere, non da fare di slancio.
 /// </summary>
+[Category("Notifiche")]
 public class NotificaFiltriUnitTests
 {
     // ---------------------------------------------------------------------------------------------

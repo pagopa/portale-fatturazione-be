@@ -27,6 +27,7 @@ namespace PortaleFatture.BE.UnitTest;
 /// Convenzione delle asserzioni: dove il comportamento e' difettoso il test asserisce cio' che
 /// dovrebbe succedere ed e' `[Ignore]` col motivo nell'attributo — suite verde, debito visibile.
 /// </summary>
+[Category("Contestazioni")]
 public class AzioneContestazioneAdversarialUnitTests
 {
     // ---------------------------------------------------------------------------------------------
@@ -38,9 +39,9 @@ public class AzioneContestazioneAdversarialUnitTests
     /// lato SelfCare — o un claim assente — non degrada a "nessuna azione permessa": fa fallire la
     /// pagina di dettaglio della notifica.
     /// </summary>
-    [TestCase("XXX", TestName = "profilo · sconosciuto")]
-    [TestCase("", TestName = "profilo · stringa vuota")]
-    [TestCase(null, TestName = "profilo · assente")]
+    [TestCase("XXX", TestName = "ProfiloNonRiconosciuto_ShouldSollevareDomainException(profilo - sconosciuto)")]
+    [TestCase("", TestName = "ProfiloNonRiconosciuto_ShouldSollevareDomainException(profilo - stringa vuota)")]
+    [TestCase(null, TestName = "ProfiloNonRiconosciuto_ShouldSollevareDomainException(profilo - assente)")]
     public void ProfiloNonRiconosciuto_ShouldSollevareDomainException(string? profilo)
     {
         var ex = Assert.ThrowsAsync<DomainException>(async () => await Esegui(profilo, StatoContestazione.NonContestata));
@@ -135,10 +136,10 @@ public class AzioneContestazioneAdversarialUnitTests
         + "risposta. Il test asserisce il comportamento CORRETTO (rispondere): togliere questo "
         + "attributo quando la conversione usera' int con un TryParse, o quando anno/mese saranno "
         + "tipizzati correttamente sull'entita'.")]
-    [TestCase("40000", "3", TestName = "conversione · anno oltre Int16")]
-    [TestCase("2026", "40000", TestName = "conversione · mese oltre Int16")]
-    [TestCase("duemilaventisei", "3", TestName = "conversione · anno non numerico")]
-    [TestCase("2026", "marzo", TestName = "conversione · mese non numerico")]
+    [TestCase("40000", "3", TestName = "AnnoOMeseNonConvertibili_ShouldRispondereSenzaErrori(conversione - anno oltre Int16)")]
+    [TestCase("2026", "40000", TestName = "AnnoOMeseNonConvertibili_ShouldRispondereSenzaErrori(conversione - mese oltre Int16)")]
+    [TestCase("duemilaventisei", "3", TestName = "AnnoOMeseNonConvertibili_ShouldRispondereSenzaErrori(conversione - anno non numerico)")]
+    [TestCase("2026", "marzo", TestName = "AnnoOMeseNonConvertibili_ShouldRispondereSenzaErrori(conversione - mese non numerico)")]
     public async Task AnnoOMeseNonConvertibili_ShouldRispondereSenzaErrori(string anno, string mese)
     {
         var esito = await Esegui("PA", StatoContestazione.NonContestata,
@@ -197,11 +198,11 @@ public class AzioneContestazioneAdversarialUnitTests
     /// Il confronto e' `Ruolo == Ruolo.ADMIN`, cioe' `== "R/W"`. Qualunque altra cosa — un ruolo
     /// sconosciuto, vuoto o assente — azzera i permessi. E' il verso giusto: si nega per difetto.
     /// </summary>
-    [TestCase("R", TestName = "ruolo · OPERATOR")]
-    [TestCase("ADMIN", TestName = "ruolo · il NOME della costante, non il suo valore")]
-    [TestCase("r/w", TestName = "ruolo · casing diverso")]
-    [TestCase("", TestName = "ruolo · vuoto")]
-    [TestCase(null, TestName = "ruolo · assente")]
+    [TestCase("R", TestName = "RuoloNonEsattamenteAdmin_ShouldNegareOgniAzione(ruolo - OPERATOR)")]
+    [TestCase("ADMIN", TestName = "RuoloNonEsattamenteAdmin_ShouldNegareOgniAzione(ruolo - il NOME della costante, non il suo valore)")]
+    [TestCase("r/w", TestName = "RuoloNonEsattamenteAdmin_ShouldNegareOgniAzione(ruolo - casing diverso)")]
+    [TestCase("", TestName = "RuoloNonEsattamenteAdmin_ShouldNegareOgniAzione(ruolo - vuoto)")]
+    [TestCase(null, TestName = "RuoloNonEsattamenteAdmin_ShouldNegareOgniAzione(ruolo - assente)")]
     public async Task RuoloNonEsattamenteAdmin_ShouldNegareOgniAzione(string? ruolo)
     {
         var esito = await Esegui("PA", StatoContestazione.ContestataEnte, ruolo: ruolo);

@@ -1,5 +1,4 @@
 using Microsoft.Data.SqlClient;
-using Microsoft.Extensions.Configuration;
 using NUnit.Framework.Legacy;
 using PortaleFatture.BE.Core.Entities.pagoPA.AnagraficaPSP;
 using PortaleFatture.BE.Infrastructure.Common.pagoPA.FinancialReports.Dto;
@@ -7,28 +6,20 @@ using PortaleFatture.BE.Infrastructure.Common.pagoPA.FinancialReports.Services;
 
 namespace PortaleFatture.BE.IntegrationTest;
 
+/// <summary>
+/// Tutti i test girano sul DB SEEDATO locale, nessuno su UAT (dal 06/11/2026; il primo era stato
+/// spostato il 15/09/2026). La scrittura su [stg].[PspEmailPreview] e' attiva: la tabella e' nel seed.
+/// Gli altri test attraversano [ppa].[PspEmail] (scrittura del tracciato e letture di GetSenderEmail /
+/// CountInvioAdjustment), [ppa].[kpmg] e [ppa].[KpiPagamenti_Sconto], che il seed non ha ancora: restano gialli
+/// (TestDb.SkipSeOggettoAssente) finche' non entra la DDL reale, e poi diventano verdi da soli.
+/// </summary>
+[Category("PagoPA")]
 public class EmailPspServiceIntegrationTests
 {
-    private IConfiguration _conf;
-
-    [SetUp]
-    public void Setup()
-    {
-        _conf = new ConfigurationBuilder()
-            .AddJsonFile("appsettings.Development.json", optional: true)
-            .AddUserSecrets<EmailPspServiceIntegrationTests>()
-            .AddEnvironmentVariables()
-            .Build();
-    }
+    private static readonly string[] TabellePsp = ["ppa.PspEmail", "ppa.kpmg", "ppa.KpiPagamenti_Sconto"];
 
     /// <summary>
-    /// Spostato da UAT al DB SEEDATO il 15/09/2026, e per questo non e' piu' [Explicit]: gira in un
-    /// giro normale di test. La tabella [stg].[PspEmailPreview] e' nel seed
-    /// (tests/Data/create_psp_email_preview_table.sql), quindi non serve ne' VPN ne' user secrets.
-    ///
-    /// Gli altri test di questa classe sono ancora su UAT perche' le tabelle che interrogano
-    /// ([ppa].[PspEmail], [ppa].[Contracts], [ppa].[kpmg], [ppa].[KpiPagamenti_Sconto]) non esistono
-    /// nel seed — v. il commento in testa alla classe.
+    /// Scrive in [stg].[PspEmailPreview], che e' nel seed (tests/Data/create_psp_email_preview_table.sql).
     /// </summary>
     [Test]
     public void InsertPreviewEmail_ShouldPersistInStgPreviewTable()
@@ -70,12 +61,13 @@ public class EmailPspServiceIntegrationTests
         }
     }
 
-    [Explicit]
+    // Era [Explicit] perche' scriveva su UAT; sul container scrive solo nel seed e ripulisce nel finally.
+    // Giallo finche' [ppa].[PspEmail] non entra nel seed con la DDL reale (setup.sql la altera solo se esiste).
     [Test]
     public void InsertTracciatoEmail_ShouldPersistInPpaPspEmail_WithOptionalFields()
     {
-        var connectionString = Required("PortaleFattureOptions:ConnectionString");
-        TestDb.SkipIfUnavailable(connectionString);
+        var connectionString = LocalTestDb.ConnectionString;
+        TestDb.SkipSeOggettoAssente(connectionString, "ppa.PspEmail");
         var service = new EmailPspService(connectionString);
 
         var idContratto = $"IT_TRK_{Guid.NewGuid():N}";
@@ -117,8 +109,8 @@ public class EmailPspServiceIntegrationTests
     [Test]
     public void GetSenderEmail_ReadOnly_ShouldUseReferenteMail_WhenNotEmpty()
     {
-        var connectionString = Required("PortaleFattureOptions:ConnectionString");
-        TestDb.SkipIfUnavailable(connectionString);
+        var connectionString = LocalTestDb.ConnectionString;
+        TestDb.SkipSeOggettoAssente(connectionString, TabellePsp);
         var service = new EmailPspService(connectionString);
         const string quarter = "2026_1";
 
@@ -128,7 +120,7 @@ public class EmailPspServiceIntegrationTests
         var expected = GetExpectedRowWithReferente(connectionString, quarter);
         if (expected is null)
         {
-            Assert.Pass($"No suitable referente record found for quarter {quarter}; read-only query executed successfully.");
+            Assert.Fail($"No suitable referente record found for quarter {quarter}: il seed tests/Data/ppa_email_psp.sql deve coprire questo caso (un verde senza dati non verificherebbe nulla).");
             return;
         }
 
@@ -145,8 +137,8 @@ public class EmailPspServiceIntegrationTests
     [Test]
     public void GetSenderEmail_ReadOnly_ShouldFallbackToCourtesyMail_WhenReferenteEmpty()
     {
-        var connectionString = Required("PortaleFattureOptions:ConnectionString");
-        TestDb.SkipIfUnavailable(connectionString);
+        var connectionString = LocalTestDb.ConnectionString;
+        TestDb.SkipSeOggettoAssente(connectionString, TabellePsp);
         var service = new EmailPspService(connectionString);
         const string quarter = "2026_1";
 
@@ -156,7 +148,7 @@ public class EmailPspServiceIntegrationTests
         var expected = GetExpectedRowWithCourtesyFallback(connectionString, quarter);
         if (expected is null)
         {
-            Assert.Pass($"No suitable courtesy fallback record found for quarter {quarter}; read-only query executed successfully.");
+            Assert.Fail($"No suitable courtesy fallback record found for quarter {quarter}: il seed tests/Data/ppa_email_psp.sql deve coprire questo caso (un verde senza dati non verificherebbe nulla).");
             return;
         }
 
@@ -176,8 +168,8 @@ public class EmailPspServiceIntegrationTests
     [Test]
     public void GetSenderEmailAdjustment_ReadOnly_ShouldReturnAdjustmentTipologiaAndQuarterFilter()
     {
-        var connectionString = Required("PortaleFattureOptions:ConnectionString");
-        TestDb.SkipIfUnavailable(connectionString);
+        var connectionString = LocalTestDb.ConnectionString;
+        TestDb.SkipSeOggettoAssente(connectionString, TabellePsp);
         var service = new EmailPspService(connectionString);
         const string quarter = "2026_1";
 
@@ -188,7 +180,7 @@ public class EmailPspServiceIntegrationTests
         var first = result!.FirstOrDefault();
         if (first is null)
         {
-            Assert.Pass($"No adjustment sender records found for quarter {quarter}; read-only query executed successfully.");
+            Assert.Fail($"No adjustment sender records found for quarter {quarter}: il seed tests/Data/ppa_email_psp.sql deve coprire questo caso (un verde senza dati non verificherebbe nulla).");
             return;
         }
 
@@ -200,8 +192,8 @@ public class EmailPspServiceIntegrationTests
     [Test]
     public void CountInvioAdjustment_ReadOnly_ShouldMatchDatabaseCountEvaluation()
     {
-        var connectionString = Required("PortaleFattureOptions:ConnectionString");
-        TestDb.SkipIfUnavailable(connectionString);
+        var connectionString = LocalTestDb.ConnectionString;
+        TestDb.SkipSeOggettoAssente(connectionString, TabellePsp);
         var service = new EmailPspService(connectionString);
         const string quarter = "2026_1";
 
@@ -225,13 +217,6 @@ public class EmailPspServiceIntegrationTests
         }
 
         Assert.That(serviceResult, Is.EqualTo(dbCount > 0));
-    }
-
-    private string Required(string key)
-    {
-        var value = _conf.GetValue<string>(key);
-        ClassicAssert.IsFalse(string.IsNullOrWhiteSpace(value), $"{key} not configured (User Secrets)");
-        return value!;
     }
 
     private static ExpectedSenderRow? GetExpectedRowWithReferente(string connectionString, string quarter)

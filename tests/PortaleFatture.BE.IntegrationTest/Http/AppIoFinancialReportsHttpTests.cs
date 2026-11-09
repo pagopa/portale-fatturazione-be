@@ -16,6 +16,7 @@ namespace PortaleFatture.BE.IntegrationTest.Http;
 /// APPIO-FR-002 di C2), 2026_1 (APPIO-FR-003 di C1) e 2025_4 (APPIO-FR-004 di C5, senza contratto
 /// né report). C2 non ha financial report; C3 ha un financial report in 2026_2 ma nessuna posizione.
 /// </summary>
+[Category("AppIO")]
 public class AppIoFinancialReportsHttpTests
 {
     private const string Base = "/api/appio/financialreports";

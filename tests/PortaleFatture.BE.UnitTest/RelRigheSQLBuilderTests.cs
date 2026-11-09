@@ -18,6 +18,7 @@ namespace PortaleFatture.BE.UnitTest;
 /// v. `docs/test-integrazione-db-seedato.md`). La verifica sul comportamento vero, con valori
 /// diversi fra i due periodi, e' in `RelRigheAnnoNotificaIntegrationTests`.
 /// </summary>
+[Category("Rel")]
 public class RelRigheSQLBuilderTests
 {
     [Test]

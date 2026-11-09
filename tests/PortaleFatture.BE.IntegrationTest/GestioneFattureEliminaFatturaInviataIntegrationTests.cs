@@ -45,6 +45,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// riattivato quando la SP distinguera' i due casi.
 /// </summary>
 [TestFixture]
+[Category("GestioneFatture")]
 public class GestioneFattureEliminaFatturaInviataIntegrationTests
 {
     private const string Ente3 = "33333333-3333-3333-3333-333333333333";

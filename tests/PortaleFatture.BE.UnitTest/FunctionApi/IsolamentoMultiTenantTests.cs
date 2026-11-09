@@ -19,6 +19,7 @@ namespace PortaleFatture.BE.UnitTest.FunctionApi;
 /// Un guardrail sul pattern lo intercetta al build, su tutte, comprese quelle non ancora scritte.
 /// </summary>
 [TestFixture]
+[Category("IntegrationApi")]
 public class IsolamentoMultiTenantTests
 {
     /// <summary>

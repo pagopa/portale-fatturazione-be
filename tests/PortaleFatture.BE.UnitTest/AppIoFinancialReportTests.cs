@@ -11,6 +11,7 @@ namespace PortaleFatture.BE.UnitTest;
 /// raggruppamento delle righe in documenti e fogli del Financial Report. L'esecuzione reale è
 /// coperta su DB seedato da Http/AppIoFinancialReportsHttpTests.
 /// </summary>
+[Category("AppIO")]
 public class AppIoFinancialReportTests
 {
     private sealed class Filtro : IAppIoFinancialReportFiltro

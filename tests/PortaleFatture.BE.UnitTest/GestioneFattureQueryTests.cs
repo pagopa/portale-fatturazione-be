@@ -7,6 +7,7 @@ namespace PortaleFatture.BE.UnitTest;
 /// Unit test (senza DB) sulla logica pura delle Query di GestioneFatture: la normalizzazione del
 /// setter IdEnti, che azzera gli array vuoti a null cosi' il filtro non viene aggiunto nella persistence.
 /// </summary>
+[Category("GestioneFatture")]
 public class GestioneFattureQueryTests
 {
     private static AuthenticationInfo Auth() => new()

@@ -21,6 +21,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 ///
 /// La logica pura di validazione IP è coperta a parte da ApiKeysVerifyIpTests (unit).
 /// </summary>
+[Category("Autenticazione")]
 public class ApiKeysCommandIntegrationTests
 {
     private const string EnteAbilitato = "11111111-1111-1111-1111-111111111111";

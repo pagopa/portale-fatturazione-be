@@ -10,11 +10,12 @@ namespace PortaleFatture.BE.UnitTest;
 /// Due rami distinti nell'implementazione: con '/' si tenta `IPNetwork.Parse` (CIDR), senza '/' si
 /// usa `IPAddress.TryParse`. Entrambi con catch-all che degrada a false.
 /// </summary>
+[Category("Autenticazione")]
 public class ApiKeysVerifyIpTests
 {
-    [TestCase(null, TestName = "VerifyIp · null")]
-    [TestCase("", TestName = "VerifyIp · stringa vuota")]
-    [TestCase("   ", TestName = "VerifyIp · solo spazi")]
+    [TestCase(null, TestName = "VerifyIp_ValoriVuoti_ShouldReturnFalse(VerifyIp - null)")]
+    [TestCase("", TestName = "VerifyIp_ValoriVuoti_ShouldReturnFalse(VerifyIp - stringa vuota)")]
+    [TestCase("   ", TestName = "VerifyIp_ValoriVuoti_ShouldReturnFalse(VerifyIp - solo spazi)")]
     public void VerifyIp_ValoriVuoti_ShouldReturnFalse(string? valore)
         => Assert.That(valore.VerifyIp(), Is.False);
 
@@ -25,8 +26,8 @@ public class ApiKeysVerifyIpTests
     public void VerifyIp_IndirizziSingoliValidi_ShouldReturnTrue(string indirizzo)
         => Assert.That(indirizzo.VerifyIp(), Is.True);
 
-    [TestCase("999.1.1.1", TestName = "VerifyIp · ottetto fuori range")]
-    [TestCase("non-un-ip", TestName = "VerifyIp · testo")]
+    [TestCase("999.1.1.1", TestName = "VerifyIp_IndirizziSingoliNonValidi_ShouldReturnFalse(VerifyIp - ottetto fuori range)")]
+    [TestCase("non-un-ip", TestName = "VerifyIp_IndirizziSingoliNonValidi_ShouldReturnFalse(VerifyIp - testo)")]
     public void VerifyIp_IndirizziSingoliNonValidi_ShouldReturnFalse(string indirizzo)
         => Assert.That(indirizzo.VerifyIp(), Is.False);
 
@@ -41,8 +42,8 @@ public class ApiKeysVerifyIpTests
     /// rischio. Se si volesse renderlo stretto, il punto di intervento è `VerifyIp`, non qui — e
     /// andrebbe coordinato col frontend, che oggi accetta lo stesso input.
     /// </summary>
-    [TestCase("192.168.1", "192.168.0.1", TestName = "VerifyIp · forma abbreviata a 3 ottetti")]
-    [TestCase("10.1", "10.0.0.1", TestName = "VerifyIp · forma abbreviata a 2 ottetti")]
+    [TestCase("192.168.1", "192.168.0.1", TestName = "VerifyIp_FormeAbbreviate_VengonoAccettateEEspanse_Caratterizzazione(VerifyIp - forma abbreviata a 3 ottetti)")]
+    [TestCase("10.1", "10.0.0.1", TestName = "VerifyIp_FormeAbbreviate_VengonoAccettateEEspanse_Caratterizzazione(VerifyIp - forma abbreviata a 2 ottetti)")]
     public void VerifyIp_FormeAbbreviate_VengonoAccettateEEspanse_Caratterizzazione(
         string scritto, string interpretatoAtteso)
     {
@@ -60,10 +61,10 @@ public class ApiKeysVerifyIpTests
     public void VerifyIp_CidrValidi_ShouldReturnTrue(string cidr)
         => Assert.That(cidr.VerifyIp(), Is.True);
 
-    [TestCase("192.168.1.0/33", TestName = "VerifyIp · prefisso oltre 32 su IPv4")]
-    [TestCase("192.168.1.0/abc", TestName = "VerifyIp · prefisso non numerico")]
-    [TestCase("192.168.1.0/", TestName = "VerifyIp · prefisso assente")]
-    [TestCase("/24", TestName = "VerifyIp · indirizzo assente")]
+    [TestCase("192.168.1.0/33", TestName = "VerifyIp_CidrNonValidi_ShouldReturnFalse(VerifyIp - prefisso oltre 32 su IPv4)")]
+    [TestCase("192.168.1.0/abc", TestName = "VerifyIp_CidrNonValidi_ShouldReturnFalse(VerifyIp - prefisso non numerico)")]
+    [TestCase("192.168.1.0/", TestName = "VerifyIp_CidrNonValidi_ShouldReturnFalse(VerifyIp - prefisso assente)")]
+    [TestCase("/24", TestName = "VerifyIp_CidrNonValidi_ShouldReturnFalse(VerifyIp - indirizzo assente)")]
     public void VerifyIp_CidrNonValidi_ShouldReturnFalse(string cidr)
         => Assert.That(cidr.VerifyIp(), Is.False);
 

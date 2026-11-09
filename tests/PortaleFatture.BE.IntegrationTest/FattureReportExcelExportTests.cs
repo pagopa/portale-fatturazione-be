@@ -9,6 +9,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// Integration test deterministici (NO DB) della generazione Excel dei report REL: verificano che la
 /// colonna "Rel Non Firmata" compaia SOLO nei fogli sospesi (DTO -> FattureExtensions -> ExcelExtensions -> ClosedXML).
 /// </summary>
+[Category("Fatture")]
 public class FattureReportExcelExportTests
 {
     private const string Caption = "Rel Non Firmata";

@@ -7,6 +7,7 @@ namespace PortaleFatture.BE.UnitTest;
 /// e OFFSET, quindi conta che ogni frammento sia componibile e punti alla vista giusta. L'esecuzione
 /// reale è coperta su DB seedato da AppIoContrattiQueryIntegrationTests e Http/AppIoContrattiHttpTests.
 /// </summary>
+[Category("AppIO")]
 public class AppIoContrattiSQLBuilderTests
 {
     private static IEnumerable<TestCaseData> Select()

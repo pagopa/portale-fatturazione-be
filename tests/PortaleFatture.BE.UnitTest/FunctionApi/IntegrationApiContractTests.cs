@@ -30,6 +30,7 @@ namespace PortaleFatture.BE.UnitTest.FunctionApi;
 /// List&lt;FatturaDto&gt; e quindi serializza in modo identico.
 /// </summary>
 [TestFixture]
+[Category("IntegrationApi")]
 public class IntegrationApiContractTests
 {
     /// <summary>

@@ -12,6 +12,7 @@ namespace PortaleFatture.BE.UnitTest;
 /// degli array vuoti (che decide se scatta il default sul trimestre più recente) e il parsing di
 /// year_quarter nel formato 'AAAA_T'.
 /// </summary>
+[Category("AppIO")]
 public class AppIoContrattiExtensionsTests
 {
     /// <summary>

@@ -27,6 +27,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// coppie aprile/maggio di SECONDO SALDO e VAR. ANNUALE sono identiche fra loro, stesso
 /// `FlagConguaglio`, e differiscono solo per la tipologia.
 /// </summary>
+[Category("Rel")]
 public class RelRigheSospeseQueryIntegrationTests
 {
     private const string Ente = "11111111-1111-1111-1111-111111111111";

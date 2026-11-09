@@ -20,6 +20,7 @@ namespace PortaleFatture.BE.IntegrationTest.Http;
 ///
 /// Richiede il container di test attivo (da tests/: docker compose up -d --build).
 /// </summary>
+[Category("Notifiche")]
 public class NotificheRicercaHttpTests
 {
     private const string Rotta = "/api/notifiche/pagopa?page=1&pageSize=50";

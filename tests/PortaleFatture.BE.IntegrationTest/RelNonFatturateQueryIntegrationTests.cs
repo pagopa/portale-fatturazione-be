@@ -30,6 +30,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// un periodo condiviso cambia l'esito di altre fixture (v. § periodi riservati in
 /// `docs/test-integrazione-db-seedato.md`).
 /// </summary>
+[Category("Rel")]
 public class RelNonFatturateQueryIntegrationTests
 {
     private const string Ente = "11111111-1111-1111-1111-111111111111"; // ente1, contratto PAC

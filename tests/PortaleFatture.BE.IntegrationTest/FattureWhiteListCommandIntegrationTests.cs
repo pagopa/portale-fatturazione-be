@@ -24,6 +24,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// Girano sul DB locale seeded (tests/docker-compose.yml), non su UAT. Sandbox: **Anno 2099**, che
 /// nessun altro seed usa; il cleanup cancella per anno, quindi non puo' toccare altri dati.
 /// </summary>
+[Category("Fatture")]
 public class FattureWhiteListCommandIntegrationTests
 {
     private const int AnnoSandbox = 2099;

@@ -19,6 +19,7 @@ namespace PortaleFatture.BE.IntegrationTest.Http;
 /// Richiede il container di test attivo (da tests/: docker compose up -d --build). Se e' giu' i test
 /// si auto-ignorano (TestDb.SkipIfUnavailable).
 /// </summary>
+[Category("GestioneFatture")]
 public class GestioneFattureEliminaBodyRealeHttpTests
 {
     private const string Rotta = "/api/fatture/pagopa/gestione-fatture/azione";

@@ -13,6 +13,7 @@ using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.QueryHandlers;
 
 namespace PortaleFatture.BE.UnitTest;
 
+[Category("Fatture")]
 public class FattureSospeseRelExcelHandlerTests
 {
     [TestCase(false)]

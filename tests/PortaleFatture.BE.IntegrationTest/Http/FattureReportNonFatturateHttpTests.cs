@@ -26,6 +26,7 @@ namespace PortaleFatture.BE.IntegrationTest.Http;
 ///
 /// Richiede il container di test attivo (da tests/: docker compose up -d --build).
 /// </summary>
+[Category("Fatture")]
 public class FattureReportNonFatturateHttpTests
 {
     private const string Rotta = "/api/fatture/report";
@@ -206,8 +207,151 @@ public class FattureReportNonFatturateHttpTests
     }
 
     // =============================================================================================
+    // PF-984 (PF-981): lo sheet "Non Fatturate" anche nei report di ANTICIPO e ACCONTO.
+    //
+    // Prima di PF-984 c'era solo nei report dei saldi. Regola: stesso contenuto dei saldi (posticipate
+    // + eliminate della STESSA tipologia), nome "Non Fatturate {mese}" nel report per periodo e
+    // "Non Fatturate" nel report delle non inviate. A unit (FattureReportExtensionsTests) e' coperto
+    // con IMediator finto; qui sul DB seedato, con le query vere: fatture 2001 (ANTICIPO) e 2002
+    // (ACCONTO), ente 3 (PAL), periodo 2026/5.
+    // =============================================================================================
+
+    private const int AnnoAnticipo = 2026;
+    private const int MeseAnticipo = 5;
+    private const string MeseAnticipoNome = "MAGGIO";
+
+    /// <summary>
+    /// Le query dei report di anticipo e acconto leggono viste LEGACY: dal 06/11/2026 sono nel seed con la
+    /// DDL reale (tests/Data/views/96a-96e). La guardia resta per un container costruito prima.
+    ///
+    /// ⚠️ Il report ACCONTO esiste solo se l'ente ha una riga pfd.NotificheCount per il periodo:
+    /// FattureAccontoFatturaExcelBuilder mette la condizione sul periodo di NotificheCount nell'ON della
+    /// INNER JOIN su Contratti, e cosi' la LEFT JOIN diventa di fatto interna (comportamento attuale, da
+    /// chiarire se voluto). La riga per l'ente 3 su 2026/5 la semina quindi questa guardia, e Pulisci la toglie.
+    /// </summary>
+    private static void SkipSeMancanoLeVistePf984()
+    {
+        TestDb.SkipSeOggettoAssente(LocalTestDb.ConnectionString,
+            "pfd.vModuloCommessaTotali", "pfd.vModuloCommessaParziali", "pfd.vFattureAnticipo",
+            "pfd.vFattureAnticipoEliminate", "pfd.vFattureAcconto");
+        Esegui($@"
+            IF NOT EXISTS (SELECT 1 FROM pfd.NotificheCount
+                           WHERE internal_organization_id='{EnteAnticipo}' AND [year]={AnnoAnticipo} AND [month]={MeseAnticipo})
+            INSERT INTO pfd.NotificheCount (internal_organization_id, contract_id, [year], [month],
+                TotaleAnalogico, TotaleDigitale, TotaleNotificheAnalogiche, TotaleNotificheDigitali, Totale)
+            VALUES ('{EnteAnticipo}', 'integration-test-pf984', {AnnoAnticipo}, {MeseAnticipo}, 0, 0, 0, 0, 0);");
+    }
+
+    /// <summary>Ente 3 (PAL) del seed, intestatario delle fatture 2001 (ANTICIPO) e 2002 (ACCONTO).</summary>
+    private const string EnteAnticipo = "33333333-3333-3333-3333-333333333333";
+
+    /// <summary>
+    /// Il report per tipologia legge TUTTO lo staging, senza filtro sull'anno: nel seed statico c'e' una
+    /// ANTICIPO 2025/3 ELIMINATA dell'ente 3, quindi nel report ANTICIPO lo sheet "Non Fatturate" c'e'
+    /// sempre, ed e' giusto cosi'. I test "nessuno sheet" verificano allora che lo sheet non contenga lo
+    /// staging seminato da loro, che sta sull'anno riservato AnnoStaging.
+    /// </summary>
+    private static bool ContieneStagingDelTest(Dictionary<string, string> perFoglio) =>
+        perFoglio.Any(f => f.Key.StartsWith("Non Fatturate") && f.Value.Contains(AnnoStaging.ToString()));
+
+    [TestCase("ANTICIPO")]
+    [TestCase("ACCONTO")]
+    public async Task AnticipoAcconto_ConPosticipata_SheetNonFatturateConMese(string tipologia)
+    {
+        SkipSeMancanoLeVistePf984();
+        SeminaStaging(tipologia, 1);
+
+        var (stato, fogli, _, perFoglio) = await ReportPeriodo(AnnoAnticipo, MeseAnticipo, tipologia);
+
+        Assert.That(stato, Is.EqualTo(HttpStatusCode.OK), "Senza report (404) mancano i dati di supporto, non il fix.");
+        var nome = $"Non Fatturate {MeseAnticipoNome}";
+        Assert.That(fogli, Does.Contain(nome), $"PF-984: il report {tipologia} deve avere lo sheet '{nome}'.");
+        Assert.That(perFoglio[nome], Does.Contain(tipologia).And.Contain("POSTICIPATA"));
+    }
+
+    [TestCase("ANTICIPO")]
+    [TestCase("ACCONTO")]
+    public async Task AnticipoAcconto_ConEliminata_SheetNonFatturate(string tipologia)
+    {
+        SkipSeMancanoLeVistePf984();
+        SeminaStaging(tipologia, 2, stato: 3, azione: "ELIMINATA");
+
+        var (stato, fogli, _, perFoglio) = await ReportPeriodo(AnnoAnticipo, MeseAnticipo, tipologia);
+
+        Assert.That(stato, Is.EqualTo(HttpStatusCode.OK));
+        var nome = $"Non Fatturate {MeseAnticipoNome}";
+        Assert.That(fogli, Does.Contain(nome));
+        Assert.That(perFoglio[nome], Does.Contain("ELIMINATA"), "Le eliminate entrano come le posticipate.");
+    }
+
+    [TestCase("ANTICIPO", "ACCONTO")]
+    [TestCase("ACCONTO", "ANTICIPO")]
+    [TestCase("ANTICIPO", "PRIMO SALDO")]
+    public async Task AnticipoAcconto_SoloStagingDiAltraTipologia_NessunoSheet(string tipologia, string altra)
+    {
+        SkipSeMancanoLeVistePf984();
+        // Adversarial: lo sheet e' per tipologia anche qui. Una posticipata di un'altra tipologia non
+        // deve far comparire lo sheet nel report di questa.
+        SeminaStaging(altra, 1);
+
+        var (stato, fogli, _, perFoglio) = await ReportPeriodo(AnnoAnticipo, MeseAnticipo, tipologia);
+
+        Assert.That(stato, Is.EqualTo(HttpStatusCode.OK));
+        Assert.That(fogli, Is.Not.Empty, "Il report ha i suoi fogli: il confronto e' significativo.");
+        Assert.That(ContieneStagingDelTest(perFoglio), Is.False,
+            $"Solo staging di {altra}: nel report {tipologia} quella riga non deve comparire.");
+    }
+
+    [Test]
+    public async Task AnticipoEAcconto_NelloStessoZip_OgnunoConLaPropriaTipologia()
+    {
+        SkipSeMancanoLeVistePf984();
+        SeminaStaging("ANTICIPO", 1);
+        SeminaStaging("ACCONTO", 2, stato: 3, azione: "ELIMINATA");
+
+        var (stato, fogli, _, _) = await ReportPeriodo(AnnoAnticipo, MeseAnticipo, "ANTICIPO", "ACCONTO");
+
+        Assert.That(stato, Is.EqualTo(HttpStatusCode.OK));
+        Assert.That(fogli.Count(f => f == $"Non Fatturate {MeseAnticipoNome}"), Is.EqualTo(2),
+            "Uno sheet per xlsx (uno per tipologia), non uno condiviso.");
+    }
+
+    [Test]
+    public async Task Anticipo_PeriodoSenzaFatture_404AncheConStaging()
+    {
+        SkipSeMancanoLeVistePf984();
+        // Lo sheet non crea il report: senza fatture di anticipo nel periodo il report non esiste,
+        // e la posticipata non compare da nessuna parte (stessa conseguenza documentata per i saldi).
+        SeminaStaging("ANTICIPO", 1);
+
+        var (stato, _, _, _) = await ReportPeriodo(AnnoAnticipo, 11, "ANTICIPO");
+
+        Assert.That(stato, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
+    [Test]
+    public async Task Anticipo_StagingCancellato_NessunoSheet()
+    {
+        SkipSeMancanoLeVistePf984();
+        // Stato 2 = CANCELLATA: non e' ne' posticipata ne' eliminata, quindi non e' "non fatturata".
+        SeminaStaging("ANTICIPO", 1, stato: 2, azione: "CANCELLATA");
+
+        var (stato, _, _, perFoglio) = await ReportPeriodo(AnnoAnticipo, MeseAnticipo, "ANTICIPO");
+
+        Assert.That(stato, Is.EqualTo(HttpStatusCode.OK));
+        Assert.That(ContieneStagingDelTest(perFoglio), Is.False, "Una CANCELLATA non e' una non fatturata.");
+    }
+
+    // =============================================================================================
     // Helper
     // =============================================================================================
+
+    private Task<(HttpStatusCode stato, List<string> fogli, string testo,
+        Dictionary<string, string> perFoglio)> ReportPeriodo(int anno, int mese, params string[] tipologie)
+    {
+        var elenco = string.Join(",", tipologie.Select(t => $"\"{t}\""));
+        return Scarica(Rotta, $$"""{ "anno": {{anno}}, "mese": {{mese}}, "tipologiaFattura": [{{elenco}}] }""");
+    }
 
     /// <summary>
     /// Scarica il report e ne restituisce i **nomi dei fogli** e il **testo** di tutti i fogli.
@@ -350,7 +494,9 @@ public class FattureReportNonFatturateHttpTests
         DELETE FROM cfg.GestioneFatture WHERE FkIdEnte='{EnteNonInviata}' AND Anno={AnnoStaging};
         DELETE FROM pfd.FattureRighe WHERE FkIdFattura = {IdFatturaNonInviata};
         DELETE FROM pfd.RelTestata
-            WHERE internal_organization_id='{EnteNonInviata}' AND [year]=2026 AND [month]=7;");
+            WHERE internal_organization_id='{EnteNonInviata}' AND [year]=2026 AND [month]=7;
+        DELETE FROM pfd.NotificheCount
+            WHERE internal_organization_id='{EnteAnticipo}' AND contract_id='integration-test-pf984';");
 
     private static void Esegui(string sql)
     {

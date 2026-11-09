@@ -30,6 +30,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// Non fa parte del giro ordinario (l'immagine pesa ~2,5 GB): senza il profilo `function` alzato i
 /// test si auto-ignorano. Si avvia con  .\run-integration.ps1 -Function
 /// </summary>
+[Category("Rel")]
 public class CreateRelRigheFunctionHostIntegrationTests
 {
     // Periodo seedato con REL e righe: e' il percorso felice, quello che finisce sul blob.

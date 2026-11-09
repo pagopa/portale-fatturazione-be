@@ -23,6 +23,7 @@ namespace PortaleFatture.BE.UnitTest;
 /// </summary>
 [TestFixture]
 [NonParallelizable] // manipola variabili d'ambiente, che sono stato globale del processo
+[Category("LanguageService")]
 public class ModuleExtensionsLanguageEnvironmentTests
 {
     private static readonly string[] Variabili =

@@ -15,12 +15,20 @@ namespace PortaleFatture.BE.UnitTest;
 /// e quelle scritte dalla create (pfw.CostoNotifiche, pfw.PercentualeAnticipo).
 /// Era [Ignore] PF-705 "richiede DB seedato": ora il DB seedato c'è.
 /// </summary>
+[Category("ModuloCommessa")]
 public class DatiConfigurazioneModuloCommessaCreateCommandTests
 {
     private IDbContextFactory _factory;
     private ILogger<DatiConfigurazioneModuloCommessaCreateCommandTests> _logger;
     private IStringLocalizer<Localization> _localizer;
     private IMediator _handler;
+
+    // La create scrive configurazione globale: v. ConfigurazioneModuloCommessaSnapshot.
+    [OneTimeSetUp]
+    public void FotografaConfigurazione() => ConfigurazioneModuloCommessaSnapshot.Fotografa();
+
+    [OneTimeTearDown]
+    public void RipristinaConfigurazione() => ConfigurazioneModuloCommessaSnapshot.Ripristina();
 
     [SetUp]
     public void Setup()

@@ -11,6 +11,7 @@ using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries.Persistence;
 namespace PortaleFatture.BE.IntegrationTest;
 
 [NonParallelizable]
+[Category("Fatture")]
 public class FattureSospeseRelExcelAdversarialIntegrationTests
 {
     private const int Year = 2091;

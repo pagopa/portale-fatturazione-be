@@ -9,6 +9,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// Integration test su query reale (MediatR + persistence + DB UAT) per la funzionalità
 /// usata dall'endpoint GET /api/fatture/pagopa/gestione-fatture/anni.
 /// </summary>
+[Category("GestioneFatture")]
 public class GestioneFattureAnniQueryIntegrationTests
 {
     private IMediator _handler;

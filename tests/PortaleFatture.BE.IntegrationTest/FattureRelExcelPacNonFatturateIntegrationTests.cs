@@ -27,6 +27,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// DB seedato. Fa eccezione l'ultimo test, che legge in sola lettura il seed del 2026/2.
 /// </summary>
 [NonParallelizable]
+[Category("Fatture")]
 public class FattureRelExcelPacNonFatturateIntegrationTests
 {
     private const int Anno = 2093;

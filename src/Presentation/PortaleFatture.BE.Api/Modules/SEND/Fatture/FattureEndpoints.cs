@@ -8,6 +8,50 @@ public partial class FattureModule : Module, IRegistrableModule
     #region pagoPA
     public void RegisterEndpoints(IEndpointRouteBuilder endpointRouteBuilder)
     {
+        #region invio sap (PF-965, figlio di PF-735)
+        endpointRouteBuilder
+           .MapPost("api/fatture/invio-sap", PostInvioSapGrigliaAsync)
+           .WithName("Invio a SAP: griglia per tipologia, anno, mese e stato")
+           .SetOpenApi(Module.DatiFattureLabel)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+           .MapPost("api/fatture/invio-sap/dettaglio", PostInvioSapDettaglioAsync)
+           .WithName("Invio a SAP: fatture di un rigo gia' inviato, con lo storico degli invii")
+           .SetOpenApi(Module.DatiFattureLabel)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+           .MapPut("api/fatture/invio-sap/genera", PutInvioSapGeneraAsync)
+           .WithName("Invio a SAP: genera il JSON di un rigo da inviare o delle fatture scelte da re-inviare")
+           .SetOpenApi(Module.DatiFattureLabel)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+           .MapPost("api/fatture/invio-sap/download", PostInvioSapDownloadAsync)
+           .WithName("Invio a SAP: Excel della griglia")
+           .SetOpenApi(Module.DatiFattureLabel)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+           .MapPost("api/fatture/invio-sap/download/reinviate", PostInvioSapDownloadReinviateAsync)
+           .WithName("Invio a SAP: Excel delle fatture re-inviate")
+           .SetOpenApi(Module.DatiFattureLabel)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+           .MapGet("api/fatture/invio-sap/lock", GetInvioSapLockAsync)
+           .WithName("Invio a SAP: generazione in corso (lock attivo)")
+           .SetOpenApi(Module.DatiFattureLabel)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+           .MapGet("api/fatture/invio-sap/stati", GetInvioSapStati)
+           .WithName("Invio a SAP: valori del filtro stato")
+           .SetOpenApi(Module.DatiFattureLabel)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+        #endregion invio sap
+
         endpointRouteBuilder
             .MapPost("api/fatture/pagopa/whitelist/download", PostPagoPAWhiteListFatturazioneDownloadAsync)
             .WithName("Permette di scaricare il file excel degli enti da non fatturare via utente PagoPA.")
@@ -84,6 +128,7 @@ public partial class FattureModule : Module, IRegistrableModule
            .MapPost("api/fatture/resetta/pipeline", PostResettaFatturePipelineSapAsync)
            .WithName("Permette di resettare le fatture per invio a SAP")
            .SetOpenApi(Module.DatiFattureLabel)
+           .WithOpenApi(op => { op.Deprecated = true; return op; }) // DEPRECATA PF-735: sostituita da api/fatture/invio-sap/*
            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
 
@@ -91,30 +136,35 @@ public partial class FattureModule : Module, IRegistrableModule
            .MapPost("api/fatture/invio/pipeline", PostFatturePipelineSapAsync)
            .WithName("Permette di chiamare la pipeline per invio a SAP")
            .SetOpenApi(Module.DatiFattureLabel)
+           .WithOpenApi(op => { op.Deprecated = true; return op; }) // DEPRECATA PF-735: sostituita da api/fatture/invio-sap/*
            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
         endpointRouteBuilder
            .MapPost("api/fatture/invio/sap", PostFattureInvioSapAsync)
            .WithName("Permette di ottenere l'invio sap e numero fatture")
            .SetOpenApi(Module.DatiFattureLabel)
+           .WithOpenApi(op => { op.Deprecated = true; return op; }) // DEPRECATA PF-735: sostituita da api/fatture/invio-sap/*
            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
         endpointRouteBuilder
            .MapGet("api/fatture/invio/sap/multiplo", GetFattureInvioSapMultiploAsync)
            .WithName("Permette di ottenere l'invio sap multiplo con numero fatture ed Enti")
            .SetOpenApi(Module.DatiFattureLabel)
+           .WithOpenApi(op => { op.Deprecated = true; return op; }) // DEPRECATA PF-735: sostituita da api/fatture/invio-sap/*
            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
         endpointRouteBuilder
            .MapPost("api/fatture/invio/sap/multiplo/periodo", PostFattureInvioSapMultiploPeriodoAsync)
            .WithName("Permette di ottenere l'invio sap multiplo periodo anno mese tipologia")
            .SetOpenApi(Module.DatiFattureLabel)
+           .WithOpenApi(op => { op.Deprecated = true; return op; }) // DEPRECATA PF-735: sostituita da api/fatture/invio-sap/*
            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
         endpointRouteBuilder
            .MapPut("api/fatture/invio/sap/multiplo", PutFattureInvioSapMultiploPipelinePeriodoAsync)
            .WithName("Permette di inviare a sap multiplo lista anno mese tipologia")
            .SetOpenApi(Module.DatiFattureLabel)
+           .WithOpenApi(op => { op.Deprecated = true; return op; }) // DEPRECATA PF-735: sostituita da api/fatture/invio-sap/*
            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
 

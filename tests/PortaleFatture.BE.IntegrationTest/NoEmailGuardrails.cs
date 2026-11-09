@@ -52,6 +52,7 @@ public sealed class NoEmailGuardrailsSetup
     }
 }
 
+[Category("Email")]
 public class NoEmailGuardrailsTests
 {
     [Test]

@@ -28,6 +28,7 @@ namespace PortaleFatture.BE.IntegrationTest.Http;
 ///
 /// Richiede il container di test attivo (da tests/: docker compose up -d --build).
 /// </summary>
+[Category("GestioneFatture")]
 public class GestioneFattureFormAggiungiHttpTests
 {
     private const string Rotta = "/api/fatture/pagopa/gestione-fatture/azione";
@@ -102,9 +103,9 @@ public class GestioneFattureFormAggiungiHttpTests
     /// cambia il contratto API e va concordata col frontend. Se un domani arrivasse un 400, questo
     /// test diventa rosso ed è il segnale di aggiornarlo alla forma nuova.
     /// </summary>
-    [TestCase("tipologiaFattura", TestName = "CampoNonValidatoDallEndpoint(tipologiaFattura)")]
-    [TestCase("anno", TestName = "CampoNonValidatoDallEndpoint(anno)")]
-    [TestCase("mese", TestName = "CampoNonValidatoDallEndpoint(mese)")]
+    [TestCase("tipologiaFattura", TestName = "CampoNonValidatoDallEndpoint_ShouldRifiutareSenzaScrivere_MaSenzaSpiegare(CampoNonValidatoDallEndpoint: tipologiaFattura)")]
+    [TestCase("anno", TestName = "CampoNonValidatoDallEndpoint_ShouldRifiutareSenzaScrivere_MaSenzaSpiegare(CampoNonValidatoDallEndpoint: anno)")]
+    [TestCase("mese", TestName = "CampoNonValidatoDallEndpoint_ShouldRifiutareSenzaScrivere_MaSenzaSpiegare(CampoNonValidatoDallEndpoint: mese)")]
     public async Task CampoNonValidatoDallEndpoint_ShouldRifiutareSenzaScrivere_MaSenzaSpiegare(string campo)
     {
         var (stato, corpo) = await Invia(Corpo(ometti: campo));
@@ -134,10 +135,10 @@ public class GestioneFattureFormAggiungiHttpTests
             "POSTICIPA su PRIMO SALDO e' una combinazione ammessa: la tendina deve proporre gli anni.");
     }
 
-    [TestCase("ELIMINA", "PRIMO SALDO", TestName = "CombinazioneNonAmmessa(ELIMINA su PRIMO SALDO)")]
-    [TestCase("ELIMINA", "SECONDO SALDO", TestName = "CombinazioneNonAmmessa(ELIMINA su SECONDO SALDO)")]
-    [TestCase("POSTICIPA", "ANTICIPO", TestName = "CombinazioneNonAmmessa(POSTICIPA su ANTICIPO)")]
-    [TestCase("POSTICIPA", "ACCONTO", TestName = "CombinazioneNonAmmessa(POSTICIPA su ACCONTO)")]
+    [TestCase("ELIMINA", "PRIMO SALDO", TestName = "Form_PerCombinazioniNonAmmesse_ShouldNonOffrireAlcunPeriodo(CombinazioneNonAmmessa: ELIMINA su PRIMO SALDO)")]
+    [TestCase("ELIMINA", "SECONDO SALDO", TestName = "Form_PerCombinazioniNonAmmesse_ShouldNonOffrireAlcunPeriodo(CombinazioneNonAmmessa: ELIMINA su SECONDO SALDO)")]
+    [TestCase("POSTICIPA", "ANTICIPO", TestName = "Form_PerCombinazioniNonAmmesse_ShouldNonOffrireAlcunPeriodo(CombinazioneNonAmmessa: POSTICIPA su ANTICIPO)")]
+    [TestCase("POSTICIPA", "ACCONTO", TestName = "Form_PerCombinazioniNonAmmesse_ShouldNonOffrireAlcunPeriodo(CombinazioneNonAmmessa: POSTICIPA su ACCONTO)")]
     public async Task Form_PerCombinazioniNonAmmesse_ShouldNonOffrireAlcunPeriodo(string azione, string tipologia)
     {
         // E' qui che l'inconsistenza viene impedita: la vista non espone la combinazione, quindi dal
@@ -184,12 +185,12 @@ public class GestioneFattureFormAggiungiHttpTests
     // invece di segnalare qualcosa.
     // =============================================================================================
 
-    [TestCase("ELIMINA", "ANTICIPO", 0, TestName = "PrimoMeseOfferto(ANTICIPO, dal mese corrente)")]
-    [TestCase("ELIMINA", "ACCONTO", 1, TestName = "PrimoMeseOfferto(ACCONTO, -1)")]
-    [TestCase("POSTICIPA", "PRIMO SALDO", 2, TestName = "PrimoMeseOfferto(PRIMO SALDO, -2)")]
-    [TestCase("POSTICIPA", "SECONDO SALDO", 3, TestName = "PrimoMeseOfferto(SECONDO SALDO, -3)")]
-    [TestCase("POSTICIPA", "VAR. SEMESTRALE", 1, TestName = "PrimoMeseOfferto(VAR. SEMESTRALE, -1)")]
-    [TestCase("POSTICIPA", "SEM. SOSPESI", 1, TestName = "PrimoMeseOfferto(SEM. SOSPESI, -1)")]
+    [TestCase("ELIMINA", "ANTICIPO", 0, TestName = "Form_IlPrimoMeseOfferto_ShouldDipendereDallaTipologia(PrimoMeseOfferto: ANTICIPO, dal mese corrente)")]
+    [TestCase("ELIMINA", "ACCONTO", 1, TestName = "Form_IlPrimoMeseOfferto_ShouldDipendereDallaTipologia(PrimoMeseOfferto: ACCONTO, -1)")]
+    [TestCase("POSTICIPA", "PRIMO SALDO", 2, TestName = "Form_IlPrimoMeseOfferto_ShouldDipendereDallaTipologia(PrimoMeseOfferto: PRIMO SALDO, -2)")]
+    [TestCase("POSTICIPA", "SECONDO SALDO", 3, TestName = "Form_IlPrimoMeseOfferto_ShouldDipendereDallaTipologia(PrimoMeseOfferto: SECONDO SALDO, -3)")]
+    [TestCase("POSTICIPA", "VAR. SEMESTRALE", 1, TestName = "Form_IlPrimoMeseOfferto_ShouldDipendereDallaTipologia(PrimoMeseOfferto: VAR. SEMESTRALE, -1)")]
+    [TestCase("POSTICIPA", "SEM. SOSPESI", 1, TestName = "Form_IlPrimoMeseOfferto_ShouldDipendereDallaTipologia(PrimoMeseOfferto: SEM. SOSPESI, -1)")]
     public async Task Form_IlPrimoMeseOfferto_ShouldDipendereDallaTipologia(string azione, string tipologia, int offset)
     {
         var oggi = DateTime.Now;

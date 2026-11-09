@@ -13,6 +13,7 @@ namespace PortaleFatture.BE.IntegrationTest.Http;
 /// Seed (tests/Data/ppa_contracts.sql): trimestre più recente 2026_1 con T01…T05; T01 anche in
 /// 2025_4, T06 solo in 2025_4; "Banca" nel nome di T01, T02, T06.
 /// </summary>
+[Category("PagoPA")]
 public class PSPHttpTests
 {
     private const string Base = "/api/v2/pagopa/psps";

@@ -9,6 +9,7 @@ namespace PortaleFatture.BE.UnitTest;
 /// vengono mappate su trattino e viceversa; un errore qui manda la query del dettaglio su una chiave
 /// sbagliata.
 /// </summary>
+[Category("Rel")]
 public class RelTestataKeyTests
 {
     [Test]
