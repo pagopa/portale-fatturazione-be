@@ -18,6 +18,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// traduce il null in `DomainException("Non esiste la notifica con codice: …")`. Ogni anomalia — di
 /// dato, di schema o di connessione — arriva quindi all'utente come *"la notifica non esiste"*.
 /// </summary>
+[Category("Contestazioni")]
 public class AzioneContestazioneAdversarialIntegrationTests
 {
     private const string Ente = "11111111-1111-1111-1111-111111111111";
@@ -96,8 +97,8 @@ public class AzioneContestazioneAdversarialIntegrationTests
     /// L'id viaggia fino a `WHERE n.event_id=@IdNotifica` come parametro Dapper. Valori ostili devono
     /// restare valori: nessuna tabella toccata, e l'esito e' il "non esiste" ordinario.
     /// </summary>
-    [TestCase("EVT-3002'; DROP TABLE pfd.Notifiche; --", TestName = "id · tentativo di DROP")]
-    [TestCase("' OR '1'='1", TestName = "id · condizione sempre vera")]
+    [TestCase("EVT-3002'; DROP TABLE pfd.Notifiche; --", TestName = "IdOstile_ShouldEssereTrattatoComeValore(id - tentativo di DROP)")]
+    [TestCase("' OR '1'='1", TestName = "IdOstile_ShouldEssereTrattatoComeValore(id - condizione sempre vera)")]
     public void IdOstile_ShouldEssereTrattatoComeValore(string ostile)
     {
         Assert.ThrowsAsync<DomainException>(async () => await Esegui(ostile));
@@ -113,8 +114,8 @@ public class AzioneContestazioneAdversarialIntegrationTests
     /// sarebbe identico a quello corretto: la parametrizzazione va verificata sulla tabella, non
     /// sull'eccezione. E' quello che fa il test sopra.
     /// </summary>
-    [TestCase("", TestName = "id · stringa vuota")]
-    [TestCase("   ", TestName = "id · soli spazi")]
+    [TestCase("", TestName = "IdVuoto_ShouldRisultareInesistente(id - stringa vuota)")]
+    [TestCase("   ", TestName = "IdVuoto_ShouldRisultareInesistente(id - soli spazi)")]
     public void IdVuoto_ShouldRisultareInesistente(string id)
         => Assert.ThrowsAsync<DomainException>(async () => await Esegui(id));
 

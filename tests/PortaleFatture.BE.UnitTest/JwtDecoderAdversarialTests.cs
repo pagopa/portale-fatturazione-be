@@ -29,6 +29,7 @@ namespace PortaleFatture.BE.UnitTest;
 /// `Assert.Catch` su tipi larghi, come già fa JwtBearerConfigurationTests: i test devono restare
 /// validi anche alzando o abbassando lo stack IdentityModel (v. TD-3).
 /// </summary>
+[Category("Autenticazione")]
 public class JwtDecoderAdversarialTests
 {
     private const string Secret = "chiave-di-test-lunga-almeno-32-caratteri!";
@@ -73,13 +74,13 @@ public class JwtDecoderAdversarialTests
     // Forma del token
     // ---------------------------------------------------------------------------------------------
 
-    [TestCase("", TestName = "decoder · stringa vuota")]
-    [TestCase("   ", TestName = "decoder · soli spazi")]
-    [TestCase("non-un-token", TestName = "decoder · nessun punto")]
-    [TestCase("a.b", TestName = "decoder · due soli segmenti")]
-    [TestCase("a.b.c.d", TestName = "decoder · quattro segmenti")]
-    [TestCase("..", TestName = "decoder · tre segmenti vuoti")]
-    [TestCase(".", TestName = "decoder · un solo punto")]
+    [TestCase("", TestName = "FormaNonValida_ShouldEssereRifiutataInModoControllato(decoder - stringa vuota)")]
+    [TestCase("   ", TestName = "FormaNonValida_ShouldEssereRifiutataInModoControllato(decoder - soli spazi)")]
+    [TestCase("non-un-token", TestName = "FormaNonValida_ShouldEssereRifiutataInModoControllato(decoder - nessun punto)")]
+    [TestCase("a.b", TestName = "FormaNonValida_ShouldEssereRifiutataInModoControllato(decoder - due soli segmenti)")]
+    [TestCase("a.b.c.d", TestName = "FormaNonValida_ShouldEssereRifiutataInModoControllato(decoder - quattro segmenti)")]
+    [TestCase("..", TestName = "FormaNonValida_ShouldEssereRifiutataInModoControllato(decoder - tre segmenti vuoti)")]
+    [TestCase(".", TestName = "FormaNonValida_ShouldEssereRifiutataInModoControllato(decoder - un solo punto)")]
     public void FormaNonValida_ShouldEssereRifiutataInModoControllato(string token)
         => AssertRifiutoControllato(token);
 

@@ -99,11 +99,11 @@ public class InvioSapRequestDeserializationTests
         Assert.That(req.IdFatture, Is.EqualTo(new long[] { 1 }));
     }
 
-    [TestCase("""{ "idFatture": [1.5] }""", TestName = "Genera_IdDecimale")]
-    [TestCase("""{ "idFatture": ["abc"] }""", TestName = "Genera_IdNonNumerico")]
-    [TestCase("""{ "idFatture": 2001 }""", TestName = "Genera_IdScalareInveceDiLista")]
-    [TestCase("""{ "mese": 5.5 }""", TestName = "Genera_MeseDecimale")]
-    [TestCase("""{ "idFatture": [99999999999999999999] }""", TestName = "Genera_IdOltreInt64")]
+    [TestCase("""{ "idFatture": [1.5] }""", TestName = "Genera_TipiSbagliati_ShouldLanciareJsonException(Genera_IdDecimale)")]
+    [TestCase("""{ "idFatture": ["abc"] }""", TestName = "Genera_TipiSbagliati_ShouldLanciareJsonException(Genera_IdNonNumerico)")]
+    [TestCase("""{ "idFatture": 2001 }""", TestName = "Genera_TipiSbagliati_ShouldLanciareJsonException(Genera_IdScalareInveceDiLista)")]
+    [TestCase("""{ "mese": 5.5 }""", TestName = "Genera_TipiSbagliati_ShouldLanciareJsonException(Genera_MeseDecimale)")]
+    [TestCase("""{ "idFatture": [99999999999999999999] }""", TestName = "Genera_TipiSbagliati_ShouldLanciareJsonException(Genera_IdOltreInt64)")]
     public void Genera_TipiSbagliati_ShouldLanciareJsonException(string json)
     {
         // A runtime ASP.NET traduce JsonException in 400 (body non valido): e' il comportamento atteso,
@@ -223,8 +223,8 @@ public class InvioSapRequestDeserializationTests
             JsonSerializer.Deserialize<InvioSapDettaglioRequest>("""{ "numeroFattura": 1111 }""", Web));
     }
 
-    [TestCase("""{ "dataFattura": "10/02/2025" }""", TestName = "Dettaglio_DataFormatoItaliano")]
-    [TestCase("""{ "dataFattura": "non-una-data" }""", TestName = "Dettaglio_DataTesto")]
+    [TestCase("""{ "dataFattura": "10/02/2025" }""", TestName = "Dettaglio_DataNonIso_ShouldLanciare(Dettaglio_DataFormatoItaliano)")]
+    [TestCase("""{ "dataFattura": "non-una-data" }""", TestName = "Dettaglio_DataNonIso_ShouldLanciare(Dettaglio_DataTesto)")]
     public void Dettaglio_DataNonIso_ShouldLanciare(string json)
     {
         Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<InvioSapDettaglioRequest>(json, Web));

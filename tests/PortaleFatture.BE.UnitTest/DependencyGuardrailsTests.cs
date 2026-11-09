@@ -31,6 +31,7 @@ namespace PortaleFatture.BE.UnitTest;
 /// `dotnet list package --vulnerable --include-transitive`. Quando arriva un nuovo alert e si
 /// aggiunge un pin, aggiungere qui il relativo TestCase.
 /// </summary>
+[Category("Infrastruttura")]
 public class DependencyGuardrailsTests
 {
     [TestCase(@"src\Presentation\PortaleFatture.BE.Api\PortaleFatture.BE.Api.csproj", "Microsoft.Bcl.Memory", "9.0.14")]

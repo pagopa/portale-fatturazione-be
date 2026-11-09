@@ -9,6 +9,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// Integration test su query reale (MediatR + persistence + DB UAT) per la funzionalità
 /// usata dall'endpoint POST /api/fatture/pagopa/gestione-fatture/tipologia-fattura.
 /// </summary>
+[Category("GestioneFatture")]
 public class GestioneFattureTipologiaFatturaQueryIntegrationTests
 {
     private IMediator _handler;

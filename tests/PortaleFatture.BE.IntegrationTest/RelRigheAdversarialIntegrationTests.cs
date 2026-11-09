@@ -22,6 +22,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// non ci sono quindi aspettative della specifica, ma **caratterizzazioni** del comportamento reale
 /// del BE: dicono cosa succede oggi, così un cambiamento si vede.
 /// </summary>
+[Category("Rel")]
 public class RelRigheAdversarialIntegrationTests
 {
     private const string Ente = "11111111-1111-1111-1111-111111111111";

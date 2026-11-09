@@ -19,6 +19,7 @@ namespace PortaleFatture.BE.UnitTest;
 /// guardie IsNotEmpty/dettaglio, tipologia sconosciuta, e l'invariante colonna "Rel Non Firmata"
 /// (solo fogli sospesi) sui byte[] Excel generati.
 /// </summary>
+[Category("Fatture")]
 public class FattureReportExtensionsTests
 {
     private const string Caption = "Rel Non Firmata";

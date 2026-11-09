@@ -14,6 +14,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// Nota: questi test non istanziano un host HTTP, ma validano le invarianti dati/paginazione
 /// del layer che l'endpoint invoca direttamente.
 /// </summary>
+[Category("GestioneFatture")]
 public class GestioneFattureQueryIntegrationTests
 {
     private IMediator _handler;

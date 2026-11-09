@@ -45,8 +45,9 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// la durata sta sotto la soglia), mai su valori esatti — un `confidence == 0.97` diventerebbe rosso
 /// da solo fra qualche mese senza che nulla si sia rotto.
 /// </summary>
+// DEPRECATA dal 06/11/2026: verde senza eseguire nulla, v. AzureLanguageTestbed.FunzionalitaDeprecata.
 [TestFixture]
-[Explicit("Colpisce Azure AI Language reale: consuma quota a pagamento. Richiede PF_RUN_AZURE_LANGUAGE_TESTS=1.")]
+[Category("LanguageService")]
 public class LanguageServiceAdversarialIntegrationTests
 {
     // Esempi canonici, persone inesistenti. Non sostituire con dati veri: v. l'avvertenza sopra.
@@ -65,6 +66,8 @@ public class LanguageServiceAdversarialIntegrationTests
     [OneTimeSetUp]
     public void CostruisciServizioReale()
     {
+        if (AzureLanguageTestbed.Deprecata) return; // nessun servizio, nessun secret, nessuna chiamata
+
         var configurato = AzureLanguageTestbed.CostruisciOSalta();
 
         _servizio = configurato.Servizio;
@@ -72,6 +75,12 @@ public class LanguageServiceAdversarialIntegrationTests
         _maxChars = configurato.MaxChars;
         _maxCharsSummarize = configurato.MaxCharsSummarize;
         _timeoutSeconds = configurato.TimeoutSeconds;
+    }
+
+    [SetUp]
+    public void SaltaSeDeprecata()
+    {
+        if (AzureLanguageTestbed.Deprecata) Assert.Pass(AzureLanguageTestbed.FunzionalitaDeprecata);
     }
 
     private static string Riempi(int caratteri, string frammento = "Testo di prova per il servizio. ")
@@ -174,9 +183,8 @@ public class LanguageServiceAdversarialIntegrationTests
     /// campanello: se diventa rosso, la scelta si riapre.
     /// </summary>
     [Test]
-    [Ignore("Azure non redige il codice fiscale italiano (misurato 03/09/2026). LIMITE ACCETTATO il "
-            + "04/09/2026, non un difetto aperto: la lacuna e' dichiarata in docs/architettura.md e nel "
-            + "testbook. Riattivare solo se Azure inizia a riconoscere il CF.")]
+    // Era [Ignore]: Azure non redige il codice fiscale italiano (misurato 03/09/2026), LIMITE ACCETTATO
+    // il 04/09/2026. Tolto il 06/11/2026 con la deprecazione della fixture; se la si riattiva, va rimesso.
     public async Task Pii_CodiceFiscale_NonCompareNelTestoRedatto()
     {
         var testo = $"Il contribuente Mario Rossi, codice fiscale {CodiceFiscaleFinto}, ha presentato istanza.";
@@ -270,8 +278,8 @@ public class LanguageServiceAdversarialIntegrationTests
     /// (email, IBAN, telefono) per non lasciare rosso un caso che dipende da una decisione aperta.
     /// </summary>
     [Test]
-    [Ignore("Stessa lacuna del CF non spaziato (misurato 03/09/2026): Azure non riconosce il codice "
-            + "fiscale italiano. LIMITE ACCETTATO il 04/09/2026 — v. il gemello non spaziato.")]
+    // Era [Ignore]: stessa lacuna del CF non spaziato. Tolto il 06/11/2026 con la deprecazione della
+    // fixture; se la si riattiva, va rimesso.
     public async Task Pii_CodiceFiscaleConSpazi_VieneComunqueRedatto()
     {
         const string cfSpaziato = "RSS MRA 85M01 H501Z";

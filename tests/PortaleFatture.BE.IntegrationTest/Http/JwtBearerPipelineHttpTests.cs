@@ -18,6 +18,7 @@ namespace PortaleFatture.BE.IntegrationTest.Http;
 /// valido e ruolo autorizzato) arriva all'handler, e infatti asserisce soltanto che la richiesta
 /// abbia superato auth — non l'esito, che dipende dai dati.
 /// </summary>
+[Category("Autenticazione")]
 public class JwtBearerPipelineHttpTests
 {
     private JwtApiTestFactory _factory;

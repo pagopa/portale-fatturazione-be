@@ -48,17 +48,17 @@ public class InvioSapAdversarialHttpTests
     // Griglia e download: filtri
     // =============================================================================================
 
-    [TestCase("{}", TestName = "Griglia400(anno assente)")]
-    [TestCase("""{ "anno": null }""", TestName = "Griglia400(anno null)")]
-    [TestCase("""{ "anno": 1999 }""", TestName = "Griglia400(anno sotto il minimo)")]
-    [TestCase("""{ "anno": 2099 }""", TestName = "Griglia400(anno lontano)")]
-    [TestCase("""{ "anno": 2003, "mesi": [13] }""", TestName = "Griglia400(mese 13)")]
-    [TestCase("""{ "anno": 2003, "mesi": [0] }""", TestName = "Griglia400(mese 0)")]
-    [TestCase("""{ "anno": 2003, "mesi": [5, 5] }""", TestName = "Griglia400(mesi ripetuti)")]
-    [TestCase("""{ "anno": 2003, "statoInvio": "REINVIATE" }""", TestName = "Griglia400(stato non ammesso)")]
-    [TestCase("""{ "anno": 2003, "statoInvio": "INVIATA" }""", TestName = "Griglia400(stato singolare)")]
-    [TestCase("""{ "anno": 2003, "statoInvio": "'; DROP TABLE pfw.RegistroInvioSAP; --" }""", TestName = "Griglia400(stato ostile)")]
-    [TestCase("""{ "anno": 2003, "tipologieFattura": [""] }""", TestName = "Griglia400(tipologia vuota)")]
+    [TestCase("{}", TestName = "Griglia_FiltriNonValidi_ShouldRispondere400(Griglia400: anno assente)")]
+    [TestCase("""{ "anno": null }""", TestName = "Griglia_FiltriNonValidi_ShouldRispondere400(Griglia400: anno null)")]
+    [TestCase("""{ "anno": 1999 }""", TestName = "Griglia_FiltriNonValidi_ShouldRispondere400(Griglia400: anno sotto il minimo)")]
+    [TestCase("""{ "anno": 2099 }""", TestName = "Griglia_FiltriNonValidi_ShouldRispondere400(Griglia400: anno lontano)")]
+    [TestCase("""{ "anno": 2003, "mesi": [13] }""", TestName = "Griglia_FiltriNonValidi_ShouldRispondere400(Griglia400: mese 13)")]
+    [TestCase("""{ "anno": 2003, "mesi": [0] }""", TestName = "Griglia_FiltriNonValidi_ShouldRispondere400(Griglia400: mese 0)")]
+    [TestCase("""{ "anno": 2003, "mesi": [5, 5] }""", TestName = "Griglia_FiltriNonValidi_ShouldRispondere400(Griglia400: mesi ripetuti)")]
+    [TestCase("""{ "anno": 2003, "statoInvio": "REINVIATE" }""", TestName = "Griglia_FiltriNonValidi_ShouldRispondere400(Griglia400: stato non ammesso)")]
+    [TestCase("""{ "anno": 2003, "statoInvio": "INVIATA" }""", TestName = "Griglia_FiltriNonValidi_ShouldRispondere400(Griglia400: stato singolare)")]
+    [TestCase("""{ "anno": 2003, "statoInvio": "'; DROP TABLE pfw.RegistroInvioSAP; --" }""", TestName = "Griglia_FiltriNonValidi_ShouldRispondere400(Griglia400: stato ostile)")]
+    [TestCase("""{ "anno": 2003, "tipologieFattura": [""] }""", TestName = "Griglia_FiltriNonValidi_ShouldRispondere400(Griglia400: tipologia vuota)")]
     public async Task Griglia_FiltriNonValidi_ShouldRispondere400(string body)
     {
         foreach (var rotta in new[] { InvioSapTestData.RottaGriglia, InvioSapTestData.RottaDownload })
@@ -69,8 +69,8 @@ public class InvioSapAdversarialHttpTests
         }
     }
 
-    [TestCase("""{ "anno": 2003, "tipologieFattura": ["' OR 1=1 --"] }""", TestName = "Griglia404(injection nella tipologia)")]
-    [TestCase("""{ "anno": 2003, "tipologieFattura": ["PRIMO SALDO' --"] }""", TestName = "Griglia404(apice nella tipologia)")]
+    [TestCase("""{ "anno": 2003, "tipologieFattura": ["' OR 1=1 --"] }""", TestName = "Griglia_TipologiaOstile_ShouldEssereSoloUnValore(Griglia404: injection nella tipologia)")]
+    [TestCase("""{ "anno": 2003, "tipologieFattura": ["PRIMO SALDO' --"] }""", TestName = "Griglia_TipologiaOstile_ShouldEssereSoloUnValore(Griglia404: apice nella tipologia)")]
     public async Task Griglia_TipologiaOstile_ShouldEssereSoloUnValore(string body)
     {
         var resp = await Post(_factory, InvioSapTestData.RottaGriglia, body);
@@ -91,9 +91,9 @@ public class InvioSapAdversarialHttpTests
     /// globale, come in AppIoContrattiAdversarialHttpTests e PSPAdversarialHttpTests. Portarlo a 400 cambia il
     /// contratto di tutte le rotte: va deciso col FE, non qui. Si verifica almeno che lo stack trace non esca.
     /// </summary>
-    [TestCase("""{ "anno": "duemilatre" }""", TestName = "Griglia500(anno testo, caratterizzazione)")]
-    [TestCase("""{ "anno": 2003, "mesi": 5 }""", TestName = "Griglia500(mesi scalare, caratterizzazione)")]
-    [TestCase("non-json", TestName = "Griglia500(non JSON, caratterizzazione)")]
+    [TestCase("""{ "anno": "duemilatre" }""", TestName = "Griglia_BodyMalformato_ShouldRispondere500_Caratterizzazione(Griglia500: anno testo, caratterizzazione)")]
+    [TestCase("""{ "anno": 2003, "mesi": 5 }""", TestName = "Griglia_BodyMalformato_ShouldRispondere500_Caratterizzazione(Griglia500: mesi scalare, caratterizzazione)")]
+    [TestCase("non-json", TestName = "Griglia_BodyMalformato_ShouldRispondere500_Caratterizzazione(Griglia500: non JSON, caratterizzazione)")]
     public async Task Griglia_BodyMalformato_ShouldRispondere500_Caratterizzazione(string body)
     {
         var resp = await Post(_factory, InvioSapTestData.RottaGriglia, body);
@@ -112,11 +112,11 @@ public class InvioSapAdversarialHttpTests
     // Dettaglio
     // =============================================================================================
 
-    [TestCase("""{ "annoRiferimento": 2003, "meseRiferimento": 1, "tipologiaFattura": "PRIMO SALDO", "statoInvio": "INVIATE", "ragioneSociale": "%" }""", 0, TestName = "Dettaglio(% letterale)")]
-    [TestCase("""{ "annoRiferimento": 2003, "meseRiferimento": 1, "tipologiaFattura": "PRIMO SALDO", "statoInvio": "INVIATE", "ragioneSociale": "_" }""", 0, TestName = "Dettaglio(_ letterale)")]
-    [TestCase("""{ "annoRiferimento": 2003, "meseRiferimento": 1, "tipologiaFattura": "PRIMO SALDO", "statoInvio": "INVIATE", "ragioneSociale": "[E]" }""", 0, TestName = "Dettaglio([ letterale)")]
-    [TestCase("""{ "annoRiferimento": 2003, "meseRiferimento": 1, "tipologiaFattura": "PRIMO SALDO", "statoInvio": "INVIATE", "ragioneSociale": "' OR 1=1 --" }""", 0, TestName = "Dettaglio(injection)")]
-    [TestCase("""{ "annoRiferimento": 2003, "meseRiferimento": 1, "tipologiaFattura": "PRIMO SALDO", "statoInvio": "INVIATE", "numeroFattura": "%" }""", 0, TestName = "Dettaglio(numero %)")]
+    [TestCase("""{ "annoRiferimento": 2003, "meseRiferimento": 1, "tipologiaFattura": "PRIMO SALDO", "statoInvio": "INVIATE", "ragioneSociale": "%" }""", 0, TestName = "Dettaglio_CaratteriSpecialiDelLike_ShouldEssereLetterali(Dettaglio: % letterale)")]
+    [TestCase("""{ "annoRiferimento": 2003, "meseRiferimento": 1, "tipologiaFattura": "PRIMO SALDO", "statoInvio": "INVIATE", "ragioneSociale": "_" }""", 0, TestName = "Dettaglio_CaratteriSpecialiDelLike_ShouldEssereLetterali(Dettaglio: _ letterale)")]
+    [TestCase("""{ "annoRiferimento": 2003, "meseRiferimento": 1, "tipologiaFattura": "PRIMO SALDO", "statoInvio": "INVIATE", "ragioneSociale": "[E]" }""", 0, TestName = "Dettaglio_CaratteriSpecialiDelLike_ShouldEssereLetterali(Dettaglio: [ letterale)")]
+    [TestCase("""{ "annoRiferimento": 2003, "meseRiferimento": 1, "tipologiaFattura": "PRIMO SALDO", "statoInvio": "INVIATE", "ragioneSociale": "' OR 1=1 --" }""", 0, TestName = "Dettaglio_CaratteriSpecialiDelLike_ShouldEssereLetterali(Dettaglio: injection)")]
+    [TestCase("""{ "annoRiferimento": 2003, "meseRiferimento": 1, "tipologiaFattura": "PRIMO SALDO", "statoInvio": "INVIATE", "numeroFattura": "%" }""", 0, TestName = "Dettaglio_CaratteriSpecialiDelLike_ShouldEssereLetterali(Dettaglio: numero %)")]
     public async Task Dettaglio_CaratteriSpecialiDelLike_ShouldEssereLetterali(string body, int attese)
     {
         var resp = await Post(_factory, InvioSapTestData.RottaDettaglio, body);
@@ -124,12 +124,12 @@ public class InvioSapAdversarialHttpTests
             "Escapati: '%' non deve allargare il filtro a tutte le fatture.");
     }
 
-    [TestCase("""{ "annoRiferimento": 2003, "meseRiferimento": 1, "tipologiaFattura": "PRIMO SALDO", "statoInvio": "INVIATE", "page": 0, "pageSize": 10 }""", TestName = "Dettaglio400(page 0)")]
-    [TestCase("""{ "annoRiferimento": 2003, "meseRiferimento": 1, "tipologiaFattura": "PRIMO SALDO", "statoInvio": "INVIATE", "page": -1, "pageSize": 10 }""", TestName = "Dettaglio400(page negativa)")]
-    [TestCase("""{ "annoRiferimento": 2003, "meseRiferimento": 1, "tipologiaFattura": "PRIMO SALDO", "statoInvio": "INVIATE", "page": 1, "pageSize": 2147483647 }""", TestName = "Dettaglio400(pageSize int.MaxValue)")]
-    [TestCase("""{ "annoRiferimento": 2003, "meseRiferimento": 1, "tipologiaFattura": "PRIMO SALDO" }""", TestName = "Dettaglio400(stato assente)")]
-    [TestCase("""{ "annoRiferimento": 2003, "meseRiferimento": 1, "tipologiaFattura": "PRIMO SALDO", "statoInvio": "TUTTE" }""", TestName = "Dettaglio400(TUTTE non e' un rigo)")]
-    [TestCase("{}", TestName = "Dettaglio400(body vuoto)")]
+    [TestCase("""{ "annoRiferimento": 2003, "meseRiferimento": 1, "tipologiaFattura": "PRIMO SALDO", "statoInvio": "INVIATE", "page": 0, "pageSize": 10 }""", TestName = "Dettaglio_ParametriOstili_ShouldEssere4xx_MaiUn500(Dettaglio400: page 0)")]
+    [TestCase("""{ "annoRiferimento": 2003, "meseRiferimento": 1, "tipologiaFattura": "PRIMO SALDO", "statoInvio": "INVIATE", "page": -1, "pageSize": 10 }""", TestName = "Dettaglio_ParametriOstili_ShouldEssere4xx_MaiUn500(Dettaglio400: page negativa)")]
+    [TestCase("""{ "annoRiferimento": 2003, "meseRiferimento": 1, "tipologiaFattura": "PRIMO SALDO", "statoInvio": "INVIATE", "page": 1, "pageSize": 2147483647 }""", TestName = "Dettaglio_ParametriOstili_ShouldEssere4xx_MaiUn500(Dettaglio400: pageSize int.MaxValue)")]
+    [TestCase("""{ "annoRiferimento": 2003, "meseRiferimento": 1, "tipologiaFattura": "PRIMO SALDO" }""", TestName = "Dettaglio_ParametriOstili_ShouldEssere4xx_MaiUn500(Dettaglio400: stato assente)")]
+    [TestCase("""{ "annoRiferimento": 2003, "meseRiferimento": 1, "tipologiaFattura": "PRIMO SALDO", "statoInvio": "TUTTE" }""", TestName = "Dettaglio_ParametriOstili_ShouldEssere4xx_MaiUn500(Dettaglio400: TUTTE non e' un rigo)")]
+    [TestCase("{}", TestName = "Dettaglio_ParametriOstili_ShouldEssere4xx_MaiUn500(Dettaglio400: body vuoto)")]
     public async Task Dettaglio_ParametriOstili_ShouldEssere4xx_MaiUn500(string body)
     {
         var resp = await Post(_factory, InvioSapTestData.RottaDettaglio, body);
@@ -160,10 +160,10 @@ public class InvioSapAdversarialHttpTests
     // =============================================================================================
 
     /// <summary>Come Griglia_BodyMalformato_ShouldRispondere500_Caratterizzazione: comportamento di tutta l'API.</summary>
-    [TestCase("""{ "anno": 2003, "mese": 1, "tipologiaFattura": "PRIMO SALDO", "idFatture": ["abc"], "nota": "x" }""", TestName = "Genera500(id non numerico, caratterizzazione)")]
-    [TestCase("""{ "anno": 2003, "mese": 1, "tipologiaFattura": "PRIMO SALDO", "idFatture": 9502, "nota": "x" }""", TestName = "Genera500(idFatture scalare, caratterizzazione)")]
-    [TestCase("""{ "anno": 2003, "mese": 1, "tipologiaFattura": "PRIMO SALDO", "idFatture": [99999999999999999999], "nota": "x" }""", TestName = "Genera500(id oltre long, caratterizzazione)")]
-    [TestCase("non-json", TestName = "Genera500(non JSON, caratterizzazione)")]
+    [TestCase("""{ "anno": 2003, "mese": 1, "tipologiaFattura": "PRIMO SALDO", "idFatture": ["abc"], "nota": "x" }""", TestName = "Genera_BodyMalformato_ShouldRispondere500_SenzaScritture_Caratterizzazione(Genera500: id non numerico, caratterizzazione)")]
+    [TestCase("""{ "anno": 2003, "mese": 1, "tipologiaFattura": "PRIMO SALDO", "idFatture": 9502, "nota": "x" }""", TestName = "Genera_BodyMalformato_ShouldRispondere500_SenzaScritture_Caratterizzazione(Genera500: idFatture scalare, caratterizzazione)")]
+    [TestCase("""{ "anno": 2003, "mese": 1, "tipologiaFattura": "PRIMO SALDO", "idFatture": [99999999999999999999], "nota": "x" }""", TestName = "Genera_BodyMalformato_ShouldRispondere500_SenzaScritture_Caratterizzazione(Genera500: id oltre long, caratterizzazione)")]
+    [TestCase("non-json", TestName = "Genera_BodyMalformato_ShouldRispondere500_SenzaScritture_Caratterizzazione(Genera500: non JSON, caratterizzazione)")]
     public async Task Genera_BodyMalformato_ShouldRispondere500_SenzaScritture_Caratterizzazione(string body)
     {
         InvioSapTestData.RilasciaLockComeData();
@@ -173,10 +173,10 @@ public class InvioSapAdversarialHttpTests
         Assert.That(InvioSapTestData.BatchDeiTest(), Is.Empty, "Il binding fallisce prima dell'handler: nessun batch.");
     }
 
-    [TestCase("""{ "anno": 2003, "mese": 1, "tipologiaFattura": "PRIMO SALDO", "idFatture": [], "nota": "x", "numeroDocumentoStorno": "NC" }""", "Selezionare", TestName = "Genera400(idFatture vuota non e' assente)")]
-    [TestCase("""{ "anno": 2003, "mese": 1, "tipologiaFattura": "PRIMO SALDO", "idFatture": [-1, 0], "nota": "x", "numeroDocumentoStorno": "NC" }""", "non valido", TestName = "Genera400(id negativi)")]
-    [TestCase("""{ "anno": 2003, "mese": 2, "tipologiaFattura": "PRIMO SALDO" }""", "nota", TestName = "Genera400(nota assente)")]
-    [TestCase("{}", "Anno", TestName = "Genera400(body vuoto)")]
+    [TestCase("""{ "anno": 2003, "mese": 1, "tipologiaFattura": "PRIMO SALDO", "idFatture": [], "nota": "x", "numeroDocumentoStorno": "NC" }""", "Selezionare", TestName = "Genera_BodyNonValido_ShouldRispondere400_SenzaScritture(Genera400: idFatture vuota non e' assente)")]
+    [TestCase("""{ "anno": 2003, "mese": 1, "tipologiaFattura": "PRIMO SALDO", "idFatture": [-1, 0], "nota": "x", "numeroDocumentoStorno": "NC" }""", "non valido", TestName = "Genera_BodyNonValido_ShouldRispondere400_SenzaScritture(Genera400: id negativi)")]
+    [TestCase("""{ "anno": 2003, "mese": 2, "tipologiaFattura": "PRIMO SALDO" }""", "nota", TestName = "Genera_BodyNonValido_ShouldRispondere400_SenzaScritture(Genera400: nota assente)")]
+    [TestCase("{}", "Anno", TestName = "Genera_BodyNonValido_ShouldRispondere400_SenzaScritture(Genera400: body vuoto)")]
     public async Task Genera_BodyNonValido_ShouldRispondere400_SenzaScritture(string body, string frammento)
     {
         InvioSapTestData.RilasciaLockComeData();

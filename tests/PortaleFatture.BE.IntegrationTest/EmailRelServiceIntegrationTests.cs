@@ -23,6 +23,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 ///     senza spedire nulla;
 ///  3. la cascata con cui si risolve la PEC, che ha tre sorgenti con precedenze non ovvie.
 /// </summary>
+[Category("Email")]
 public class EmailRelServiceIntegrationTests
 {
     // Periodo gia' presente nel seed: ente1 (PAC) ha una pfd.RelTestata SECONDO SALDO 2026/2 con

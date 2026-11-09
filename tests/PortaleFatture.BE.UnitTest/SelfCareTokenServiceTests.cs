@@ -19,6 +19,7 @@ namespace PortaleFatture.BE.UnitTest;
 /// <see cref="JwtTokenServiceTests"/>): qui passano sia la decodifica base64url del token sia quella
 /// di modulo ed esponente della chiave.
 /// </summary>
+[Category("Autenticazione")]
 public class SelfCareTokenServiceTests
 {
     private const string Issuer = "https://selfcare.test.it";

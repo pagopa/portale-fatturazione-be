@@ -18,6 +18,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// (altre aree possono aggiungere fatture non inviate): senza filtri si asserisce per inclusione.
 /// Container spento → i test si ignorano.
 /// </summary>
+[Category("InvioSap")]
 public class FattureInvioSapMultiploPeriodoIntegrationTests
 {
     private const string Ente1 = "11111111-1111-1111-1111-111111111111";

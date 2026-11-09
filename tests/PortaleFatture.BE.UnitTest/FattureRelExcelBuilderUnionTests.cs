@@ -12,6 +12,7 @@ namespace PortaleFatture.BE.UnitTest;
 /// Lo stesso vincolo vale per `FattureUnionRelExcelPersistence`, che mette in UNION `_sqlRel` e
 /// `_sqlNoteSenzaRel`: aggiungere una colonna solo alla prima rompe lo sheet "Enti Fatt.".
 /// </summary>
+[Category("Fatture")]
 public class FattureRelExcelBuilderUnionTests
 {
     [Test]

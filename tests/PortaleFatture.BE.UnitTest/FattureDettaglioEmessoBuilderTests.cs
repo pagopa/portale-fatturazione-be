@@ -10,6 +10,7 @@ namespace PortaleFatture.BE.UnitTest;
 /// test fermano chi le toglie di nuovo, senza bisogno del DB. Il comportamento sui dati e' in
 /// `FattureDettaglioEmessoIntegrationTests`.
 /// </summary>
+[Category("Fatture")]
 public class FattureDettaglioEmessoBuilderTests
 {
     private static readonly string Sql = SenzaCommenti(FattureQueryRicercaBuilder.SelectDettaglioEmesso());

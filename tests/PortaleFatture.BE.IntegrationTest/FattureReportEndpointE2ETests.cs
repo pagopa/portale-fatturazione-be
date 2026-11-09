@@ -13,23 +13,22 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// I test data-dependent SECONDO SALDO girano su DB seedato (_seedHandler) col seed dedicato 2026/2/SECONDO SALDO:
 /// la fattura regolare 8001 (+ RelTestata) alimenta il ramo non-sospese (fogli "Regolari Esecuzioni"/"Enti Fatt."
 /// SENZA la colonna); il seed tmp* (7001/7002) alimenta il ramo sospese (fogli "Reg. Esec. Sospese"/"Enti Fatt.
-/// Sospese" CON la colonna). I test strutturali ANTICIPO/ACCONTO restano su connessione di default (_handler):
-/// leggono viste legacy pfd.vFattureAcconto / pfd.vModuloCommessaTotali non presenti nel seed.
+/// Sospese" CON la colonna). Dal 06/11/2026 TUTTI i test girano sul DB seedato, nessuno su UAT: i test
+/// strutturali ANTICIPO/ACCONTO leggono le viste legacy pfd.vFattureAcconto / pfd.vModuloCommessaTotali, che
+/// il seed non ha ancora, e restano gialli (TestDb.SkipSeOggettoAssente) finche' non entra la DDL reale.
 /// </summary>
+[Category("Fatture")]
 public class FattureReportEndpointE2ETests
 {
     private const string Caption = "Rel Non Firmata";
-    // Connessione di default (UAT): i test strutturali ANTICIPO/ACCONTO leggono viste legacy
-    // (pfd.vFattureAcconto / pfd.vModuloCommessaTotali) non presenti nel DB seedato.
-    private IMediator _handler;
-    // DB seedato: per i test data-dependent SECONDO SALDO (rel emesse/sospese), deterministici sul seed.
+    private static readonly string[] VisteAnticipoAcconto = ["pfd.vFattureAcconto", "pfd.vModuloCommessaTotali", "pfd.vModuloCommessaParziali", "pfd.vFattureAnticipo", "pfd.vFattureAnticipoEliminate"];
+    // DB seedato: deterministico sul seed.
     private IMediator _seedHandler;
     private IConfiguration _conf;
 
     [SetUp]
     public void Setup()
     {
-        _handler = ServiceProvider.GetRequiredService<IMediator>();
         _seedHandler = ServiceProvider.GetRequiredService<IMediator>(LocalTestDb.ConnectionString);
         _conf = ServiceProvider.GetRequiredService<IConfiguration>();
     }
@@ -105,9 +104,9 @@ public class FattureReportEndpointE2ETests
     [TestCase("ACCONTO")]
     public async Task ReportFatture_AnticipoAcconto_ShouldNotThrow(string tipologia)
     {
-        TestDb.SkipIfUnavailable(_conf["PortaleFattureOptions:ConnectionString"]);
+        TestDb.SkipSeOggettoAssente(LocalTestDb.ConnectionString, VisteAnticipoAcconto);
         var request = new FatturaRicercaRequest { Anno = Anno, Mese = Mese, TipologiaFattura = new[] { tipologia } };
-        var reports = await request.ReportFatture(_handler, AdminAuth());
+        var reports = await request.ReportFatture(_seedHandler, AdminAuth());
         Assert.That(reports, Is.Not.Null);
     }
 
@@ -115,9 +114,9 @@ public class FattureReportEndpointE2ETests
     [TestCase("ACCONTO")]
     public async Task ReportFattureSospese_AnticipoAcconto_ShouldNotThrow(string tipologia)
     {
-        TestDb.SkipIfUnavailable(_conf["PortaleFattureOptions:ConnectionString"]);
+        TestDb.SkipSeOggettoAssente(LocalTestDb.ConnectionString, VisteAnticipoAcconto);
         var request = new FatturaSospeseRicercaRequest { Anno = Anno, Mese = Mese, TipologiaFattura = new[] { tipologia } };
-        var reports = await request.ReportFattureSospese(_handler, AdminAuth());
+        var reports = await request.ReportFattureSospese(_seedHandler, AdminAuth());
         Assert.That(reports, Is.Not.Null);
     }
 
@@ -126,28 +125,28 @@ public class FattureReportEndpointE2ETests
     [Test]
     public async Task ReportFatture_MultipleTipologie_ShouldNotThrow()
     {
-        TestDb.SkipIfUnavailable(_conf["PortaleFattureOptions:ConnectionString"]);
+        TestDb.SkipIfUnavailable(LocalTestDb.ConnectionString);
         var request = new FatturaRicercaRequest
         {
             Anno = Anno,
             Mese = Mese,
             TipologiaFattura = new[] { "SECONDO SALDO", "VAR. SEMESTRALE" }
         };
-        var reports = await request.ReportFatture(_handler, AdminAuth());
+        var reports = await request.ReportFatture(_seedHandler, AdminAuth());
         Assert.That(reports, Is.Not.Null);
     }
 
     [Test]
     public async Task ReportFattureSospese_MultipleTipologie_ShouldNotThrow()
     {
-        TestDb.SkipIfUnavailable(_conf["PortaleFattureOptions:ConnectionString"]);
+        TestDb.SkipIfUnavailable(LocalTestDb.ConnectionString);
         var request = new FatturaSospeseRicercaRequest
         {
             Anno = Anno,
             Mese = Mese,
             TipologiaFattura = new[] { "SECONDO SALDO", "VAR. SEMESTRALE" }
         };
-        var reports = await request.ReportFattureSospese(_handler, AdminAuth());
+        var reports = await request.ReportFattureSospese(_seedHandler, AdminAuth());
         Assert.That(reports, Is.Not.Null);
     }
 }

@@ -177,9 +177,12 @@ CREATE TABLE pfw.DatiModuloCommessaTotali (
 	-- FkIdStato (non FkStato) e scrive anche PercentualeCategoria/Totale/Fatturabile.
 	FkIdStato nvarchar(50) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	TotaleCategoria decimal(9,2) NOT NULL,
-	PercentualeCategoria int NULL,
-	Totale decimal(9,2) NULL,
-	Fatturabile bit NULL,
+	-- dal 06/11/2026 allineate alla DDL reale: NOT NULL con default, e TotaleNotificheCategoria
+	-- (letta da pfd.vModuloCommessaTotali) che qui mancava
+	PercentualeCategoria int NOT NULL CONSTRAINT DF_DatiModuloCommessaTotali_PercentualeCategoria DEFAULT ((0)),
+	Totale decimal(9,2) NOT NULL CONSTRAINT DF_DatiModuloCommessaTotali_Totale DEFAULT ((0)),
+	TotaleNotificheCategoria int NULL,
+	Fatturabile bit NOT NULL CONSTRAINT DF_DatiModuloCommessaTotali_Fatturabile DEFAULT ((1)),
 	CONSTRAINT PK_DatiModuloCommessaTotali PRIMARY KEY (FkIdEnte,FkIdTipoContratto,FkProdotto,AnnoValidita,MeseValidita,FkIdCategoriaSpedizione),
 	CONSTRAINT FK_DatiModuloCommessaTotali_CategoriaSpedizione FOREIGN KEY (FkIdCategoriaSpedizione) REFERENCES pfw.CategoriaSpedizione(IdCategoriaSpedizione),
 	CONSTRAINT FK_DatiModuloCommessaTotali_Prodotti FOREIGN KEY (FkProdotto) REFERENCES pfw.Prodotti(Prodotto),
@@ -376,6 +379,10 @@ CREATE TABLE pfd.Enti (
 	publicservices nvarchar(MAX) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 	LastModified datetime2 NULL,
 	Category nvarchar(MAX) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	-- lette da pfd.vModuloCommessaTotali; tipi e default dalla DDL reale del DBProj
+	-- (PagopaDBproj/pfd/Tables/Enti.sql), aggiunte il 06/11/2026
+	Asseverazione bit CONSTRAINT DF_Enti_Asseverazione DEFAULT ((0)) NULL,
+	DataUscitaAsseverazione date NULL,
 	CONSTRAINT PK__Enti__16EA308B3ABC1682 PRIMARY KEY (InternalIstitutionId)
 );
 -- =============================================================================================

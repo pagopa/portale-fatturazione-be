@@ -23,6 +23,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 ///   EVT-3002  CONTESTATA (stato 3), `Fatturabile = 0` → l'unica su cui si puo' agire
 ///   EVT-3003  digitale, `Fatturabile = 1` + TipologiaFattura → doppio lock
 /// </summary>
+[Category("Contestazioni")]
 public class AzioneContestazioneIntegrationTests
 {
     private const string Ente = "11111111-1111-1111-1111-111111111111";
@@ -98,8 +99,8 @@ public class AzioneContestazioneIntegrationTests
     /// sarebbero false comunque e l'asserzione non proverebbe nulla. E' il motivo della guardia in
     /// `[SetUp]`.
     /// </summary>
-    [TestCase(NonContestataMaBloccata, TestName = "lock · Fatturabile = 1")]
-    [TestCase(DigitaleFatturata, TestName = "lock · Fatturabile = 1 e TipologiaFattura valorizzata")]
+    [TestCase(NonContestataMaBloccata, TestName = "NotificaBloccata_ShouldNegareOgniAzione_AncheConCalendarioAperto(lock - Fatturabile = 1)")]
+    [TestCase(DigitaleFatturata, TestName = "NotificaBloccata_ShouldNegareOgniAzione_AncheConCalendarioAperto(lock - Fatturabile = 1 e TipologiaFattura valorizzata)")]
     public async Task NotificaBloccata_ShouldNegareOgniAzione_AncheConCalendarioAperto(string idNotifica)
     {
         var esito = await Esegui(idNotifica, "PA");

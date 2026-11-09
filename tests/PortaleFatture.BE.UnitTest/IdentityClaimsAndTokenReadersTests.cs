@@ -17,6 +17,7 @@ namespace PortaleFatture.BE.UnitTest;
 /// Il test di catena completa claim -> JWT -> ProfileInfo e' il piu' utile dei tre: intercetta un
 /// claim mancante, che altrimenti si manifesterebbe a runtime come NullReferenceException nel Mapper.
 /// </summary>
+[Category("Autenticazione")]
 public class IdentityClaimsAndTokenReadersTests
 {
     private const string Secret = "chiave-di-test-lunga-almeno-32-caratteri!";

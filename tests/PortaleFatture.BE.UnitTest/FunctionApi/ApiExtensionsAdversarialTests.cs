@@ -14,6 +14,7 @@ namespace PortaleFatture.BE.UnitTest.FunctionApi;
 /// quello desiderabile. Dove il comportamento e' sbagliato il test lo dice nel nome e nel commento.
 /// </summary>
 [TestFixture]
+[Category("IntegrationApi")]
 public class ApiExtensionsAdversarialTests
 {
     private static FakeHttpRequestData Richiesta(string url) => new(new FakeFunctionContext(), url);

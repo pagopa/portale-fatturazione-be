@@ -58,11 +58,11 @@ public class InvioSapLetturaHttpTests
         });
     }
 
-    [TestCase("DA_INVIARE", 3, TestName = "Griglia(DA_INVIARE = 0)")]
-    [TestCase("INVIATE", 4, TestName = "Griglia(INVIATE = 1)")]
-    [TestCase("IN_ELABORAZIONE", 1, TestName = "Griglia(IN_ELABORAZIONE = NULL)")]
-    [TestCase("TUTTE", 8, TestName = "Griglia(TUTTE)")]
-    [TestCase(" inviate ", 4, TestName = "Griglia(stato minuscolo con spazi)")]
+    [TestCase("DA_INVIARE", 3, TestName = "Griglia_FiltroStato_ShouldRestringere(Griglia: DA_INVIARE = 0)")]
+    [TestCase("INVIATE", 4, TestName = "Griglia_FiltroStato_ShouldRestringere(Griglia: INVIATE = 1)")]
+    [TestCase("IN_ELABORAZIONE", 1, TestName = "Griglia_FiltroStato_ShouldRestringere(Griglia: IN_ELABORAZIONE = NULL)")]
+    [TestCase("TUTTE", 8, TestName = "Griglia_FiltroStato_ShouldRestringere(Griglia: TUTTE)")]
+    [TestCase(" inviate ", 4, TestName = "Griglia_FiltroStato_ShouldRestringere(Griglia: stato minuscolo con spazi)")]
     public async Task Griglia_FiltroStato_ShouldRestringere(string stato, int righi)
     {
         var resp = await Post(_factory, InvioSapTestData.RottaGriglia, $$"""{ "anno": 2003, "statoInvio": "{{stato}}" }""");
@@ -148,9 +148,9 @@ public class InvioSapLetturaHttpTests
         Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
     }
 
-    [TestCase("""{ "annoRiferimento": 2003, "meseRiferimento": 1, "tipologiaFattura": "PRIMO SALDO", "statoInvio": "INVIATE", "ragioneSociale": "test 2" }""", 9503L, TestName = "Dettaglio(ragione sociale, case insensitive)")]
-    [TestCase("""{ "annoRiferimento": 2003, "meseRiferimento": 1, "tipologiaFattura": "PRIMO SALDO", "statoInvio": "INVIATE", "numeroFattura": "9502" }""", 9502L, TestName = "Dettaglio(numero fattura)")]
-    [TestCase("""{ "annoRiferimento": 2003, "meseRiferimento": 1, "tipologiaFattura": "PRIMO SALDO", "statoInvio": "INVIATE", "page": 2, "pageSize": 1 }""", 9503L, TestName = "Dettaglio(seconda pagina)")]
+    [TestCase("""{ "annoRiferimento": 2003, "meseRiferimento": 1, "tipologiaFattura": "PRIMO SALDO", "statoInvio": "INVIATE", "ragioneSociale": "test 2" }""", 9503L, TestName = "Dettaglio_Filtri_ShouldRestringere_ConCountCoerente(Dettaglio: ragione sociale, case insensitive)")]
+    [TestCase("""{ "annoRiferimento": 2003, "meseRiferimento": 1, "tipologiaFattura": "PRIMO SALDO", "statoInvio": "INVIATE", "numeroFattura": "9502" }""", 9502L, TestName = "Dettaglio_Filtri_ShouldRestringere_ConCountCoerente(Dettaglio: numero fattura)")]
+    [TestCase("""{ "annoRiferimento": 2003, "meseRiferimento": 1, "tipologiaFattura": "PRIMO SALDO", "statoInvio": "INVIATE", "page": 2, "pageSize": 1 }""", 9503L, TestName = "Dettaglio_Filtri_ShouldRestringere_ConCountCoerente(Dettaglio: seconda pagina)")]
     public async Task Dettaglio_Filtri_ShouldRestringere_ConCountCoerente(string body, long atteso)
     {
         var corpo = await Json(await Post(_factory, InvioSapTestData.RottaDettaglio, body));
@@ -257,5 +257,52 @@ public class InvioSapLetturaHttpTests
         var corpo = await Json(await Get(_factory, InvioSapTestData.RottaStati));
         Assert.That(corpo.EnumerateArray().Select(s => s.GetProperty("codice").GetString()),
             Is.EqualTo(new[] { "TUTTE", "DA_INVIARE", "INVIATE", "IN_ELABORAZIONE" }));
+    }
+
+    /// <summary>
+    /// Testbook PF-965 T20 (etichette degli stati). Fissa le descrizioni che il FE mostra nei chip e nel
+    /// filtro. ⚠️ Il testbook dei colleghi (06/11/2026) si aspetta anche "Re-inviata", che nel contratto
+    /// v2.2 non e' uno stato ma il download separato delle re-inviate: se si decide di aggiungerlo, questo
+    /// test va aggiornato insieme alla regola, non "aggiustato".
+    /// </summary>
+    [Test]
+    public async Task Stati_ShouldAvereLeDescrizioniMostrateDalFe()
+    {
+        var corpo = await Json(await Get(_factory, InvioSapTestData.RottaStati));
+        Assert.That(corpo.EnumerateArray().Select(s => s.GetProperty("descrizione").GetString()),
+            Is.EqualTo(new[] { "Tutte", "Da inviare", "Inviate", "In elaborazione" }));
+    }
+
+    /// <summary>
+    /// Testbook PF-965 T07: le tipologie si presentano nell'ordine del ciclo di fatturazione (Anticipo,
+    /// Acconto, Primo Saldo, Secondo Saldo, Var. Semestrale, Sem. Sospesi; poi Var. Annuale), non in
+    /// ordine alfabetico. Le fatture 9601-9607 sull'anno 2004, libero, sono inserite apposta in ordine
+    /// INVERSO: un ORDER BY alfabetico o per IdFattura darebbe un ordine diverso.
+    /// </summary>
+    [Test]
+    public async Task Griglia_StessoMese_ShouldOrdinareLeTipologieSecondoIlCiclo()
+    {
+        string[] attese = ["ANTICIPO", "ACCONTO", "PRIMO SALDO", "SECONDO SALDO", "VAR. SEMESTRALE", "SEM. SOSPESI", "VAR. ANNUALE"];
+        try
+        {
+            for (var i = attese.Length - 1; i >= 0; i--)
+                InvioSapTestData.Esegui(@"
+                    SET IDENTITY_INSERT pfd.FattureTestata ON; -- IdFattura e' identity: come nel seed
+                    INSERT INTO pfd.FattureTestata
+                     (IdFattura, FkIdEnte, FkTipologiaFattura, AnnoRiferimento, MeseRiferimento, FatturaInviata,
+                      FkProdotto, FkIdTipoDocumento, DataFattura, IdentificativoFattura, TotaleFattura, Divisa, MetodoPagamento,
+                      Progressivo, IdDocumento, Semestre)
+                    VALUES (@id, '11111111-1111-1111-1111-111111111111', @t, 2004, 1, 0,
+                      'prod-pn', 'TD01', '2004-02-10', CONCAT('IT-', @id), 1.00, 'EUR', 'MP5', @id, NULL, NULL);
+                    SET IDENTITY_INSERT pfd.FattureTestata OFF;",
+                    ("@id", 9601 + i), ("@t", attese[i]));
+
+            var righe = await Json(await Post(_factory, InvioSapTestData.RottaGriglia, """{ "anno": 2004 }"""));
+            Assert.That(righe.EnumerateArray().Select(r => r.GetProperty("tipologiaFattura").GetString()), Is.EqualTo(attese));
+        }
+        finally
+        {
+            InvioSapTestData.Esegui("DELETE FROM pfd.FattureTestata WHERE IdFattura BETWEEN 9601 AND 9607 AND AnnoRiferimento = 2004");
+        }
     }
 }

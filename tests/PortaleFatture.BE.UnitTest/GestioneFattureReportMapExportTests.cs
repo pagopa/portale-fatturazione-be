@@ -10,6 +10,7 @@ namespace PortaleFatture.BE.UnitTest;
 /// Qui vive il valore-unit-test della feature: e' l'unico pezzo con logica isolabile. Il mapping
 /// query->DTO invece e' coperto dagli integration test (serve un DB reale).
 /// </summary>
+[Category("GestioneFatture")]
 public class GestioneFattureReportMapExportTests
 {
     private static GestioneFattureReportDto Pieno() => new()

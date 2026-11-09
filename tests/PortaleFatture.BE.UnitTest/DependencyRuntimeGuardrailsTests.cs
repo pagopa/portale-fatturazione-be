@@ -25,6 +25,7 @@ namespace PortaleFatture.BE.UnitTest;
 /// Microsoft.Identity.Web: quella copertura vive in JwtBearerConfigurationTests,
 /// PagoPATokenServiceTests e Http/PolicyAuthorizationHttpTests.
 /// </summary>
+[Category("Infrastruttura")]
 public class DependencyRuntimeGuardrailsTests
 {
     /// <summary>

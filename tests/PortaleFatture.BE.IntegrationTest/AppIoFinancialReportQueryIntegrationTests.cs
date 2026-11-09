@@ -14,6 +14,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// Seed: posizioni APPIO-FR-001 (C1, due righe) e APPIO-FR-002 (C2) in 2026_2, APPIO-FR-003 (C1) in
 /// 2026_1, APPIO-FR-004 (C5) in 2025_4; financial report per C1 (2026_2 e 2026_1) e C3 (2026_2).
 /// </summary>
+[Category("AppIO")]
 public class AppIoFinancialReportQueryIntegrationTests
 {
     private IMediator _handler = null!;

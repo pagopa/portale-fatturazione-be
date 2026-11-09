@@ -11,6 +11,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// - POST /api/fatture/pagopa/gestione-fatture/modifica/anni
 /// - POST /api/fatture/pagopa/gestione-fatture/modifica/mesi
 /// </summary>
+[Category("GestioneFatture")]
 public class GestioneFattureModificaQueryIntegrationTests
 {
     private IMediator _handler;

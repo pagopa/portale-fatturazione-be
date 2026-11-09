@@ -21,6 +21,7 @@ namespace PortaleFatture.BE.UnitTest;
 /// scenario, stesso <see cref="LanguageService"/> vero, stessa pipeline di Azure.Core — senza rete.
 /// </summary>
 [TestFixture]
+[Category("LanguageService")]
 public class LanguageServiceTimeoutTests
 {
     private static LanguageService ServizioVersoUnServizioMuto(int timeoutSeconds) => new(

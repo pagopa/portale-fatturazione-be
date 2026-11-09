@@ -15,6 +15,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 ///  2001 ANTICIPO / ente3         | 2002 ACCONTO / ente3
 ///  3001 PRIMO SALDO / ente INPS (53b40136...)
 /// </summary>
+[Category("GestioneFatture")]
 public class GestioneFattureRequisitiIntegrationTests
 {
     private const string Ente1 = "11111111-1111-1111-1111-111111111111";

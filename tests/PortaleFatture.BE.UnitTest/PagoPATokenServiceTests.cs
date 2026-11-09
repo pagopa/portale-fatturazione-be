@@ -18,6 +18,7 @@ namespace PortaleFatture.BE.UnitTest;
 /// ma issuer/audience presi dalla configurazione AzureAd e arricchimento dei gruppi via Graph.
 /// Terzo consumatore della catena IdentityModel -> Microsoft.Bcl.Memory.
 /// </summary>
+[Category("Autenticazione")]
 public class PagoPATokenServiceTests
 {
     private const string TenantId = "11111111-2222-3333-4444-555555555555";

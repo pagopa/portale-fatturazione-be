@@ -9,6 +9,7 @@ namespace PortaleFatture.BE.UnitTest;
 /// avvolta con JSON_QUERY e filtro su [fattura.tipologiaFattura]; ramo normale -> SelectView su FattureTestata
 /// con FT.FkTipologiaFattura; e la rimozione del placeholder quando non c'e' filtro tipologia.
 /// </summary>
+[Category("Fatture")]
 public class FattureQueryRicercaBuilderTests
 {
     [Test]

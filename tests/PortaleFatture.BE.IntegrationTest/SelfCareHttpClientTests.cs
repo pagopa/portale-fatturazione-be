@@ -5,6 +5,7 @@ using PortaleFatture.BE.Infrastructure.Gateway;
 
 namespace PortaleFatture.BE.IntegrationTest;
 
+[Category("Autenticazione")]
 public class SelfCareHttpClientTests
 {
     private ILogger<SelfCareHttpClientTests> _logger;

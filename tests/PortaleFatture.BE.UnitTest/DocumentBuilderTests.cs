@@ -26,6 +26,7 @@ namespace PortaleFatture.BE.UnitTest;
 /// I test con suffisso <c>_Caratterizzazione</c> fissano un comportamento attuale discutibile, non
 /// quello desiderato: se qualcuno lo cambia, il test diventa rosso e va aggiornato consapevolmente.
 /// </summary>
+[Category("Infrastruttura")]
 public class DocumentBuilderTests
 {
     private const string Documenti = "Infrastructure/Documenti/";

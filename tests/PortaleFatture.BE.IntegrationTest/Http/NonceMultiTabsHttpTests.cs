@@ -20,6 +20,7 @@ namespace PortaleFatture.BE.IntegrationTest.Http;
 /// non toccano il DB. I due controlli positivi asseriscono solo "non 419", perche' il loro esito
 /// dipende dal seed e non e' quello che stiamo misurando.
 /// </summary>
+[Category("Autenticazione")]
 public class NonceMultiTabsHttpTests
 {
     /// <summary>SessionException -> 419 (mappatura in ConfigurationExtensions.UseModules).</summary>

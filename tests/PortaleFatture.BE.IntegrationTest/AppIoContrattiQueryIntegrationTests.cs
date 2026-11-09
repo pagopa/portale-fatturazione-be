@@ -11,6 +11,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// Seed: trimestre più recente 2026_2 con C1, C2, C3; C1 anche in 2026_1 e 2025_4; C4 solo in
 /// 2025_4; C3 con vat_group e sdi_code NULL.
 /// </summary>
+[Category("AppIO")]
 public class AppIoContrattiQueryIntegrationTests
 {
     private IMediator _handler = null!;

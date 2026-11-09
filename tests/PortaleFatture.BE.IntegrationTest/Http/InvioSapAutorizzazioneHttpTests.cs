@@ -38,13 +38,13 @@ public class InvioSapAutorizzazioneHttpTests
         const string dettaglio = """{ "annoRiferimento": 2003, "meseRiferimento": 1, "tipologiaFattura": "PRIMO SALDO", "statoInvio": "INVIATE" }""";
         const string genera = """{ "anno": 2003, "mese": 2, "tipologiaFattura": "PRIMO SALDO" }""";
 
-        yield return new TestCaseData(HttpMethod.Post, InvioSapTestData.RottaGriglia, griglia).SetName("{m}(griglia)");
-        yield return new TestCaseData(HttpMethod.Post, InvioSapTestData.RottaDettaglio, dettaglio).SetName("{m}(dettaglio)");
-        yield return new TestCaseData(HttpMethod.Post, InvioSapTestData.RottaDownload, griglia).SetName("{m}(download)");
-        yield return new TestCaseData(HttpMethod.Post, InvioSapTestData.RottaDownloadReinviate, griglia).SetName("{m}(download reinviate)");
-        yield return new TestCaseData(HttpMethod.Put, InvioSapTestData.RottaGenera, genera).SetName("{m}(genera)");
-        yield return new TestCaseData(HttpMethod.Get, InvioSapTestData.RottaLock, null).SetName("{m}(lock)");
-        yield return new TestCaseData(HttpMethod.Get, InvioSapTestData.RottaStati, null).SetName("{m}(stati)");
+        yield return new TestCaseData(HttpMethod.Post, InvioSapTestData.RottaGriglia, griglia).SetArgDisplayNames("griglia");
+        yield return new TestCaseData(HttpMethod.Post, InvioSapTestData.RottaDettaglio, dettaglio).SetArgDisplayNames("dettaglio");
+        yield return new TestCaseData(HttpMethod.Post, InvioSapTestData.RottaDownload, griglia).SetArgDisplayNames("download");
+        yield return new TestCaseData(HttpMethod.Post, InvioSapTestData.RottaDownloadReinviate, griglia).SetArgDisplayNames("download reinviate");
+        yield return new TestCaseData(HttpMethod.Put, InvioSapTestData.RottaGenera, genera).SetArgDisplayNames("genera");
+        yield return new TestCaseData(HttpMethod.Get, InvioSapTestData.RottaLock, null).SetArgDisplayNames("lock");
+        yield return new TestCaseData(HttpMethod.Get, InvioSapTestData.RottaStati, null).SetArgDisplayNames("stati");
     }
 
     [TestCaseSource(nameof(Rotte))]

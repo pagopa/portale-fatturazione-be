@@ -12,6 +12,7 @@ using PortaleFatture.BE.UnitTest.Common;
 
 namespace PortaleFatture.BE.UnitTest;
 
+[Category("DatiFatturazione")]
 public class DatiFatturazioneGetByIdQueryTests
 {
     /// <summary>Ente dedicato a questa fixture nel seed (tests/Data/dati_fatturazione.sql).</summary>

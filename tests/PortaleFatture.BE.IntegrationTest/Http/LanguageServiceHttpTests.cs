@@ -33,6 +33,7 @@ namespace PortaleFatture.BE.IntegrationTest.Http;
 /// messa la macchina di chi esegue. Da tenere presente scrivendo altri test in quest'area: se un caso
 /// passa "perché sull'ambiente manca qualcosa", non sta verificando ciò che sembra.
 /// </summary>
+[Category("LanguageService")]
 public class LanguageServiceHttpTests
 {
     private const string RottaPii = "/api/language/pii";
@@ -65,9 +66,9 @@ public class LanguageServiceHttpTests
             + "puo' impedire il boot di cio' che non lo usa.");
     }
 
-    [TestCase(RottaPii, TestName = "ServizioNonConfigurato_ShouldReturn503(api/language/pii)")]
-    [TestCase(RottaLingua, TestName = "ServizioNonConfigurato_ShouldReturn503(api/language/detection)")]
-    [TestCase(RottaSintesi, TestName = "ServizioNonConfigurato_ShouldReturn503(api/language/summarize)")]
+    [TestCase(RottaPii, TestName = "ServizioNonConfigurato_ShouldReturn503_ConMessaggio(ServizioNonConfigurato_ShouldReturn503: api/language/pii)")]
+    [TestCase(RottaLingua, TestName = "ServizioNonConfigurato_ShouldReturn503_ConMessaggio(ServizioNonConfigurato_ShouldReturn503: api/language/detection)")]
+    [TestCase(RottaSintesi, TestName = "ServizioNonConfigurato_ShouldReturn503_ConMessaggio(ServizioNonConfigurato_ShouldReturn503: api/language/summarize)")]
     public async Task ServizioNonConfigurato_ShouldReturn503_ConMessaggio(string rotta)
     {
         // La condizione "non configurato" viene IMPOSTA qui, invece di dipendere dall'assenza della

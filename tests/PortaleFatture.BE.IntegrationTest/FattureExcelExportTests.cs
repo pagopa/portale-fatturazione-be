@@ -9,6 +9,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// "Rel Non Firmata" venga esportata nel foglio "Enti Fatt. Sospese" con il valore proveniente dal DTO.
 /// Non dipendono dai dati (UAT): costruiscono direttamente i FattureRelExcelDto e invocano l'export.
 /// </summary>
+[Category("Fatture")]
 public class FattureExcelExportTests
 {
     private const string Caption = "Rel Non Firmata";

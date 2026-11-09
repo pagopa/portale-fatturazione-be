@@ -63,10 +63,23 @@ if [ "$1" = '/opt/mssql/bin/sqlservr' ]; then
       # anagrafica PSP (prodotto pagoPA): ppa.Contracts e seed, per le rotte api/v2/pagopa/psps*
       "$SQLCMD" -C -S localhost -U sa -P 52JdGnzZaANhf -d master -i /scripts/ppa_contracts.sql
 
+      # righe dei documenti contabili PSP: ppa.KPMG (DDL reale 06/11/2026), letta da EmailPspService
+      "$SQLCMD" -C -S localhost -U sa -P 52JdGnzZaANhf -d master -i /scripts/ppa_kpmg.sql
+
+      # sconti KPI dei PSP: ppa.KpiPagamenti_Sconto (DDL reale 06/11/2026), letta da EmailPspService
+      "$SQLCMD" -C -S localhost -U sa -P 52JdGnzZaANhf -d master -i /scripts/ppa_kpi_sconto.sql
+
+      # tracciato email PSP: ppa.PspEmail (DDL reale 06/11/2026). PRIMA dell'alter qui sotto, che senza
+      # la tabella non faceva nulla (IF OBJECT_ID ... IS NOT NULL).
+      "$SQLCMD" -C -S localhost -U sa -P 52JdGnzZaANhf -d master -i /scripts/ppa_pspemail.sql
+
       # anteprima email PSP (stg.PspEmailPreview + colonne nullable su ppa.PspEmail): erano script
       # da lanciare a mano, quindi un rebuild del container li perdeva. Sono idempotenti.
       "$SQLCMD" -C -S localhost -U sa -P 52JdGnzZaANhf -d master -i /scripts/create_psp_email_preview_table.sql
       "$SQLCMD" -C -S localhost -U sa -P 52JdGnzZaANhf -d master -i /scripts/alter_ppa_pspemail_add_nullable_columns.sql
+
+      # righe sintetiche per EmailPspServiceIntegrationTests (KPMG, sconti, PspEmail): dopo le tre tabelle
+      "$SQLCMD" -C -S localhost -U sa -P 52JdGnzZaANhf -d master -i /scripts/ppa_email_psp.sql
 
       # viste be.vwGestioneFatture* (tests/Data/views/), dopo tabelle/seed
       if [ -d /scripts/views ]; then

@@ -69,17 +69,17 @@ public class InvioSapRegoleGenerazioneTests
         Assert.That(InvioSapRegole.ValidaFormale(ReInvio(), Utente), Is.Empty);
     }
 
-    [TestCase("NC-1", TestName = "PrimoInvio(storno presente)")]
-    [TestCase(" ", TestName = "PrimoInvio(storno di soli spazi)")]
+    [TestCase("NC-1", TestName = "PrimoInvio_ConStorno_ShouldEssereRifiutato(PrimoInvio: storno presente)")]
+    [TestCase(" ", TestName = "PrimoInvio_ConStorno_ShouldEssereRifiutato(PrimoInvio: storno di soli spazi)")]
     public void PrimoInvio_ConStorno_ShouldEssereRifiutato(string storno)
     {
         Assert.That(InvioSapRegole.ValidaFormale(PrimoInvio(storno: storno), Utente),
             Is.EqualTo(new[] { InvioSapRegole.ErroreStornoNonAmmesso }));
     }
 
-    [TestCase(null, TestName = "ReInvio(storno null)")]
-    [TestCase("", TestName = "ReInvio(storno vuoto)")]
-    [TestCase("   ", TestName = "ReInvio(storno di spazi)")]
+    [TestCase(null, TestName = "ReInvio_SenzaStorno_ShouldEssereRifiutato(ReInvio: storno null)")]
+    [TestCase("", TestName = "ReInvio_SenzaStorno_ShouldEssereRifiutato(ReInvio: storno vuoto)")]
+    [TestCase("   ", TestName = "ReInvio_SenzaStorno_ShouldEssereRifiutato(ReInvio: storno di spazi)")]
     public void ReInvio_SenzaStorno_ShouldEssereRifiutato(string? storno)
     {
         Assert.That(InvioSapRegole.ValidaFormale(ReInvio(storno: storno), Utente),
@@ -97,9 +97,9 @@ public class InvioSapRegoleGenerazioneTests
         });
     }
 
-    [TestCase(null, TestName = "Nota(null)")]
-    [TestCase("", TestName = "Nota(vuota)")]
-    [TestCase(" \t\n ", TestName = "Nota(solo spazi)")]
+    [TestCase(null, TestName = "NotaMancante_ShouldEssereRifiutata(Nota: null)")]
+    [TestCase("", TestName = "NotaMancante_ShouldEssereRifiutata(Nota: vuota)")]
+    [TestCase(" \t\n ", TestName = "NotaMancante_ShouldEssereRifiutata(Nota: solo spazi)")]
     public void NotaMancante_ShouldEssereRifiutata(string? nota)
     {
         Assert.Multiple(() =>
@@ -128,28 +128,28 @@ public class InvioSapRegoleGenerazioneTests
         Assert.That(InvioSapRegole.ValidaFormale(PrimoInvio(nota: "Nota con \"apici\", \\ barre, a capo\n ed emoji 🚀"), Utente), Is.Empty);
     }
 
-    [TestCase(null, TestName = "Anno(null)")]
-    [TestCase(1999, TestName = "Anno(sotto il minimo)")]
-    [TestCase(0, TestName = "Anno(zero)")]
-    [TestCase(-2093, TestName = "Anno(negativo)")]
-    [TestCase(10000, TestName = "Anno(cinque cifre)")]
+    [TestCase(null, TestName = "AnnoNonValido_ShouldEssereRifiutato(Anno: null)")]
+    [TestCase(1999, TestName = "AnnoNonValido_ShouldEssereRifiutato(Anno: sotto il minimo)")]
+    [TestCase(0, TestName = "AnnoNonValido_ShouldEssereRifiutato(Anno: zero)")]
+    [TestCase(-2093, TestName = "AnnoNonValido_ShouldEssereRifiutato(Anno: negativo)")]
+    [TestCase(10000, TestName = "AnnoNonValido_ShouldEssereRifiutato(Anno: cinque cifre)")]
     public void AnnoNonValido_ShouldEssereRifiutato(int? anno)
     {
         Assert.That(InvioSapRegole.ValidaFormale(PrimoInvio(anno: anno), Utente), Is.EqualTo(new[] { InvioSapRegole.ErroreAnno }));
     }
 
-    [TestCase(null, TestName = "Mese(null)")]
-    [TestCase(0, TestName = "Mese(zero)")]
-    [TestCase(13, TestName = "Mese(13)")]
-    [TestCase(-1, TestName = "Mese(negativo)")]
+    [TestCase(null, TestName = "MeseNonValido_ShouldEssereRifiutato(Mese: null)")]
+    [TestCase(0, TestName = "MeseNonValido_ShouldEssereRifiutato(Mese: zero)")]
+    [TestCase(13, TestName = "MeseNonValido_ShouldEssereRifiutato(Mese: 13)")]
+    [TestCase(-1, TestName = "MeseNonValido_ShouldEssereRifiutato(Mese: negativo)")]
     public void MeseNonValido_ShouldEssereRifiutato(int? mese)
     {
         Assert.That(InvioSapRegole.ValidaFormale(PrimoInvio(mese: mese), Utente), Is.EqualTo(new[] { InvioSapRegole.ErroreMese }));
     }
 
-    [TestCase(null, TestName = "Tipologia(null)")]
-    [TestCase("", TestName = "Tipologia(vuota)")]
-    [TestCase("  ", TestName = "Tipologia(spazi)")]
+    [TestCase(null, TestName = "TipologiaMancante_ShouldEssereRifiutata(Tipologia: null)")]
+    [TestCase("", TestName = "TipologiaMancante_ShouldEssereRifiutata(Tipologia: vuota)")]
+    [TestCase("  ", TestName = "TipologiaMancante_ShouldEssereRifiutata(Tipologia: spazi)")]
     public void TipologiaMancante_ShouldEssereRifiutata(string? tipologia)
     {
         Assert.That(InvioSapRegole.ValidaFormale(PrimoInvio(tipologia: tipologia), Utente), Is.EqualTo(new[] { InvioSapRegole.ErroreTipologia }));
@@ -161,9 +161,9 @@ public class InvioSapRegoleGenerazioneTests
         Assert.That(InvioSapRegole.ValidaFormale(ReInvio(ids: []), Utente), Is.EqualTo(new[] { InvioSapRegole.ErroreSelezioneVuota }));
     }
 
-    [TestCase(new long[] { 0 }, TestName = "Id(zero)")]
-    [TestCase(new long[] { -1 }, TestName = "Id(negativo)")]
-    [TestCase(new long[] { 9502, long.MinValue }, TestName = "Id(long.MinValue)")]
+    [TestCase(new long[] { 0 }, TestName = "ReInvio_IdNonValido_ShouldEssereRifiutato(Id: zero)")]
+    [TestCase(new long[] { -1 }, TestName = "ReInvio_IdNonValido_ShouldEssereRifiutato(Id: negativo)")]
+    [TestCase(new long[] { 9502, long.MinValue }, TestName = "ReInvio_IdNonValido_ShouldEssereRifiutato(Id: long.MinValue)")]
     public void ReInvio_IdNonValido_ShouldEssereRifiutato(long[] ids)
     {
         Assert.That(InvioSapRegole.ValidaFormale(ReInvio(ids: ids), Utente), Does.Contain(InvioSapRegole.ErroreIdNonValido));
@@ -194,8 +194,8 @@ public class InvioSapRegoleGenerazioneTests
         Assert.That(InvioSapRegole.ValidaFormale(ReInvio(ids: [long.MaxValue]), Utente), Is.Empty);
     }
 
-    [TestCase(null, TestName = "Utente(null)")]
-    [TestCase("", TestName = "Utente(vuoto)")]
+    [TestCase(null, TestName = "UtenteMancante_ShouldEssereRifiutato(Utente: null)")]
+    [TestCase("", TestName = "UtenteMancante_ShouldEssereRifiutato(Utente: vuoto)")]
     public void UtenteMancante_ShouldEssereRifiutato(string? utente)
     {
         Assert.That(InvioSapRegole.ValidaFormale(PrimoInvio(), utente), Is.EqualTo(new[] { InvioSapRegole.ErroreUtente }));
@@ -245,9 +245,9 @@ public class InvioSapRegoleGenerazioneTests
         });
     }
 
-    [TestCase(2092, Mese, Tipologia, TestName = "FuoriGruppo(anno)")]
-    [TestCase(Anno, 2, Tipologia, TestName = "FuoriGruppo(mese)")]
-    [TestCase(Anno, Mese, "SECONDO SALDO", TestName = "FuoriGruppo(tipologia)")]
+    [TestCase(2092, Mese, Tipologia, TestName = "ReInvio_FatturaDiUnAltroRigo_ShouldEssere400(FuoriGruppo: anno)")]
+    [TestCase(Anno, 2, Tipologia, TestName = "ReInvio_FatturaDiUnAltroRigo_ShouldEssere400(FuoriGruppo: mese)")]
+    [TestCase(Anno, Mese, "SECONDO SALDO", TestName = "ReInvio_FatturaDiUnAltroRigo_ShouldEssere400(FuoriGruppo: tipologia)")]
     public void ReInvio_FatturaDiUnAltroRigo_ShouldEssere400(int anno, int mese, string tipologia)
     {
         var esito = InvioSapRegole.ValidaReInvio(ReInvio(), [Fattura(9502), Fattura(9503, anno: anno, mese: mese, tipologia: tipologia)]);
@@ -265,8 +265,8 @@ public class InvioSapRegoleGenerazioneTests
         Assert.That(InvioSapRegole.ValidaReInvio(ReInvio(tipologia: " primo saldo "), [Fattura(9502), Fattura(9503)]), Is.Null);
     }
 
-    [TestCase(false, TestName = "NonInviata(FatturaInviata = 0)")]
-    [TestCase(null, TestName = "NonInviata(FatturaInviata = NULL, in elaborazione)")]
+    [TestCase(false, TestName = "ReInvio_FatturaNonInviata_ShouldEssere400(NonInviata: FatturaInviata = 0)")]
+    [TestCase(null, TestName = "ReInvio_FatturaNonInviata_ShouldEssere400(NonInviata: FatturaInviata = NULL, in elaborazione)")]
     public void ReInvio_FatturaNonInviata_ShouldEssere400(bool? inviata)
     {
         var esito = InvioSapRegole.ValidaReInvio(ReInvio(), [Fattura(9502), Fattura(9503, inviata: inviata)]);

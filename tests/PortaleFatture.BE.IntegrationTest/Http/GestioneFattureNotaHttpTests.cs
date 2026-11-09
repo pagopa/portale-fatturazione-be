@@ -31,6 +31,7 @@ namespace PortaleFatture.BE.IntegrationTest.Http;
 ///
 /// Richiede il container di test attivo (da tests/: docker compose up -d --build).
 /// </summary>
+[Category("GestioneFatture")]
 public class GestioneFattureNotaHttpTests
 {
     private const string Rotta = "/api/fatture/pagopa/gestione-fatture/azione";
@@ -94,10 +95,10 @@ public class GestioneFattureNotaHttpTests
     // Le due parti che il backend NON applica — caratterizzazione
     // =============================================================================================
 
-    [TestCase(1, TestName = "NotaFuoriLimite_OggiAccettata(1 carattere)")]
-    [TestCase(9, TestName = "NotaFuoriLimite_OggiAccettata(9 caratteri, sotto il minimo)")]
-    [TestCase(501, TestName = "NotaFuoriLimite_OggiAccettata(501 caratteri, oltre il massimo)")]
-    [TestCase(5000, TestName = "NotaFuoriLimite_OggiAccettata(5000 caratteri)")]
+    [TestCase(1, TestName = "NotaFuoriLimite_OggiAccettata_Caratterizzazione(NotaFuoriLimite_OggiAccettata: 1 carattere)")]
+    [TestCase(9, TestName = "NotaFuoriLimite_OggiAccettata_Caratterizzazione(NotaFuoriLimite_OggiAccettata: 9 caratteri, sotto il minimo)")]
+    [TestCase(501, TestName = "NotaFuoriLimite_OggiAccettata_Caratterizzazione(NotaFuoriLimite_OggiAccettata: 501 caratteri, oltre il massimo)")]
+    [TestCase(5000, TestName = "NotaFuoriLimite_OggiAccettata_Caratterizzazione(NotaFuoriLimite_OggiAccettata: 5000 caratteri)")]
     public async Task NotaFuoriLimite_OggiAccettata_Caratterizzazione(int lunghezza)
     {
         var testo = new string('x', lunghezza);

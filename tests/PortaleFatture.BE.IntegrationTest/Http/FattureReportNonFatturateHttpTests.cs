@@ -26,6 +26,7 @@ namespace PortaleFatture.BE.IntegrationTest.Http;
 ///
 /// Richiede il container di test attivo (da tests/: docker compose up -d --build).
 /// </summary>
+[Category("Fatture")]
 public class FattureReportNonFatturateHttpTests
 {
     private const string Rotta = "/api/fatture/report";
@@ -220,13 +221,38 @@ public class FattureReportNonFatturateHttpTests
     private const string MeseAnticipoNome = "MAGGIO";
 
     /// <summary>
-    /// Le query dei report di anticipo e acconto leggono quattro viste LEGACY che non sono nel seed:
-    /// senza, la rotta risponde 500 per qualunque periodo. Serve la DDL reale da DATA (non si
-    /// ricostruiscono a mano); fino ad allora i test PF-984 qui sotto restano GIALLI.
+    /// Le query dei report di anticipo e acconto leggono viste LEGACY: dal 06/11/2026 sono nel seed con la
+    /// DDL reale (tests/Data/views/96a-96e). La guardia resta per un container costruito prima.
+    ///
+    /// ⚠️ Il report ACCONTO esiste solo se l'ente ha una riga pfd.NotificheCount per il periodo:
+    /// FattureAccontoFatturaExcelBuilder mette la condizione sul periodo di NotificheCount nell'ON della
+    /// INNER JOIN su Contratti, e cosi' la LEFT JOIN diventa di fatto interna (comportamento attuale, da
+    /// chiarire se voluto). La riga per l'ente 3 su 2026/5 la semina quindi questa guardia, e Pulisci la toglie.
     /// </summary>
-    private static void SkipSeMancanoLeVistePf984() =>
+    private static void SkipSeMancanoLeVistePf984()
+    {
         TestDb.SkipSeOggettoAssente(LocalTestDb.ConnectionString,
-            "pfd.vModuloCommessaTotali", "pfd.vModuloCommessaParziali", "pfd.vFattureAnticipo", "pfd.vFattureAcconto");
+            "pfd.vModuloCommessaTotali", "pfd.vModuloCommessaParziali", "pfd.vFattureAnticipo",
+            "pfd.vFattureAnticipoEliminate", "pfd.vFattureAcconto");
+        Esegui($@"
+            IF NOT EXISTS (SELECT 1 FROM pfd.NotificheCount
+                           WHERE internal_organization_id='{EnteAnticipo}' AND [year]={AnnoAnticipo} AND [month]={MeseAnticipo})
+            INSERT INTO pfd.NotificheCount (internal_organization_id, contract_id, [year], [month],
+                TotaleAnalogico, TotaleDigitale, TotaleNotificheAnalogiche, TotaleNotificheDigitali, Totale)
+            VALUES ('{EnteAnticipo}', 'integration-test-pf984', {AnnoAnticipo}, {MeseAnticipo}, 0, 0, 0, 0, 0);");
+    }
+
+    /// <summary>Ente 3 (PAL) del seed, intestatario delle fatture 2001 (ANTICIPO) e 2002 (ACCONTO).</summary>
+    private const string EnteAnticipo = "33333333-3333-3333-3333-333333333333";
+
+    /// <summary>
+    /// Il report per tipologia legge TUTTO lo staging, senza filtro sull'anno: nel seed statico c'e' una
+    /// ANTICIPO 2025/3 ELIMINATA dell'ente 3, quindi nel report ANTICIPO lo sheet "Non Fatturate" c'e'
+    /// sempre, ed e' giusto cosi'. I test "nessuno sheet" verificano allora che lo sheet non contenga lo
+    /// staging seminato da loro, che sta sull'anno riservato AnnoStaging.
+    /// </summary>
+    private static bool ContieneStagingDelTest(Dictionary<string, string> perFoglio) =>
+        perFoglio.Any(f => f.Key.StartsWith("Non Fatturate") && f.Value.Contains(AnnoStaging.ToString()));
 
     [TestCase("ANTICIPO")]
     [TestCase("ACCONTO")]
@@ -268,12 +294,12 @@ public class FattureReportNonFatturateHttpTests
         // deve far comparire lo sheet nel report di questa.
         SeminaStaging(altra, 1);
 
-        var (stato, fogli, _, _) = await ReportPeriodo(AnnoAnticipo, MeseAnticipo, tipologia);
+        var (stato, fogli, _, perFoglio) = await ReportPeriodo(AnnoAnticipo, MeseAnticipo, tipologia);
 
         Assert.That(stato, Is.EqualTo(HttpStatusCode.OK));
         Assert.That(fogli, Is.Not.Empty, "Il report ha i suoi fogli: il confronto e' significativo.");
-        Assert.That(fogli.Any(f => f.StartsWith("Non Fatturate")), Is.False,
-            $"Solo staging di {altra}: nel report {tipologia} lo sheet non va aggiunto.");
+        Assert.That(ContieneStagingDelTest(perFoglio), Is.False,
+            $"Solo staging di {altra}: nel report {tipologia} quella riga non deve comparire.");
     }
 
     [Test]
@@ -310,10 +336,10 @@ public class FattureReportNonFatturateHttpTests
         // Stato 2 = CANCELLATA: non e' ne' posticipata ne' eliminata, quindi non e' "non fatturata".
         SeminaStaging("ANTICIPO", 1, stato: 2, azione: "CANCELLATA");
 
-        var (stato, fogli, _, _) = await ReportPeriodo(AnnoAnticipo, MeseAnticipo, "ANTICIPO");
+        var (stato, _, _, perFoglio) = await ReportPeriodo(AnnoAnticipo, MeseAnticipo, "ANTICIPO");
 
         Assert.That(stato, Is.EqualTo(HttpStatusCode.OK));
-        Assert.That(fogli.Any(f => f.StartsWith("Non Fatturate")), Is.False);
+        Assert.That(ContieneStagingDelTest(perFoglio), Is.False, "Una CANCELLATA non e' una non fatturata.");
     }
 
     // =============================================================================================
@@ -468,7 +494,9 @@ public class FattureReportNonFatturateHttpTests
         DELETE FROM cfg.GestioneFatture WHERE FkIdEnte='{EnteNonInviata}' AND Anno={AnnoStaging};
         DELETE FROM pfd.FattureRighe WHERE FkIdFattura = {IdFatturaNonInviata};
         DELETE FROM pfd.RelTestata
-            WHERE internal_organization_id='{EnteNonInviata}' AND [year]=2026 AND [month]=7;");
+            WHERE internal_organization_id='{EnteNonInviata}' AND [year]=2026 AND [month]=7;
+        DELETE FROM pfd.NotificheCount
+            WHERE internal_organization_id='{EnteAnticipo}' AND contract_id='integration-test-pf984';");
 
     private static void Esegui(string sql)
     {

@@ -17,6 +17,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// SP e poter costruire lo scenario 1:N (una emessa che consolida piu' temporanee) senza dipendere dai
 /// gate di tipologia del wrapper.
 /// </summary>
+[Category("GestioneFatture")]
 public class GestioneFattureEliminaFatturaSpIntegrationTests
 {
     private const string Ente3 = "33333333-3333-3333-3333-333333333333";

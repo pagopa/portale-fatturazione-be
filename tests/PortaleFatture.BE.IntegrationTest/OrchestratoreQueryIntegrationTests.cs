@@ -40,6 +40,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 ///
 /// Richiede il container di test attivo (da tests/: docker compose up -d --build).
 /// </summary>
+[Category("Orchestratore")]
 public class OrchestratoreQueryIntegrationTests
 {
     private IMediator _handler;

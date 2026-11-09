@@ -18,6 +18,7 @@ namespace PortaleFatture.BE.IntegrationTest.Http;
 ///
 /// Sandbox: Anno 2099, come i test sui command. Cleanup per anno.
 /// </summary>
+[Category("Fatture")]
 public class FattureWhiteListHttpTests
 {
     private const int AnnoSandbox = 2099;

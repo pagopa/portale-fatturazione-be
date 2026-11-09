@@ -73,5 +73,35 @@ services:
       StorageRELBlobContainerName: "fat-test-public"
       StorageRELBlobEndpoint: "http://azurite:10000/devstoreaccount1"
 
+  # ---------------------------------------------------------------------------------------------
+  # Profilo "email": un server SMTP finto per i test di EmailSender (EmailSenderContainerTests), al
+  # posto dei provider reali. EmailSender usa TLS IMPLICITO (SslOnConnect, 465), autenticazione e la
+  # validazione standard del certificato: smtp4dev e' scelto perche' fa TLS implicito e accetta
+  # qualunque credenziale; il certificato e' quello di sviluppo "localhost" di .NET, gia' fidato
+  # sulla macchina dello sviluppatore. Si alza con
+  #     dotnet dev-certs https -ep .certs/smtp4dev-localhost.pfx -p smtp4dev-locale
+  #     docker compose --profile email up -d
+  # Il .pfx contiene una chiave privata: resta in tests/.certs, escluso da Git (*.pfx), e NON va
+  # mai committato (repository pubblico). La password non e' un segreto: protegge solo un
+  # certificato di sviluppo locale, valido unicamente per "localhost".
+  # Posta ricevuta: interfaccia e API REST su http://localhost:5080.
+  # ---------------------------------------------------------------------------------------------
+  smtp4dev:
+    container_name: portalefatture_smtp4dev
+    image: rnwood/smtp4dev:3.8.6
+    profiles: ["email"]
+    restart: unless-stopped
+    ports:
+      - "2465:465"
+      - "5080:80"
+    volumes:
+      - ./.certs:/certs:ro
+    environment:
+      ServerOptions__Port: "465"
+      ServerOptions__TlsMode: "ImplicitTls"
+      ServerOptions__HostName: "localhost"
+      ServerOptions__TlsCertificate: "/certs/smtp4dev-localhost.pfx"
+      ServerOptions__TlsCertificatePassword: "smtp4dev-locale"
+
 volumes:
   mssqldata:       

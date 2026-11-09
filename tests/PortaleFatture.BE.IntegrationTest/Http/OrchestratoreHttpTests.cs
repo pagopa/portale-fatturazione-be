@@ -21,6 +21,7 @@ namespace PortaleFatture.BE.IntegrationTest.Http;
 ///
 /// Richiede il container di test attivo (da tests/: docker compose up -d --build).
 /// </summary>
+[Category("Orchestratore")]
 public class OrchestratoreHttpTests
 {
     private ApiTestFactory _factory;

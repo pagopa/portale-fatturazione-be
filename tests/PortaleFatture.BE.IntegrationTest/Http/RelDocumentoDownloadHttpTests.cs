@@ -22,6 +22,7 @@ namespace PortaleFatture.BE.IntegrationTest.Http;
 /// Richiede il container di test attivo (da tests/: docker compose up -d --build).
 /// </summary>
 [TestFixture]
+[Category("Rel")]
 public class RelDocumentoDownloadHttpTests
 {
     private const string EnteDedicato = "99799799-0997-0997-0997-099709970997";

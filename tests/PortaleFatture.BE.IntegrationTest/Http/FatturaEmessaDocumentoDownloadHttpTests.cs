@@ -22,6 +22,7 @@ namespace PortaleFatture.BE.IntegrationTest.Http;
 /// Richiede il container di test attivo (da tests/: docker compose up -d --build).
 /// </summary>
 [TestFixture]
+[Category("Fatture")]
 public class FatturaEmessaDocumentoDownloadHttpTests
 {
     private const string Vista = "pfd.vwFatturaEmessaDownloadPDF";

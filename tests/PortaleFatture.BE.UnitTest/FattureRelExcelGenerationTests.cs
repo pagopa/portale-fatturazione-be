@@ -9,6 +9,7 @@ namespace PortaleFatture.BE.UnitTest;
 /// Unit test della generazione Excel (in-memory, nessun DB): verificano che la colonna "Rel Non Firmata"
 /// compaia SOLO nei fogli sospesi. Costruiscono i DTO a mano e invocano direttamente i metodi di report.
 /// </summary>
+[Category("Fatture")]
 public class FattureRelExcelGenerationTests
 {
     private const string Caption = "Rel Non Firmata";

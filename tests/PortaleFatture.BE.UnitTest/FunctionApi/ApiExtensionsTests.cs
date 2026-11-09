@@ -13,6 +13,7 @@ namespace PortaleFatture.BE.UnitTest.FunctionApi;
 /// ApiExtensionsAdversarialTests.
 /// </summary>
 [TestFixture]
+[Category("IntegrationApi")]
 public class ApiExtensionsTests
 {
     private const string UrlBase = "https://integration.uat.portalefatturazione.pagopa.it/api/v1/notifiche/periodo";

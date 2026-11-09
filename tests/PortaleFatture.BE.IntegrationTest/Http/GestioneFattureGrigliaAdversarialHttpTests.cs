@@ -26,6 +26,7 @@ namespace PortaleFatture.BE.IntegrationTest.Http;
 ///
 /// Richiede il container di test attivo (da tests/: docker compose up -d --build).
 /// </summary>
+[Category("GestioneFatture")]
 public class GestioneFattureGrigliaAdversarialHttpTests
 {
     private const string RottaGriglia = "/api/fatture/pagopa/gestione-fatture";
@@ -46,9 +47,9 @@ public class GestioneFattureGrigliaAdversarialHttpTests
     // Injection
     // =============================================================================================
 
-    [TestCase("' OR '1'='1", TestName = "Injection(OR 1=1)")]
-    [TestCase("'; DROP TABLE cfg.GestioneFatture; --", TestName = "Injection(DROP TABLE)")]
-    [TestCase("' UNION SELECT NULL,NULL,NULL --", TestName = "Injection(UNION)")]
+    [TestCase("' OR '1'='1", TestName = "FiltriStringa_ConInjection_ShouldRestareValori_ELaTabellaSopravvive(Injection: OR 1=1)")]
+    [TestCase("'; DROP TABLE cfg.GestioneFatture; --", TestName = "FiltriStringa_ConInjection_ShouldRestareValori_ELaTabellaSopravvive(Injection: DROP TABLE)")]
+    [TestCase("' UNION SELECT NULL,NULL,NULL --", TestName = "FiltriStringa_ConInjection_ShouldRestareValori_ELaTabellaSopravvive(Injection: UNION)")]
     public async Task FiltriStringa_ConInjection_ShouldRestareValori_ELaTabellaSopravvive(string ostile)
     {
         var righeIniziali = RigheInTabella();
@@ -128,8 +129,8 @@ public class GestioneFattureGrigliaAdversarialHttpTests
         Assert.That((int)stato, Is.LessThan(500));
     }
 
-    [TestCase(0, TestName = "PaginazioneOstile_Oggi500(page 0)")]
-    [TestCase(-1, TestName = "PaginazioneOstile_Oggi500(page negativa)")]
+    [TestCase(0, TestName = "PaginazioneOstile_OggiDa500_Caratterizzazione(PaginazioneOstile_Oggi500: page 0)")]
+    [TestCase(-1, TestName = "PaginazioneOstile_OggiDa500_Caratterizzazione(PaginazioneOstile_Oggi500: page negativa)")]
     public async Task PaginazioneOstile_OggiDa500_Caratterizzazione(int page)
     {
         var (stato, _) = await GrigliaGrezza("""{ "anno": 2025 }""", page, 50);

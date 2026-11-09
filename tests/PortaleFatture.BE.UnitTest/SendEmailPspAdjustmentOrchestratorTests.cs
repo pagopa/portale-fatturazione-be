@@ -7,6 +7,7 @@ using PortaleFatture_BE_SendEmailFunction.Orchestrators;
 
 namespace PortaleFatture.BE.UnitTest;
 
+[Category("PagoPA")]
 public class SendEmailPspAdjustmentOrchestratorTests
 {
     [Test]

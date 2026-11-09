@@ -25,6 +25,7 @@ namespace PortaleFatture.BE.UnitTest;
 /// </list>
 /// </summary>
 [TestFixture]
+[Category("LanguageService")]
 public class LanguageServiceAutenticazioneTests
 {
     private const string Endpoint = "https://esempio.cognitiveservices.azure.com/";

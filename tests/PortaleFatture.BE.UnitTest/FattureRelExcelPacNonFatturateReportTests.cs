@@ -11,6 +11,7 @@ namespace PortaleFatture.BE.UnitTest;
 /// valorizzate. Qui si verifica come la scrive `ReportFattureRel` nello sheet "Regolari Esecuzioni",
 /// e che non tocchi gli altri sheet. In memoria, senza DB.
 /// </summary>
+[Category("Fatture")]
 public class FattureRelExcelPacNonFatturateReportTests
 {
     private const string Month = "Agosto";

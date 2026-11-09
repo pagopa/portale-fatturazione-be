@@ -31,6 +31,7 @@ namespace PortaleFatture.BE.IntegrationTest.Http;
 ///
 /// Richiede il container di test attivo (da tests/: docker compose up -d --build).
 /// </summary>
+[Category("GestioneFatture")]
 public class GestioneFattureGrigliaFiltriHttpTests
 {
     private const string Ente1 = "11111111-1111-1111-1111-111111111111"; // SECONDO SALDO 2025/1, POSTICIPATA, PAC (2)

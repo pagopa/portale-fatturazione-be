@@ -27,6 +27,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// La forma di quella stringa e' fissata da `RispostaRelRigheContrattoTests` (unit); qui si verifica
 /// QUANDO viene prodotta.
 /// </summary>
+[Category("Rel")]
 public class CreateRelRigheAttivitaIntegrationTests
 {
     // Periodo che nel seed non ha alcuna RelTestata: e' cio' che si vuole esercitare. Volutamente

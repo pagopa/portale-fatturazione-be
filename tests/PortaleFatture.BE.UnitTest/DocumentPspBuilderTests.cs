@@ -5,6 +5,7 @@ using PortaleFatture.BE.Infrastructure.Common.pagoPA.FinancialReports.Dto;
 
 namespace PortaleFatture.BE.UnitTest;
 
+[Category("PagoPA")]
 public class DocumentPspBuilderTests
 {
     [Test]

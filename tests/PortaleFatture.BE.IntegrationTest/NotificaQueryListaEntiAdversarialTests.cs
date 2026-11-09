@@ -25,6 +25,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// solo **scomodo ma voluto** (liste vuote che non filtrano, limite di parametri di SQL Server) il
 /// test e' attivo e fissa cosa succede oggi.
 /// </summary>
+[Category("Notifiche")]
 public class NotificaQueryListaEntiAdversarialTests
 {
     private const string Ente = "11111111-1111-1111-1111-111111111111";
@@ -63,11 +64,11 @@ public class NotificaQueryListaEntiAdversarialTests
         + "TUTTE le notifiche invece di quella richiesta, senza errore. Il test asserisce il "
         + "comportamento CORRETTO (zero righe): togliere questo attributo quando il WHERE verra' "
         + "composto con un accumulatore di condizioni invece di dipendere dal filtro sull'anno.")]
-    [TestCase("iun", TestName = "senza anno · IUN inesistente")]
-    [TestCase("mese", TestName = "senza anno · mese senza notifiche")]
-    [TestCase("ente", TestName = "senza anno · ente senza notifiche")]
-    [TestCase("cap", TestName = "senza anno · CAP inesistente")]
-    [TestCase("recipient", TestName = "senza anno · destinatario inesistente")]
+    [TestCase("iun", TestName = "FiltroSenzaAnno_ShouldEssereApplicato(senza anno - IUN inesistente)")]
+    [TestCase("mese", TestName = "FiltroSenzaAnno_ShouldEssereApplicato(senza anno - mese senza notifiche)")]
+    [TestCase("ente", TestName = "FiltroSenzaAnno_ShouldEssereApplicato(senza anno - ente senza notifiche)")]
+    [TestCase("cap", TestName = "FiltroSenzaAnno_ShouldEssereApplicato(senza anno - CAP inesistente)")]
+    [TestCase("recipient", TestName = "FiltroSenzaAnno_ShouldEssereApplicato(senza anno - destinatario inesistente)")]
     public async Task FiltroSenzaAnno_ShouldEssereApplicato(string filtro)
     {
         var query = new NotificaQueryGetByListaEnti(Auth());
@@ -112,8 +113,8 @@ public class NotificaQueryListaEntiAdversarialTests
         + "SqlException su un parametro mancante, cioe' un 500. Il test asserisce il comportamento "
         + "CORRETTO (rispondere, completando il parametro mancante con un default): togliere questo "
         + "attributo quando la paginazione parziale verra' gestita.")]
-    [TestCase(1, null, TestName = "paginazione · page senza size")]
-    [TestCase(null, 10, TestName = "paginazione · size senza page")]
+    [TestCase(1, null, TestName = "PaginazioneParziale_ShouldRispondereSenzaErrori(paginazione - page senza size)")]
+    [TestCase(null, 10, TestName = "PaginazioneParziale_ShouldRispondereSenzaErrori(paginazione - size senza page)")]
     public async Task PaginazioneParziale_ShouldRispondereSenzaErrori(int? page, int? size)
     {
         var query = Base();
@@ -160,8 +161,8 @@ public class NotificaQueryListaEntiAdversarialTests
     // Injection e valori ostili
     // ---------------------------------------------------------------------------------------------
 
-    [TestCase("IUN-3001'; DROP TABLE pfd.Notifiche; --", TestName = "injection · IUN")]
-    [TestCase("' OR '1'='1", TestName = "injection · IUN sempre vero")]
+    [TestCase("IUN-3001'; DROP TABLE pfd.Notifiche; --", TestName = "InjectionNelloIun_ShouldEssereValoreNonSql(injection - IUN)")]
+    [TestCase("' OR '1'='1", TestName = "InjectionNelloIun_ShouldEssereValoreNonSql(injection - IUN sempre vero)")]
     public async Task InjectionNelloIun_ShouldEssereValoreNonSql(string ostile)
     {
         var query = Base();

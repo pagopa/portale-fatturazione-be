@@ -17,6 +17,7 @@ namespace PortaleFatture.BE.UnitTest;
 /// eseguito davvero qui, ed e' il motivo per cui una regressione del suo aggiornamento si vedrebbe
 /// in questi test.
 /// </summary>
+[Category("Autenticazione")]
 public class JwtTokenServiceTests
 {
     // HmacSha256 vuole una chiave di almeno 256 bit: sotto i 32 caratteri IdentityModel rifiuta.

@@ -44,6 +44,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// cosi' la suite resta verde, il debito resta visibile, e il giorno in cui qualcuno ripara la
 /// persistence la caratterizzazione diventa rossa e obbliga a chiudere anche l'`[Ignore]`.
 /// </summary>
+[Category("Notifiche")]
 public class NotificaQueryListaEntiV2AdversarialTests
 {
     private const string Ente = "11111111-1111-1111-1111-111111111111";
@@ -65,16 +66,16 @@ public class NotificaQueryListaEntiV2AdversarialTests
     /// Il raggio d'azione del difetto, filtro per filtro: e' l'elenco di cosa **non** si puo' cercare
     /// oggi dalla maschera admin della v2. Ogni caso corrisponde a un campo della UI.
     /// </summary>
-    [TestCase("iun", "Must declare the scalar variable", TestName = "scalare · IUN")]
-    [TestCase("cap", "Must declare the scalar variable", TestName = "scalare · CAP")]
-    [TestCase("profilo", "Must declare the scalar variable", TestName = "scalare · profilo")]
-    [TestCase("prodotto", "Must declare the scalar variable", TestName = "scalare · prodotto")]
-    [TestCase("recipient", "Must declare the scalar variable", TestName = "scalare · destinatario")]
-    [TestCase("enti", "Incorrect syntax near", TestName = "lista · enti")]
-    [TestCase("recapitisti", "Incorrect syntax near", TestName = "lista · recapitisti")]
-    [TestCase("consolidatori", "Incorrect syntax near", TestName = "lista · consolidatori")]
-    [TestCase("tipoNotifica", "Incorrect syntax near", TestName = "lista · tipo notifica")]
-    [TestCase("statoMulti", "Incorrect syntax near", TestName = "lista · stato contestazione (piu' di uno)")]
+    [TestCase("iun", "Must declare the scalar variable", TestName = "OgniFiltroOltreIlPeriodo_OggiFallisce_Caratterizzazione(scalare - IUN)")]
+    [TestCase("cap", "Must declare the scalar variable", TestName = "OgniFiltroOltreIlPeriodo_OggiFallisce_Caratterizzazione(scalare - CAP)")]
+    [TestCase("profilo", "Must declare the scalar variable", TestName = "OgniFiltroOltreIlPeriodo_OggiFallisce_Caratterizzazione(scalare - profilo)")]
+    [TestCase("prodotto", "Must declare the scalar variable", TestName = "OgniFiltroOltreIlPeriodo_OggiFallisce_Caratterizzazione(scalare - prodotto)")]
+    [TestCase("recipient", "Must declare the scalar variable", TestName = "OgniFiltroOltreIlPeriodo_OggiFallisce_Caratterizzazione(scalare - destinatario)")]
+    [TestCase("enti", "Incorrect syntax near", TestName = "OgniFiltroOltreIlPeriodo_OggiFallisce_Caratterizzazione(lista - enti)")]
+    [TestCase("recapitisti", "Incorrect syntax near", TestName = "OgniFiltroOltreIlPeriodo_OggiFallisce_Caratterizzazione(lista - recapitisti)")]
+    [TestCase("consolidatori", "Incorrect syntax near", TestName = "OgniFiltroOltreIlPeriodo_OggiFallisce_Caratterizzazione(lista - consolidatori)")]
+    [TestCase("tipoNotifica", "Incorrect syntax near", TestName = "OgniFiltroOltreIlPeriodo_OggiFallisce_Caratterizzazione(lista - tipo notifica)")]
+    [TestCase("statoMulti", "Incorrect syntax near", TestName = "OgniFiltroOltreIlPeriodo_OggiFallisce_Caratterizzazione(lista - stato contestazione: piu' di uno)")]
     public void OgniFiltroOltreIlPeriodo_OggiFallisce_Caratterizzazione(string filtro, string messaggio)
     {
         var ex = Assert.ThrowsAsync<SqlException>(async () => await Cerca(q => Applica(q, filtro)));
@@ -94,9 +95,9 @@ public class NotificaQueryListaEntiV2AdversarialTests
         + "di Dapper, non T-SQL) e produce un 500. L'ExpandoObject che li conteneva tutti e' rimasto "
         + "nel codice ma non e' piu' letto da nessuno. Togliere questo attributo quando i parametri "
         + "saranno passati al comando e le liste espanse.")]
-    [TestCase("iun", new[] { "EVT-3002" }, TestName = "atteso · IUN seleziona la singola notifica")]
-    [TestCase("enti", new[] { "EVT-3001", "EVT-3002", "EVT-3003" }, TestName = "atteso · ente seleziona le sue")]
-    [TestCase("tipoNotifica", new[] { "EVT-3002" }, TestName = "atteso · tipo notifica seleziona le 890")]
+    [TestCase("iun", new[] { "EVT-3002" }, TestName = "OgniFiltroOltreIlPeriodo_ShouldFiltrareComeNellaV1(atteso - IUN seleziona la singola notifica)")]
+    [TestCase("enti", new[] { "EVT-3001", "EVT-3002", "EVT-3003" }, TestName = "OgniFiltroOltreIlPeriodo_ShouldFiltrareComeNellaV1(atteso - ente seleziona le sue)")]
+    [TestCase("tipoNotifica", new[] { "EVT-3002" }, TestName = "OgniFiltroOltreIlPeriodo_ShouldFiltrareComeNellaV1(atteso - tipo notifica seleziona le 890)")]
     public async Task OgniFiltroOltreIlPeriodo_ShouldFiltrareComeNellaV1(string filtro, string[] attesi)
     {
         var r = await Cerca(q => Applica(q, filtro));
@@ -194,8 +195,8 @@ public class NotificaQueryListaEntiV2AdversarialTests
         + "rifiuta. Sulla v2 e' raggiungibile semplicemente omettendo page/pageSize dalla query "
         + "string, che il binding lega a 0. Togliere questo attributo quando la size sara' validata "
         + "sull'endpoint (o normalizzata a un default).")]
-    [TestCase(1, 0, TestName = "paginazione · size esplicita a zero")]
-    [TestCase(0, 0, TestName = "paginazione · page e size assenti dalla query string")]
+    [TestCase(1, 0, TestName = "SizeZero_ShouldRestituirePaginaVuota_NonUnErrore(paginazione - size esplicita a zero)")]
+    [TestCase(0, 0, TestName = "SizeZero_ShouldRestituirePaginaVuota_NonUnErrore(paginazione - page e size assenti dalla query string)")]
     public async Task SizeZero_ShouldRestituirePaginaVuota_NonUnErrore(int page, int size)
     {
         var r = await Cerca(q => { q.Page = page; q.Size = size; });

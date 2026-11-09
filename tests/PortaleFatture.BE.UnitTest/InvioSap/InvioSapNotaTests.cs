@@ -29,13 +29,13 @@ public class InvioSapNotaTests
         });
     }
 
-    [TestCase(null, TestName = "Aggregato(null)")]
-    [TestCase("", TestName = "Aggregato(vuoto)")]
-    [TestCase("   ", TestName = "Aggregato(spazi)")]
-    [TestCase("[]", TestName = "Aggregato(array vuoto)")]
-    [TestCase("{\"Nota\":{}}", TestName = "Aggregato(oggetto, non array)")]
-    [TestCase("[{\"Nota\":", TestName = "Aggregato(troncato)")]
-    [TestCase("non json", TestName = "Aggregato(testo)")]
+    [TestCase(null, TestName = "Aggregato_NonLeggibile_ShouldDareListaVuota_SenzaEccezioni(Aggregato: null)")]
+    [TestCase("", TestName = "Aggregato_NonLeggibile_ShouldDareListaVuota_SenzaEccezioni(Aggregato: vuoto)")]
+    [TestCase("   ", TestName = "Aggregato_NonLeggibile_ShouldDareListaVuota_SenzaEccezioni(Aggregato: spazi)")]
+    [TestCase("[]", TestName = "Aggregato_NonLeggibile_ShouldDareListaVuota_SenzaEccezioni(Aggregato: array vuoto)")]
+    [TestCase("{\"Nota\":{}}", TestName = "Aggregato_NonLeggibile_ShouldDareListaVuota_SenzaEccezioni(Aggregato: oggetto, non array)")]
+    [TestCase("[{\"Nota\":", TestName = "Aggregato_NonLeggibile_ShouldDareListaVuota_SenzaEccezioni(Aggregato: troncato)")]
+    [TestCase("non json", TestName = "Aggregato_NonLeggibile_ShouldDareListaVuota_SenzaEccezioni(Aggregato: testo)")]
     public void Aggregato_NonLeggibile_ShouldDareListaVuota_SenzaEccezioni(string? json)
     {
         Assert.That(InvioSapNota.ParseNoteInvio(json), Is.Empty);

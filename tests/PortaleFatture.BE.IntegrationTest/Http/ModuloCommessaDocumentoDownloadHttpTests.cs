@@ -19,6 +19,7 @@ namespace PortaleFatture.BE.IntegrationTest.Http;
 /// Richiede il container di test attivo (da tests/: docker compose up -d --build).
 /// </summary>
 [TestFixture]
+[Category("ModuloCommessa")]
 public class ModuloCommessaDocumentoDownloadHttpTests
 {
     private const string Ente = "99799799-0997-0997-0997-0997099700cc";
@@ -161,7 +162,13 @@ public class ModuloCommessaDocumentoDownloadHttpTests
             Assert.That(html, Does.Contain("contatto997@ente.it"));
             Assert.That(html, Does.Contain("GENNAIO/2027"), "mese di attivita'");
             Assert.That(html, Does.Contain("Totale notifiche da processare"));
-            Assert.That(html, Does.Contain("notifiche da processare in via digitale"), "righe del modulo per tipo spedizione");
+            // Le righe per tipo di spedizione prendono l'etichetta da pfw.CostoNotifiche.Descrizione (seminata
+            // qui sotto, con [data] sostituito dal mese), NON da pfw.TipoSpedizione. Fino al 06/11/2026 qui si
+            // cercava "notifiche da processare in via digitale": passava solo su un volume del DB con righe di
+            // CostoNotifiche lasciate da altro, ed e' diventato rosso al primo seed rigenerato da zero.
+            Assert.That(html, Does.Contain($"Digitale {Marcatore} GENNAIO/2027"), "riga digitale del modulo");
+            Assert.That(html, Does.Contain($"Analogico AR {Marcatore} GENNAIO/2027"), "riga analogico A/R del modulo");
+            Assert.That(html, Does.Contain($"Analogico 890 {Marcatore} GENNAIO/2027"), "riga analogico 890 del modulo");
             Assert.That(html, Does.Not.Contain("[Descrizione]").And.Not.Contain("[DatiModuloCommessa]").And.Not.Contain("[Contatti]"));
         });
     }

@@ -9,8 +9,10 @@ namespace PortaleFatture.BE.IntegrationTest;
 //
 // COME LANCIARE I SINGOLI TEST (dalla root del repo):
 //   - entrambi i casi reali:   dotnet test tests/PortaleFatture.BE.IntegrationTest --filter "Name~RealDelivery"
-//   - solo invio a email std:  dotnet test tests/PortaleFatture.BE.IntegrationTest --filter "Name=RealDelivery_EmailNormale"
-//   - solo invio a PEC:        dotnet test tests/PortaleFatture.BE.IntegrationTest --filter "Name=RealDelivery_PEC"
+//   - solo invio a email std:  dotnet test tests/PortaleFatture.BE.IntegrationTest --filter "Name~RealDelivery_EmailNormale"
+//   - solo invio a PEC:        dotnet test tests/PortaleFatture.BE.IntegrationTest --filter "Name~RealDelivery_PEC"
+//   (Name~ e non Name=: dal 06/11/2026 il nome del caso e' "SendEmail_RealSmtp_ShouldSucceed(RealDelivery_PEC)",
+//    con il metodo davanti, cosi' Esplora test lo mostra sotto il suo metodo.)
 //
 // SECRET RICHIESTI (User Secrets del progetto, mai committati). Per la prova usare una PEC Aruba
 // personale; per la validazione finale ripuntare gli stessi secret alla PEC di produzione:
@@ -23,6 +25,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 // S/MIME". NON è un problema del test né di MailKit: EmailSender invia HTML semplice (non firmato);
 // la firma è la "busta di trasporto" che il gestore PEC (Aruba) appone, e Outlook non riesce a
 // verificarla se sulla macchina manca la catena di CA del gestore. È cosmetico: il messaggio è integro.
+[Category("Email")]
 public class EmailSenderTests
 {
     private IConfiguration _conf;
@@ -42,8 +45,8 @@ public class EmailSenderTests
     //     dopo l'ok del cliente). L'email arriva davvero (nessuna cancellazione). ---
 
     [Explicit]
-    [TestCase(false, TestName = "RealDelivery_EmailNormale")]
-    [TestCase(true, TestName = "RealDelivery_PEC")]
+    [TestCase(false, TestName = "SendEmail_RealSmtp_ShouldSucceed(RealDelivery_EmailNormale)")]
+    [TestCase(true, TestName = "SendEmail_RealSmtp_ShouldSucceed(RealDelivery_PEC)")]
     public void SendEmail_RealSmtp_ShouldSucceed(bool pec)
     {
         var sender = BuildRealSender();
@@ -59,8 +62,8 @@ public class EmailSenderTests
     //     usa TLS implicito (SslOnConnect) -> handshake "unexpected packet format".
     //
     // [Explicit]
-    // [TestCase(false, TestName = "Sandbox_EmailNormale")]
-    // [TestCase(true, TestName = "Sandbox_PEC")]
+    // [TestCase(false, TestName = "SendEmail_Sandbox_ShouldSucceed(Sandbox_EmailNormale)")]
+    // [TestCase(true, TestName = "SendEmail_Sandbox_ShouldSucceed(Sandbox_PEC)")]
     // public void SendEmail_Sandbox_ShouldSucceed(bool pec)
     // {
     //     var sender = BuildSandboxSender();

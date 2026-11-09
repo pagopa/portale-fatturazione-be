@@ -23,6 +23,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// I test "strutturali" (esecuzione, periodo vuoto, per-tipologia) validano schema/colonne e passano
 /// anche senza dati; quelli "data-dependent" ora asseriscono sul seed (niente piu' Inconclusive).
 /// </summary>
+[Category("Fatture")]
 public class FattureSospeseRelExcelQueryTests
 {
     private IMediator _handler;

@@ -31,6 +31,7 @@ namespace PortaleFatture.BE.UnitTest;
 /// esattamente la forma di codice in cui una modifica applicata a un ramo solo passa inosservata.
 /// Questa matrice serve a impedirlo.
 /// </summary>
+[Category("Contestazioni")]
 public class AzioneContestazioneMatriceUnitTests
 {
     // I valori di Profilo sono campi `static`, non `const`: non si possono usare in un [TestCase].
@@ -226,9 +227,9 @@ public class AzioneContestazioneMatriceUnitTests
     /// `Fatturata` a false o null. E' il caso reale della notifica gia' assegnata a un ciclo ma non
     /// ancora fatturata.
     /// </summary>
-    [TestCase(true, null, TestName = "lock · Fatturata = true")]
-    [TestCase(false, "PRIMO SALDO", TestName = "lock · TipologiaFattura valorizzata, Fatturata = false")]
-    [TestCase(null, "PRIMO SALDO", TestName = "lock · TipologiaFattura valorizzata, Fatturata = null")]
+    [TestCase(true, null, TestName = "IlLockScatta_SeFatturataOppureSeCiSonoTipologiaFattura(lock - Fatturata = true)")]
+    [TestCase(false, "PRIMO SALDO", TestName = "IlLockScatta_SeFatturataOppureSeCiSonoTipologiaFattura(lock - TipologiaFattura valorizzata, Fatturata = false)")]
+    [TestCase(null, "PRIMO SALDO", TestName = "IlLockScatta_SeFatturataOppureSeCiSonoTipologiaFattura(lock - TipologiaFattura valorizzata, Fatturata = null)")]
     public async Task IlLockScatta_SeFatturataOppureSeCiSonoTipologiaFattura(bool? fatturata, string? tipologia)
     {
         var esito = await Esegui(EntePA, StatoContestazione.NonContestata,

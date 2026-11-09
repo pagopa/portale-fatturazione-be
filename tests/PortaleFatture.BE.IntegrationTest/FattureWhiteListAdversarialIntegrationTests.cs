@@ -16,6 +16,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 ///
 /// Sandbox: Anno 2099, cleanup per anno.
 /// </summary>
+[Category("Fatture")]
 public class FattureWhiteListAdversarialIntegrationTests
 {
     private const int AnnoSandbox = 2099;
@@ -44,10 +45,10 @@ public class FattureWhiteListAdversarialIntegrationTests
     /// corrisponde a nessun periodo reale, quindi non escluderà mai niente — ma resta a DB e compare
     /// nella griglia dell'amministratore, che la leggerà come un'esclusione attiva.
     /// </summary>
-    [TestCase(0, TestName = "Mese · zero")]
-    [TestCase(13, TestName = "Mese · tredici")]
-    [TestCase(-1, TestName = "Mese · negativo")]
-    [TestCase(int.MaxValue, TestName = "Mese · int.MaxValue")]
+    [TestCase(0, TestName = "MesiFuoriScala_Caratterizzazione(Mese - zero)")]
+    [TestCase(13, TestName = "MesiFuoriScala_Caratterizzazione(Mese - tredici)")]
+    [TestCase(-1, TestName = "MesiFuoriScala_Caratterizzazione(Mese - negativo)")]
+    [TestCase(int.MaxValue, TestName = "MesiFuoriScala_Caratterizzazione(Mese - int.MaxValue)")]
     public async Task MesiFuoriScala_Caratterizzazione(int mese)
     {
         bool? esito = null;

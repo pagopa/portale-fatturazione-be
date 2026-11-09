@@ -13,6 +13,7 @@ namespace PortaleFatture.BE.IntegrationTest.Http;
 /// Seed (tests/Data/appio.sql): trimestre più recente 2026_2 con C1, C2, C3; C1 anche in 2026_1 e
 /// 2025_4; C4 solo in 2025_4. "AppIO Test" è nel nome di C1, C2, C4 ma non di C3.
 /// </summary>
+[Category("AppIO")]
 public class AppIoContrattiHttpTests
 {
     private const string Base = "/api/appio/contracts";

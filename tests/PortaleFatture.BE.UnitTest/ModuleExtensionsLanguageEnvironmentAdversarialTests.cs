@@ -20,6 +20,7 @@ namespace PortaleFatture.BE.UnitTest;
 /// </summary>
 [TestFixture]
 [NonParallelizable] // manipola variabili d'ambiente, che sono stato globale del processo
+[Category("LanguageService")]
 public class ModuleExtensionsLanguageEnvironmentAdversarialTests
 {
     private static readonly string[] Variabili =
@@ -45,16 +46,16 @@ public class ModuleExtensionsLanguageEnvironmentAdversarialTests
     /// valore precedente resta, e le rotte continuano a funzionare col default invece di ereditare un
     /// timeout casuale.
     /// </summary>
-    [TestCase("45,5", TestName = "decimale con virgola")]
-    [TestCase("45.5", TestName = "decimale con punto")]
-    [TestCase("1e3", TestName = "notazione esponenziale")]
-    [TestCase("0x2D", TestName = "esadecimale")]
-    [TestCase("1.000", TestName = "separatore delle migliaia")]
-    [TestCase("45 secondi", TestName = "numero con unita di misura")]
-    [TestCase("99999999999999999999", TestName = "oltre il range di int")]
-    [TestCase("-2147483649", TestName = "sotto il range di int")]
-    [TestCase("NaN", TestName = "NaN")]
-    [TestCase("\t\n", TestName = "solo spaziatura")]
+    [TestCase("45,5", TestName = "NumericoOstile_NonEntraInConfigurazione(decimale con virgola)")]
+    [TestCase("45.5", TestName = "NumericoOstile_NonEntraInConfigurazione(decimale con punto)")]
+    [TestCase("1e3", TestName = "NumericoOstile_NonEntraInConfigurazione(notazione esponenziale)")]
+    [TestCase("0x2D", TestName = "NumericoOstile_NonEntraInConfigurazione(esadecimale)")]
+    [TestCase("1.000", TestName = "NumericoOstile_NonEntraInConfigurazione(separatore delle migliaia)")]
+    [TestCase("45 secondi", TestName = "NumericoOstile_NonEntraInConfigurazione(numero con unita di misura)")]
+    [TestCase("99999999999999999999", TestName = "NumericoOstile_NonEntraInConfigurazione(oltre il range di int)")]
+    [TestCase("-2147483649", TestName = "NumericoOstile_NonEntraInConfigurazione(sotto il range di int)")]
+    [TestCase("NaN", TestName = "NumericoOstile_NonEntraInConfigurazione(NaN)")]
+    [TestCase("\t\n", TestName = "NumericoOstile_NonEntraInConfigurazione(solo spaziatura)")]
     public void NumericoOstile_NonEntraInConfigurazione(string valore)
     {
         Environment.SetEnvironmentVariable("LANGUAGE_TIMEOUTSECONDS", valore);
@@ -75,9 +76,9 @@ public class ModuleExtensionsLanguageEnvironmentAdversarialTests
     /// Forme che <c>int.TryParse</c> accetta di suo. Innocue, ma vale la pena saperle: una app setting
     /// scritta " 30 " o "+30" viene applicata davvero, non ignorata.
     /// </summary>
-    [TestCase(" 30 ", 30, TestName = "spazi attorno al numero")]
-    [TestCase("+30", 30, TestName = "segno esplicito")]
-    [TestCase("0030", 30, TestName = "zeri iniziali")]
+    [TestCase(" 30 ", 30, TestName = "NumericoTollerato_VieneApplicato(spazi attorno al numero)")]
+    [TestCase("+30", 30, TestName = "NumericoTollerato_VieneApplicato(segno esplicito)")]
+    [TestCase("0030", 30, TestName = "NumericoTollerato_VieneApplicato(zeri iniziali)")]
     public void NumericoTollerato_VieneApplicato(string valore, int atteso)
     {
         Environment.SetEnvironmentVariable("LANGUAGE_TIMEOUTSECONDS", valore);
@@ -104,9 +105,9 @@ public class ModuleExtensionsLanguageEnvironmentAdversarialTests
     /// di una app setting viene incollato nel portale Azure, spesso con uno spazio o un a-capo ai bordi
     /// che nessuno vede.
     /// </summary>
-    [TestCase(" https://esempio.cognitiveservices.azure.com/\n", TestName = "spazio davanti e a-capo in coda")]
-    [TestCase("\thttps://esempio.cognitiveservices.azure.com/\r\n", TestName = "tabulazione e fine riga Windows")]
-    [TestCase("https://esempio.cognitiveservices.azure.com/   ", TestName = "spazi in coda")]
+    [TestCase(" https://esempio.cognitiveservices.azure.com/\n", TestName = "EndpointConSpaziAttorno_VieneNormalizzatoConTrim(spazio davanti e a-capo in coda)")]
+    [TestCase("\thttps://esempio.cognitiveservices.azure.com/\r\n", TestName = "EndpointConSpaziAttorno_VieneNormalizzatoConTrim(tabulazione e fine riga Windows)")]
+    [TestCase("https://esempio.cognitiveservices.azure.com/   ", TestName = "EndpointConSpaziAttorno_VieneNormalizzatoConTrim(spazi in coda)")]
     public void EndpointConSpaziAttorno_VieneNormalizzatoConTrim(string valore)
     {
         Environment.SetEnvironmentVariable("LANGUAGE_ENDPOINT", valore);
@@ -148,8 +149,8 @@ public class ModuleExtensionsLanguageEnvironmentAdversarialTests
     /// pulito della configurazione assente: "endpoint scritto male" e "servizio non disponibile"
     /// arrivano al client come due cose diverse, ed e' bene sapere quale delle due si sta guardando.
     /// </summary>
-    [TestCase("fat-d-app-ls.cognitiveservices.azure.com", TestName = "senza schema")]
-    [TestCase("un endpoint qualsiasi", TestName = "testo libero")]
+    [TestCase("fat-d-app-ls.cognitiveservices.azure.com", TestName = "EndpointNonUri_SollevaAllaCostruzioneDelServizio_NonAllAvvio(senza schema)")]
+    [TestCase("un endpoint qualsiasi", TestName = "EndpointNonUri_SollevaAllaCostruzioneDelServizio_NonAllAvvio(testo libero)")]
     public void EndpointNonUri_SollevaAllaCostruzioneDelServizio_NonAllAvvio(string endpoint)
     {
         var language = new Language { Endpoint = endpoint };
@@ -177,9 +178,9 @@ public class ModuleExtensionsLanguageEnvironmentAdversarialTests
     /// sulle sue rotte e il resto dell'applicazione intatto. E' l'invariante per cui tutto questo
     /// meccanismo esiste.
     /// </summary>
-    [TestCase(null, TestName = "endpoint assente")]
-    [TestCase("", TestName = "endpoint vuoto")]
-    [TestCase("   ", TestName = "endpoint di soli spazi")]
+    [TestCase(null, TestName = "SenzaEndpoint_NonSolleva_ServizioNonConfigurato(endpoint assente)")]
+    [TestCase("", TestName = "SenzaEndpoint_NonSolleva_ServizioNonConfigurato(endpoint vuoto)")]
+    [TestCase("   ", TestName = "SenzaEndpoint_NonSolleva_ServizioNonConfigurato(endpoint di soli spazi)")]
     public void SenzaEndpoint_NonSolleva_ServizioNonConfigurato(string? endpoint)
     {
         var language = new Language { Endpoint = endpoint };

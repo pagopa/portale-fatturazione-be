@@ -30,6 +30,7 @@ namespace PortaleFatture.BE.UnitTest.FunctionApi;
 /// fissa il comportamento del codice di oggi; se si decide di escluderla, va invertito.
 /// </summary>
 [TestFixture]
+[Category("IntegrationApi")]
 public class RelDownloadActivityTests
 {
     private const string Ente = "11111111-1111-1111-1111-111111111111";

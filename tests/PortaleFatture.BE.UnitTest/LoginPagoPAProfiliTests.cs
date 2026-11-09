@@ -15,6 +15,7 @@ namespace PortaleFatture.BE.UnitTest;
 /// sia nel claim del JWT (letto da <c>api/auth/profilo</c>) sia nel nonce (verificato dal
 /// NonceMultiTabsMiddleware): un prodotto sbagliato nel nonce darebbe 419 su ogni chiamata.
 /// </summary>
+[Category("Autenticazione")]
 public class LoginPagoPAProfiliTests
 {
     private const string Secret = "chiave-di-test-lunga-almeno-32-caratteri!";

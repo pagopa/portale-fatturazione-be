@@ -11,6 +11,7 @@ using PortaleFatture.BE.UnitTest.Common;
 
 namespace PortaleFatture.BE.UnitTest;
 
+[Category("DatiFatturazione")]
 public class DatiFatturazioneCreateCommandTests
 {
     /// <summary>

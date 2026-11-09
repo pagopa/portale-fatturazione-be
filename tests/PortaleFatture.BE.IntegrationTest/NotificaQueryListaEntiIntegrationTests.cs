@@ -22,6 +22,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 ///   EVT-3002  890  (analogica)   CAP 20100  REC-3002  CONTESTATA, flag 3
 ///   EVT-3003  digitale (paper_product_type NULL)      non contestata
 /// </summary>
+[Category("Notifiche")]
 public class NotificaQueryListaEntiIntegrationTests
 {
     private const string Ente = "11111111-1111-1111-1111-111111111111";

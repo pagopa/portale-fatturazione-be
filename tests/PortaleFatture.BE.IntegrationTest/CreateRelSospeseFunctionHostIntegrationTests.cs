@@ -15,6 +15,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// la build**. Lo stesso vale per i due nomi passati come stringa
 /// (`"CreateRelSospeseOrchestrator"`, `"CreateRelSospese"`), che il compilatore non verifica.
 /// </summary>
+[Category("Rel")]
 public class CreateRelSospeseFunctionHostIntegrationTests
 {
     // Periodo senza REL sospese: e' il caso corretto il 22/09/2026.

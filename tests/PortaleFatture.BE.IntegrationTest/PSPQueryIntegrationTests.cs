@@ -12,6 +12,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// ABI: T01 'ABI01234', T02 'BICBETA1,ABI05678', T03 'ABI01235,BICGAMMA', T04 provider NULL e abi
 /// '09999', T05 provider vuoto e abi 'ABI07777'. membership grp-1 (T01, T02), grp-2 (T03, T04).
 /// </summary>
+[Category("PagoPA")]
 public class PSPQueryIntegrationTests
 {
     private IMediator _handler = null!;

@@ -6,6 +6,7 @@ using System.Reflection;
 
 namespace PortaleFatture.BE.UnitTest;
 
+[Category("PagoPA")]
 public class EmailPspServiceTests
 {
     private const string InvalidConnectionString =

@@ -23,6 +23,7 @@ namespace PortaleFatture.BE.IntegrationTest;
 ///   NON FATTURATE: 5001/5002 Eliminate ente3/mese 2 (5002 senza righe -> posizioni null, tipocontratto=1);
 ///                  4001 Posticipata ente1/mese 1 (tipocontratto=2).
 /// </summary>
+[Category("Fatture")]
 public class FattureRicercaApiIntegrationTests
 {
     private IMediator _handler = null!;

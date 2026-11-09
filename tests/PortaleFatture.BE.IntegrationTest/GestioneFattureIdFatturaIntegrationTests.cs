@@ -1,6 +1,5 @@
 using MediatR;
 using Microsoft.Data.SqlClient;
-using Microsoft.Extensions.Configuration;
 using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries;
 
@@ -15,9 +14,11 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// Due ambienti:
 ///  - CONTAINER seeded (deterministico): semina una riga con IdFattura NOTO e OLTRE int.MaxValue,
 ///    quindi verifica il valore esatto -> blinda il mapping bigint->long? end-to-end su entrambe le viste.
-///  - UAT (smoke, con SkipIfUnavailable): verifica solo che la query giri e IdFattura sia leggibile,
-///    cioe' che dopo l'aggiunta della colonna nessuna delle due viste dia "Invalid column name".
+///  - SMOKE su tutto il seed (prima giravano su UAT, spostati sul container il 06/11/2026): verifica
+///    che la query giri e IdFattura sia leggibile su ogni riga, cioe' che nessuna delle due viste dia
+///    "Invalid column name". Le viste del seed sono la DDL di DATA (tests/Data/views).
 /// </summary>
+[Category("GestioneFatture")]
 public class GestioneFattureIdFatturaIntegrationTests
 {
     private const string Ente = "44444444-4444-4444-4444-444444444444"; // ente con Enti+Contratti nel seed
@@ -25,14 +26,12 @@ public class GestioneFattureIdFatturaIntegrationTests
     private const long IdFatturaAtteso = 7770001234567L;                 // > int.MaxValue: verifica il bigint
 
     private IMediator _container;
-    private IConfiguration _conf;
 
     [SetUp]
     public void Setup()
     {
         TestDb.SkipIfUnavailable(LocalTestDb.ConnectionString);
         _container = ServiceProvider.GetRequiredService<IMediator>(LocalTestDb.ConnectionString);
-        _conf = ServiceProvider.GetRequiredService<IConfiguration>();
         Pulisci();
         Semina();
     }
@@ -94,41 +93,31 @@ public class GestioneFattureIdFatturaIntegrationTests
             "Nessuna nota -> colonna Note vuota o solo spazi, non un errore ne' testo spurio.");
     }
 
-    // ---------- UAT: smoke (la colonna esiste e la vista non da' 'Invalid column name') ----------
+    // ---------- SEED: smoke su tutte le righe, senza filtro di anno ----------
+    // Erano smoke su UAT (spostati sul container il 06/11/2026). Senza Anno la query legge tutto il seed,
+    // riga del Setup compresa: se una delle due viste perdesse la colonna, fallirebbe qui.
 
     [Test]
-    public async Task Griglia_UAT_EspongaIdFattura_SenzaErrori()
+    public async Task Griglia_Seed_EspongaIdFattura_SenzaErrori()
     {
-        var uat = UatOrIgnore();
-        var res = await uat.Send(new GestioneFattureQuery(AdminAuth()) { Anno = ConfAnnoUat });
+        var res = await _container.Send(new GestioneFattureQuery(AdminAuth()));
 
-        Assert.That(res, Is.Not.Null);
-        // Se la vista UAT non avesse la colonna, la query fallirebbe prima di qui. Confermiamo anche
-        // che IdFattura sia leggibile su ogni riga (nullable, dipende dai dati reali).
-        Assert.That(() => res!.GestioneFatture?.Select(r => r.IdFattura).ToList(), Throws.Nothing,
-            "La griglia UAT deve esporre IdFattura senza errori dopo l'aggiunta della colonna.");
+        Assert.That(res?.GestioneFatture, Is.Not.Null.And.Not.Empty, "Senza filtro la griglia deve leggere il seed.");
+        Assert.That(() => res!.GestioneFatture!.Select(r => r.IdFattura).ToList(), Throws.Nothing,
+            "La griglia deve esporre IdFattura su ogni riga del seed senza errori.");
     }
 
     [Test]
-    public async Task Download_UAT_EspongaIdFattura_SenzaErrori()
+    public async Task Download_Seed_EspongaIdFattura_SenzaErrori()
     {
-        var uat = UatOrIgnore();
-        var res = await uat.Send(new GestioneFattureDownloadQuery(AdminAuth()) { Anno = ConfAnnoUat });
+        var res = await _container.Send(new GestioneFattureDownloadQuery(AdminAuth()));
 
-        Assert.That(res, Is.Not.Null);
-        Assert.That(() => res!.GestioneFatture?.Select(r => r.IdFattura).ToList(), Throws.Nothing,
-            "Il download UAT deve esporre IdFattura senza errori dopo l'aggiunta della colonna.");
+        Assert.That(res?.GestioneFatture, Is.Not.Null.And.Not.Empty, "Senza filtro il download deve leggere il seed.");
+        Assert.That(() => res!.GestioneFatture!.Select(r => r.IdFattura).ToList(), Throws.Nothing,
+            "Il download deve esporre IdFattura su ogni riga del seed senza errori.");
     }
 
     // ---------- infra ----------
-
-    private int ConfAnnoUat => int.TryParse(_conf["IntegrationTest:Anno"], out var a) ? a : 2026;
-
-    private IMediator UatOrIgnore()
-    {
-        TestDb.SkipIfUnavailable(_conf["PortaleFattureOptions:ConnectionString"]);
-        return ServiceProvider.GetRequiredService<IMediator>(); // fixture parametrless = UAT
-    }
 
     private void Semina() => Exec(@"
         INSERT INTO cfg.GestioneFatture

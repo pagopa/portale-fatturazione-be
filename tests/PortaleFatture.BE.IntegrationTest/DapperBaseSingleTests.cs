@@ -19,9 +19,10 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// &gt;1 -> lancia). Entrambi i gruppi usano query DATA-INDEPENDENT.
 ///
 /// Le query di sonda sono DATA-INDEPENDENT (SELECT letterali / VALUES): servono solo connettivita' al DB,
-/// nessun seed. Coerente con i test "strutturali" del progetto (es. FattureSospeseRelExcelQueryTests):
-/// senza connessione (VPN giu') il test risulta Ignored, non fallito.
+/// nessun seed. Girano sul DB SEEDATO locale (container), non su UAT: spostati il 06/11/2026. Senza
+/// container acceso il test risulta Ignored, non fallito (TestDb.SkipIfUnavailable).
 /// </summary>
+[Category("Infrastruttura")]
 public class DapperBaseSingleTests
 {
     private sealed class Probe : DapperBase { } // concreta: DapperBase e' abstract
@@ -33,25 +34,10 @@ public class DapperBaseSingleTests
     private string _connectionString = null!;
 
     [SetUp]
-    /// Verifica che la connessione al DB sia configurata e raggiungibile. Se non lo e', ignora i test.
     public void Setup()
     {
-        var conf = ServiceProvider.GetRequiredService<IConfiguration>();
-        _connectionString = conf["PortaleFattureOptions:ConnectionString"] ?? string.Empty;
-
-        if (string.IsNullOrWhiteSpace(_connectionString))
-            Assert.Ignore("PortaleFattureOptions:ConnectionString non configurata: test DB saltato.");
-
-        // Se il DB non e' raggiungibile (es. VPN giu') degrada a Ignore invece di fallire.
-        try
-        {
-            using var probe = new SqlConnection(_connectionString);
-            probe.Open();
-        }
-        catch (Exception ex)
-        {
-            Assert.Ignore($"DB non raggiungibile ({ex.GetType().Name}): test DB saltato.");
-        }
+        _connectionString = LocalTestDb.ConnectionString;
+        TestDb.SkipIfUnavailable(_connectionString);
     }
 
     private static IDatabase Db() => new Probe();

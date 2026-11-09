@@ -20,6 +20,7 @@ namespace PortaleFatture.BE.UnitTest;
 /// e dell'OFFSET si verifica per i suoi effetti negli integration test — stesso limite già registrato
 /// per `NotificaSQLBuilder`.
 /// </summary>
+[Category("Orchestratore")]
 public class OrchestratoreItemUnitTests
 {
     // ---------------------------------------------------------------------------------------------

@@ -22,6 +22,7 @@ namespace PortaleFatture.BE.IntegrationTest.Http;
 /// Seed (tests/Data/appio.sql): 5 posizioni APPIO-C% (documenti APPIO-FR-001…004) su 2026_2, 2026_1,
 /// 2025_4; 4 righe di financial report.
 /// </summary>
+[Category("AppIO")]
 public class AppIoFinancialReportsAdversarialHttpTests
 {
     private const string Base = "/api/appio/financialreports";

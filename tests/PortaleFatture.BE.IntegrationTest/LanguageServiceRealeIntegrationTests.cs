@@ -24,8 +24,9 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// confidence derivano. Un `confidence == 0.97` diventerebbe rosso da solo fra qualche mese senza che
 /// nulla si sia rotto — v. la stessa regola applicata ai conteggi di `vOrchestratore`.
 /// </summary>
+// DEPRECATA dal 06/11/2026: verde senza eseguire nulla, v. AzureLanguageTestbed.FunzionalitaDeprecata.
 [TestFixture]
-[Explicit("Colpisce Azure AI Language reale: consuma quota a pagamento. Richiede PF_RUN_AZURE_LANGUAGE_TESTS=1.")]
+[Category("LanguageService")]
 public class LanguageServiceRealeIntegrationTests
 {
     private const string CodiceFiscaleFinto = "RSSMRA85M01H501Z";
@@ -34,7 +35,18 @@ public class LanguageServiceRealeIntegrationTests
     private LanguageService _servizio = null!;
 
     [OneTimeSetUp]
-    public void CostruisciServizioReale() => _servizio = AzureLanguageTestbed.CostruisciOSalta().Servizio;
+    public void CostruisciServizioReale()
+    {
+        if (AzureLanguageTestbed.Deprecata) return; // nessun servizio, nessun secret, nessuna chiamata
+
+        _servizio = AzureLanguageTestbed.CostruisciOSalta().Servizio;
+    }
+
+    [SetUp]
+    public void SaltaSeDeprecata()
+    {
+        if (AzureLanguageTestbed.Deprecata) Assert.Pass(AzureLanguageTestbed.FunzionalitaDeprecata);
+    }
 
     // ---------------------------------------------------------------------------------------------
     // api/language/pii — rilevazione e redazione PII

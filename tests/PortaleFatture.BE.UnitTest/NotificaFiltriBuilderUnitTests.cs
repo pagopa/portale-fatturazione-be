@@ -26,6 +26,7 @@ namespace PortaleFatture.BE.UnitTest;
 /// test — motivo per cui l'ordinamento continua a essere verificato solo per i suoi effetti, negli
 /// integration test.
 /// </summary>
+[Category("Notifiche")]
 public class NotificaFiltriBuilderUnitTests
 {
     // =============================================================================================

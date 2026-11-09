@@ -31,19 +31,19 @@ public class InvioSapRegoleFiltriGrigliaTests
         Assert.That(Valida(anno: null), Does.Contain(InvioSapRegole.ErroreAnno));
     }
 
-    [TestCase(1999, TestName = "Anno(sotto il minimo)")]
-    [TestCase(0, TestName = "Anno(zero)")]
-    [TestCase(-1, TestName = "Anno(negativo)")]
-    [TestCase(AnnoCorrente + 2, TestName = "Anno(oltre il prossimo)")]
-    [TestCase(int.MaxValue, TestName = "Anno(int.MaxValue)")]
+    [TestCase(1999, TestName = "AnnoFuoriIntervallo_ShouldEssereRifiutato(Anno: sotto il minimo)")]
+    [TestCase(0, TestName = "AnnoFuoriIntervallo_ShouldEssereRifiutato(Anno: zero)")]
+    [TestCase(-1, TestName = "AnnoFuoriIntervallo_ShouldEssereRifiutato(Anno: negativo)")]
+    [TestCase(AnnoCorrente + 2, TestName = "AnnoFuoriIntervallo_ShouldEssereRifiutato(Anno: oltre il prossimo)")]
+    [TestCase(int.MaxValue, TestName = "AnnoFuoriIntervallo_ShouldEssereRifiutato(Anno: int.MaxValue)")]
     public void AnnoFuoriIntervallo_ShouldEssereRifiutato(int anno)
     {
         Assert.That(Valida(anno: anno), Has.Count.EqualTo(1).And.Some.Contains("Anno fuori intervallo"));
     }
 
-    [TestCase(InvioSapRegole.AnnoMinimo, TestName = "Anno(minimo)")]
-    [TestCase(AnnoCorrente, TestName = "Anno(corrente)")]
-    [TestCase(AnnoCorrente + 1, TestName = "Anno(prossimo: fatture di dicembre+4)")]
+    [TestCase(InvioSapRegole.AnnoMinimo, TestName = "AnnoAiBordi_ShouldEssereAccettato(Anno: minimo)")]
+    [TestCase(AnnoCorrente, TestName = "AnnoAiBordi_ShouldEssereAccettato(Anno: corrente)")]
+    [TestCase(AnnoCorrente + 1, TestName = "AnnoAiBordi_ShouldEssereAccettato(Anno: prossimo: fatture di dicembre+4)")]
     public void AnnoAiBordi_ShouldEssereAccettato(int anno)
     {
         Assert.That(Valida(anno: anno), Is.Empty);
@@ -69,10 +69,10 @@ public class InvioSapRegoleFiltriGrigliaTests
         Assert.That(Valida(mesi: Enumerable.Range(1, 12).ToArray()), Is.Empty);
     }
 
-    [TestCase(new[] { 0 }, TestName = "Mesi(zero)")]
-    [TestCase(new[] { 13 }, TestName = "Mesi(13)")]
-    [TestCase(new[] { 5, -1 }, TestName = "Mesi(uno negativo)")]
-    [TestCase(new[] { int.MaxValue }, TestName = "Mesi(int.MaxValue)")]
+    [TestCase(new[] { 0 }, TestName = "MeseFuoriIntervallo_ShouldEssereRifiutato(Mesi: zero)")]
+    [TestCase(new[] { 13 }, TestName = "MeseFuoriIntervallo_ShouldEssereRifiutato(Mesi: 13)")]
+    [TestCase(new[] { 5, -1 }, TestName = "MeseFuoriIntervallo_ShouldEssereRifiutato(Mesi: uno negativo)")]
+    [TestCase(new[] { int.MaxValue }, TestName = "MeseFuoriIntervallo_ShouldEssereRifiutato(Mesi: int.MaxValue)")]
     public void MeseFuoriIntervallo_ShouldEssereRifiutato(int[] mesi)
     {
         Assert.That(Valida(mesi: mesi), Does.Contain(InvioSapRegole.ErroreMese));
@@ -98,9 +98,9 @@ public class InvioSapRegoleFiltriGrigliaTests
     public static IEnumerable<TestCaseData> TipologieConElementoVuoto()
     {
         // L'array va incapsulato: TestCaseData(params object[]) lo prenderebbe come lista di parametri.
-        yield return new TestCaseData(new object?[] { new string?[] { null } }).SetName("Tipologie(elemento null)");
-        yield return new TestCaseData(new object?[] { new string?[] { "" } }).SetName("Tipologie(elemento vuoto)");
-        yield return new TestCaseData(new object?[] { new string?[] { "PRIMO SALDO", " " } }).SetName("Tipologie(uno di spazi)");
+        yield return new TestCaseData(new object?[] { new string?[] { null } }).SetArgDisplayNames("Tipologie: elemento null");
+        yield return new TestCaseData(new object?[] { new string?[] { "" } }).SetArgDisplayNames("Tipologie: elemento vuoto");
+        yield return new TestCaseData(new object?[] { new string?[] { "PRIMO SALDO", " " } }).SetArgDisplayNames("Tipologie: uno di spazi");
     }
 
     [TestCaseSource(nameof(TipologieConElementoVuoto))]
@@ -121,22 +121,22 @@ public class InvioSapRegoleFiltriGrigliaTests
     // Stato invio
     // =============================================================================================
 
-    [TestCase(null, TestName = "Stato(null = TUTTE)")]
-    [TestCase("", TestName = "Stato(vuoto = TUTTE)")]
-    [TestCase("TUTTE", TestName = "Stato(TUTTE)")]
-    [TestCase("DA_INVIARE", TestName = "Stato(DA_INVIARE)")]
-    [TestCase("IN_ELABORAZIONE", TestName = "Stato(IN_ELABORAZIONE)")]
-    [TestCase("INVIATE", TestName = "Stato(INVIATE)")]
-    [TestCase(" inviate ", TestName = "Stato(minuscolo con spazi)")]
+    [TestCase(null, TestName = "StatoAmmesso_ShouldEssereAccettato(Stato: null = TUTTE)")]
+    [TestCase("", TestName = "StatoAmmesso_ShouldEssereAccettato(Stato: vuoto = TUTTE)")]
+    [TestCase("TUTTE", TestName = "StatoAmmesso_ShouldEssereAccettato(Stato: TUTTE)")]
+    [TestCase("DA_INVIARE", TestName = "StatoAmmesso_ShouldEssereAccettato(Stato: DA_INVIARE)")]
+    [TestCase("IN_ELABORAZIONE", TestName = "StatoAmmesso_ShouldEssereAccettato(Stato: IN_ELABORAZIONE)")]
+    [TestCase("INVIATE", TestName = "StatoAmmesso_ShouldEssereAccettato(Stato: INVIATE)")]
+    [TestCase(" inviate ", TestName = "StatoAmmesso_ShouldEssereAccettato(Stato: minuscolo con spazi)")]
     public void StatoAmmesso_ShouldEssereAccettato(string? stato)
     {
         Assert.That(Valida(stato: stato), Is.Empty);
     }
 
-    [TestCase("INVIATA", TestName = "Stato(INVIATA: singolare, non e' un codice)")]
-    [TestCase("REINVIATE", TestName = "Stato(REINVIATE: hanno il loro download)")]
-    [TestCase("2", TestName = "Stato(numerico legacy)")]
-    [TestCase("DROP TABLE", TestName = "Stato(ostile)")]
+    [TestCase("INVIATA", TestName = "StatoNonAmmesso_ShouldEssereRifiutato(Stato: INVIATA: singolare, non e' un codice)")]
+    [TestCase("REINVIATE", TestName = "StatoNonAmmesso_ShouldEssereRifiutato(Stato: REINVIATE: hanno il loro download)")]
+    [TestCase("2", TestName = "StatoNonAmmesso_ShouldEssereRifiutato(Stato: numerico legacy)")]
+    [TestCase("DROP TABLE", TestName = "StatoNonAmmesso_ShouldEssereRifiutato(Stato: ostile)")]
     public void StatoNonAmmesso_ShouldEssereRifiutato(string stato)
     {
         Assert.That(Valida(stato: stato), Has.Some.Contains("Stato invio non valido"));
@@ -157,8 +157,8 @@ public class InvioSapRegoleFiltriGrigliaTests
         string? stato = "INVIATE", string? ragione = null, string? numero = null, int? page = 1, int? size = 10) =>
         InvioSapRegole.ValidaFiltriDettaglio(anno, mese, tipologia, stato, ragione, numero, page, size);
 
-    [TestCase("INVIATE", TestName = "Dettaglio(INVIATE)")]
-    [TestCase("in_elaborazione", TestName = "Dettaglio(IN_ELABORAZIONE minuscolo, sola lettura)")]
+    [TestCase("INVIATE", TestName = "Dettaglio_RigoConStorico_ShouldEssereValido(Dettaglio: INVIATE)")]
+    [TestCase("in_elaborazione", TestName = "Dettaglio_RigoConStorico_ShouldEssereValido(Dettaglio: IN_ELABORAZIONE minuscolo, sola lettura)")]
     public void Dettaglio_RigoConStorico_ShouldEssereValido(string stato)
     {
         Assert.That(ValidaDettaglio(stato: stato), Is.Empty);
@@ -170,9 +170,9 @@ public class InvioSapRegoleFiltriGrigliaTests
         Assert.That(ValidaDettaglio(stato: "DA_INVIARE"), Is.EqualTo(new[] { InvioSapRegole.ErroreDettaglioDaInviare }));
     }
 
-    [TestCase(null, TestName = "DettaglioStato(assente)")]
-    [TestCase("TUTTE", TestName = "DettaglioStato(TUTTE: non e' un rigo)")]
-    [TestCase("INVIATA", TestName = "DettaglioStato(sconosciuto)")]
+    [TestCase(null, TestName = "Dettaglio_StatoNonDiUnRigo_ShouldEssereRifiutato(DettaglioStato: assente)")]
+    [TestCase("TUTTE", TestName = "Dettaglio_StatoNonDiUnRigo_ShouldEssereRifiutato(DettaglioStato: TUTTE: non e' un rigo)")]
+    [TestCase("INVIATA", TestName = "Dettaglio_StatoNonDiUnRigo_ShouldEssereRifiutato(DettaglioStato: sconosciuto)")]
     public void Dettaglio_StatoNonDiUnRigo_ShouldEssereRifiutato(string? stato)
     {
         Assert.That(ValidaDettaglio(stato: stato), Does.Contain(InvioSapRegole.ErroreStatoDettaglio));
@@ -185,13 +185,13 @@ public class InvioSapRegoleFiltriGrigliaTests
         Assert.That(errori, Is.EquivalentTo(new[] { InvioSapRegole.ErroreAnno, InvioSapRegole.ErroreMese, InvioSapRegole.ErroreTipologia }));
     }
 
-    [TestCase(0, 10, TestName = "Pagina(0)")]
-    [TestCase(-1, 10, TestName = "Pagina(negativa)")]
-    [TestCase(1, 0, TestName = "PageSize(0)")]
-    [TestCase(1, -5, TestName = "PageSize(negativo)")]
-    [TestCase(1, InvioSapRegole.MaxPageSize + 1, TestName = "PageSize(oltre il massimo)")]
-    [TestCase(1, int.MaxValue, TestName = "PageSize(int.MaxValue)")]
-    [TestCase(1, null, TestName = "Pagina senza pageSize")]
+    [TestCase(0, 10, TestName = "Dettaglio_PaginazioneNonValida_ShouldEssereRifiutata(Pagina: 0)")]
+    [TestCase(-1, 10, TestName = "Dettaglio_PaginazioneNonValida_ShouldEssereRifiutata(Pagina: negativa)")]
+    [TestCase(1, 0, TestName = "Dettaglio_PaginazioneNonValida_ShouldEssereRifiutata(PageSize: 0)")]
+    [TestCase(1, -5, TestName = "Dettaglio_PaginazioneNonValida_ShouldEssereRifiutata(PageSize: negativo)")]
+    [TestCase(1, InvioSapRegole.MaxPageSize + 1, TestName = "Dettaglio_PaginazioneNonValida_ShouldEssereRifiutata(PageSize: oltre il massimo)")]
+    [TestCase(1, int.MaxValue, TestName = "Dettaglio_PaginazioneNonValida_ShouldEssereRifiutata(PageSize: int.MaxValue)")]
+    [TestCase(1, null, TestName = "Dettaglio_PaginazioneNonValida_ShouldEssereRifiutata(Pagina senza pageSize)")]
     public void Dettaglio_PaginazioneNonValida_ShouldEssereRifiutata(int? page, int? size)
     {
         Assert.That(ValidaDettaglio(page: page, size: size), Does.Contain(InvioSapRegole.ErrorePaginazione));

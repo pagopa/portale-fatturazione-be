@@ -23,6 +23,7 @@ namespace PortaleFatture.BE.IntegrationTest.Http;
 /// Richiede il container di test attivo (da tests/: docker compose up -d --build).
 /// </summary>
 [TestFixture]
+[Category("Fatture")]
 public class FatturaSospesaDocumentoDownloadHttpTests
 {
     private const string EntePac = "99799799-0997-0997-0997-0997099700ac";

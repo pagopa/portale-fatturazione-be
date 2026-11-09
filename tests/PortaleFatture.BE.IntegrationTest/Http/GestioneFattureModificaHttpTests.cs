@@ -13,6 +13,7 @@ namespace PortaleFatture.BE.IntegrationTest.Http;
 /// Body = GestioneFattureModificaRequest { anno (stringa), tipologiaFattura, azione }. Richiede il
 /// container di test attivo.
 /// </summary>
+[Category("GestioneFatture")]
 public class GestioneFattureModificaHttpTests
 {
     private const string RottaAnni = "/api/fatture/pagopa/gestione-fatture/modifica/anni";
