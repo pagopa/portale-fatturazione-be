@@ -44,6 +44,26 @@ public static class InvioSapExtensions
         };
     }
 
+    /// <summary>Stessa regola sull'anno della griglia: obbligatorio e nell'intervallo ammesso.</summary>
+    public static InvioSapMesiQuery Map(this InvioSapMesiRequest? request, IAuthenticationInfo authInfo)
+    {
+        request ??= new();
+        Lancia(InvioSapRegole.ValidaFiltriGriglia(request.Anno, null, null, null, AnnoCorrente));
+        return new InvioSapMesiQuery(authInfo) { Anno = request.Anno!.Value };
+    }
+
+    /// <summary>Stesse regole della griglia su anno e mesi: anno obbligatorio e nell'intervallo, mesi 1-12 non ripetuti.</summary>
+    public static InvioSapTipologieQuery Map(this InvioSapTipologieRequest? request, IAuthenticationInfo authInfo)
+    {
+        request ??= new();
+        Lancia(InvioSapRegole.ValidaFiltriGriglia(request.Anno, request.Mesi, null, null, AnnoCorrente));
+        return new InvioSapTipologieQuery(authInfo)
+        {
+            Anno = request.Anno!.Value,
+            Mesi = request.Mesi is { Count: > 0 } ? request.Mesi.ToArray() : null
+        };
+    }
+
     public static InvioSapReinviateQuery Map(this InvioSapReinviateRequest? request, IAuthenticationInfo authInfo)
     {
         request ??= new();
