@@ -302,16 +302,16 @@ public class InvioSapLetturaHttpTests
     }
 
     [Test]
-    public async Task Mesi_AnnoSenzaFatture_ShouldEssere200_ListaVuota()
+    public async Task Mesi_AnnoSenzaFatture_ShouldEssere404()
     {
-        // Diverso dalla griglia (404 se vuota): un filtro senza valori e' un elenco vuoto, non un errore.
+        // Come la griglia: senza valori la risposta e' 404 senza corpo (contratto atteso dal FE).
         Assume.That(InvioSapTestData.Scalar($"SELECT COUNT(*) FROM {InvioSapTestData.VistaGriglia} WHERE Anno = 2001"), Is.EqualTo(0));
         var resp = await Post(_factory, InvioSapTestData.RottaMesi, """{ "anno": 2001 }""");
         var corpo = await resp.Content.ReadAsStringAsync();
         Assert.Multiple(() =>
         {
-            Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-            Assert.That(corpo, Is.EqualTo("[]"));
+            Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+            Assert.That(corpo, Is.Empty);
         });
     }
 
@@ -351,16 +351,16 @@ public class InvioSapLetturaHttpTests
         Assert.That(tipologie, Is.EquivalentTo(inGriglia));
     }
 
-    [TestCase("""{ "anno": 2001 }""", TestName = "Tipologie_SenzaFatture_ShouldEssere200_ListaVuota(anno senza fatture)")]
-    [TestCase("""{ "anno": 2003, "mesi": [5] }""", TestName = "Tipologie_SenzaFatture_ShouldEssere200_ListaVuota(mese senza fatture in un anno che ne ha)")]
-    public async Task Tipologie_SenzaFatture_ShouldEssere200_ListaVuota(string body)
+    [TestCase("""{ "anno": 2001 }""", TestName = "Tipologie_SenzaFatture_ShouldEssere404(anno senza fatture)")]
+    [TestCase("""{ "anno": 2003, "mesi": [5] }""", TestName = "Tipologie_SenzaFatture_ShouldEssere404(mese senza fatture in un anno che ne ha)")]
+    public async Task Tipologie_SenzaFatture_ShouldEssere404(string body)
     {
         var resp = await Post(_factory, InvioSapTestData.RottaTipologie, body);
         var corpo = await resp.Content.ReadAsStringAsync();
         Assert.Multiple(() =>
         {
-            Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-            Assert.That(corpo, Is.EqualTo("[]"));
+            Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+            Assert.That(corpo, Is.Empty);
         });
     }
 
