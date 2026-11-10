@@ -16,6 +16,7 @@ using static Microsoft.AspNetCore.Http.TypedResults;
 
 namespace PortaleFatture.BE.Api.Modules.AppIO.Contratti;
 
+[FeatureFlag(FeatureFlags.AppIO)]
 public partial class AppIoContrattiModule : Module, IRegistrableModule
 {
     /// <summary>

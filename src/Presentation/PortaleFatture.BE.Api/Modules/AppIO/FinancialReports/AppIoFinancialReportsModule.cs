@@ -15,6 +15,7 @@ using static Microsoft.AspNetCore.Http.TypedResults;
 
 namespace PortaleFatture.BE.Api.Modules.AppIO.FinancialReports;
 
+[FeatureFlag(FeatureFlags.AppIO)]
 public partial class AppIoFinancialReportsModule : Module, IRegistrableModule
 {
     private const string _mimeExcel = "application/vnd.ms-excel";
