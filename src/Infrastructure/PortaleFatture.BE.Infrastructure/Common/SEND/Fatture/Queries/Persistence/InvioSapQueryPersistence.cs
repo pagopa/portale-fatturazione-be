@@ -34,6 +34,29 @@ public sealed class InvioSapGrigliaQueryPersistence(InvioSapGrigliaQuery query) 
     };
 }
 
+public sealed class InvioSapAnniQueryPersistence : DapperBase, IQuery<IEnumerable<int>>
+{
+    public async Task<IEnumerable<int>> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken ct = default)
+        => await ((IDatabase)this).SelectAsync<int>(connection!, InvioSapQueryBuilder.SelectAnni, null, transaction);
+}
+
+public sealed class InvioSapMesiQueryPersistence(InvioSapMesiQuery query) : DapperBase, IQuery<IEnumerable<int>>
+{
+    public async Task<IEnumerable<int>> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken ct = default)
+        => await ((IDatabase)this).SelectAsync<int>(connection!, InvioSapQueryBuilder.SelectMesi, new { query.Anno }, transaction);
+}
+
+public sealed class InvioSapTipologieQueryPersistence(InvioSapTipologieQuery query) : DapperBase, IQuery<IEnumerable<string>>
+{
+    public async Task<IEnumerable<string>> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken ct = default)
+    {
+        var sql = InvioSapQueryBuilder.SelectTipologie
+            + (query.Mesi is { Length: > 0 } ? " AND Mese IN @Mesi" : string.Empty)
+            + InvioSapQueryBuilder.GroupOrderByTipologie;
+        return await ((IDatabase)this).SelectAsync<string>(connection!, sql, new { query.Anno, query.Mesi }, transaction);
+    }
+}
+
 public sealed class InvioSapRigoDaInviareQueryPersistence(InvioSapRigoDaInviareQuery query) : DapperBase, IQuery<int?>
 {
     public async Task<int?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken ct = default)

@@ -16,6 +16,31 @@ internal static class InvioSapQueryBuilder
 
     public static string OrderByGriglia => $" ORDER BY Anno, Mese, {OrdineTipologia}, TipologiaFattura, CASE WHEN StatoFattura IS NULL THEN 2 ELSE CAST(StatoFattura AS int) END";
 
+    /// <summary>Anni presenti in griglia, dal piu' recente: popolano il filtro Anno della pagina.</summary>
+    public const string SelectAnni = @"
+        SELECT DISTINCT Anno
+          FROM [be].[vwInvioSAPGriglia]
+         ORDER BY Anno DESC";
+
+    /// <summary>Mesi presenti in griglia per l'anno scelto: popolano il filtro Mese della pagina.</summary>
+    public const string SelectMesi = @"
+        SELECT DISTINCT Mese
+          FROM [be].[vwInvioSAPGriglia]
+         WHERE Anno = @Anno
+         ORDER BY Mese";
+
+    /// <summary>
+    /// Tipologie presenti in griglia per l'anno scelto, ristrette ai mesi se il filtro Mese e' valorizzato: popolano
+    /// il filtro Tipologia. Ordine del ciclo di fatturazione, come i righi della griglia. GROUP BY e non DISTINCT,
+    /// perche' con DISTINCT l'ORDER BY puo' usare solo colonne della SELECT.
+    /// </summary>
+    public const string SelectTipologie = @"
+        SELECT TipologiaFattura
+          FROM [be].[vwInvioSAPGriglia]
+         WHERE Anno = @Anno";
+
+    public static string GroupOrderByTipologie => $" GROUP BY TipologiaFattura ORDER BY {OrdineTipologia}, TipologiaFattura";
+
     /// <summary>Il rigo <c>DA_INVIARE</c> della chiave Tipologia/Anno/Mese (D10): il suo <c>NumeroFatture</c>.</summary>
     public const string SelectNumeroFattureRigoDaInviare = @"
         SELECT NumeroFatture

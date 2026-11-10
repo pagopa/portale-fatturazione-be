@@ -17,6 +17,27 @@ public sealed class InvioSapGrigliaQuery(IAuthenticationInfo authenticationInfo)
     public string StatoInvio { get; init; } = "TUTTE";
 }
 
+/// <summary>Anni presenti in <c>be.vwInvioSAPGriglia</c>, dal piu' recente: valori del filtro Anno.</summary>
+public sealed class InvioSapAnniQuery(IAuthenticationInfo authenticationInfo) : IRequest<IEnumerable<int>>
+{
+    public IAuthenticationInfo AuthenticationInfo { get; internal set; } = authenticationInfo;
+}
+
+/// <summary>Mesi presenti in <c>be.vwInvioSAPGriglia</c> per un anno: valori del filtro Mese.</summary>
+public sealed class InvioSapMesiQuery(IAuthenticationInfo authenticationInfo) : IRequest<IEnumerable<int>>
+{
+    public IAuthenticationInfo AuthenticationInfo { get; internal set; } = authenticationInfo;
+    public int Anno { get; init; }
+}
+
+/// <summary>Tipologie presenti in <c>be.vwInvioSAPGriglia</c> per un anno (e i mesi, se dati): valori del filtro Tipologia.</summary>
+public sealed class InvioSapTipologieQuery(IAuthenticationInfo authenticationInfo) : IRequest<IEnumerable<string>>
+{
+    public IAuthenticationInfo AuthenticationInfo { get; internal set; } = authenticationInfo;
+    public int Anno { get; init; }
+    public int[]? Mesi { get; init; }
+}
+
 /// <summary>Il <c>NumeroFatture</c> del rigo <c>DA_INVIARE</c> della chiave (D10); <c>null</c> se il rigo non c'e'.</summary>
 public sealed class InvioSapRigoDaInviareQuery(IAuthenticationInfo authenticationInfo) : IRequest<int?>
 {
