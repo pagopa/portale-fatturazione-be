@@ -16,4 +16,10 @@ public record ProfileInfo
     public DateTime? Valido { get; set; }
     public string? JWT { get; set; } 
     public string? Auth { get; set; }
+
+    /// <summary>
+    /// Solo profili admin (login pagoPA): feature flag ACCESI sull'API, es. ["AppIO", "InvioSap"].
+    /// Un flag spento non compare, e il FE nasconde le voci corrispondenti. Null per i profili SelfCare.
+    /// </summary>
+    public List<string>? Features { get; set; }
 }

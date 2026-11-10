@@ -5,6 +5,9 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using NUnit.Framework.Interfaces;
+using NUnit.Framework.Internal;
+using PortaleFatture.BE.Api.Infrastructure;
 using PortaleFatture.BE.Api.Modules.SEND.Auth.Extensions;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
@@ -27,6 +30,34 @@ namespace PortaleFatture.BE.IntegrationTest.Http;
 /// </summary>
 public class ApiTestFactory : WebApplicationFactory<Program>
 {
+    private readonly HashSet<string> _featureAccese;
+
+    /// <param name="featureAccese">
+    /// true (default) accende tutti i feature flag (<see cref="FeatureFlags"/>), cosi' le suite esistenti
+    /// vedono le rotte di APP IO e dell'Invio a SAP, nuovo e legacy. false li spegne tutti: serve ai test
+    /// che verificano che con il flag spento le rotte non esistano (v. FeatureFlagsHttpTests).
+    /// </param>
+    public ApiTestFactory(bool featureAccese = true)
+        : this(featureAccese && !FixtureConFlagSpenti() ? FeatureFlags.Tutti : []) { }
+
+    /// <summary>
+    /// Proprieta' NUnit che spegne i flag in ogni factory creata senza un elenco esplicito, dentro la
+    /// fixture che la porta: e' cosi' che le classi di Http/FlagSpentiHttpTests.cs rieseguono le suite
+    /// fuori dai flag con i flag spenti, senza variabili d'ambiente (funziona anche da Esplora test).
+    /// </summary>
+    public const string ProprietaFlagSpenti = "FeatureFlagSpenti";
+
+    private static bool FixtureConFlagSpenti()
+    {
+        for (ITest? test = TestExecutionContext.CurrentContext?.CurrentTest; test is not null; test = test.Parent)
+            if (test.Properties.ContainsKey(ProprietaFlagSpenti))
+                return true;
+        return false;
+    }
+
+    /// <param name="featureAccese">Flag da accendere; gli altri valgono false.</param>
+    public ApiTestFactory(IEnumerable<string> featureAccese) => _featureAccese = [.. featureAccese];
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Development");
@@ -40,6 +71,11 @@ public class ApiTestFactory : WebApplicationFactory<Program>
                 ["PortaleFattureOptions:FattureSchema"] = "pfw",
                 ["PortaleFattureOptions:SelfCareSchema"] = "pfd",
             });
+            // Valore esplicito per OGNI flag, anche quando li si vuole spenti: in Development l'app legge gli
+            // User Secrets del progetto API, e un flag acceso li' accenderebbe le rotte anche nei test "spenti".
+            cfg.AddInMemoryCollection(FeatureFlags.Tutti.ToDictionary(
+                flag => $"FeatureManagement:{flag}",
+                flag => (string?)(_featureAccese.Contains(flag) ? "true" : "false")));
         });
 
         builder.ConfigureTestServices(services =>

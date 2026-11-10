@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.FeatureManagement;
 using Microsoft.IdentityModel.Logging;
 using Microsoft.OpenApi.Models;
 using Polly;
@@ -69,6 +70,9 @@ public static class ConfigurationExtensions
         SqlMapper.AddTypeHandler(typeof(FattureListaDto), new JsonTypeHandler());
 
         services.AddSingleton<IPortaleFattureOptions>(options);
+
+        // Feature flag (sezione "FeatureManagement"): flag assente = funzionalita' spenta. V. FeatureFlags.
+        services.AddFeatureManagement();
 
         services.AddAssemblyToModuleRegistration(typeof(ConfigurationExtensions).Assembly);
 
