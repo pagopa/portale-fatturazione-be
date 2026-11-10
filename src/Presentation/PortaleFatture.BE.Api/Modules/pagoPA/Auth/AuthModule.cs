@@ -1,4 +1,5 @@
-﻿using MediatR;
+﻿using Microsoft.FeatureManagement;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -32,9 +33,10 @@ public partial class AuthModule : Module, IRegistrableModule
     [FromServices] IMediator handler,
     [FromServices] ITokenService tokensService,
     [FromServices] IIdentityUsersService usersService,
+    [FromServices] IFeatureManager featureManager,
     [FromServices] IStringLocalizer<Localization> localizer)
     {
         var authInfo = await profileService.GetPagoPAInfo(request.IdToken, request.AccessToken)!;
-        return Ok(authInfo!.MapperPagoPAProfili(usersService, tokensService, encryption));
+        return Ok(authInfo!.MapperPagoPAProfili(usersService, tokensService, encryption, await featureManager.FeatureAccese()));
     }
 }
