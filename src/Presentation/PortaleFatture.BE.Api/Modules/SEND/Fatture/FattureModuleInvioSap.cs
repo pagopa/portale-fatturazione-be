@@ -95,28 +95,40 @@ public partial class FattureModule
     [ProducesResponseType(typeof(IReadOnlyList<InvioSapStatoResponse>), StatusCodes.Status200OK)]
     private IResult GetInvioSapStati(HttpContext context) => Results.Ok(InvioSapExtensions.Stati());
 
-    /// <summary>Valori del filtro Anno: gli anni presenti in griglia, dal piu' recente. Lista vuota = 200 [].</summary>
+    /// <summary>Valori del filtro Anno: gli anni presenti in griglia, dal piu' recente. Nessun valore = 404, come la griglia.</summary>
     [Authorize(Roles = $"{Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(typeof(IReadOnlyList<int>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     private async Task<IResult> GetInvioSapAnniAsync(HttpContext context, [FromServices] IMediator handler)
-        => Results.Ok((await handler.Send(new InvioSapAnniQuery(context.GetAuthInfo()))).ToList());
+    {
+        var anni = (await handler.Send(new InvioSapAnniQuery(context.GetAuthInfo()))).ToList();
+        return anni.Count == 0 ? Results.NotFound() : Results.Ok(anni);
+    }
 
-    /// <summary>Valori del filtro Mese: i mesi presenti in griglia per l'anno del body. Lista vuota = 200 [].</summary>
+    /// <summary>Valori del filtro Mese: i mesi presenti in griglia per l'anno del body. Nessun valore = 404, come la griglia.</summary>
     [Authorize(Roles = $"{Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(typeof(IReadOnlyList<int>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     private async Task<IResult> PostInvioSapMesiAsync(HttpContext context, [FromBody] InvioSapMesiRequest? request, [FromServices] IMediator handler)
-        => Results.Ok((await handler.Send(request.Map(context.GetAuthInfo()))).ToList());
+    {
+        var mesi = (await handler.Send(request.Map(context.GetAuthInfo()))).ToList();
+        return mesi.Count == 0 ? Results.NotFound() : Results.Ok(mesi);
+    }
 
-    /// <summary>Valori del filtro Tipologia: le tipologie presenti in griglia per l'anno (e i mesi) del body, nell'ordine del ciclo. Lista vuota = 200 [].</summary>
+    /// <summary>Valori del filtro Tipologia: le tipologie presenti in griglia per l'anno (e i mesi) del body, nell'ordine del ciclo. Nessun valore = 404, come la griglia.</summary>
     [Authorize(Roles = $"{Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(typeof(IReadOnlyList<string>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     private async Task<IResult> PostInvioSapTipologieAsync(HttpContext context, [FromBody] InvioSapTipologieRequest? request, [FromServices] IMediator handler)
-        => Results.Ok((await handler.Send(request.Map(context.GetAuthInfo()))).ToList());
+    {
+        var tipologie = (await handler.Send(request.Map(context.GetAuthInfo()))).ToList();
+        return tipologie.Count == 0 ? Results.NotFound() : Results.Ok(tipologie);
+    }
 
     #endregion invio sap
 }
