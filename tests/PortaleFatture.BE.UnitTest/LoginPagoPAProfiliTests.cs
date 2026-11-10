@@ -1,4 +1,5 @@
 using System.IdentityModel.Tokens.Jwt;
+using PortaleFatture.BE.Api.Infrastructure;
 using PortaleFatture.BE.Api.Modules.SEND.Auth.Extensions;
 using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Auth.PagoPA;
@@ -32,10 +33,13 @@ public class LoginPagoPAProfiliTests
         Email = "admin@test.invalid"
     };
 
-    private List<ProfileInfo> Login() => AuthPagoPA().MapperPagoPAProfili(
+    private static readonly List<string> TutteAccese = [FeatureFlags.AppIO, FeatureFlags.InvioSap, FeatureFlags.InvioSapLegacy];
+
+    private List<ProfileInfo> Login(List<string>? featureAccese = null) => AuthPagoPA().MapperPagoPAProfili(
         new IdentityUsersService(),
         new JwtTokenService("test-audience", "test-issuer", Secret),
-        _encryption);
+        _encryption,
+        featureAccese ?? TutteAccese);
 
     [Test]
     public void MapperPagoPAProfili_ShouldRestituire_TreProfili_NellOrdine_PagoPA_SEND_AppIO()
@@ -94,5 +98,52 @@ public class LoginPagoPAProfiliTests
         var jwt = Login().Select(p => p.JWT).ToList();
 
         Assert.That(jwt, Is.Unique);
+    }
+
+    // --- feature flag (PF-550, PF-735): flag assente = spento ---
+
+    [Test]
+    public void MapperPagoPAProfili_FlagAppIOSpento_ShouldNonEmettere_IlProfiloAppIO()
+    {
+        var prodotti = Login([FeatureFlags.InvioSap]).Select(p => p.Prodotto);
+
+        Assert.That(prodotti, Is.EqualTo(new[] { ProductRoles.pagoPA, ProductRoles.SEND }),
+            "con APP IO spento il FE non deve poter scegliere un prodotto le cui rotte rispondono 404");
+    }
+
+    [Test]
+    public void MapperPagoPAProfili_NessunFlag_ShouldEmettere_PagoPAeSEND_SenzaFeature()
+    {
+        var profili = Login([]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(profili.Select(p => p.Prodotto), Is.EqualTo(new[] { ProductRoles.pagoPA, ProductRoles.SEND }));
+            Assert.That(profili.Select(p => p.Features), Has.All.Empty, "un flag spento non compare nell'elenco");
+        });
+    }
+
+    [Test]
+    public void MapperPagoPAProfili_OgniProfilo_ShouldPortare_LeFeatureAccese()
+    {
+        var profili = Login();
+
+        Assert.That(profili.Select(p => p.Features), Has.All.EqualTo(TutteAccese));
+    }
+
+    [Test]
+    public void MapperPagoPA_LoginV1_ShouldPortare_LeFeatureAccese()
+    {
+        var profilo = AuthPagoPA().MapperPagoPA(
+            new IdentityUsersService(),
+            new JwtTokenService("test-audience", "test-issuer", Secret),
+            _encryption,
+            [FeatureFlags.InvioSap]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(profilo.Prodotto, Is.EqualTo(ProductRoles.SEND));
+            Assert.That(profilo.Features, Is.EqualTo(new[] { FeatureFlags.InvioSap }));
+        });
     }
 }
