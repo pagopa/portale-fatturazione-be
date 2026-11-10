@@ -251,6 +251,153 @@ public class InvioSapLetturaHttpTests
         });
     }
 
+    // =============================================================================================
+    // Filtri Anno e Mese: i valori presenti in griglia (11/11/2026)
+    // =============================================================================================
+
+    private static List<int> Interi(JsonElement lista) => lista.EnumerateArray().Select(e => e.GetInt32()).ToList();
+
+    [Test]
+    public async Task Anni_ShouldEssereGliAnniDellaGriglia_DistintiDalPiuRecente()
+    {
+        var attesi = InvioSapTestData.Lista<int>($"SELECT DISTINCT Anno FROM {InvioSapTestData.VistaGriglia} ORDER BY Anno DESC");
+
+        var resp = await Get(_factory, InvioSapTestData.RottaAnni);
+        var anni = Interi(await Json(resp));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(anni, Is.EqualTo(attesi), "Stessi anni della vista griglia, nello stesso ordine.");
+            Assert.That(anni, Does.Contain(InvioSapTestData.Anno), "Il seed dell'Invio a SAP sta sul 2003.");
+            Assert.That(anni, Is.Unique);
+            Assert.That(anni, Is.Ordered.Descending);
+            Assert.That(anni.Count, Is.GreaterThan(1), "La griglia legge tutta pfd.FattureTestata: nel seed ci sono piu' anni.");
+        });
+    }
+
+    [Test]
+    public async Task Mesi_ShouldEssereIMesiDellaGrigliaPerLAnno_DistintiInOrdine()
+    {
+        var resp = await Post(_factory, InvioSapTestData.RottaMesi, """{ "anno": 2003 }""");
+        var mesi = Interi(await Json(resp));
+        Assert.Multiple(() =>
+        {
+            Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(mesi, Is.EqualTo(new[] { 1, 2, 3, 7 }),
+                "Seed 2003: mesi 1, 2 (tre righi, un solo valore), 3 e 7. Nessun mese senza fatture.");
+        });
+    }
+
+    [Test]
+    public async Task Mesi_ShouldCoincidereConIMesiDeiRighiDellaGriglia()
+    {
+        // E' la promessa fatta al FE: ogni mese del filtro ha almeno un rigo in griglia, e viceversa.
+        var griglia = await Json(await Post(_factory, InvioSapTestData.RottaGriglia, """{ "anno": 2003 }"""));
+        var mesiInGriglia = griglia.EnumerateArray().Select(r => r.GetProperty("meseRiferimento").GetInt32()).Distinct().OrderBy(m => m).ToList();
+
+        var mesi = Interi(await Json(await Post(_factory, InvioSapTestData.RottaMesi, """{ "anno": 2003 }""")));
+
+        Assert.That(mesi, Is.EqualTo(mesiInGriglia));
+    }
+
+    [Test]
+    public async Task Mesi_AnnoSenzaFatture_ShouldEssere404()
+    {
+        // Come la griglia: senza valori la risposta e' 404 senza corpo (contratto atteso dal FE).
+        Assume.That(InvioSapTestData.Scalar($"SELECT COUNT(*) FROM {InvioSapTestData.VistaGriglia} WHERE Anno = 2001"), Is.EqualTo(0));
+        var resp = await Post(_factory, InvioSapTestData.RottaMesi, """{ "anno": 2001 }""");
+        var corpo = await resp.Content.ReadAsStringAsync();
+        Assert.Multiple(() =>
+        {
+            Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+            Assert.That(corpo, Is.Empty);
+        });
+    }
+
+    // ---- Filtro Tipologia (11/11/2026): tipologie presenti in griglia per anno e mesi, nell'ordine del ciclo ----
+
+    private static List<string> Stringhe(JsonElement lista) => lista.EnumerateArray().Select(e => e.GetString()!).ToList();
+
+    [TestCase("""{ "anno": 2003 }""", new[] { "ANTICIPO", "ACCONTO", "PRIMO SALDO", "SECONDO SALDO", "VAR. SEMESTRALE" },
+        TestName = "Tipologie_ShouldEssereQuelleDellaGriglia_NellOrdineDelCiclo(tutto l'anno: ordine del ciclo, non alfabetico)")]
+    [TestCase("""{ "anno": 2003, "mesi": [2] }""", new[] { "PRIMO SALDO", "SECONDO SALDO" },
+        TestName = "Tipologie_ShouldEssereQuelleDellaGriglia_NellOrdineDelCiclo(febbraio: PRIMO SALDO su tre stati compare una volta)")]
+    [TestCase("""{ "anno": 2003, "mesi": [3, 1] }""", new[] { "ANTICIPO", "ACCONTO", "PRIMO SALDO" },
+        TestName = "Tipologie_ShouldEssereQuelleDellaGriglia_NellOrdineDelCiclo(mesi fuori ordine: unione dei due mesi)")]
+    [TestCase("""{ "anno": 2003, "mesi": [] }""", new[] { "ANTICIPO", "ACCONTO", "PRIMO SALDO", "SECONDO SALDO", "VAR. SEMESTRALE" },
+        TestName = "Tipologie_ShouldEssereQuelleDellaGriglia_NellOrdineDelCiclo(mesi vuoti: come assenti)")]
+    public async Task Tipologie_ShouldEssereQuelleDellaGriglia_NellOrdineDelCiclo(string body, string[] attese)
+    {
+        var resp = await Post(_factory, InvioSapTestData.RottaTipologie, body);
+        var tipologie = Stringhe(await Json(resp));
+        Assert.Multiple(() =>
+        {
+            Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(tipologie, Is.EqualTo(attese));
+        });
+    }
+
+    [Test]
+    public async Task Tipologie_ShouldCoincidereConLeTipologieDeiRighiDellaGriglia()
+    {
+        // La stessa promessa del filtro Mese: ogni tipologia proposta ha almeno un rigo, e viceversa, nello stesso ordine.
+        const string body = """{ "anno": 2003, "mesi": [1, 2] }""";
+        var griglia = await Json(await Post(_factory, InvioSapTestData.RottaGriglia, body));
+        var inGriglia = griglia.EnumerateArray().Select(r => r.GetProperty("tipologiaFattura").GetString()!).Distinct().ToList();
+
+        var tipologie = Stringhe(await Json(await Post(_factory, InvioSapTestData.RottaTipologie, body)));
+
+        Assert.That(tipologie, Is.EquivalentTo(inGriglia));
+    }
+
+    [TestCase("""{ "anno": 2001 }""", TestName = "Tipologie_SenzaFatture_ShouldEssere404(anno senza fatture)")]
+    [TestCase("""{ "anno": 2003, "mesi": [5] }""", TestName = "Tipologie_SenzaFatture_ShouldEssere404(mese senza fatture in un anno che ne ha)")]
+    public async Task Tipologie_SenzaFatture_ShouldEssere404(string body)
+    {
+        var resp = await Post(_factory, InvioSapTestData.RottaTipologie, body);
+        var corpo = await resp.Content.ReadAsStringAsync();
+        Assert.Multiple(() =>
+        {
+            Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+            Assert.That(corpo, Is.Empty);
+        });
+    }
+
+    [Test]
+    public async Task AnniEMesi_ShouldSeguireLaGriglia_QuandoArrivaUnaFatturaNuova()
+    {
+        // Anno 2002, libero nel seed: prima non c'e', dopo l'inserimento compare con il suo mese.
+        const long id = 9690;
+        Assume.That(InvioSapTestData.Scalar($"SELECT COUNT(*) FROM {InvioSapTestData.VistaGriglia} WHERE Anno = 2002"), Is.EqualTo(0));
+        try
+        {
+            var prima = Interi(await Json(await Get(_factory, InvioSapTestData.RottaAnni)));
+            InvioSapTestData.Esegui(@"SET IDENTITY_INSERT pfd.FattureTestata ON;
+                INSERT INTO pfd.FattureTestata (IdFattura, FkIdEnte, FkTipologiaFattura, AnnoRiferimento, MeseRiferimento, FatturaInviata,
+                    FkProdotto, FkIdTipoDocumento, DataFattura, IdentificativoFattura, TotaleFattura, Divisa, MetodoPagamento, Progressivo)
+                SELECT @id, FkIdEnte, FkTipologiaFattura, 2002, 11, 0, FkProdotto, FkIdTipoDocumento, '2002-12-10', 'IT-9690',
+                       TotaleFattura, Divisa, MetodoPagamento, @id
+                  FROM pfd.FattureTestata WHERE IdFattura = 9505;
+                SET IDENTITY_INSERT pfd.FattureTestata OFF;", ("@id", id));
+
+            var dopo = Interi(await Json(await Get(_factory, InvioSapTestData.RottaAnni)));
+            var mesi = Interi(await Json(await Post(_factory, InvioSapTestData.RottaMesi, """{ "anno": 2002 }""")));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(prima, Does.Not.Contain(2002));
+                Assert.That(dopo, Does.Contain(2002));
+                Assert.That(dopo, Is.Ordered.Descending);
+                Assert.That(mesi, Is.EqualTo(new[] { 11 }));
+            });
+        }
+        finally
+        {
+            InvioSapTestData.Esegui("DELETE FROM pfd.FattureTestata WHERE IdFattura = @id", ("@id", id));
+        }
+    }
+
     [Test]
     public async Task Stati_ShouldEssereIQuattroCodici()
     {

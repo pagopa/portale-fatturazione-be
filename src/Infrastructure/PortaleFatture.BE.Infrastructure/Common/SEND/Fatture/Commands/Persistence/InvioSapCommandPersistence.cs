@@ -1,11 +1,15 @@
 using System.Data;
 using PortaleFatture.BE.Core.Entities.SEND.Fatture.InvioSap;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
+using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries.Persistence.Builder;
 
 namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Commands.Persistence;
 
-// Scritture dell'Invio a SAP (be-invio-sap.md §8.4). Regola di DATA: il BE fa SOLO INSERT; gli UPDATE e la
-// cancellazione del lock li fa DATA. Tutte richiedono la transazione del Genera.
+// Scritture dell'Invio a SAP (be-invio-sap.md §2.1 e §8.4). Elenco chiuso, concordato con DATA il 10/11/2026:
+// INSERT in Lock, Registro, Dettaglio, Log e Messaggi, piu' due UPDATE sulle sole righe del proprio batch
+// (FkBatchId della riga di lock appena inserita; FatturaInviata = NULL delle fatture del batch).
+// Il BE non cancella mai nulla: stato finale del batch, valore finale di FatturaInviata, messaggio e
+// cancellazione del lock sono di DATA. Tutte richiedono la transazione del Genera.
 // OUTPUT sempre con INTO in una variabile tabella: un OUTPUT senza INTO fallisce (errore 334) se la tabella
 // ha un trigger abilitato, e le tabelle sono di DATA, che potrebbe aggiungerne uno senza avvisare.
 
@@ -33,21 +37,57 @@ public sealed class InvioSapCreaBatchCommandPersistence(string idUtente, int cou
 }
 
 /// <summary>
-/// Riga di lock con il timeout di <c>pfw.TipoAzione</c>. La PK su <c>FkIdAzione</c> risolve la gara fra due
-/// Genera (errore 2627 al secondo). Restituisce le righe inserite: 0 se manca la riga di <c>TipoAzione</c>.
+/// Riga di lock con il timeout di <c>pfw.TipoAzione</c>: e' la PRIMA scrittura del Genera (richiesta di DATA,
+/// 10/11/2026), quindi il batch non esiste ancora e <c>FkBatchId</c> nasce NULL. La PK su <c>FkIdAzione</c>
+/// risolve la gara fra due Genera (errore 2627 al secondo), prima che il perdente stacchi un <c>BatchId</c>.
+/// Restituisce le righe inserite: 0 se manca la riga di <c>TipoAzione</c>.
 /// </summary>
-public sealed class InvioSapInserisciLockCommandPersistence(Guid idAzione, int batchId) : DapperBase, ICommand<int>
+public sealed class InvioSapInserisciLockCommandPersistence(Guid idAzione) : DapperBase, ICommand<int>
 {
     public bool RequiresTransaction => true;
 
     private const string Sql = @"
         INSERT INTO [pfw].[LockAzionePF] (FkIdAzione, lockStart, lockTimeout, FkBatchId)
-        SELECT ta.IdAzione, SYSUTCDATETIME(), DATEADD(MILLISECOND, ta.Timeout_millis, SYSUTCDATETIME()), @BatchId
+        SELECT ta.IdAzione, SYSUTCDATETIME(), DATEADD(MILLISECOND, ta.Timeout_millis, SYSUTCDATETIME()), NULL
           FROM [pfw].[TipoAzione] ta
          WHERE ta.IdAzione = @IdAzione;";
 
     public async Task<int> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken ct = default)
+        => await ((IDatabase)this).ExecuteAsync(connection!, Sql, new { IdAzione = idAzione }, transaction);
+}
+
+/// <summary>
+/// Lega la riga di lock appena inserita al batch: senza, <c>GET lock</c> e il 409 <c>LOCK_ATTIVO</c> non
+/// riporterebbero il <c>batchId</c>. Tocca solo la riga inserita dallo stesso Genera, nella stessa transazione.
+/// </summary>
+public sealed class InvioSapAssegnaBatchAlLockCommandPersistence(Guid idAzione, int batchId) : DapperBase, ICommand<int>
+{
+    public bool RequiresTransaction => true;
+
+    private const string Sql = @"
+        UPDATE [pfw].[LockAzionePF] SET FkBatchId = @BatchId WHERE FkIdAzione = @IdAzione;";
+
+    public async Task<int> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken ct = default)
         => await ((IDatabase)this).ExecuteAsync(connection!, Sql, new { IdAzione = idAzione, BatchId = batchId }, transaction);
+}
+
+/// <summary>
+/// Porta a NULL ("in elaborazione") <c>FatturaInviata</c> delle fatture del batch: lo fa il BE, che sa quali
+/// fatture sono state scelte (decisione di DATA del 10/11/2026). L'elenco e' il Dettaglio del batch, quindi vale
+/// per il primo invio e per il re-invio. Restituisce le righe aggiornate: devono essere quante quelle del Dettaglio.
+/// </summary>
+public sealed class InvioSapMarcaInElaborazioneCommandPersistence(int batchId) : DapperBase, ICommand<int>
+{
+    public bool RequiresTransaction => true;
+
+    private const string Sql = @"
+        UPDATE ft SET ft.FatturaInviata = NULL
+          FROM [pfd].[FattureTestata] ft
+          JOIN [pfw].[DettaglioInvioSAP] d ON d.FkIdFattura = ft.IdFattura
+         WHERE d.FkBatchId = @BatchId;";
+
+    public async Task<int> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken ct = default)
+        => await ((IDatabase)this).ExecuteAsync(connection!, Sql, new { BatchId = batchId }, transaction);
 }
 
 /// <summary>
@@ -114,6 +154,44 @@ public sealed class InvioSapDettaglioReInvioCommandPersistence(int batchId, IRea
             Nota = notaJson,
             IdFatture = idFatture.Distinct().ToArray()
         }, transaction)).OrderBy(id => id).ToList();
+}
+
+/// <summary>
+/// Re-invio con "seleziona tutto": tutte le fatture inviate del rigo tranne le escluse, da INVIATA (5) a INVIATA (5),
+/// con lo storno. Stessa condizione del conteggio fatto prima della transazione (<c>WhereReInvioTotale</c>): se il
+/// rigo e' cambiato nel frattempo l'handler se ne accorge dal numero di righe. Nessun elenco di id da passare,
+/// quindi nessun tetto sul numero di fatture.
+/// </summary>
+public sealed class InvioSapDettaglioReInvioTotaleCommandPersistence(
+    int batchId, int anno, int mese, string tipologia, IReadOnlyList<long> idFattureEscluse, string storno, string notaJson)
+    : DapperBase, ICommand<IReadOnlyList<long>>
+{
+    public bool RequiresTransaction => true;
+
+    public async Task<IReadOnlyList<long>> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken ct = default)
+    {
+        var escluse = idFattureEscluse.Distinct().ToArray();
+        var sql = @"
+        DECLARE @Inseriti TABLE (IdFattura BIGINT);
+        INSERT INTO [pfw].[DettaglioInvioSAP] (FkBatchId, FkIdFattura, FkStatoPrecedente, FkStato, NumeroDocStorno, Nota)
+        OUTPUT INSERTED.FkIdFattura INTO @Inseriti
+        SELECT @BatchId, v.IdFattura, @StatoPrecedente, @Stato, @NumeroDocStorno, @Nota
+          FROM [be].[vwInvioSAPDettaglio] v" + InvioSapQueryBuilder.WhereReInvioTotale(escluse.Length > 0) + @";
+        SELECT IdFattura FROM @Inseriti;";
+
+        return (await ((IDatabase)this).SelectAsync<long>(connection!, sql, new
+        {
+            BatchId = batchId,
+            StatoPrecedente = StatoFatturaSap.Inviata,
+            Stato = StatoFatturaSap.Inviata,
+            NumeroDocStorno = storno,
+            Nota = notaJson,
+            Anno = anno,
+            Mese = mese,
+            TipologiaFattura = tipologia,
+            IdFattureEscluse = escluse
+        }, transaction)).OrderBy(id => id).ToList();
+    }
 }
 
 /// <summary>

@@ -15,8 +15,16 @@ public sealed class InvioSapRichiestaGenerazione
     public int? Anno { get; init; }
     public int? Mese { get; init; }
     public string? TipologiaFattura { get; init; }
-    /// <summary>Assente = primo invio del rigo; presente (anche vuota) = re-invio.</summary>
+    /// <summary>
+    /// "Seleziona tutto" del dettaglio: <c>true</c> = re-invio di tutte le fatture inviate del rigo, tranne
+    /// <see cref="IdFattureEscluse"/> (e <see cref="IdFatture"/> viene ignorato). <c>false</c> o assente = vale
+    /// <see cref="IdFatture"/> (e <see cref="IdFattureEscluse"/> viene ignorato).
+    /// </summary>
+    public bool? AllSelected { get; init; }
+    /// <summary>Senza "seleziona tutto": assente = primo invio del rigo; presente (anche vuota) = re-invio.</summary>
     public IReadOnlyList<long>? IdFatture { get; init; }
+    /// <summary>Fatture tolte dal "seleziona tutto". Letto solo con <see cref="AllSelected"/> a <c>true</c>.</summary>
+    public IReadOnlyList<long>? IdFattureEscluse { get; init; }
     public string? Nota { get; init; }
     public string? NumeroDocumentoStorno { get; init; }
 }
@@ -56,6 +64,8 @@ public static class InvioSapRegole
     public const string ErroreSelezioneVuota = "Selezionare almeno una fattura";
     public const string ErroreSelezioneTroppoGrande = "Si possono re-inviare al massimo 1000 fatture per volta";
     public const string ErroreSelezioneDuplicata = "La selezione contiene fatture ripetute";
+    public const string ErroreEsclusioniTroppe = "Si possono escludere al massimo 1000 fatture per volta";
+    public const string ErroreEsclusioniDuplicate = "Le fatture escluse contengono ripetizioni";
     public const string ErroreIdNonValido = "Identificativo fattura non valido";
     public const string ErroreNota = "La nota e' obbligatoria";
     public const string ErroreNotaLunga = "La nota supera i 2000 caratteri";
@@ -73,8 +83,15 @@ public static class InvioSapRegole
     public const string ErroreRagioneSociale = "Ragione sociale troppo lunga";
     public const string ErroreNumeroFattura = "Numero fattura troppo lungo";
 
+    /// <summary>"Seleziona tutto" del dettaglio: la selezione e' il rigo meno le escluse, non un elenco.</summary>
+    public static bool SelezioneTotale(InvioSapRichiestaGenerazione richiesta) => richiesta.AllSelected == true;
+
+    /// <summary>
+    /// Primo invio solo senza "seleziona tutto" e senza elenco. Il "seleziona tutto" e' sempre un re-invio: cosi'
+    /// una richiesta senza storno riceve 400 e non diventa per errore il primo invio di altre fatture del periodo.
+    /// </summary>
     public static InvioSapModalita Modalita(InvioSapRichiestaGenerazione richiesta) =>
-        richiesta.IdFatture is null ? InvioSapModalita.PrimoInvio : InvioSapModalita.ReInvio;
+        !SelezioneTotale(richiesta) && richiesta.IdFatture is null ? InvioSapModalita.PrimoInvio : InvioSapModalita.ReInvio;
 
     /// <summary>Tutto cio' che si vede dal solo body (e dall'utente): 400.</summary>
     public static IReadOnlyList<string> ValidaFormale(InvioSapRichiestaGenerazione richiesta, string? idUtente)
@@ -98,13 +115,24 @@ public static class InvioSapRegole
         }
         else
         {
-            var ids = richiesta.IdFatture!;
-            if (ids.Count == 0) errori.Add(ErroreSelezioneVuota);
+            if (SelezioneTotale(richiesta))
+            {
+                // Nessun tetto sulle fatture del rigo: il limite riguarda solo l'elenco delle escluse.
+                var escluse = richiesta.IdFattureEscluse ?? [];
+                if (escluse.Count > MaxFatture) errori.Add(ErroreEsclusioniTroppe);
+                if (escluse.Any(id => id <= 0)) errori.Add(ErroreIdNonValido);
+                if (escluse.Distinct().Count() != escluse.Count) errori.Add(ErroreEsclusioniDuplicate);
+            }
             else
             {
-                if (ids.Count > MaxFatture) errori.Add(ErroreSelezioneTroppoGrande);
-                if (ids.Any(id => id <= 0)) errori.Add(ErroreIdNonValido);
-                if (ids.Distinct().Count() != ids.Count) errori.Add(ErroreSelezioneDuplicata);
+                var ids = richiesta.IdFatture ?? [];
+                if (ids.Count == 0) errori.Add(ErroreSelezioneVuota);
+                else
+                {
+                    if (ids.Count > MaxFatture) errori.Add(ErroreSelezioneTroppoGrande);
+                    if (ids.Any(id => id <= 0)) errori.Add(ErroreIdNonValido);
+                    if (ids.Distinct().Count() != ids.Count) errori.Add(ErroreSelezioneDuplicata);
+                }
             }
 
             if (string.IsNullOrWhiteSpace(storno)) errori.Add(ErroreStornoMancante);
@@ -131,14 +159,8 @@ public static class InvioSapRegole
             return InvioSapGeneraEsito.NonTrovate(nonTrovate);
 
         var selezionate = ids.Select(id => perId[id]).ToList();
-        var tipologia = richiesta.TipologiaFattura!.Trim();
 
-        var fuoriGruppo = selezionate
-            .Where(f => f.Anno != richiesta.Anno
-                     || f.Mese != richiesta.Mese
-                     || !string.Equals(f.TipologiaFattura?.Trim(), tipologia, StringComparison.OrdinalIgnoreCase))
-            .Select(f => f.IdFattura)
-            .ToList();
+        var fuoriGruppo = FuoriGruppo(richiesta, selezionate);
         if (fuoriGruppo.Count > 0)
             return InvioSapGeneraEsito.NonValida([ErroreFuoriGruppo], fuoriGruppo);
 
@@ -147,6 +169,38 @@ public static class InvioSapRegole
             return InvioSapGeneraEsito.NonValida([ErroreNonInviate], nonInviate);
 
         return null;
+    }
+
+    /// <summary>
+    /// Controlli sulle escluse del "seleziona tutto", lette dalla vista dettaglio: devono esistere (404) e
+    /// appartenere al rigo (400). Un'esclusa sbagliata non va ignorata: vorrebbe dire inviare una fattura che
+    /// l'utente aveva tolto. Lo stato non conta: una fattura non inviata non entrerebbe comunque. <c>null</c> se tutto torna.
+    /// </summary>
+    public static InvioSapGeneraEsito? ValidaEsclusioni(
+        InvioSapRichiestaGenerazione richiesta,
+        IReadOnlyCollection<InvioSapFatturaCorrente> correnti)
+    {
+        ArgumentNullException.ThrowIfNull(richiesta);
+        var ids = richiesta.IdFattureEscluse ?? [];
+        var perId = correnti.GroupBy(f => f.IdFattura).ToDictionary(g => g.Key, g => g.First());
+
+        var nonTrovate = ids.Where(id => !perId.ContainsKey(id)).ToList();
+        if (nonTrovate.Count > 0)
+            return InvioSapGeneraEsito.NonTrovate(nonTrovate);
+
+        var fuoriGruppo = FuoriGruppo(richiesta, ids.Select(id => perId[id]).ToList());
+        return fuoriGruppo.Count > 0 ? InvioSapGeneraEsito.NonValida([ErroreFuoriGruppo], fuoriGruppo) : null;
+    }
+
+    private static List<long> FuoriGruppo(InvioSapRichiestaGenerazione richiesta, IEnumerable<InvioSapFatturaCorrente> fatture)
+    {
+        var tipologia = richiesta.TipologiaFattura!.Trim();
+        return fatture
+            .Where(f => f.Anno != richiesta.Anno
+                     || f.Mese != richiesta.Mese
+                     || !string.Equals(f.TipologiaFattura?.Trim(), tipologia, StringComparison.OrdinalIgnoreCase))
+            .Select(f => f.IdFattura)
+            .ToList();
     }
 
     /// <summary>Filtri di griglia e download. <paramref name="annoCorrente"/> rende la regola testabile.</summary>

@@ -14,8 +14,8 @@ using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries;
 namespace PortaleFatture.BE.Api.Modules.Fatture;
 
 /// <summary>
-/// Invio a SAP (PF-965, figlio di PF-735): sette rotte <c>api/fatture/invio-sap/*</c>, solo ADMIN pagoPA.
-/// Letture dalle viste <c>be.vw*</c>, Genera di soli INSERT (be-invio-sap.md §3, §8).
+/// Invio a SAP (PF-965, figlio di PF-735): dieci rotte <c>api/fatture/invio-sap/*</c>, solo ADMIN pagoPA.
+/// Letture dalle viste <c>be.vw*</c>; scritture del Genera in be-invio-sap.md §2.1 e §8.
 /// </summary>
 public partial class FattureModule
 {
@@ -94,6 +94,41 @@ public partial class FattureModule
     [EnableCors(CORSLabel)]
     [ProducesResponseType(typeof(IReadOnlyList<InvioSapStatoResponse>), StatusCodes.Status200OK)]
     private IResult GetInvioSapStati(HttpContext context) => Results.Ok(InvioSapExtensions.Stati());
+
+    /// <summary>Valori del filtro Anno: gli anni presenti in griglia, dal piu' recente. Nessun valore = 404, come la griglia.</summary>
+    [Authorize(Roles = $"{Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(typeof(IReadOnlyList<int>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    private async Task<IResult> GetInvioSapAnniAsync(HttpContext context, [FromServices] IMediator handler)
+    {
+        var anni = (await handler.Send(new InvioSapAnniQuery(context.GetAuthInfo()))).ToList();
+        return anni.Count == 0 ? Results.NotFound() : Results.Ok(anni);
+    }
+
+    /// <summary>Valori del filtro Mese: i mesi presenti in griglia per l'anno del body. Nessun valore = 404, come la griglia.</summary>
+    [Authorize(Roles = $"{Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(typeof(IReadOnlyList<int>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    private async Task<IResult> PostInvioSapMesiAsync(HttpContext context, [FromBody] InvioSapMesiRequest? request, [FromServices] IMediator handler)
+    {
+        var mesi = (await handler.Send(request.Map(context.GetAuthInfo()))).ToList();
+        return mesi.Count == 0 ? Results.NotFound() : Results.Ok(mesi);
+    }
+
+    /// <summary>Valori del filtro Tipologia: le tipologie presenti in griglia per l'anno (e i mesi) del body, nell'ordine del ciclo. Nessun valore = 404, come la griglia.</summary>
+    [Authorize(Roles = $"{Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(typeof(IReadOnlyList<string>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    private async Task<IResult> PostInvioSapTipologieAsync(HttpContext context, [FromBody] InvioSapTipologieRequest? request, [FromServices] IMediator handler)
+    {
+        var tipologie = (await handler.Send(request.Map(context.GetAuthInfo()))).ToList();
+        return tipologie.Count == 0 ? Results.NotFound() : Results.Ok(tipologie);
+    }
 
     #endregion invio sap
 }

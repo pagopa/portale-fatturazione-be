@@ -66,6 +66,8 @@ public class FeatureFlagsHttpTests
     [TestCase("api/appio/contracts/quarters")]
     [TestCase("api/fatture/invio-sap")]
     [TestCase("api/fatture/invio-sap/dettaglio")]
+    [TestCase("api/fatture/invio-sap/mesi")]
+    [TestCase("api/fatture/invio-sap/tipologie")]
     [TestCase("api/fatture/invio/sap")]
     [TestCase("api/fatture/invio/pipeline")]
     [TestCase("api/fatture/resetta/pipeline")]
@@ -75,6 +77,7 @@ public class FeatureFlagsHttpTests
     [TestCase("api/appio/contracts/years")]
     [TestCase("api/fatture/invio-sap/lock")]
     [TestCase("api/fatture/invio-sap/stati")]
+    [TestCase("api/fatture/invio-sap/anni")]
     [TestCase("api/fatture/invio/sap/multiplo")]
     public async Task FlagAssente_RotteGetNonRegistrate_404(string rotta)
         => Assert.That(await Get(_spente, rotta), Is.EqualTo(HttpStatusCode.NotFound));
@@ -141,8 +144,8 @@ public class FeatureFlagsHttpTests
             Assert.That(spente, Is.SubsetOf(accese), "spegnere un flag non deve aggiungere rotte");
             Assert.That(mancanti, Has.All.Matches<string>(SottoFlag), "con i flag spenti manca una rotta che non e' sotto flag");
             Assert.That(accese.Where(SottoFlag), Is.SubsetOf(mancanti), "una rotta sotto flag e' registrata anche con il flag spento");
-            Assert.That(mancanti, Has.Count.EqualTo(7 + 6 + accese.Count(r => r.Contains(" /api/appio/"))),
-                "7 rotte Invio a SAP, 6 legacy e tutte quelle APP IO");
+            Assert.That(mancanti, Has.Count.EqualTo(10 + 6 + accese.Count(r => r.Contains(" /api/appio/"))),
+                "10 rotte Invio a SAP (dall'11/11/2026 anche anni, mesi e tipologie), 6 legacy e tutte quelle APP IO");
         });
     }
 

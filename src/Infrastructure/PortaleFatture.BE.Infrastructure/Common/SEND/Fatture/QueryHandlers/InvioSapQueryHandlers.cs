@@ -18,6 +18,33 @@ public sealed class InvioSapGrigliaQueryHandler(IFattureDbContextFactory factory
     }
 }
 
+public sealed class InvioSapAnniQueryHandler(IFattureDbContextFactory factory) : IRequestHandler<InvioSapAnniQuery, IEnumerable<int>>
+{
+    public async Task<IEnumerable<int>> Handle(InvioSapAnniQuery request, CancellationToken ct)
+    {
+        using var rs = await factory.Create(cancellationToken: ct);
+        return await rs.Query(new InvioSapAnniQueryPersistence(), ct);
+    }
+}
+
+public sealed class InvioSapMesiQueryHandler(IFattureDbContextFactory factory) : IRequestHandler<InvioSapMesiQuery, IEnumerable<int>>
+{
+    public async Task<IEnumerable<int>> Handle(InvioSapMesiQuery request, CancellationToken ct)
+    {
+        using var rs = await factory.Create(cancellationToken: ct);
+        return await rs.Query(new InvioSapMesiQueryPersistence(request), ct);
+    }
+}
+
+public sealed class InvioSapTipologieQueryHandler(IFattureDbContextFactory factory) : IRequestHandler<InvioSapTipologieQuery, IEnumerable<string>>
+{
+    public async Task<IEnumerable<string>> Handle(InvioSapTipologieQuery request, CancellationToken ct)
+    {
+        using var rs = await factory.Create(cancellationToken: ct);
+        return await rs.Query(new InvioSapTipologieQueryPersistence(request), ct);
+    }
+}
+
 public sealed class InvioSapRigoDaInviareQueryHandler(IFattureDbContextFactory factory) : IRequestHandler<InvioSapRigoDaInviareQuery, int?>
 {
     public async Task<int?> Handle(InvioSapRigoDaInviareQuery request, CancellationToken ct)
@@ -33,6 +60,15 @@ public sealed class InvioSapDettaglioQueryHandler(IFattureDbContextFactory facto
     {
         using var rs = await factory.Create(cancellationToken: ct);
         return await rs.Query(new InvioSapDettaglioQueryPersistence(request), ct);
+    }
+}
+
+public sealed class InvioSapConteggioReInvioTotaleQueryHandler(IFattureDbContextFactory factory) : IRequestHandler<InvioSapConteggioReInvioTotaleQuery, int>
+{
+    public async Task<int> Handle(InvioSapConteggioReInvioTotaleQuery request, CancellationToken ct)
+    {
+        using var rs = await factory.Create(cancellationToken: ct);
+        return await rs.Query(new InvioSapConteggioReInvioTotaleQueryPersistence(request), ct);
     }
 }
 

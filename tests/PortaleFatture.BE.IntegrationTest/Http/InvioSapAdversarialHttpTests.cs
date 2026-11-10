@@ -6,7 +6,7 @@ using static PortaleFatture.BE.IntegrationTest.Http.InvioSapHttp;
 namespace PortaleFatture.BE.IntegrationTest.Http;
 
 /// <summary>
-/// Passata adversarial sulle sette rotte dell'Invio a SAP: filtri ostili, valori estremi, body sbagliati,
+/// Passata adversarial sulle dieci rotte dell'Invio a SAP: filtri ostili, valori estremi, body sbagliati,
 /// injection, liste enormi. Regola di giudizio: un input assurdo e' un errore del client (400/404/409) o un
 /// risultato vuoto, mai un 500 con stack trace, e non scrive nulla (be-invio-sap.md §13.3).
 /// </summary>
@@ -36,6 +36,14 @@ public class InvioSapAdversarialHttpTests
     {
         FakeSynapseService.Instance.Reset();
         InvioSapTestData.Pulisci();
+    }
+
+    /// <summary>GET con parametri in query string oltre al nonce (che <c>WithNonce</c> mette per primo).</summary>
+    private async Task<HttpResponseMessage> GetConQuery(string rotta, string parametri)
+    {
+        var resp = await _factory.CreateClientAs(PortaleFatture.BE.Core.Auth.Ruolo.ADMIN).GetAsync($"{_factory.WithNonce(rotta)}&{parametri}");
+        TestContext.Out.WriteLine($"GET {rotta}?{parametri} -> {(int)resp.StatusCode}");
+        return resp;
     }
 
     private static async Task SenzaStackTrace(HttpResponseMessage resp)
@@ -99,6 +107,146 @@ public class InvioSapAdversarialHttpTests
         var resp = await Post(_factory, InvioSapTestData.RottaGriglia, body);
         Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.InternalServerError));
         await SenzaStackTrace(resp);
+    }
+
+    // =============================================================================================
+    // Filtri Anno e Mese (GET anni, POST mesi)
+    // =============================================================================================
+
+    [TestCase("{}", TestName = "Mesi_AnnoNonValido_ShouldRispondere400(Mesi400: anno assente)")]
+    [TestCase("null", TestName = "Mesi_AnnoNonValido_ShouldRispondere400(Mesi400: body null)")]
+    [TestCase("""{ "anno": null }""", TestName = "Mesi_AnnoNonValido_ShouldRispondere400(Mesi400: anno null)")]
+    [TestCase("""{ "anno": 1999 }""", TestName = "Mesi_AnnoNonValido_ShouldRispondere400(Mesi400: anno sotto il minimo)")]
+    [TestCase("""{ "anno": 0 }""", TestName = "Mesi_AnnoNonValido_ShouldRispondere400(Mesi400: anno zero)")]
+    [TestCase("""{ "anno": -2003 }""", TestName = "Mesi_AnnoNonValido_ShouldRispondere400(Mesi400: anno negativo)")]
+    [TestCase("""{ "anno": 2099 }""", TestName = "Mesi_AnnoNonValido_ShouldRispondere400(Mesi400: anno lontano)")]
+    [TestCase("""{ "anno": 2147483647 }""", TestName = "Mesi_AnnoNonValido_ShouldRispondere400(Mesi400: int.MaxValue)")]
+    [TestCase("""{ "Anno ": 2003 }""", TestName = "Mesi_AnnoNonValido_ShouldRispondere400(Mesi400: nome del campo sbagliato)")]
+    public async Task Mesi_AnnoNonValido_ShouldRispondere400(string body)
+    {
+        var resp = await Post(_factory, InvioSapTestData.RottaMesi, body);
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        await SenzaStackTrace(resp);
+    }
+
+    /// <summary>Stessa caratterizzazione della griglia: l'errore di binding del body e' un 500 su tutta l'API.</summary>
+    [TestCase("""{ "anno": "duemilatre" }""", TestName = "Mesi_BodyMalformato_ShouldRispondere500_Caratterizzazione(Mesi500: anno testo, caratterizzazione)")]
+    [TestCase("""{ "anno": "2003 OR 1=1" }""", TestName = "Mesi_BodyMalformato_ShouldRispondere500_Caratterizzazione(Mesi500: injection nell'anno, caratterizzazione)")]
+    [TestCase("""{ "anno": [2003] }""", TestName = "Mesi_BodyMalformato_ShouldRispondere500_Caratterizzazione(Mesi500: anno array, caratterizzazione)")]
+    [TestCase("""{ "anno": 99999999999 }""", TestName = "Mesi_BodyMalformato_ShouldRispondere500_Caratterizzazione(Mesi500: anno oltre int, caratterizzazione)")]
+    [TestCase("non-json", TestName = "Mesi_BodyMalformato_ShouldRispondere500_Caratterizzazione(Mesi500: non JSON, caratterizzazione)")]
+    public async Task Mesi_BodyMalformato_ShouldRispondere500_Caratterizzazione(string body)
+    {
+        var resp = await Post(_factory, InvioSapTestData.RottaMesi, body);
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.InternalServerError));
+        await SenzaStackTrace(resp);
+    }
+
+    [Test]
+    public async Task Mesi_CampiInPiu_ShouldEssereIgnorati()
+    {
+        // Un FE che manda anche i filtri della griglia non riceve un errore: conta solo l'anno.
+        var resp = await Post(_factory, InvioSapTestData.RottaMesi,
+            """{ "anno": 2003, "mesi": [99], "tipologieFattura": ["' OR 1=1 --"], "statoInvio": "REINVIATE" }""");
+        var mesi = (await Json(resp)).EnumerateArray().Select(e => e.GetInt32());
+        Assert.Multiple(() =>
+        {
+            Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(mesi, Is.EqualTo(new[] { 1, 2, 3, 7 }));
+        });
+    }
+
+    // ---- Filtro Tipologia (11/11/2026): stesse regole della griglia su anno e mesi ----
+
+    [TestCase("{}", TestName = "Tipologie_FiltroNonValido_ShouldRispondere400(Tipologie400: anno assente)")]
+    [TestCase("null", TestName = "Tipologie_FiltroNonValido_ShouldRispondere400(Tipologie400: body null)")]
+    [TestCase("""{ "mesi": [1] }""", TestName = "Tipologie_FiltroNonValido_ShouldRispondere400(Tipologie400: solo mesi, senza anno)")]
+    [TestCase("""{ "anno": 1999 }""", TestName = "Tipologie_FiltroNonValido_ShouldRispondere400(Tipologie400: anno sotto il minimo)")]
+    [TestCase("""{ "anno": 2099 }""", TestName = "Tipologie_FiltroNonValido_ShouldRispondere400(Tipologie400: anno lontano)")]
+    [TestCase("""{ "anno": 2003, "mesi": [0] }""", TestName = "Tipologie_FiltroNonValido_ShouldRispondere400(Tipologie400: mese zero)")]
+    [TestCase("""{ "anno": 2003, "mesi": [13] }""", TestName = "Tipologie_FiltroNonValido_ShouldRispondere400(Tipologie400: mese 13)")]
+    [TestCase("""{ "anno": 2003, "mesi": [2, 2] }""", TestName = "Tipologie_FiltroNonValido_ShouldRispondere400(Tipologie400: mese ripetuto)")]
+    [TestCase("""{ "anno": 2003, "mesi": [-2147483648] }""", TestName = "Tipologie_FiltroNonValido_ShouldRispondere400(Tipologie400: int.MinValue)")]
+    public async Task Tipologie_FiltroNonValido_ShouldRispondere400(string body)
+    {
+        var resp = await Post(_factory, InvioSapTestData.RottaTipologie, body);
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        await SenzaStackTrace(resp);
+    }
+
+    /// <summary>Stessa caratterizzazione di griglia e mesi: l'errore di binding del body e' un 500 su tutta l'API.</summary>
+    [TestCase("""{ "anno": "duemilatre" }""", TestName = "Tipologie_BodyMalformato_ShouldRispondere500_Caratterizzazione(Tipologie500: anno testo, caratterizzazione)")]
+    [TestCase("""{ "anno": 2003, "mesi": "1 OR 1=1" }""", TestName = "Tipologie_BodyMalformato_ShouldRispondere500_Caratterizzazione(Tipologie500: injection nei mesi, caratterizzazione)")]
+    [TestCase("""{ "anno": 2003, "mesi": ["gennaio"] }""", TestName = "Tipologie_BodyMalformato_ShouldRispondere500_Caratterizzazione(Tipologie500: mese testo, caratterizzazione)")]
+    [TestCase("non-json", TestName = "Tipologie_BodyMalformato_ShouldRispondere500_Caratterizzazione(Tipologie500: non JSON, caratterizzazione)")]
+    public async Task Tipologie_BodyMalformato_ShouldRispondere500_Caratterizzazione(string body)
+    {
+        var resp = await Post(_factory, InvioSapTestData.RottaTipologie, body);
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.InternalServerError));
+        await SenzaStackTrace(resp);
+    }
+
+    [Test]
+    public async Task Tipologie_CampiInPiu_ShouldEssereIgnorati()
+    {
+        // Un FE che manda tutti i filtri della griglia non riceve un errore: contano solo anno e mesi.
+        var resp = await Post(_factory, InvioSapTestData.RottaTipologie,
+            """{ "anno": 2003, "mesi": [2], "tipologieFattura": ["' OR 1=1 --"], "statoInvio": "REINVIATE" }""");
+        var tipologie = (await Json(resp)).EnumerateArray().Select(e => e.GetString());
+        Assert.Multiple(() =>
+        {
+            Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(tipologie, Is.EqualTo(new[] { "PRIMO SALDO", "SECONDO SALDO" }));
+        });
+    }
+
+    [Test]
+    public async Task Tipologie_VerboSbagliato_ShouldEssere405()
+    {
+        var resp = await GetConQuery(InvioSapTestData.RottaTipologie, "anno=2003");
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.MethodNotAllowed), "Anno e mesi vanno nel body, come nelle altre ricerche dell'area.");
+    }
+
+    [TestCase("anno=2003", TestName = "Anni_QueryStringOstile_ShouldEssereIgnorata(Anni200: filtro non previsto)")]
+    [TestCase("anno=2003%27%20OR%201%3D1%20--", TestName = "Anni_QueryStringOstile_ShouldEssereIgnorata(Anni200: injection in query string)")]
+    [TestCase("top=0&order=asc", TestName = "Anni_QueryStringOstile_ShouldEssereIgnorata(Anni200: parametri inventati)")]
+    public async Task Anni_QueryStringOstile_ShouldEssereIgnorata(string queryString)
+    {
+        // La rotta non ha input: qualunque parametro viene ignorato e la risposta resta quella senza parametri.
+        var attesa = await (await Get(_factory, InvioSapTestData.RottaAnni)).Content.ReadAsStringAsync();
+        var resp = await GetConQuery(InvioSapTestData.RottaAnni, queryString);
+        var corpo = await resp.Content.ReadAsStringAsync();
+        Assert.Multiple(() =>
+        {
+            Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(corpo, Is.EqualTo(attesa));
+        });
+    }
+
+    [Test]
+    public async Task AnniEMesi_VerboSbagliato_ShouldEssere405()
+    {
+        var postSuAnni = await Post(_factory, InvioSapTestData.RottaAnni, "{}");
+        var getSuMesi = await GetConQuery(InvioSapTestData.RottaMesi, "anno=2003");
+        Assert.Multiple(() =>
+        {
+            Assert.That(postSuAnni.StatusCode, Is.EqualTo(HttpStatusCode.MethodNotAllowed));
+            Assert.That(getSuMesi.StatusCode, Is.EqualTo(HttpStatusCode.MethodNotAllowed), "L'anno va nel body, come nelle altre ricerche dell'area.");
+        });
+    }
+
+    [Test]
+    public async Task AnniEMesi_ShouldNonScrivereNulla()
+    {
+        var prima = InvioSapTestData.FotografiaTabelle();
+        await Get(_factory, InvioSapTestData.RottaAnni);
+        await Post(_factory, InvioSapTestData.RottaMesi, """{ "anno": 2003 }""");
+        await Post(_factory, InvioSapTestData.RottaTipologie, """{ "anno": 2003, "mesi": [1, 2] }""");
+        Assert.Multiple(() =>
+        {
+            Assert.That(InvioSapTestData.FotografiaTabelle(), Is.EqualTo(prima));
+            Assert.That(InvioSapTestData.BatchDeiTest(), Is.Empty);
+        });
     }
 
     [Test]

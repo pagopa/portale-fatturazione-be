@@ -24,6 +24,12 @@ public sealed class FakeSynapseService : ISynapseService
     /// <summary>Se valorizzata, <see cref="AvviaGenerazioneJsonSap"/> la lancia (eccezione imprevista a meta' transazione).</summary>
     public Exception? Eccezione { get; set; }
 
+    /// <summary>
+    /// Eseguita quando arriva una richiesta di generazione, prima di rispondere: serve a osservare lo stato del DB
+    /// nel momento della chiamata (per esempio che il batch sia gia' confermato).
+    /// </summary>
+    public Action<InvioSapPipelineRequest>? AllaRichiesta { get; set; }
+
     public List<object> Chiamate { get; } = [];
 
     public IReadOnlyList<InvioSapPipelineRequest> RichiesteGenerazione
@@ -38,6 +44,7 @@ public sealed class FakeSynapseService : ISynapseService
             Esito = true;
             Ritardo = TimeSpan.Zero;
             Eccezione = null;
+            AllaRichiesta = null;
             Chiamate.Clear();
         }
     }
@@ -52,6 +59,7 @@ public sealed class FakeSynapseService : ISynapseService
 
     public async Task<SynapseRunResult> AvviaGenerazioneJsonSap(string? pipelineName, InvioSapPipelineRequest richiesta, CancellationToken ct = default)
     {
+        AllaRichiesta?.Invoke(richiesta);
         if (Eccezione is not null) throw Eccezione;
         var ok = await Registra(richiesta);
         return new SynapseRunResult(ok, ok ? 200 : 500, ok ? $"run-{richiesta.BatchId}" : null);

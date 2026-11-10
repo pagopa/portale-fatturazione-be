@@ -23,9 +23,14 @@ namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.CommandHandlers;
 /// "Genera JSON", passo per passo come in be-invio-sap.md §8.5:
 /// 1. lock sulla vista (409 senza altre letture ne' scritture);
 /// 2. validazione formale (400);
-/// 3. letture dalle viste: <c>NumeroFatture</c> del rigo (primo invio) o stato delle fatture (re-invio);
-/// 4. transazione di soli INSERT: Registro, Lock, Dettaglio, Log, Messaggi; poi <c>createRun</c>, e commit
-///    solo se la pipeline e' partita. Altrimenti rollback: nulla resta scritto.
+/// 3. letture dalle viste: <c>NumeroFatture</c> del rigo (primo invio), stato delle fatture scelte (re-invio) oppure,
+///    con "seleziona tutto", controllo delle escluse e numero delle inviate del rigo che restano;
+/// 4. transazione (ordine deciso con DATA il 10/11/2026): Lock per primo, Registro, Dettaglio,
+///    <c>FatturaInviata = NULL</c> sulle fatture del batch, Log, Messaggi; poi COMMIT;
+/// 5. <c>createRun</c> DOPO il commit: la pipeline legge sempre righe confermate.
+///
+/// Se <c>createRun</c> fallisce le righe restano scritte (lock, batch IN_ELABORAZIONE, fatture a NULL): per ora
+/// nessuna compensazione, il punto e' aperto con DATA (D-m). Un errore PRIMA del commit fa rollback completo.
 /// </summary>
 public sealed class InvioSapGeneraCommandHandler(
     IFattureDbContextFactory factory,
@@ -60,6 +65,8 @@ public sealed class InvioSapGeneraCommandHandler(
         // 3. Letture dalle viste (nessuna scrittura fin qui).
         int numeroAtteso;
         IReadOnlyList<long> idSelezionati = [];
+        IReadOnlyList<long> idEsclusi = [];
+        var selezioneTotale = InvioSapRegole.SelezioneTotale(richiesta);
         if (modalita == InvioSapModalita.PrimoInvio)
         {
             var numero = await mediator.Send(new InvioSapRigoDaInviareQuery(authInfo)
@@ -69,6 +76,26 @@ public sealed class InvioSapGeneraCommandHandler(
             if (numero is null or <= 0)
                 return InvioSapGeneraEsito.NonTrovate();
             numeroAtteso = numero.Value;
+        }
+        else if (selezioneTotale)
+        {
+            // "Seleziona tutto": il rigo meno le escluse. Le escluse devono esistere e appartenere al rigo.
+            idEsclusi = richiesta.IdFattureEscluse ?? [];
+            if (idEsclusi.Count > 0)
+            {
+                var escluse = await mediator.Send(new InvioSapStatoFattureQuery(authInfo) { IdFatture = idEsclusi }, ct);
+                var esitoEscluse = InvioSapRegole.ValidaEsclusioni(richiesta, escluse.Select(c => c.ToCorrente()).ToList());
+                if (esitoEscluse is not null)
+                    return esitoEscluse;
+            }
+            numeroAtteso = await mediator.Send(new InvioSapConteggioReInvioTotaleQuery(authInfo)
+            {
+                Anno = anno, Mese = mese, TipologiaFattura = tipologia, IdFattureEscluse = idEsclusi
+            }, ct);
+            if (numeroAtteso <= 0)
+                return idEsclusi.Count > 0
+                    ? InvioSapGeneraEsito.NonValida([InvioSapRegole.ErroreSelezioneVuota])
+                    : InvioSapGeneraEsito.NonTrovate();
         }
         else
         {
@@ -80,17 +107,18 @@ public sealed class InvioSapGeneraCommandHandler(
             numeroAtteso = idSelezionati.Count;
         }
 
-        // 4. Transazione di soli INSERT.
+        // 4. Transazione: il lock per primo, poi il batch e le sue righe.
         var notaJson = new InvioSapNota(DateTime.UtcNow, richiesta.Nota!.Trim(), InvioSapRegole.DescrizioneAzione).ToJson();
+        InvioSapBatchCreato batch;
+        IReadOnlyList<long> inseriti;
+        long idMessaggio;
         using var uow = await factory.Create(true, IsolationLevel.ReadCommitted, ct);
         try
         {
-            var batch = await uow.Execute(new InvioSapCreaBatchCommandPersistence(authInfo.Id!, numeroAtteso), ct);
-
             int righeLock;
             try
             {
-                righeLock = await uow.Execute(new InvioSapInserisciLockCommandPersistence(InvioSapRegole.IdAzioneGeneraJson, batch.BatchId), ct);
+                righeLock = await uow.Execute(new InvioSapInserisciLockCommandPersistence(InvioSapRegole.IdAzioneGeneraJson), ct);
             }
             catch (SqlException ex) when (ex.Number is ViolazionePrimaryKey or ViolazioneIndiceUnivoco)
             {
@@ -103,9 +131,16 @@ public sealed class InvioSapGeneraCommandHandler(
                 throw new InvalidOperationException("Configurazione mancante: pfw.TipoAzione non contiene l'azione GeneraJsonFatture.");
             }
 
-            IReadOnlyList<long> inseriti = modalita == InvioSapModalita.PrimoInvio
-                ? await uow.Execute(new InvioSapDettaglioPrimoInvioCommandPersistence(batch.BatchId, anno, mese, tipologia, notaJson), ct)
-                : await uow.Execute(new InvioSapDettaglioReInvioCommandPersistence(batch.BatchId, idSelezionati, richiesta.NumeroDocumentoStorno!.Trim(), notaJson), ct);
+            batch = await uow.Execute(new InvioSapCreaBatchCommandPersistence(authInfo.Id!, numeroAtteso), ct);
+            await uow.Execute(new InvioSapAssegnaBatchAlLockCommandPersistence(InvioSapRegole.IdAzioneGeneraJson, batch.BatchId), ct);
+
+            if (modalita == InvioSapModalita.PrimoInvio)
+                inseriti = await uow.Execute(new InvioSapDettaglioPrimoInvioCommandPersistence(batch.BatchId, anno, mese, tipologia, notaJson), ct);
+            else if (selezioneTotale)
+                inseriti = await uow.Execute(new InvioSapDettaglioReInvioTotaleCommandPersistence(
+                    batch.BatchId, anno, mese, tipologia, idEsclusi, richiesta.NumeroDocumentoStorno!.Trim(), notaJson), ct);
+            else
+                inseriti = await uow.Execute(new InvioSapDettaglioReInvioCommandPersistence(batch.BatchId, idSelezionati, richiesta.NumeroDocumentoStorno!.Trim(), notaJson), ct);
 
             if (inseriti.Count == 0 && modalita == InvioSapModalita.PrimoInvio)
             {
@@ -117,6 +152,15 @@ public sealed class InvioSapGeneraCommandHandler(
                 uow.Rollback();
                 logger.LogInformation("InvioSap Genera: rigo cambiato fra lettura e INSERT (attese {Attese}, inserite {Inserite})", numeroAtteso, inseriti.Count);
                 return InvioSapGeneraEsito.Conflitto(InvioSapMotivoConflitto.GRUPPO_CAMBIATO);
+            }
+
+            // Le fatture del batch passano a "in elaborazione": in griglia il rigo cambia stato subito.
+            var marcate = await uow.Execute(new InvioSapMarcaInElaborazioneCommandPersistence(batch.BatchId), ct);
+            if (marcate != inseriti.Count)
+            {
+                uow.Rollback();
+                throw new InvalidOperationException(
+                    $"InvioSap Genera: fatture portate in elaborazione ({marcate}) diverse dalle righe del dettaglio ({inseriti.Count}).");
             }
 
             // SerializeAlsoReadOnly: le proprieta' dei tipi anonimi sono read-only, e Serialize() le ignora (scriverebbe "{}").
@@ -133,7 +177,7 @@ public sealed class InvioSapGeneraCommandHandler(
             await uow.Execute(new StoricoCreateCommandPersistence(new StoricoCreateCommand(
                 authInfo, DateTime.UtcNow.ItalianTime(), TipoStorico.InvioSAP, evento.SerializeAlsoReadOnly())), ct);
 
-            var idMessaggio = await uow.Execute(new InvioSapMessaggioCreateCommandPersistence(new InvioSapMessaggio
+            idMessaggio = await uow.Execute(new InvioSapMessaggioCreateCommandPersistence(new InvioSapMessaggio
             {
                 IdEnte = string.IsNullOrWhiteSpace(authInfo.IdEnte) ? null : authInfo.IdEnte,
                 IdUtente = authInfo.Id!,
@@ -150,33 +194,51 @@ public sealed class InvioSapGeneraCommandHandler(
                 Hash = batch.BatchId.ToString()
             }), ct);
 
-            var run = await synapse.AvviaGenerazioneJsonSap(options.Synapse?.PipelineNameSAP,
-                InvioSapPipelineRequest.Crea(batch.BatchId, idMessaggio, tipologia, anno, mese), ct);
-            if (!run.Success)
-            {
-                uow.Rollback();
-                logger.LogError("InvioSap Genera: pipeline non avviata per il batch {BatchId} (status {Status})", batch.BatchId, run.StatusCode);
-                return InvioSapGeneraEsito.PipelineFallita();
-            }
-
             uow.Commit();
-            logger.LogInformation("InvioSap Genera: batch {BatchId}, messaggio {IdMessaggio}, {Numero} fatture, run {RunId}",
-                batch.BatchId, idMessaggio, inseriti.Count, run.RunId);
-            return new InvioSapGeneraEsito
-            {
-                Tipo = InvioSapGeneraEsitoTipo.Ok,
-                BatchId = batch.BatchId,
-                DataAvvioUtc = DateTime.SpecifyKind(batch.DataAvvio, DateTimeKind.Utc),
-                NumeroFatture = inseriti.Count,
-                IdFatture = inseriti
-            };
         }
         catch
         {
             TryRollback(uow);
             throw;
         }
+
+        // 5. createRun DOPO il commit (richiesta di DATA): da qui non c'e' piu' nulla da annullare con un rollback.
+        SynapseRunResult run;
+        try
+        {
+            run = await synapse.AvviaGenerazioneJsonSap(options.Synapse?.PipelineNameSAP,
+                InvioSapPipelineRequest.Crea(batch.BatchId, idMessaggio, tipologia, anno, mese), ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, MessaggioPipelineNonAvviata, batch.BatchId, idMessaggio, "eccezione");
+            return InvioSapGeneraEsito.PipelineFallita();
+        }
+        if (!run.Success)
+        {
+            logger.LogError(MessaggioPipelineNonAvviata, batch.BatchId, idMessaggio, run.StatusCode);
+            return InvioSapGeneraEsito.PipelineFallita();
+        }
+
+        logger.LogInformation("InvioSap Genera: batch {BatchId}, messaggio {IdMessaggio}, {Numero} fatture, run {RunId}",
+            batch.BatchId, idMessaggio, inseriti.Count, run.RunId);
+        return new InvioSapGeneraEsito
+        {
+            Tipo = InvioSapGeneraEsitoTipo.Ok,
+            BatchId = batch.BatchId,
+            DataAvvioUtc = DateTime.SpecifyKind(batch.DataAvvio, DateTimeKind.Utc),
+            NumeroFatture = inseriti.Count,
+            IdFatture = inseriti
+        };
     }
+
+    /// <summary>
+    /// Le righe del batch sono gia' confermate e il BE non le annulla (punto D-m, aperto con DATA): il lock resta
+    /// attivo fino alla scadenza e le fatture restano "in elaborazione" finche' DATA non interviene.
+    /// </summary>
+    private const string MessaggioPipelineNonAvviata =
+        "InvioSap Genera: pipeline non avviata per il batch {BatchId} (messaggio {IdMessaggio}, esito {Esito}). " +
+        "Le righe sono confermate: lock, batch IN_ELABORAZIONE e FatturaInviata = NULL restano finche' DATA non li ripulisce";
 
     /// <summary>
     /// PK violata: o un altro Genera ha appena inserito il lock (la vista lo mostra), o la riga e' scaduta e

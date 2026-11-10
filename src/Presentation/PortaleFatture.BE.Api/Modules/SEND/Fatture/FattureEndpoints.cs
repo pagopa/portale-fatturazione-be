@@ -452,6 +452,24 @@ public partial class FattureModule : Module, IRegistrableModule
            .WithName("Invio a SAP: valori del filtro stato")
            .SetOpenApi(Module.DatiFattureLabel)
            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+           .MapGet("api/fatture/invio-sap/anni", GetInvioSapAnniAsync)
+           .WithName("Invio a SAP: valori del filtro anno (anni presenti in griglia)")
+           .SetOpenApi(Module.DatiFattureLabel)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+           .MapPost("api/fatture/invio-sap/mesi", PostInvioSapMesiAsync)
+           .WithName("Invio a SAP: valori del filtro mese (mesi presenti in griglia per l'anno)")
+           .SetOpenApi(Module.DatiFattureLabel)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+           .MapPost("api/fatture/invio-sap/tipologie", PostInvioSapTipologieAsync)
+           .WithName("Invio a SAP: valori del filtro tipologia (tipologie presenti in griglia per anno e mesi)")
+           .SetOpenApi(Module.DatiFattureLabel)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
     }
     #endregion invio sap
 

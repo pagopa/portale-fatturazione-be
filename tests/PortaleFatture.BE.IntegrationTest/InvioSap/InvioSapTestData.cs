@@ -5,7 +5,9 @@ namespace PortaleFatture.BE.IntegrationTest.InvioSap;
 /// <summary>
 /// Punto unico di contatto fra i test dell'Invio a SAP (PF-965) e il DB seedato: rotte, nomi degli oggetti
 /// di DATA, costanti del seed <c>tests/Data/invio_sap.sql</c> (anno dedicato 2003) e helper che simulano
-/// DATA. Il BE fa solo INSERT: tutto cio' che qui aggiorna o cancella e' "DATA" o pulizia dei test.
+/// DATA. Dal 10/11/2026 il BE, oltre agli INSERT, porta a NULL <c>FatturaInviata</c> delle fatture del batch e
+/// valorizza <c>FkBatchId</c> del proprio lock; non cancella mai nulla. Ogni altro UPDATE o DELETE qui dentro e'
+/// "DATA" o pulizia dei test.
 /// </summary>
 public static class InvioSapTestData
 {
@@ -16,6 +18,9 @@ public static class InvioSapTestData
     public const string RottaGenera = "/api/fatture/invio-sap/genera";
     public const string RottaLock = "/api/fatture/invio-sap/lock";
     public const string RottaStati = "/api/fatture/invio-sap/stati";
+    public const string RottaAnni = "/api/fatture/invio-sap/anni";
+    public const string RottaMesi = "/api/fatture/invio-sap/mesi";
+    public const string RottaTipologie = "/api/fatture/invio-sap/tipologie";
 
     public const string Registro = "pfw.RegistroInvioSAP";
     public const string Dettaglio = "pfw.DettaglioInvioSAP";
@@ -134,7 +139,18 @@ public static class InvioSapTestData
 
     // ---- Simulazione di DATA -----------------------------------------------------------------
 
-    /// <summary>DATA chiude il batch: stato finale, file, fatture inviate e cancellazione del lock.</summary>
+    /// <summary><c>FatturaInviata</c> di una fattura: false = da inviare, true = inviata, null = in elaborazione.</summary>
+    public static bool? FatturaInviata(long idFattura) =>
+        Scalar("SELECT FatturaInviata FROM pfd.FattureTestata WHERE IdFattura = @id", ("@id", idFattura)) as bool?;
+
+    public static long UltimoBatchStaccato() =>
+        Convert.ToInt64(Scalar($"SELECT IDENT_CURRENT('{Registro}')"));
+
+    /// <summary>
+    /// DATA chiude il batch: stato finale, file, valore finale di <c>FatturaInviata</c> e cancellazione del lock.
+    /// Con <c>ERRORE</c> (ramo di uscita della pipeline) le fatture tornano allo stato precedente: 4 → da inviare,
+    /// 5 → inviata. E' l'assunzione D-o, da confermare con DATA.
+    /// </summary>
     public static void ChiudiBatchComeData(int batchId, string stato = "COMPLETATO")
     {
         Esegui($@"UPDATE {Registro} SET Stato = @s,
@@ -146,14 +162,17 @@ public static class InvioSapTestData
         if (stato == "COMPLETATO")
             Esegui($@"UPDATE ft SET FatturaInviata = 1 FROM pfd.FattureTestata ft
                       JOIN {Dettaglio} d ON d.FkIdFattura = ft.IdFattura WHERE d.FkBatchId = @b", ("@b", batchId));
+        else
+            Esegui($@"UPDATE ft SET FatturaInviata = CASE d.FkStatoPrecedente WHEN 5 THEN 1 ELSE 0 END FROM pfd.FattureTestata ft
+                      JOIN {Dettaglio} d ON d.FkIdFattura = ft.IdFattura WHERE d.FkBatchId = @b", ("@b", batchId));
         Esegui($"DELETE FROM {Lock} WHERE FkBatchId = @b", ("@b", batchId));
     }
 
-    // ---- Prova "solo INSERT" -----------------------------------------------------------------
+    // ---- Prova "nessuna riga estranea toccata" -----------------------------------------------
 
     /// <summary>
     /// Impronta delle righe preesistenti delle tabelle che il Genera tocca. Se il BE aggiornasse o cancellasse
-    /// qualcosa, l'impronta cambierebbe (be-invio-sap.md §13.1).
+    /// qualcosa che non gli spetta, l'impronta cambierebbe (be-invio-sap.md §13.1 e §13.10).
     /// </summary>
     public sealed record Fotografia(long Registro, long Dettaglio, long Lock, long Fatture, long Messaggi, long Log, long MaxMessaggio);
 
@@ -161,15 +180,21 @@ public static class InvioSapTestData
     /// Per confrontare due fotografie va passata la <c>MaxMessaggio</c> della prima: altrimenti la seconda include
     /// nel checksum anche i messaggi creati nel frattempo, che non sono modifiche di righe preesistenti.
     /// </param>
-    public static Fotografia FotografiaTabelle(long? sogliaMessaggi = null)
+    /// <param name="fattureDelBatch">
+    /// Fatture escluse dall'impronta di <c>pfd.FattureTestata</c>: sono quelle del batch, le uniche su cui il BE
+    /// scrive (<c>FatturaInviata = NULL</c>). Vanno passate a ENTRAMBE le fotografie da confrontare, e verificate
+    /// a parte con <see cref="FatturaInviata"/>. Senza, l'impronta copre tutta la tabella ("nessuna scrittura").
+    /// </param>
+    public static Fotografia FotografiaTabelle(long? sogliaMessaggi = null, IReadOnlyCollection<long>? fattureDelBatch = null)
     {
         long C(string sql) => Convert.ToInt64(Scalar(sql) ?? 0L);
         var maxMessaggio = sogliaMessaggi ?? C("SELECT ISNULL(MAX(IdMessaggio), 0) FROM pfd.Messaggi");
+        var fuoriDalBatch = fattureDelBatch is { Count: > 0 } ? $" WHERE IdFattura NOT IN ({string.Join(", ", fattureDelBatch)})" : string.Empty;
         return new Fotografia(
             C($"SELECT ISNULL(CHECKSUM_AGG(BINARY_CHECKSUM(BatchId, Stato, IdUtente, DataAvvio, DataCompletamento, NomeFile, PathFile, CountFatture, DescrizioneErrore)), 0) FROM {Registro} WHERE BatchId <= {UltimoBatchSeed}"),
             C($"SELECT ISNULL(CHECKSUM_AGG(BINARY_CHECKSUM(FkBatchId, FkIdFattura, FkStatoPrecedente, FkStato, NumeroDocStorno, CAST(Nota AS nvarchar(max)))), 0) FROM {Dettaglio} WHERE FkBatchId <= {UltimoBatchSeed}"),
             C($"SELECT ISNULL(CHECKSUM_AGG(BINARY_CHECKSUM(FkIdAzione, lockStart, lockTimeout, FkBatchId)), 0) FROM {Lock} WHERE FkBatchId IS NULL OR FkBatchId <= {UltimoBatchSeed}"),
-            C("SELECT ISNULL(CHECKSUM_AGG(BINARY_CHECKSUM(IdFattura, FatturaInviata, TotaleFattura, FkTipologiaFattura, AnnoRiferimento, MeseRiferimento)), 0) FROM pfd.FattureTestata"),
+            C("SELECT ISNULL(CHECKSUM_AGG(BINARY_CHECKSUM(IdFattura, FatturaInviata, TotaleFattura, FkTipologiaFattura, AnnoRiferimento, MeseRiferimento)), 0) FROM pfd.FattureTestata" + fuoriDalBatch),
             C($"SELECT ISNULL(CHECKSUM_AGG(BINARY_CHECKSUM(IdMessaggio, IdUtente, Stato, Hash, LinkDocumento)), 0) FROM pfd.Messaggi WHERE IdMessaggio <= {maxMessaggio}"),
             C("SELECT COUNT(*) FROM pfw.Log WHERE IdUtente IS NULL OR IdUtente <> 'integration-test-user' OR DescrizioneEvento <> 'ISAP'"),
             maxMessaggio);
