@@ -48,6 +48,11 @@ public class ModuleManager
 
         foreach (var moduleType in Modules)
         {
+            // Modulo legato a un feature flag spento: nessuna rotta, quindi niente Swagger e 404.
+            var flag = moduleType.GetCustomAttribute<FeatureFlagAttribute>();
+            if (flag is not null && !app.Services.IsFeatureEnabled(flag.Feature))
+                continue;
+
             if (moduleType.IsAssignableTo(typeof(IRegistrableModule)))
             {
                 var module = (IRegistrableModule)scope.ServiceProvider.GetRequiredService(moduleType);
