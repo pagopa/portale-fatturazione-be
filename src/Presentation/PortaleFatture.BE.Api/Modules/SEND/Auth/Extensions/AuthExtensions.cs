@@ -1,4 +1,5 @@
 ﻿using System.Web;
+using PortaleFatture.BE.Api.Infrastructure;
 using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Auth.PagoPA;
 using PortaleFatture.BE.Core.Extensions;
@@ -38,22 +39,35 @@ public static class AuthExtensions
     this AuthenticationInfo authInfo,
     IIdentityUsersService usersService,
     ITokenService tokensService,
-    IAesEncryption encryption)
+    IAesEncryption encryption,
+    List<string> featureAccese)
     {
-        return authInfo.MapperPagoPAProdotto(ProductRoles.SEND, usersService, tokensService, encryption);
+        var profilo = authInfo.MapperPagoPAProdotto(ProductRoles.SEND, usersService, tokensService, encryption);
+        profilo.Features = featureAccese;
+        return profilo;
     }
 
     // Prodotti restituiti dal login admin, nell'ordine in cui compaiono nella risposta
     public static readonly string[] ProdottiPagoPA = [ProductRoles.pagoPA, ProductRoles.SEND, ProductRoles.AppIO];
 
+    // Prodotti legati a un feature flag: con il flag spento il login non ne emette il profilo
+    private static readonly Dictionary<string, string> FlagProdotto = new() { [ProductRoles.AppIO] = FeatureFlags.AppIO };
+
     public static List<ProfileInfo> MapperPagoPAProfili(
         this AuthenticationInfo authInfo,
         IIdentityUsersService usersService,
         ITokenService tokensService,
-        IAesEncryption encryption)
+        IAesEncryption encryption,
+        List<string> featureAccese)
     {
         return ProdottiPagoPA
-            .Select(prodotto => authInfo.MapperPagoPAProdotto(prodotto, usersService, tokensService, encryption))
+            .Where(prodotto => !FlagProdotto.TryGetValue(prodotto, out var flag) || featureAccese.Contains(flag))
+            .Select(prodotto =>
+            {
+                var profilo = authInfo.MapperPagoPAProdotto(prodotto, usersService, tokensService, encryption);
+                profilo.Features = featureAccese;
+                return profilo;
+            })
             .ToList();
     }
 
