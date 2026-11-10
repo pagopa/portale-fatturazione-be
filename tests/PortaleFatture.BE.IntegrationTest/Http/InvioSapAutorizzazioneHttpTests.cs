@@ -6,7 +6,7 @@ using PortaleFatture.BE.IntegrationTest.InvioSap;
 namespace PortaleFatture.BE.IntegrationTest.Http;
 
 /// <summary>
-/// Matrice **identita' × rotta** per le sette rotte di Invio a SAP (PF-735 RF-2, RF-11: tutto e solo ADMIN).
+/// Matrice **identita' × rotta** per le dieci rotte di Invio a SAP (PF-735 RF-2, RF-11: tutto e solo ADMIN).
 ///
 /// | identita' | atteso | perche' |
 /// |---|---|---|
@@ -31,7 +31,7 @@ public class InvioSapAutorizzazioneHttpTests
     [OneTimeTearDown]
     public void TearDown() => _factory?.Dispose();
 
-    /// <summary>Le sette rotte con verbo e body minimo (l'autorizzazione non legge il body).</summary>
+    /// <summary>Le dieci rotte con verbo e body minimo (l'autorizzazione non legge il body).</summary>
     public static IEnumerable<TestCaseData> Rotte()
     {
         const string griglia = """{ "anno": 2003 }""";
@@ -45,6 +45,9 @@ public class InvioSapAutorizzazioneHttpTests
         yield return new TestCaseData(HttpMethod.Put, InvioSapTestData.RottaGenera, genera).SetArgDisplayNames("genera");
         yield return new TestCaseData(HttpMethod.Get, InvioSapTestData.RottaLock, null).SetArgDisplayNames("lock");
         yield return new TestCaseData(HttpMethod.Get, InvioSapTestData.RottaStati, null).SetArgDisplayNames("stati");
+        yield return new TestCaseData(HttpMethod.Get, InvioSapTestData.RottaAnni, null).SetArgDisplayNames("anni");
+        yield return new TestCaseData(HttpMethod.Post, InvioSapTestData.RottaMesi, griglia).SetArgDisplayNames("mesi");
+        yield return new TestCaseData(HttpMethod.Post, InvioSapTestData.RottaTipologie, griglia).SetArgDisplayNames("tipologie");
     }
 
     [TestCaseSource(nameof(Rotte))]
