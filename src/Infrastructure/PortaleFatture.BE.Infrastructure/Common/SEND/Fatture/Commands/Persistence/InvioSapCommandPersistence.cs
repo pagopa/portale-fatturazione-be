@@ -1,6 +1,7 @@
 using System.Data;
 using PortaleFatture.BE.Core.Entities.SEND.Fatture.InvioSap;
 using PortaleFatture.BE.Infrastructure.Common.Persistence;
+using PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Queries.Persistence.Builder;
 
 namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Commands.Persistence;
 
@@ -153,6 +154,44 @@ public sealed class InvioSapDettaglioReInvioCommandPersistence(int batchId, IRea
             Nota = notaJson,
             IdFatture = idFatture.Distinct().ToArray()
         }, transaction)).OrderBy(id => id).ToList();
+}
+
+/// <summary>
+/// Re-invio con "seleziona tutto": tutte le fatture inviate del rigo tranne le escluse, da INVIATA (5) a INVIATA (5),
+/// con lo storno. Stessa condizione del conteggio fatto prima della transazione (<c>WhereReInvioTotale</c>): se il
+/// rigo e' cambiato nel frattempo l'handler se ne accorge dal numero di righe. Nessun elenco di id da passare,
+/// quindi nessun tetto sul numero di fatture.
+/// </summary>
+public sealed class InvioSapDettaglioReInvioTotaleCommandPersistence(
+    int batchId, int anno, int mese, string tipologia, IReadOnlyList<long> idFattureEscluse, string storno, string notaJson)
+    : DapperBase, ICommand<IReadOnlyList<long>>
+{
+    public bool RequiresTransaction => true;
+
+    public async Task<IReadOnlyList<long>> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken ct = default)
+    {
+        var escluse = idFattureEscluse.Distinct().ToArray();
+        var sql = @"
+        DECLARE @Inseriti TABLE (IdFattura BIGINT);
+        INSERT INTO [pfw].[DettaglioInvioSAP] (FkBatchId, FkIdFattura, FkStatoPrecedente, FkStato, NumeroDocStorno, Nota)
+        OUTPUT INSERTED.FkIdFattura INTO @Inseriti
+        SELECT @BatchId, v.IdFattura, @StatoPrecedente, @Stato, @NumeroDocStorno, @Nota
+          FROM [be].[vwInvioSAPDettaglio] v" + InvioSapQueryBuilder.WhereReInvioTotale(escluse.Length > 0) + @";
+        SELECT IdFattura FROM @Inseriti;";
+
+        return (await ((IDatabase)this).SelectAsync<long>(connection!, sql, new
+        {
+            BatchId = batchId,
+            StatoPrecedente = StatoFatturaSap.Inviata,
+            Stato = StatoFatturaSap.Inviata,
+            NumeroDocStorno = storno,
+            Nota = notaJson,
+            Anno = anno,
+            Mese = mese,
+            TipologiaFattura = tipologia,
+            IdFattureEscluse = escluse
+        }, transaction)).OrderBy(id => id).ToList();
+    }
 }
 
 /// <summary>

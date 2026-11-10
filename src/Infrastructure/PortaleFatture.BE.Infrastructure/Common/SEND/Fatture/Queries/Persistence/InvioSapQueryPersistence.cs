@@ -116,6 +116,17 @@ public sealed class InvioSapStatoFattureQueryPersistence(InvioSapStatoFattureQue
     }
 }
 
+public sealed class InvioSapConteggioReInvioTotaleQueryPersistence(InvioSapConteggioReInvioTotaleQuery query) : DapperBase, IQuery<int>
+{
+    public async Task<int> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken ct = default)
+    {
+        var escluse = query.IdFattureEscluse.Distinct().ToArray();
+        var sql = InvioSapQueryBuilder.CountReInvioTotale + InvioSapQueryBuilder.WhereReInvioTotale(escluse.Length > 0);
+        return await ((IDatabase)this).SingleOrDefaultAsync<int>(connection!, sql,
+            new { query.Anno, query.Mese, TipologiaFattura = query.TipologiaFattura.Trim(), IdFattureEscluse = escluse }, transaction);
+    }
+}
+
 public sealed class InvioSapReinviateQueryPersistence(InvioSapReinviateQuery query) : DapperBase, IQuery<IEnumerable<InvioSapReinviataDto>>
 {
     public async Task<IEnumerable<InvioSapReinviataDto>> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken ct = default)

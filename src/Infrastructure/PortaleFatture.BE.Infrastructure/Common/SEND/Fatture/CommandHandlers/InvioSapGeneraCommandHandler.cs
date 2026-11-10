@@ -23,7 +23,8 @@ namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.CommandHandlers;
 /// "Genera JSON", passo per passo come in be-invio-sap.md §8.5:
 /// 1. lock sulla vista (409 senza altre letture ne' scritture);
 /// 2. validazione formale (400);
-/// 3. letture dalle viste: <c>NumeroFatture</c> del rigo (primo invio) o stato delle fatture (re-invio);
+/// 3. letture dalle viste: <c>NumeroFatture</c> del rigo (primo invio), stato delle fatture scelte (re-invio) oppure,
+///    con "seleziona tutto", controllo delle escluse e numero delle inviate del rigo che restano;
 /// 4. transazione (ordine deciso con DATA il 10/11/2026): Lock per primo, Registro, Dettaglio,
 ///    <c>FatturaInviata = NULL</c> sulle fatture del batch, Log, Messaggi; poi COMMIT;
 /// 5. <c>createRun</c> DOPO il commit: la pipeline legge sempre righe confermate.
@@ -64,6 +65,8 @@ public sealed class InvioSapGeneraCommandHandler(
         // 3. Letture dalle viste (nessuna scrittura fin qui).
         int numeroAtteso;
         IReadOnlyList<long> idSelezionati = [];
+        IReadOnlyList<long> idEsclusi = [];
+        var selezioneTotale = InvioSapRegole.SelezioneTotale(richiesta);
         if (modalita == InvioSapModalita.PrimoInvio)
         {
             var numero = await mediator.Send(new InvioSapRigoDaInviareQuery(authInfo)
@@ -73,6 +76,26 @@ public sealed class InvioSapGeneraCommandHandler(
             if (numero is null or <= 0)
                 return InvioSapGeneraEsito.NonTrovate();
             numeroAtteso = numero.Value;
+        }
+        else if (selezioneTotale)
+        {
+            // "Seleziona tutto": il rigo meno le escluse. Le escluse devono esistere e appartenere al rigo.
+            idEsclusi = richiesta.IdFattureEscluse ?? [];
+            if (idEsclusi.Count > 0)
+            {
+                var escluse = await mediator.Send(new InvioSapStatoFattureQuery(authInfo) { IdFatture = idEsclusi }, ct);
+                var esitoEscluse = InvioSapRegole.ValidaEsclusioni(richiesta, escluse.Select(c => c.ToCorrente()).ToList());
+                if (esitoEscluse is not null)
+                    return esitoEscluse;
+            }
+            numeroAtteso = await mediator.Send(new InvioSapConteggioReInvioTotaleQuery(authInfo)
+            {
+                Anno = anno, Mese = mese, TipologiaFattura = tipologia, IdFattureEscluse = idEsclusi
+            }, ct);
+            if (numeroAtteso <= 0)
+                return idEsclusi.Count > 0
+                    ? InvioSapGeneraEsito.NonValida([InvioSapRegole.ErroreSelezioneVuota])
+                    : InvioSapGeneraEsito.NonTrovate();
         }
         else
         {
@@ -111,9 +134,13 @@ public sealed class InvioSapGeneraCommandHandler(
             batch = await uow.Execute(new InvioSapCreaBatchCommandPersistence(authInfo.Id!, numeroAtteso), ct);
             await uow.Execute(new InvioSapAssegnaBatchAlLockCommandPersistence(InvioSapRegole.IdAzioneGeneraJson, batch.BatchId), ct);
 
-            inseriti = modalita == InvioSapModalita.PrimoInvio
-                ? await uow.Execute(new InvioSapDettaglioPrimoInvioCommandPersistence(batch.BatchId, anno, mese, tipologia, notaJson), ct)
-                : await uow.Execute(new InvioSapDettaglioReInvioCommandPersistence(batch.BatchId, idSelezionati, richiesta.NumeroDocumentoStorno!.Trim(), notaJson), ct);
+            if (modalita == InvioSapModalita.PrimoInvio)
+                inseriti = await uow.Execute(new InvioSapDettaglioPrimoInvioCommandPersistence(batch.BatchId, anno, mese, tipologia, notaJson), ct);
+            else if (selezioneTotale)
+                inseriti = await uow.Execute(new InvioSapDettaglioReInvioTotaleCommandPersistence(
+                    batch.BatchId, anno, mese, tipologia, idEsclusi, richiesta.NumeroDocumentoStorno!.Trim(), notaJson), ct);
+            else
+                inseriti = await uow.Execute(new InvioSapDettaglioReInvioCommandPersistence(batch.BatchId, idSelezionati, richiesta.NumeroDocumentoStorno!.Trim(), notaJson), ct);
 
             if (inseriti.Count == 0 && modalita == InvioSapModalita.PrimoInvio)
             {
