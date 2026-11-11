@@ -103,6 +103,7 @@ public static class InvioSapExtensions
             Anno = request.Anno,
             Mese = request.Mese,
             TipologiaFattura = request.TipologiaFattura,
+            StatoInvio = request.StatoInvio,
             AllSelected = request.AllSelected,
             IdFatture = request.IdFatture,
             IdFattureEscluse = request.IdFattureEscluse,

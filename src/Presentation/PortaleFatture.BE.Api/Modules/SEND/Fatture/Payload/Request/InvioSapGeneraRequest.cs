@@ -7,12 +7,16 @@ namespace PortaleFatture.BE.Api.Modules.SEND.Fatture.Payload.Request;
 /// Con <c>AllSelected = true</c> ("seleziona tutto" del dettaglio paginato): re-invio di tutte le fatture inviate del
 /// rigo, tranne <c>IdFattureEscluse</c>; <c>IdFatture</c> viene ignorato. Con <c>AllSelected</c> false o assente
 /// vale <c>IdFatture</c> e <c>IdFattureEscluse</c> viene ignorato.
+/// Con <c>StatoInvio = DA_INVIARE</c> (dall'11/11/2026) elenco e "seleziona tutto" si applicano alle fatture da
+/// inviare: e' un primo invio di una parte del rigo, senza storno. Senza <c>StatoInvio</c> vale quanto sopra.
 /// </summary>
 public class InvioSapGeneraRequest
 {
     public int? Anno { get; set; }
     public int? Mese { get; set; }
     public string? TipologiaFattura { get; set; }
+    /// <summary><c>DA_INVIARE</c> o <c>INVIATE</c>: lo stato del rigo aperto nel dettaglio. Facoltativo.</summary>
+    public string? StatoInvio { get; set; }
     public bool? AllSelected { get; set; }
     public List<long>? IdFatture { get; set; }
     public List<long>? IdFattureEscluse { get; set; }
