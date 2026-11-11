@@ -1,19 +1,19 @@
 -- =============================================================================================
--- APP IO (PF-908): anagrafica dei contratti del prodotto APP IO, letta dagli endpoint dell'area
--- tramite la vista [be].[vwAppioContracts] (proiezione 1:1, in views/92_vwAppioContracts.sql).
+-- APP IO (PF-908, modello dati aggiornato il 10/11/2026): anagrafica dei contratti
+-- (appio.contracts, da onboarding SelfCare) e documenti contabili (appio.messages_final_report),
+-- letti dagli endpoint dell'area SOLO tramite le viste be.vwAppio* (tests/Data/views/92*).
 --
--- Deve precedere views/: per le viste SQL Server non fa deferred name resolution, quindi il
--- CREATE VIEW fallisce se appio.Contracts non esiste ancora.
+-- Deve precedere views/: SQL Server non fa deferred name resolution sulle viste, quindi un
+-- CREATE VIEW fallisce se la tabella referenziata non esiste ancora.
 --
--- DDL della tabella: reale, fornita il 01/10/2026 e riprodotta as-is (salvo la guardia di
--- idempotenza). La PK è (contract_id, year_quarter): lo stesso contratto compare una volta per
--- trimestre, come in ppa.Contracts.
+-- DDL delle tabelle: reale, fornita il 10/11/2026 e riprodotta as-is (salvo la guardia di
+-- idempotenza). Nessuna ha PK: la chiave logica del contratto è onboardingtokenid, ed è la
+-- colonna su cui le viste fanno la join (messages_final_report.contract_id = onboardingtokenid).
 --
--- Formato dei valori verificato su righe reali il 06/10/2026 (DEV): year_quarter = 'AAAA_T',
--- year_month = 'AAAAMM' senza separatore, ed è il mese SUCCESSIVO alla fine del trimestre
--- (2026_1 -> 202604), come in ppa.Contracts. Ne dipendono il default "trimestre più
--- recente" (MAX(year_quarter), confronto fra stringhe) e il calcolo degli anni (Split("_")).
--- Se in produzione il formato è diverso, va allineato qui.
+-- ⚠️ Sostituisce il modello di ottobre (appio.Contracts con PK contract_id+year_quarter,
+-- appio.FinancialReports, appio.FinancialReportPositions). Su un container già inizializzato
+-- con quel modello la guardia IF OBJECT_ID salterebbe la CREATE (i nomi sono case-insensitive):
+-- serve il rebuild (docker compose down -v && up --build).
 --
 -- Dati tutti SINTETICI: questo file sta in un repository pubblico.
 -- =============================================================================================
@@ -22,134 +22,153 @@ IF SCHEMA_ID('appio') IS NULL
     EXEC('CREATE SCHEMA appio');
 GO
 
-IF OBJECT_ID('appio.Contracts', 'U') IS NULL
-CREATE TABLE [appio].[Contracts](
-    [contract_id] [nvarchar](50) NOT NULL,
-    [name] [nvarchar](500) NULL,
-    [tax_code] [nvarchar](50) NULL,
-    [vat_code] [nvarchar](50) NULL,
-    [vat_group] [decimal](18, 2) NULL,
-    [sdi_code] [nvarchar](50) NULL,
-    [year_month] [varchar](7) NULL,
-    [year_quarter] [nvarchar](10) NOT NULL,
- CONSTRAINT [PK_Contracts] PRIMARY KEY CLUSTERED
-(
-    [contract_id] ASC,
-    [year_quarter] ASC
-)WITH (STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+IF OBJECT_ID('appio.contracts', 'U') IS NULL
+CREATE TABLE [appio].[contracts](
+    [id] [nvarchar](4000) NULL,
+    [internalistitutionid] [nvarchar](4000) NULL,
+    [product] [nvarchar](4000) NULL,
+    [state] [nvarchar](4000) NULL,
+    [filepath] [nvarchar](4000) NULL,
+    [filename] [nvarchar](4000) NULL,
+    [contenttype] [nvarchar](4000) NULL,
+    [onboardingtokenid] [nvarchar](100) NULL,
+    [pricingplan] [nvarchar](4000) NULL,
+    [institution] [nvarchar](max) NULL,
+    [billing] [nvarchar](max) NULL,
+    [updatedat] [datetime2](7) NULL,
+    [createdat] [datetime2](7) NULL,
+    [closedat] [datetime2](7) NULL,
+    [isaggregator] [nvarchar](4000) NULL,
+    [rootaggregator] [nvarchar](max) NULL,
+    [testInstitution] [bit] NULL,
+    [notificationtype] [nvarchar](4000) NULL,
+    [ingestion_tms] [nvarchar](4000) NULL,
+    [year] [nvarchar](4000) NULL,
+    [month] [nvarchar](4000) NULL,
+    [daily] [nvarchar](4000) NULL,
+    [referenceonboardingid] [nvarchar](4000) NULL,
+    [dl_processed_tms] [nvarchar](4000) NULL,
+    [featureleveltype] [nvarchar](4000) NULL,
+    [institution_taxcode] [nvarchar](4000) NULL,
+    [institution_description] [nvarchar](4000) NULL,
+    [institution_institutiontype] [nvarchar](4000) NULL,
+    [billing_vatnumber] [nvarchar](4000) NULL,
+    [billing_recipientcode] [nvarchar](4000) NULL,
+    [createdat_daily] [date] NULL,
+    [closedat_daily] [date] NULL,
+    [drop_id] [nvarchar](4000) NULL,
+    [silver_updated_at] [datetime2](7) NULL
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+
+-- Seed dei contratti, costruito per i filtri dell'anagrafica:
+--   · OB1 e OB4 hanno lo STESSO nome ("Comune Alfa AppIO Test") ma ente, codice fiscale e tipo
+--     diversi: un filtro per nome li fonde, uno per id li distingue;
+--   · tipi ente distinti = PA, GSP (OB5 ha tipo NULL: escluso dalla vista filtro, presente in griglia);
+--   · OB3 ha institution senza digitaladdress: email_PEC NULL, il mapping non deve rompersi;
+--   · OB5 ha nome e codice fiscale NULL: escluso dalle viste filtro su nome e codice fiscale;
+--   · OB3 non ha documenti contabili: compare in anagrafica, non nei documenti emessi.
+IF NOT EXISTS (SELECT 1 FROM appio.contracts WHERE onboardingtokenid LIKE 'APPIO-OB%')
+INSERT INTO appio.contracts
+ (id, internalistitutionid, product, [state], onboardingtokenid, pricingplan, institution, createdat, updatedat,
+  testInstitution, institution_taxcode, institution_description, institution_institutiontype, billing_vatnumber) VALUES
+ ('APPIO-K1', 'APPIO-ENTE-1', 'prod-io', 'ACTIVE',    'APPIO-OB1', 'FA', N'{"digitaladdress":"alfa@pec.example.test"}',
+  '2025-01-10T09:00:00', '2026-03-01T10:00:00', 0, '00000000001', 'Comune Alfa AppIO Test', 'PA',  '00000000001'),
+ ('APPIO-K2', 'APPIO-ENTE-2', 'prod-io', 'ACTIVE',    'APPIO-OB2', 'FA', N'{"digitaladdress":"beta@pec.example.test"}',
+  '2025-02-10T09:00:00', '2026-03-02T10:00:00', 0, '00000000002', 'Comune Beta AppIO Test', 'PA',  '00000000002'),
+ ('APPIO-K3', 'APPIO-ENTE-3', 'prod-io', 'SUSPENDED', 'APPIO-OB3', 'FA', N'{"description":"Regione Gamma"}',
+  '2025-03-10T09:00:00', '2026-03-03T10:00:00', 0, '00000000003', 'Regione Gamma',          'PA',  '00000000003'),
+ ('APPIO-K4', 'APPIO-ENTE-4', 'prod-io', 'ACTIVE',    'APPIO-OB4', 'FA', N'{"digitaladdress":"alfa.gsp@pec.example.test"}',
+  '2025-04-10T09:00:00', '2026-03-04T10:00:00', 0, '00000000004', 'Comune Alfa AppIO Test', 'GSP', '00000000004'),
+ ('APPIO-K5', 'APPIO-ENTE-5', 'prod-io', 'ACTIVE',    'APPIO-OB5', 'FA', NULL,
+  '2025-05-10T09:00:00', '2026-03-05T10:00:00', 0, NULL,          NULL,                     NULL,  NULL);
+GO
+
+IF OBJECT_ID('appio.messages_final_report', 'U') IS NULL
+CREATE TABLE [appio].[messages_final_report](
+    [year] [int] NULL,
+    [quarter] [int] NULL,
+    [contract_id] [nvarchar](100) NULL,
+    [Tipo_doc] [nvarchar](4000) NULL,
+    [sezionale] [nvarchar](4000) NULL,
+    [CODICE_AGGIUNTIVO] [nvarchar](4000) NULL,
+    [Denominazione_destinatario] [nvarchar](4000) NULL,
+    [indirizzo] [nvarchar](4000) NULL,
+    [Citta] [nvarchar](4000) NULL,
+    [Prov] [nvarchar](4000) NULL,
+    [CAP] [nvarchar](4000) NULL,
+    [Stato] [nvarchar](4000) NULL,
+    [vat_code] [nvarchar](4000) NULL,
+    [Cod_fisc] [nvarchar](4000) NULL,
+    [Valuta] [nvarchar](4000) NULL,
+    [ID] [int] NULL,
+    [Numero] [nvarchar](4000) NULL,
+    [Data] [nvarchar](4000) NULL,
+    [Bollo] [nvarchar](4000) NULL,
+    [CODIFICA_ART] [nvarchar](4000) NULL,
+    [Progressivo_Riga] [int] NULL,
+    [Codice_articolo] [nvarchar](100) NULL,
+    [Descrizione_riga] [nvarchar](4000) NULL,
+    [Prezzo_unit] [nvarchar](4000) NULL,
+    [Q_ta] [bigint] NULL,
+    [Importo] [decimal](18, 6) NULL,
+    [Cod_iva] [nvarchar](4000) NULL,
+    [Percent_IVA] [nvarchar](4000) NULL,
+    [IVA] [nvarchar](4000) NULL,
+    [Condizioni] [nvarchar](4000) NULL,
+    [CAUSALE] [nvarchar](4000) NULL,
+    [ind_tipo_riga] [nvarchar](4000) NULL,
+    [Codice_SDI] [nvarchar](4000) NULL,
+    [NUM_DOC_RIF] [nvarchar](4000) NULL,
+    [DATA_DOC_RIF] [nvarchar](4000) NULL,
+    [TIPO_DOC_RIF] [nvarchar](4000) NULL,
+    [Tipo_dato] [nvarchar](4000) NULL,
+    [Riferimento_testo] [nvarchar](4000) NULL,
+    [Riferimento_numero] [nvarchar](4000) NULL,
+    [Riferimento_data] [nvarchar](4000) NULL,
+    [Anno] [nvarchar](4000) NULL,
+    [Rif_Fattura] [nvarchar](4000) NULL,
+    [Sconto] [nvarchar](4000) NULL,
+    [Data_limite_pagamento] [nvarchar](4000) NULL,
+    [Banca] [nvarchar](4000) NULL,
+    [Iban_riferimento_per_pagamento] [nvarchar](4000) NULL,
+    [CIG] [nvarchar](4000) NULL,
+    [indirizzo_pec] [nvarchar](4000) NULL,
+    [CUP] [nvarchar](4000) NULL,
+    [TIPO_DOC_RIF1] [nvarchar](4000) NULL,
+    [campo1] [nvarchar](4000) NULL,
+    [campo2] [nvarchar](4000) NULL,
+    [internalistitutionid] [nvarchar](4000) NULL,
+    [line_source] [nvarchar](100) NULL,
+    [billing_iteration] [int] NULL,
+    [run_id] [nvarchar](4000) NULL,
+    [gold_updated_at] [datetime2](7) NULL,
+    [file_path] [nvarchar](1000) NOT NULL
 ) ON [PRIMARY]
 GO
 
--- Seed costruito per i filtri di AppIoContrattiSQLBuilder:
---   · trimestre più recente = 2026_2, con 3 contratti (C1, C2, C3): è il default senza filtro;
---   · C1 compare su tre trimestri (la PK lo permette): la ricerca per trimestre deve isolarli;
---   · C4 esiste solo in 2025_4: escluso dal default, incluso chiedendo quel trimestre;
---   · "AppIO Test" è nel nome di C1, C2 e C4 ma non di C3: ricerca per nome;
---   · C3 ha vat_group e sdi_code NULL: il mapping non deve rompersi sui NULL;
---   · anni distinti = 2026, 2025; trimestri distinti = 2026_2, 2026_1, 2025_4.
-IF NOT EXISTS (SELECT 1 FROM appio.Contracts WHERE contract_id LIKE 'APPIO-C%')
-INSERT INTO appio.Contracts (contract_id, name, tax_code, vat_code, vat_group, sdi_code, year_month, year_quarter) VALUES
- ('APPIO-C1', 'Comune Alfa AppIO Test',  '00000000001', '00000000001', 0, 'AAAAAA1', '202601', '2025_4'),
- ('APPIO-C1', 'Comune Alfa AppIO Test',  '00000000001', '00000000001', 0, 'AAAAAA1', '202604', '2026_1'),
- ('APPIO-C1', 'Comune Alfa AppIO Test',  '00000000001', '00000000001', 0, 'AAAAAA1', '202607', '2026_2'),
- ('APPIO-C2', 'Comune Beta AppIO Test',  '00000000002', '00000000002', 1, 'BBBBBB2', '202607', '2026_2'),
- ('APPIO-C3', 'Regione Gamma',           '00000000003', '00000000003', NULL, NULL,  '202607', '2026_2'),
- ('APPIO-C4', 'Comune Delta AppIO Test', '00000000004', '00000000004', 0, 'DDDDDD4', '202601', '2025_4');
-GO
-
--- =============================================================================================
--- Documenti contabili APP IO (PF-908): appio.FinancialReports e appio.FinancialReportPositions,
--- lette tramite be.vwAppioFinancialReport e be.vwAppioFinancialReportPositions
--- (views/92b_*, views/92c_*) da AppIoFinancialReportSQLBuilder.
---
--- DDL: colonne, tipi, nullabilità e PK reali (INFORMATION_SCHEMA del DB DEV, 06/10/2026). I nomi
--- dei vincoli PK non sono stati estratti: quelli qui sotto sono nostri. Le PK sono
---   FinancialReports         (recipient_id, year_quarter, codice_articolo)
---   FinancialReportPositions (contract_id, year_quarter, codice_articolo, progressivo_riga)
--- e sono ciò che garantisce che le LEFT JOIN del builder non moltiplichino le righe.
--- Il 06/10/2026 entrambe le viste erano vuote in DEV: formati di numero e articolo sono sintetici.
--- =============================================================================================
-
-IF OBJECT_ID('appio.FinancialReports', 'U') IS NULL
-CREATE TABLE [appio].[FinancialReports](
-    [name] [nvarchar](max) NULL,
-    [category] [nvarchar](100) NOT NULL,
-    [current_trx] [int] NULL,
-    [value] [decimal](38, 14) NULL,
-    [codice_articolo] [nvarchar](100) NOT NULL,
-    [year_quarter] [nvarchar](10) NOT NULL,
-    [recipient_id] [nvarchar](20) NOT NULL,
- CONSTRAINT [PK_AppioFinancialReports] PRIMARY KEY CLUSTERED
-(
-    [recipient_id] ASC,
-    [year_quarter] ASC,
-    [codice_articolo] ASC
-)
-) ON [PRIMARY]
-GO
-
-IF OBJECT_ID('appio.FinancialReportPositions', 'U') IS NULL
-CREATE TABLE [appio].[FinancialReportPositions](
-    [contract_id] [nvarchar](25) NOT NULL,
-    [tipo_doc] [nvarchar](max) NULL,
-    [vat_code] [nvarchar](max) NULL,
-    [cod_fisc] [nvarchar](max) NULL,
-    [valuta] [nvarchar](max) NULL,
-    [id] [int] NULL,
-    [numero] [nvarchar](max) NULL,
-    [data] [datetime] NULL,
-    [codifica_art] [nvarchar](max) NULL,
-    [progressivo_riga] [int] NOT NULL,
-    [codice_articolo] [nvarchar](200) NOT NULL,
-    [descrizione_riga] [nvarchar](max) NULL,
-    [prezzo_unit] [nvarchar](max) NULL,
-    [q_ta] [int] NULL,
-    [importo] [decimal](38, 14) NULL,
-    [cod_iva] [nvarchar](max) NULL,
-    [percent_iva] [nvarchar](max) NULL,
-    [iva] [nvarchar](max) NULL,
-    [codice_sdi] [nvarchar](max) NULL,
-    [rif_fattura] [nvarchar](max) NULL,
-    [year_quarter] [nvarchar](10) NOT NULL,
- CONSTRAINT [PK_AppioFinancialReportPositions] PRIMARY KEY CLUSTERED
-(
-    [contract_id] ASC,
-    [year_quarter] ASC,
-    [codice_articolo] ASC,
-    [progressivo_riga] ASC
-)
-) ON [PRIMARY]
-GO
-
--- Seed costruito per i casi di AppIoFinancialReportSQLBuilder:
---   · trimestri con posizioni = 2026_2, 2026_1, 2025_4 (anni 2026, 2025): sono le posizioni a
---     decidere i filtri, come KPMG per pagoPA;
---   · default senza filtri = 2026_2: due documenti, APPIO-FR-001 (C1, due righe) e APPIO-FR-002 (C2);
---   · C1 ha il suo financial report: il nome in griglia viene da lì ("... FR"), non dal contratto;
---   · C2 NON ha financial report: nome dal contratto, categoria NULL;
---   · C5 (2025_4) non ha né contratto né report: nome NULL; vat_code NULL -> VatCode = cod_fisc;
---   · C3 ha una riga di financial report in 2026_2 ma nessuna posizione: compare nel foglio
---     financial-report del download, NON in griglia.
-IF NOT EXISTS (SELECT 1 FROM appio.FinancialReportPositions WHERE contract_id LIKE 'APPIO-C%')
-INSERT INTO appio.FinancialReportPositions
- (contract_id, tipo_doc, vat_code, cod_fisc, valuta, id, numero, data, codifica_art, progressivo_riga, codice_articolo,
-  descrizione_riga, prezzo_unit, q_ta, importo, cod_iva, percent_iva, iva, codice_sdi, rif_fattura, year_quarter) VALUES
- ('APPIO-C1', 'TD01', '00000000001', '00000000001', 'EUR', 1, 'APPIO-FR-001', '2026-07-15', 'INT', 1, 'ART-A',
-  'Messaggi', '0,01', 1000, 10.00, 'IVA22', '22', '2,20', 'AAAAAA1', NULL, '2026_2'),
- ('APPIO-C1', 'TD01', '00000000001', '00000000001', 'EUR', 1, 'APPIO-FR-001', '2026-07-15', 'INT', 2, 'ART-B',
-  'Pagamenti', '0,02', 500, 10.00, 'IVA22', '22', '2,20', 'AAAAAA1', NULL, '2026_2'),
- ('APPIO-C2', 'TD01', '00000000002', '00000000002', 'EUR', 2, 'APPIO-FR-002', '2026-07-15', 'INT', 1, 'ART-A',
-  'Messaggi', '0,01', 200, 2.00, 'IVA22', '22', '0,44', 'BBBBBB2', NULL, '2026_2'),
- ('APPIO-C1', 'TD01', '00000000001', '00000000001', 'EUR', 3, 'APPIO-FR-003', '2026-04-15', 'INT', 1, 'ART-A',
-  'Messaggi', '0,01', 300, 3.00, 'IVA22', '22', '0,66', 'AAAAAA1', NULL, '2026_1'),
- ('APPIO-C5', 'TD04', NULL,          '00000000005', 'EUR', 4, 'APPIO-FR-004', '2026-01-15', 'INT', 1, 'ART-A',
-  'Messaggi', '0,01', 100, 1.00, 'IVA22', '22', '0,22', NULL, 'APPIO-FR-000', '2025_4');
-GO
-
-IF NOT EXISTS (SELECT 1 FROM appio.FinancialReports WHERE recipient_id LIKE 'APPIO-C%')
-INSERT INTO appio.FinancialReports (name, category, current_trx, value, codice_articolo, year_quarter, recipient_id) VALUES
- ('Comune Alfa AppIO FR', 'CAT-MSG', 1000, 10.00, 'ART-A', '2026_2', 'APPIO-C1'),
- ('Comune Alfa AppIO FR', 'CAT-PAG', 500,  10.00, 'ART-B', '2026_2', 'APPIO-C1'),
- ('Comune Alfa AppIO FR', 'CAT-MSG', 300,  3.00,  'ART-A', '2026_1', 'APPIO-C1'),
- ('Regione Gamma FR',     'CAT-MSG', 50,   0.50,  'ART-A', '2026_2', 'APPIO-C3');
+-- Seed dei documenti contabili, costruito per i casi delle viste vwAppioFinalReport*:
+--   · anni = 2026, 2025; trimestri distinti (indipendenti dall'anno) = 1, 2, 4;
+--   · 2026 Q2, OB1: DUE documenti nello stesso trimestre, APPIO-FR-001 (due righe, 10 + 10) e
+--     APPIO-FR-002 (una riga, 5). ImportoTotale delle viste è partizionato per trimestre e NON per
+--     Numero: vale 25 su tutte e tre le righe, non 20 e 5. Il seed lo rende visibile apposta;
+--   · 2026 Q2, OB2: APPIO-FR-003 (2);
+--   · 2026 Q1, OB1: APPIO-FR-004 (3);
+--   · 2025 Q4, OB4 (omonimo di OB1): APPIO-FR-005 (1);
+--   · APPIO-OB9 non esiste in appio.contracts: la INNER JOIN delle viste lo esclude.
+--   Data e Riferimento_data sono nvarchar: dall'11/11/2026 le viste li convertono con
+--   TRY_CONVERT(date, TRIM(x), 23), cioè 'AAAA-MM-GG'. APPIO-FR-005 ha apposta Data con spazi
+--   (' 2026-01-15 ' -> 2026-01-15, prova del TRIM) e Riferimento_data in formato errato
+--   ('31/12/2025' -> NULL: la vista non si rompe).
+IF NOT EXISTS (SELECT 1 FROM appio.messages_final_report WHERE contract_id LIKE 'APPIO-OB%')
+INSERT INTO appio.messages_final_report
+ ([year], [quarter], contract_id, Tipo_doc, CODICE_AGGIUNTIVO, Valuta, ID, Numero, [Data], Progressivo_Riga, Codice_articolo,
+  Descrizione_riga, Q_ta, Importo, Cod_iva, Condizioni, CAUSALE, Riferimento_data, internalistitutionid, billing_iteration, file_path) VALUES
+ (2026, 2, 'APPIO-OB1', 'TD01', 'AGG1', 'EUR', 1, 'APPIO-FR-001', '2026-07-15', 1, 'ART-A', 'Messaggi',  1000, 10.00, 'IVA22', 'TP02', 'Servizio APP IO Q2', '2026-06-30', 'APPIO-ENTE-1', 1, 'appio/2026/2/fr-001.csv'),
+ (2026, 2, 'APPIO-OB1', 'TD01', 'AGG1', 'EUR', 1, 'APPIO-FR-001', '2026-07-15', 2, 'ART-B', 'Pagamenti',  500, 10.00, 'IVA22', 'TP02', 'Servizio APP IO Q2', '2026-06-30', 'APPIO-ENTE-1', 1, 'appio/2026/2/fr-001.csv'),
+ (2026, 2, 'APPIO-OB1', 'TD04', 'AGG1', 'EUR', 2, 'APPIO-FR-002', '2026-07-20', 1, 'ART-A', 'Rettifica',  500,  5.00, 'IVA22', 'TP02', 'Nota Q2',            '2026-06-30', 'APPIO-ENTE-1', 1, 'appio/2026/2/fr-002.csv'),
+ (2026, 2, 'APPIO-OB2', 'TD01', 'AGG2', 'EUR', 3, 'APPIO-FR-003', '2026-07-15', 1, 'ART-A', 'Messaggi',   200,  2.00, 'IVA22', 'TP02', 'Servizio APP IO Q2', '2026-06-30', 'APPIO-ENTE-2', 1, 'appio/2026/2/fr-003.csv'),
+ (2026, 1, 'APPIO-OB1', 'TD01', 'AGG1', 'EUR', 4, 'APPIO-FR-004', '2026-04-15', 1, 'ART-A', 'Messaggi',   300,  3.00, 'IVA22', 'TP02', 'Servizio APP IO Q1', '2026-03-31', 'APPIO-ENTE-1', 1, 'appio/2026/1/fr-004.csv'),
+ (2025, 4, 'APPIO-OB4', 'TD01', 'AGG4', 'EUR', 5, 'APPIO-FR-005', ' 2026-01-15 ', 1, 'ART-A', 'Messaggi',   100,  1.00, 'IVA22', 'TP02', 'Servizio APP IO Q4', '31/12/2025', 'APPIO-ENTE-4', 1, 'appio/2025/4/fr-005.csv'),
+ (2026, 2, 'APPIO-OB9', 'TD01', 'AGG9', 'EUR', 9, 'APPIO-FR-009', '2026-07-15', 1, 'ART-A', 'Messaggi',   100,  1.00, 'IVA22', 'TP02', 'Orfano',             '2026-06-30', 'APPIO-ENTE-9', 1, 'appio/2026/2/fr-009.csv');
 GO

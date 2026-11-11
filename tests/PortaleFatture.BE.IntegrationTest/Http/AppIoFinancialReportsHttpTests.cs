@@ -2,19 +2,18 @@ using System.IO.Compression;
 using System.Net;
 using System.Text;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using PortaleFatture.BE.Core.Auth;
 
 namespace PortaleFatture.BE.IntegrationTest.Http;
 
 /// <summary>
-/// Rotte api/appio/financialreports* (PF-908): filtri Anno / Trimestre, griglia dei documenti
-/// contabili e i due download ("Documenti Contabili" e "Financial Report"). Leggono
-/// [be].[vwAppioFinancialReportPositions], [be].[vwAppioFinancialReport] e [be].[vwAppioContracts].
+/// Rotte api/appio/financialreports* (modello dati dell'11/11/2026, PF-1016): filtri Anno, Trimestre
+/// e Codice Fiscale, griglia (una riga per contratto e trimestre), download "Documenti Contabili",
+/// dettaglio e suo download.
 ///
-/// Seed (tests/Data/appio.sql): posizioni in 2026_2 (APPIO-FR-001 di C1 con due righe,
-/// APPIO-FR-002 di C2), 2026_1 (APPIO-FR-003 di C1) e 2025_4 (APPIO-FR-004 di C5, senza contratto
-/// né report). C2 non ha financial report; C3 ha un financial report in 2026_2 ma nessuna posizione.
+/// Seed (tests/Data/appio.sql): 2026_2 → OB1/ENTE-1 (APPIO-FR-001 con due righe da 10,
+/// APPIO-FR-002 da 5: ImportoTotale 25) e OB2/ENTE-2 (APPIO-FR-003, 2); 2026_1 → OB1 (APPIO-FR-004, 3);
+/// 2025_4 → OB4/ENTE-4 (APPIO-FR-005, 1); OB9 orfano, escluso dalle viste.
 /// </summary>
 [Category("AppIO")]
 public class AppIoFinancialReportsHttpTests
@@ -33,13 +32,12 @@ public class AppIoFinancialReportsHttpTests
     public void CheckDb()
     {
         TestDb.SkipIfUnavailable(LocalTestDb.ConnectionString);
-        TestDb.SkipSeOggettoAssente(LocalTestDb.ConnectionString, "be.vwAppioFinancialReportPositions");
-        TestDb.SkipSeOggettoAssente(LocalTestDb.ConnectionString, "be.vwAppioFinancialReport");
+        TestDb.SkipSeOggettoAssente(LocalTestDb.ConnectionString, "be.vwAppioFinalReport");
+        TestDb.SkipSeOggettoAssente(LocalTestDb.ConnectionString, "be.vwAppioFinalReportDetails");
+        TestDb.SkipSeOggettoAssente(LocalTestDb.ConnectionString, "be.vwAppioFinalReportFiltroAnno");
+        TestDb.SkipSeOggettoAssente(LocalTestDb.ConnectionString, "be.vwAppioFinalReportFiltroCodFiscaleEnte");
     }
 
-    /// <summary>
-    /// POST con il ruolo indicato (null = anonimo) e nonce valido.
-    /// </summary>
     private async Task<HttpResponseMessage> Post(string rotta, string body, string? ruolo = Ruolo.ADMIN)
     {
         var client = _factory.CreateClientAs(ruolo);
@@ -49,72 +47,51 @@ public class AppIoFinancialReportsHttpTests
         return resp;
     }
 
-    /// <summary>
-    /// Corpo della risposta come JSON.
-    /// </summary>
+    private async Task<HttpResponseMessage> Get(string rotta, string? ruolo = Ruolo.ADMIN)
+        => await _factory.CreateClientAs(ruolo).GetAsync(_factory.WithNonce(rotta));
+
     private static async Task<JsonElement> Json(HttpResponseMessage resp)
         => JsonDocument.Parse(await resp.Content.ReadAsStringAsync()).RootElement;
 
-    /// <summary>
-    /// Numeri dei documenti della griglia.
-    /// </summary>
-    private static List<string> Numeri(JsonElement griglia)
-        => griglia.GetProperty("financialReports").EnumerateArray().Select(x => x.GetProperty("numero").GetString()!).ToList();
+    private static List<string?> Valori(JsonElement array, string proprieta)
+        => array.EnumerateArray().Select(x => x.GetProperty(proprieta).GetString()).ToList();
 
-    /// <summary>
-    /// Fogli di un xlsx (nome -> testo del foglio). xl/workbook.xml dà nome e r:id di ogni foglio,
-    /// xl/_rels/workbook.xml.rels traduce l'r:id nel file: l'ordine dei file non segue quello dei
-    /// fogli, e nei .rels l'ordine degli attributi non è garantito, quindi si leggono uno per uno.
-    /// </summary>
-    private static async Task<Dictionary<string, string>> Fogli(HttpResponseMessage resp)
+    private static async Task<string> TestoExcel(HttpResponseMessage resp)
     {
         using var zip = new ZipArchive(await resp.Content.ReadAsStreamAsync());
-        string Leggi(string path) => new StreamReader(zip.GetEntry(path)!.Open()).ReadToEnd();
-        static string Attributo(string elemento, string nome) => Regex.Match(elemento, $"\\b{nome}=\"([^\"]+)\"").Groups[1].Value;
-
-        var targets = Regex.Matches(Leggi("xl/_rels/workbook.xml.rels"), "<[^>]*Relationship [^>]*>")
-            .ToDictionary(m => Attributo(m.Value, "Id"), m => Attributo(m.Value, "Target").TrimStart('/'));
-
-        return Regex.Matches(Leggi("xl/workbook.xml"), "<[^>]*sheet [^>]*>")
-            .ToDictionary(
-                m => Attributo(m.Value, "name"),
-                m =>
-                {
-                    var target = targets[Attributo(m.Value, "r:id")];
-                    return Leggi(target.StartsWith("xl/") ? target : "xl/" + target);
-                });
+        return string.Concat(zip.Entries
+            .Where(e => e.FullName.StartsWith("xl/worksheets/"))
+            .Select(e => new StreamReader(e.Open()).ReadToEnd()));
     }
 
-    // --- years / quarters ---
+    // --- filtri ---
 
     /// <summary>
-    /// Gli anni vengono dai trimestri in cui ci sono posizioni, dal più recente.
+    /// Il filtro "Anno" restituisce gli anni come stringhe, dal più recente, anche all'OPERATOR.
     /// </summary>
     [Test]
-    public async Task Years_ShouldRestituireGliAnniDellePosizioni()
+    public async Task Years_ShouldRestituireGliAnniDalPiuRecente()
     {
-        var client = _factory.CreateClientAs(Ruolo.ADMIN);
-        var resp = await client.GetAsync(_factory.WithNonce($"{Base}/years"));
+        var resp = await Get($"{Base}/years", Ruolo.OPERATOR);
 
         Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-        var anni = (await Json(resp)).EnumerateArray().Select(x => x.GetString()).ToList();
-        Assert.That(anni, Is.EqualTo(new[] { "2026", "2025" }));
+        Assert.That((await Json(resp)).EnumerateArray().Select(x => x.GetString()), Is.EqualTo(new[] { "2026", "2025" }));
     }
 
     /// <summary>
-    /// I trimestri dell'anno richiesto, con etichetta "Qn", in ordine crescente.
+    /// Il filtro "Trimestre" restituisce i trimestri dell'anno nel formato 'AAAA_T', con etichetta "Qn".
     /// </summary>
     [Test]
-    public async Task Quarters_ShouldRestituireITrimestriDellAnno()
+    public async Task Quarters_PerAnno_ShouldRestituireITrimestriInOrdine()
     {
         var resp = await Post($"{Base}/quarters", """{ "year": "2026" }""");
 
         Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-        var voci = (await Json(resp)).EnumerateArray().ToList();
+        var json = await Json(resp);
         Assert.Multiple(() =>
         {
-            Assert.That(voci.Select(x => x.GetProperty("value").GetString()), Is.EqualTo(new[] { "2026_1", "2026_2" }));
-            Assert.That(voci.Select(x => x.GetProperty("quarter").GetString()), Is.EqualTo(new[] { "Q1", "Q2" }));
+            Assert.That(Valori(json, "value"), Is.EqualTo(new[] { "2026_1", "2026_2" }));
+            Assert.That(Valori(json, "quarter"), Is.EqualTo(new[] { "Q1", "Q2" }));
         });
     }
 
@@ -122,134 +99,109 @@ public class AppIoFinancialReportsHttpTests
     /// Un anno senza documenti risponde 404.
     /// </summary>
     [Test]
-    public async Task Quarters_AnnoSenzaDocumenti_ShouldReturn404()
+    public async Task Quarters_AnnoSenzaDati_ShouldReturn404()
     {
         var resp = await Post($"{Base}/quarters", """{ "year": "1999" }""");
 
         Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
     }
 
+    /// <summary>
+    /// Il filtro "Codice Fiscale" restituisce i codici fiscali distinti, in ordine.
+    /// </summary>
+    [Test]
+    public async Task CodFiscale_ShouldRestituireICodiciDistinti()
+    {
+        var resp = await Get($"{Base}/codfiscale");
+
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        Assert.That((await Json(resp)).EnumerateArray().Select(x => x.GetString()),
+            Is.EqualTo(new[] { "00000000001", "00000000002", "00000000003", "00000000004" }));
+    }
+
     // --- griglia ---
 
     /// <summary>
-    /// Senza filtri si vede il trimestre più recente: due documenti, e il conteggio è sui documenti,
-    /// non sulle righe (APPIO-FR-001 ne ha due).
+    /// Senza filtri la griglia mostra il trimestre più recente con una riga per contratto: OB1 ha due
+    /// documenti nel trimestre ma è una sola riga, con ImportoTotale 25 e tre posizioni.
     /// </summary>
     [Test]
-    public async Task Griglia_SenzaFiltri_ShouldRestituireIDocumentiDelTrimestrePiuRecente()
+    public async Task Griglia_SenzaFiltri_ShouldMostrareUnaRigaPerContrattoNelTrimestrePiuRecente()
     {
         var resp = await Post(Base, "{}");
 
         Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-        var griglia = await Json(resp);
+        var json = await Json(resp);
+        var righe = json.GetProperty("financialReports");
+        var ob1 = righe[0];
         Assert.Multiple(() =>
         {
-            Assert.That(Numeri(griglia), Is.EqualTo(new[] { "APPIO-FR-001", "APPIO-FR-002" }));
-            Assert.That(griglia.GetProperty("count").GetInt32(), Is.EqualTo(2));
+            Assert.That(json.GetProperty("count").GetInt32(), Is.EqualTo(2));
+            Assert.That(Valori(righe, "key"), Is.EqualTo(new[] { "APPIO-OB1|2026_2", "APPIO-OB2|2026_2" }));
+            Assert.That(ob1.GetProperty("institutionId").GetString(), Is.EqualTo("APPIO-ENTE-1"));
+            Assert.That(ob1.GetProperty("codiceFiscale").GetString(), Is.EqualTo("00000000001"));
+            Assert.That(ob1.GetProperty("year").GetInt32(), Is.EqualTo(2026));
+            Assert.That(ob1.GetProperty("quarter").GetInt32(), Is.EqualTo(2));
+            Assert.That(ob1.GetProperty("importoTotale").GetDecimal(), Is.EqualTo(25m));
+            Assert.That(Valori(ob1.GetProperty("posizioni"), "numero"),
+                Is.EqualTo(new[] { "APPIO-FR-001", "APPIO-FR-001", "APPIO-FR-002" }));
         });
     }
 
     /// <summary>
-    /// Le righe dello stesso documento diventano le sue posizioni, in ordine di progressivo, con la
-    /// categoria presa dal financial report; nome e chiave della testata dal report e dal documento.
+    /// Con l'anno si vedono tutti i trimestri dell'anno, dal più recente per ogni contratto.
     /// </summary>
     [Test]
-    public async Task Griglia_ShouldRaggrupparePosizioniPerDocumento()
+    public async Task Griglia_ConAnno_ShouldMostrareTuttiITrimestriDellAnno()
     {
-        var resp = await Post(Base, """{ "quarters": ["2026_2"], "contractIds": ["APPIO-C1"] }""");
+        var resp = await Post(Base, """{ "year": "2026" }""");
 
         Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-        var doc = (await Json(resp)).GetProperty("financialReports").EnumerateArray().Single();
-        var posizioni = doc.GetProperty("posizioni").EnumerateArray().ToList();
+        Assert.That(Valori((await Json(resp)).GetProperty("financialReports"), "key"),
+            Is.EqualTo(new[] { "APPIO-OB1|2026_2", "APPIO-OB1|2026_1", "APPIO-OB2|2026_2" }));
+    }
+
+    /// <summary>
+    /// I trimestri prevalgono sull'anno.
+    /// </summary>
+    [Test]
+    public async Task Griglia_TrimestriEAnno_ShouldPrevalereITrimestri()
+    {
+        var resp = await Post(Base, """{ "quarters": ["2025_4"], "year": "2026" }""");
+
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        Assert.That(Valori((await Json(resp)).GetProperty("financialReports"), "key"), Is.EqualTo(new[] { "APPIO-OB4|2025_4" }));
+    }
+
+    /// <summary>
+    /// Ente (dal filtro "Nome Ente") e codice fiscale filtrano la griglia, in AND con il periodo.
+    /// </summary>
+    [Test]
+    public async Task Griglia_EnteECodiceFiscale_ShouldFiltrare()
+    {
+        var perEnte = Valori((await Json(await Post(Base, """{ "year": "2026", "institutionIds": ["APPIO-ENTE-1"] }"""))).GetProperty("financialReports"), "key");
+        var perCodice = Valori((await Json(await Post(Base, """{ "year": "2026", "codiciFiscali": ["00000000002"] }"""))).GetProperty("financialReports"), "key");
+
         Assert.Multiple(() =>
         {
-            Assert.That(doc.GetProperty("key").GetString(), Is.EqualTo("APPIO-C1|2026_2|APPIO-FR-001"));
-            Assert.That(doc.GetProperty("name").GetString(), Is.EqualTo("Comune Alfa AppIO FR"), "il nome viene dal financial report");
-            Assert.That(doc.GetProperty("yearQuarter").GetString(), Is.EqualTo("2026_2"));
-            Assert.That(posizioni.Select(p => p.GetProperty("progressivoRiga").GetInt32()), Is.EqualTo(new[] { 1, 2 }));
-            Assert.That(posizioni.Select(p => p.GetProperty("codiceArticolo").GetString()), Is.EqualTo(new[] { "ART-A", "ART-B" }));
-            Assert.That(posizioni.Select(p => p.GetProperty("category").GetString()), Is.EqualTo(new[] { "CAT-MSG", "CAT-PAG" }));
-            Assert.That(posizioni.Select(p => p.GetProperty("importo").GetDecimal()), Is.EqualTo(new[] { 10m, 10m }));
+            Assert.That(perEnte, Is.EqualTo(new[] { "APPIO-OB1|2026_2", "APPIO-OB1|2026_1" }));
+            Assert.That(perCodice, Is.EqualTo(new[] { "APPIO-OB2|2026_2" }));
         });
     }
 
     /// <summary>
-    /// Senza financial report il documento c'è lo stesso (le posizioni guidano): nome dal contratto,
-    /// categoria nulla.
+    /// Un filtro che non trova documenti risponde 404.
     /// </summary>
     [Test]
-    public async Task Griglia_SenzaFinancialReport_ShouldPrendereIlNomeDalContratto()
+    public async Task Griglia_NessunRisultato_ShouldReturn404()
     {
-        var resp = await Post(Base, """{ "quarters": ["2026_2"], "contractIds": ["APPIO-C2"] }""");
-
-        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-        var doc = (await Json(resp)).GetProperty("financialReports").EnumerateArray().Single();
-        Assert.Multiple(() =>
-        {
-            Assert.That(doc.GetProperty("name").GetString(), Is.EqualTo("Comune Beta AppIO Test"));
-            Assert.That(doc.GetProperty("posizioni")[0].GetProperty("category").ValueKind, Is.EqualTo(JsonValueKind.Null));
-        });
-    }
-
-    /// <summary>
-    /// Senza contratto né report il nome resta nullo, e senza partita IVA si usa il codice fiscale.
-    /// </summary>
-    [Test]
-    public async Task Griglia_SenzaContrattoNeReport_ShouldAvereNomeNulloEVatCodeDalCodiceFiscale()
-    {
-        var resp = await Post(Base, """{ "quarters": ["2025_4"] }""");
-
-        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-        var doc = (await Json(resp)).GetProperty("financialReports").EnumerateArray().Single();
-        Assert.Multiple(() =>
-        {
-            Assert.That(doc.GetProperty("contractId").GetString(), Is.EqualTo("APPIO-C5"));
-            Assert.That(doc.GetProperty("name").ValueKind, Is.EqualTo(JsonValueKind.Null));
-            Assert.That(doc.GetProperty("vatCode").GetString(), Is.EqualTo("00000000005"));
-        });
-    }
-
-    /// <summary>
-    /// Con il solo anno si cercano tutti i trimestri dell'anno; i trimestri, se ci sono, prevalgono.
-    /// </summary>
-    [TestCase("""{ "year": "2026" }""", new[] { "APPIO-FR-003", "APPIO-FR-001", "APPIO-FR-002" })]
-    [TestCase("""{ "year": "2026", "quarters": ["2026_1"] }""", new[] { "APPIO-FR-003" })]
-    [TestCase("""{ "year": "2025" }""", new[] { "APPIO-FR-004" })]
-    public async Task Griglia_FiltroAnnoETrimestri(string body, string[] attesi)
-    {
-        var resp = await Post(Base, body);
-
-        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-        Assert.That(Numeri(await Json(resp)), Is.EquivalentTo(attesi));
-    }
-
-    /// <summary>
-    /// Un contratto con financial report ma senza posizioni (C3) non compare in griglia.
-    /// </summary>
-    [Test]
-    public async Task Griglia_ContrattoSoloNelFinancialReport_ShouldReturn404()
-    {
-        var resp = await Post(Base, """{ "quarters": ["2026_2"], "contractIds": ["APPIO-C3"] }""");
+        var resp = await Post(Base, """{ "quarters": ["1999_1"] }""");
 
         Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
     }
 
     /// <summary>
-    /// Il valore del filtro resta un parametro: un tentativo di injection non trova nulla e non
-    /// tocca le tabelle.
-    /// </summary>
-    [Test]
-    public async Task Griglia_InjectionNeiFiltri_ShouldEssereTrattataComeTesto()
-    {
-        var resp = await Post(Base, """{ "year": "2026' OR 1=1; DROP TABLE appio.FinancialReportPositions;--", "contractIds": ["x' OR '1'='1"] }""");
-
-        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
-        var ancora = await Post(Base, """{ "year": "2026" }""");
-        Assert.That(ancora.StatusCode, Is.EqualTo(HttpStatusCode.OK), "la tabella delle posizioni è ancora lì");
-    }
-
-    /// <summary>
-    /// Senza autenticazione 401.
+    /// Senza autenticazione la griglia risponde 401.
     /// </summary>
     [Test]
     public async Task Griglia_SenzaAutenticazione_ShouldReturn401()
@@ -262,89 +214,116 @@ public class AppIoFinancialReportsHttpTests
     // --- download "Documenti Contabili" ---
 
     /// <summary>
-    /// Un foglio "Documenti Contabili" con una riga per posizione, con lo stesso filtro della griglia.
+    /// Il download applica lo stesso filtro della griglia: una riga per riga di documento.
     /// </summary>
     [Test]
-    public async Task Document_ShouldEsportareUnaRigaPerPosizione()
+    public async Task Document_ShouldEsportareLeRigheDelFiltro()
     {
-        var resp = await Post($"{Base}/document", """{ "quarters": ["2026_2"] }""");
+        var resp = await Post($"{Base}/document", """{ "year": "2026", "institutionIds": ["APPIO-ENTE-1"] }""");
 
         Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
         Assert.That(resp.Content.Headers.ContentType?.MediaType, Is.EqualTo("application/vnd.ms-excel"));
-        var fogli = await Fogli(resp);
-        Assert.That(fogli.Keys, Is.EqualTo(new[] { "Documenti Contabili" }));
-        var testo = fogli["Documenti Contabili"];
+        var testo = await TestoExcel(resp);
         Assert.Multiple(() =>
         {
-            Assert.That(Regex.Matches(testo, "APPIO-FR-001").Count, Is.EqualTo(2), "due righe per il documento con due posizioni");
-            Assert.That(testo, Does.Contain("APPIO-FR-002"));
-            Assert.That(testo, Does.Not.Contain("APPIO-FR-003"), "2026_1 è fuori dal filtro");
+            Assert.That(testo, Does.Contain("APPIO-FR-001"));
+            Assert.That(testo, Does.Contain("APPIO-FR-004"));
+            Assert.That(testo, Does.Not.Contain("APPIO-FR-003"), "FR-003 è di ENTE-2");
         });
     }
 
-    /// <summary>
-    /// Filtro senza risultati: 404, nessun file.
-    /// </summary>
-    [Test]
-    public async Task Document_NessunRisultato_ShouldReturn404()
-    {
-        var resp = await Post($"{Base}/document", """{ "quarters": ["1999_1"] }""");
-
-        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
-    }
-
-    // --- download "Financial Report" ---
+    // --- dettaglio ---
 
     /// <summary>
-    /// Per ogni trimestre un foglio financial-report e uno positions. Il foglio del report contiene
-    /// anche C3, che ha il report ma nessuna posizione: è la differenza rispetto alla griglia.
+    /// Il dettaglio di una riga della griglia restituisce anagrafica e righe dei documenti del trimestre.
     /// </summary>
     [Test]
-    public async Task DetailDownload_ShouldAvereIFogliReportEPosizioniPerTrimestre()
+    public async Task Detail_ShouldRestituireAnagraficaERighe()
     {
-        var resp = await Post($"{Base}/detail/download", """{ "year": "2026" }""");
+        var resp = await Post($"{Base}/detail", """{ "contractId": "APPIO-OB1", "yearQuarter": "2026_2" }""");
 
         Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-        var fogli = await Fogli(resp);
-        Assert.That(fogli.Keys, Is.EquivalentTo(new[]
-        {
-            "2026-q1-financial-report", "2026-q2-financial-report", "2026-q1-positions", "2026-q2-positions"
-        }));
+        var json = await Json(resp);
+        var posizioni = json.GetProperty("posizioni");
         Assert.Multiple(() =>
         {
-            Assert.That(fogli["2026-q2-financial-report"], Does.Contain("APPIO-C3"));
-            Assert.That(fogli["2026-q2-positions"], Does.Not.Contain("APPIO-C3"));
-            Assert.That(fogli["2026-q2-positions"], Does.Contain("APPIO-FR-002"));
-            Assert.That(fogli["2026-q1-positions"], Does.Contain("APPIO-FR-003"));
+            Assert.That(json.GetProperty("name").GetString(), Is.EqualTo("Comune Alfa AppIO Test"));
+            Assert.That(json.GetProperty("partitaIva").GetString(), Is.EqualTo("00000000001"));
+            Assert.That(json.GetProperty("importoTotale").GetDecimal(), Is.EqualTo(25m));
+            Assert.That(json.GetProperty("year").GetInt32(), Is.EqualTo(2026));
+            Assert.That(Valori(posizioni, "numero"), Is.EqualTo(new[] { "APPIO-FR-001", "APPIO-FR-001", "APPIO-FR-002" }));
+            Assert.That(Valori(posizioni, "tipoDoc"), Is.EqualTo(new[] { "TD01", "TD01", "TD04" }));
+            Assert.That(posizioni[0].GetProperty("dataReport").GetDateTime(), Is.EqualTo(new DateTime(2026, 7, 15)));
         });
     }
 
     /// <summary>
-    /// Il filtro per contratto vale per entrambi i fogli, anche se nel report la colonna si chiama
-    /// recipient_id.
+    /// Una data in formato errato a DB arriva come null, senza far fallire la rotta.
     /// </summary>
     [Test]
-    public async Task DetailDownload_FiltroContratto_ShouldValerePerEntrambiIFogli()
+    public async Task Detail_DataNonConvertibile_ShouldArrivareNull()
     {
-        var resp = await Post($"{Base}/detail/download", """{ "quarters": ["2026_2"], "contractIds": ["APPIO-C2"] }""");
+        var resp = await Post($"{Base}/detail", """{ "contractId": "APPIO-OB4", "yearQuarter": "2025_4" }""");
 
         Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-        var fogli = await Fogli(resp);
+        var riga = (await Json(resp)).GetProperty("posizioni")[0];
         Assert.Multiple(() =>
         {
-            Assert.That(fogli.Keys, Is.EqualTo(new[] { "2026-q2-positions" }), "C2 non ha financial report: niente foglio del report");
-            Assert.That(fogli["2026-q2-positions"], Does.Not.Contain("APPIO-C1"));
+            Assert.That(riga.GetProperty("dataReport").GetDateTime(), Is.EqualTo(new DateTime(2026, 1, 15)));
+            Assert.That(riga.GetProperty("dataRiferimento").ValueKind, Is.EqualTo(JsonValueKind.Null));
         });
     }
 
     /// <summary>
-    /// Filtro senza risultati in nessuna delle due viste: 404, nessun file.
+    /// Contratto e trimestre sono obbligatori: senza uno dei due la rotta risponde 400.
+    /// </summary>
+    [TestCase("{}")]
+    [TestCase("""{ "contractId": "APPIO-OB1" }""")]
+    [TestCase("""{ "yearQuarter": "2026_2" }""")]
+    [TestCase("")]
+    public async Task DetailEDownload_SenzaContrattoOTrimestre_ShouldReturn400(string body)
+    {
+        var detail = await Post($"{Base}/detail", body);
+        var download = await Post($"{Base}/detail/download", body);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(detail.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+            Assert.That(download.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        });
+    }
+
+    /// <summary>
+    /// Un contratto senza documenti nel trimestre risponde 404, sul dettaglio e sul download.
     /// </summary>
     [Test]
-    public async Task DetailDownload_NessunRisultato_ShouldReturn404()
+    public async Task DetailEDownload_DocumentoInesistente_ShouldReturn404()
     {
-        var resp = await Post($"{Base}/detail/download", """{ "quarters": ["1999_1"] }""");
+        const string body = """{ "contractId": "APPIO-OB3", "yearQuarter": "2026_2" }""";
+        var detail = await Post($"{Base}/detail", body);
+        var download = await Post($"{Base}/detail/download", body);
 
-        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+        Assert.Multiple(() =>
+        {
+            Assert.That(detail.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+            Assert.That(download.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+        });
+    }
+
+    /// <summary>
+    /// Il download del dettaglio è un Excel con le righe del solo contratto e trimestre richiesti.
+    /// </summary>
+    [Test]
+    public async Task DetailDownload_ShouldEsportareSoloIlDocumentoRichiesto()
+    {
+        var resp = await Post($"{Base}/detail/download", """{ "contractId": "APPIO-OB1", "yearQuarter": "2026_1" }""");
+
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        var testo = await TestoExcel(resp);
+        Assert.Multiple(() =>
+        {
+            Assert.That(testo, Does.Contain("APPIO-FR-004"));
+            Assert.That(testo, Does.Not.Contain("APPIO-FR-001"), "FR-001 è del 2026_2");
+        });
     }
 }
