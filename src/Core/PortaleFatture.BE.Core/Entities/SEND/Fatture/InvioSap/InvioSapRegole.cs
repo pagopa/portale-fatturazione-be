@@ -3,9 +3,9 @@ namespace PortaleFatture.BE.Core.Entities.SEND.Fatture.InvioSap;
 /// <summary>Le due cose che si possono generare (D7 di be-invio-sap.md).</summary>
 public enum InvioSapModalita
 {
-    /// <summary>Rigo <c>DA_INVIARE</c> della griglia, intero: nessuna selezione, nessuno storno.</summary>
+    /// <summary>Fatture mai inviate: il rigo <c>DA_INVIARE</c> intero o una sua selezione. Nessuno storno.</summary>
     PrimoInvio,
-    /// <summary>Fatture scelte nel dettaglio di un rigo <c>INVIATE</c>, con storno obbligatorio.</summary>
+    /// <summary>Fatture gia' inviate, scelte nel dettaglio di un rigo <c>INVIATE</c>, con storno obbligatorio.</summary>
     ReInvio
 }
 
@@ -16,12 +16,18 @@ public sealed class InvioSapRichiestaGenerazione
     public int? Mese { get; init; }
     public string? TipologiaFattura { get; init; }
     /// <summary>
-    /// "Seleziona tutto" del dettaglio: <c>true</c> = re-invio di tutte le fatture inviate del rigo, tranne
+    /// Stato del rigo da cui si genera: <c>DA_INVIARE</c> = primo invio, <c>INVIATE</c> = re-invio. Assente = la
+    /// modalita' si deduce come prima dell'11/11/2026 (senza elenco ne' "seleziona tutto" primo invio, altrimenti
+    /// re-invio). Per selezionare fatture da inviare va indicato <c>DA_INVIARE</c>.
+    /// </summary>
+    public string? StatoInvio { get; init; }
+    /// <summary>
+    /// "Seleziona tutto" del dettaglio: <c>true</c> = tutte le fatture del rigo nello stato richiesto, tranne
     /// <see cref="IdFattureEscluse"/> (e <see cref="IdFatture"/> viene ignorato). <c>false</c> o assente = vale
     /// <see cref="IdFatture"/> (e <see cref="IdFattureEscluse"/> viene ignorato).
     /// </summary>
     public bool? AllSelected { get; init; }
-    /// <summary>Senza "seleziona tutto": assente = primo invio del rigo; presente (anche vuota) = re-invio.</summary>
+    /// <summary>Senza "seleziona tutto": le fatture scelte. Assente e senza <see cref="StatoInvio"/> = primo invio del rigo intero.</summary>
     public IReadOnlyList<long>? IdFatture { get; init; }
     /// <summary>Fatture tolte dal "seleziona tutto". Letto solo con <see cref="AllSelected"/> a <c>true</c>.</summary>
     public IReadOnlyList<long>? IdFattureEscluse { get; init; }
@@ -29,7 +35,7 @@ public sealed class InvioSapRichiestaGenerazione
     public string? NumeroDocumentoStorno { get; init; }
 }
 
-/// <summary>Una fattura scelta per il re-invio, come la legge la vista dettaglio.</summary>
+/// <summary>Una fattura scelta (o esclusa), come la legge la vista dettaglio.</summary>
 public sealed record InvioSapFatturaCorrente(
     long IdFattura,
     int Anno,
@@ -76,8 +82,9 @@ public static class InvioSapRegole
     public const string ErroreNonTrovate = "Una o piu' fatture selezionate non esistono";
     public const string ErroreFuoriGruppo = "Tutte le fatture devono appartenere all'anno, al mese e alla tipologia indicati";
     public const string ErroreNonInviate = "Si possono re-inviare solo fatture gia' inviate";
+    public const string ErroreNonDaInviare = "Il primo invio riguarda solo fatture ancora da inviare";
+    public const string ErroreStatoGenera = "Stato invio non valido: ammessi DA_INVIARE o INVIATE";
     public const string ErroreStatoFiltro = "Stato invio non valido: ammessi TUTTE, DA_INVIARE, INVIATE, IN_ELABORAZIONE";
-    public const string ErroreDettaglioDaInviare = "Il dettaglio non e' disponibile per le fatture da inviare: il rigo si genera per intero";
     public const string ErroreStatoDettaglio = "Stato del rigo obbligatorio: DA_INVIARE, INVIATE o IN_ELABORAZIONE";
     public const string ErrorePaginazione = "Paginazione non valida";
     public const string ErroreRagioneSociale = "Ragione sociale troppo lunga";
@@ -86,12 +93,26 @@ public static class InvioSapRegole
     /// <summary>"Seleziona tutto" del dettaglio: la selezione e' il rigo meno le escluse, non un elenco.</summary>
     public static bool SelezioneTotale(InvioSapRichiestaGenerazione richiesta) => richiesta.AllSelected == true;
 
+    /// <summary><c>StatoInvio</c> del body senza spazi e in maiuscolo; <c>null</c> se assente.</summary>
+    public static string? StatoRichiesto(InvioSapRichiestaGenerazione richiesta) =>
+        string.IsNullOrWhiteSpace(richiesta.StatoInvio) ? null : richiesta.StatoInvio.Trim().ToUpperInvariant();
+
     /// <summary>
-    /// Primo invio solo senza "seleziona tutto" e senza elenco. Il "seleziona tutto" e' sempre un re-invio: cosi'
-    /// una richiesta senza storno riceve 400 e non diventa per errore il primo invio di altre fatture del periodo.
+    /// Con <c>StatoInvio</c> decide lui: <c>DA_INVIARE</c> primo invio, <c>INVIATE</c> re-invio. Senza, vale la regola
+    /// precedente: primo invio solo senza "seleziona tutto" e senza elenco. Un "seleziona tutto" senza stato resta un
+    /// re-invio: cosi' una richiesta senza storno riceve 400 e non diventa per errore il primo invio di altre
+    /// fatture del periodo.
     /// </summary>
-    public static InvioSapModalita Modalita(InvioSapRichiestaGenerazione richiesta) =>
-        !SelezioneTotale(richiesta) && richiesta.IdFatture is null ? InvioSapModalita.PrimoInvio : InvioSapModalita.ReInvio;
+    public static InvioSapModalita Modalita(InvioSapRichiestaGenerazione richiesta) => StatoRichiesto(richiesta) switch
+    {
+        StatoInvioSap.DA_INVIARE => InvioSapModalita.PrimoInvio,
+        StatoInvioSap.INVIATE => InvioSapModalita.ReInvio,
+        _ => !SelezioneTotale(richiesta) && richiesta.IdFatture is null ? InvioSapModalita.PrimoInvio : InvioSapModalita.ReInvio
+    };
+
+    /// <summary>Primo invio del rigo <c>DA_INVIARE</c> intero: nessun elenco e nessun "seleziona tutto".</summary>
+    public static bool RigoIntero(InvioSapRichiestaGenerazione richiesta) =>
+        Modalita(richiesta) == InvioSapModalita.PrimoInvio && !SelezioneTotale(richiesta) && richiesta.IdFatture is null;
 
     /// <summary>Tutto cio' che si vede dal solo body (e dall'utente): 400.</summary>
     public static IReadOnlyList<string> ValidaFormale(InvioSapRichiestaGenerazione richiesta, string? idUtente)
@@ -108,6 +129,31 @@ public static class InvioSapRegole
 
         if (string.IsNullOrWhiteSpace(idUtente) || idUtente.Length > MaxIdUtente) errori.Add(ErroreUtente);
 
+        if (StatoRichiesto(richiesta) is { } stato && stato != StatoInvioSap.DA_INVIARE && stato != StatoInvioSap.INVIATE)
+            errori.Add(ErroreStatoGenera);
+
+        // La selezione: "seleziona tutto" con le escluse, oppure l'elenco. Il rigo intero non ha nulla da controllare.
+        if (SelezioneTotale(richiesta))
+        {
+            // Nessun tetto sulle fatture del rigo: il limite riguarda solo l'elenco delle escluse.
+            var escluse = richiesta.IdFattureEscluse ?? [];
+            if (escluse.Count > MaxFatture) errori.Add(ErroreEsclusioniTroppe);
+            if (escluse.Any(id => id <= 0)) errori.Add(ErroreIdNonValido);
+            if (escluse.Distinct().Count() != escluse.Count) errori.Add(ErroreEsclusioniDuplicate);
+        }
+        else if (!RigoIntero(richiesta))
+        {
+            var ids = richiesta.IdFatture ?? [];
+            if (ids.Count == 0) errori.Add(ErroreSelezioneVuota);
+            else
+            {
+                if (ids.Count > MaxFatture) errori.Add(ErroreSelezioneTroppoGrande);
+                if (ids.Any(id => id <= 0)) errori.Add(ErroreIdNonValido);
+                if (ids.Distinct().Count() != ids.Count) errori.Add(ErroreSelezioneDuplicata);
+            }
+        }
+
+        // Lo storno dipende solo dalla modalita': vietato nel primo invio, obbligatorio nel re-invio.
         var storno = richiesta.NumeroDocumentoStorno;
         if (Modalita(richiesta) == InvioSapModalita.PrimoInvio)
         {
@@ -115,26 +161,6 @@ public static class InvioSapRegole
         }
         else
         {
-            if (SelezioneTotale(richiesta))
-            {
-                // Nessun tetto sulle fatture del rigo: il limite riguarda solo l'elenco delle escluse.
-                var escluse = richiesta.IdFattureEscluse ?? [];
-                if (escluse.Count > MaxFatture) errori.Add(ErroreEsclusioniTroppe);
-                if (escluse.Any(id => id <= 0)) errori.Add(ErroreIdNonValido);
-                if (escluse.Distinct().Count() != escluse.Count) errori.Add(ErroreEsclusioniDuplicate);
-            }
-            else
-            {
-                var ids = richiesta.IdFatture ?? [];
-                if (ids.Count == 0) errori.Add(ErroreSelezioneVuota);
-                else
-                {
-                    if (ids.Count > MaxFatture) errori.Add(ErroreSelezioneTroppoGrande);
-                    if (ids.Any(id => id <= 0)) errori.Add(ErroreIdNonValido);
-                    if (ids.Distinct().Count() != ids.Count) errori.Add(ErroreSelezioneDuplicata);
-                }
-            }
-
             if (string.IsNullOrWhiteSpace(storno)) errori.Add(ErroreStornoMancante);
             else if (storno.Length > MaxStorno) errori.Add(ErroreStornoLungo);
         }
@@ -143,10 +169,11 @@ public static class InvioSapRegole
     }
 
     /// <summary>
-    /// Controlli del re-invio sulle fatture lette dalla vista dettaglio. Non trovate → 404; fuori gruppo o
-    /// non inviate (0 o NULL) → 400. <c>null</c> se tutto torna.
+    /// Controlli sulle fatture dell'elenco, lette dalla vista dettaglio. Non trovate → 404; fuori gruppo → 400;
+    /// nello stato sbagliato → 400: il re-invio vuole fatture inviate, il primo invio fatture da inviare (quelle in
+    /// elaborazione non vanno bene in nessuno dei due). <c>null</c> se tutto torna.
     /// </summary>
-    public static InvioSapGeneraEsito? ValidaReInvio(
+    public static InvioSapGeneraEsito? ValidaSelezione(
         InvioSapRichiestaGenerazione richiesta,
         IReadOnlyCollection<InvioSapFatturaCorrente> correnti)
     {
@@ -164,9 +191,10 @@ public static class InvioSapRegole
         if (fuoriGruppo.Count > 0)
             return InvioSapGeneraEsito.NonValida([ErroreFuoriGruppo], fuoriGruppo);
 
-        var nonInviate = selezionate.Where(f => f.FatturaInviata != true).Select(f => f.IdFattura).ToList();
-        if (nonInviate.Count > 0)
-            return InvioSapGeneraEsito.NonValida([ErroreNonInviate], nonInviate);
+        var reInvio = Modalita(richiesta) == InvioSapModalita.ReInvio;
+        var statoSbagliato = selezionate.Where(f => f.FatturaInviata != reInvio).Select(f => f.IdFattura).ToList();
+        if (statoSbagliato.Count > 0)
+            return InvioSapGeneraEsito.NonValida([reInvio ? ErroreNonInviate : ErroreNonDaInviare], statoSbagliato);
 
         return null;
     }
@@ -229,8 +257,8 @@ public static class InvioSapRegole
     }
 
     /// <summary>
-    /// Filtri del dettaglio di un rigo: i quattro campi del rigo sono obbligatori; il dettaglio non esiste
-    /// per i righi <c>DA_INVIARE</c> (C1: le fatture mai inviate non hanno storico).
+    /// Filtri del dettaglio di un rigo: i quattro campi del rigo sono obbligatori. Dall'11/11/2026 il dettaglio
+    /// esiste anche per i righi <c>DA_INVIARE</c> (vista 1.1 di DATA: le mai inviate ci sono, senza storico).
     /// </summary>
     public static IReadOnlyList<string> ValidaFiltriDettaglio(
         int? anno, int? mese, string? tipologia, string? statoInvio,
@@ -244,8 +272,6 @@ public static class InvioSapRegole
         var stato = FiltroStatoInvioSap.Normalizza(statoInvio);
         if (string.IsNullOrWhiteSpace(statoInvio) || stato == FiltroStatoInvioSap.TUTTE || !FiltroStatoInvioSap.IsValido(stato))
             errori.Add(ErroreStatoDettaglio);
-        else if (stato == StatoInvioSap.DA_INVIARE)
-            errori.Add(ErroreDettaglioDaInviare);
 
         if (ragioneSociale?.Length > MaxRagioneSociale) errori.Add(ErroreRagioneSociale);
         if (numeroFattura?.Length > MaxNumeroFattura) errori.Add(ErroreNumeroFattura);
