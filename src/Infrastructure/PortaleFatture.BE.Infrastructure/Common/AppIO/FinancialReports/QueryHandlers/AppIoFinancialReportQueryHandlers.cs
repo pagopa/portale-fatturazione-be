@@ -8,7 +8,7 @@ using PortaleFatture.BE.Infrastructure.Common.Persistence.Schemas;
 namespace PortaleFatture.BE.Infrastructure.Common.AppIO.FinancialReports.QueryHandlers;
 
 /// <summary>
-/// Gestisce la lettura dei trimestri dei documenti contabili APP IO.
+/// Gestisce la lettura dei trimestri dei documenti emessi APP IO.
 /// </summary>
 /// <param name="factory">La factory del contesto database.</param>
 public sealed class AppIoFinancialReportQuartersQueryHandler(IFattureDbContextFactory factory)
@@ -30,7 +30,51 @@ public sealed class AppIoFinancialReportQuartersQueryHandler(IFattureDbContextFa
 }
 
 /// <summary>
-/// Gestisce la griglia dei documenti contabili APP IO: legge le righe e le raggruppa per documento.
+/// Gestisce la lettura degli anni dei documenti emessi APP IO.
+/// </summary>
+/// <param name="factory">La factory del contesto database.</param>
+public sealed class AppIoFinancialReportYearsQueryHandler(IFattureDbContextFactory factory)
+    : IRequestHandler<AppIoFinancialReportYearsQuery, IEnumerable<int>>
+{
+    private readonly IFattureDbContextFactory _factory = factory;
+
+    /// <summary>
+    /// Restituisce gli anni distinti, dal più recente.
+    /// </summary>
+    /// <param name="command">La query.</param>
+    /// <param name="ct">Il token di annullamento.</param>
+    /// <returns>Gli anni.</returns>
+    public async Task<IEnumerable<int>> Handle(AppIoFinancialReportYearsQuery command, CancellationToken ct)
+    {
+        using var uow = await _factory.Create(cancellationToken: ct);
+        return await uow.Query(new AppIoFinancialReportYearsQueryPersistence(command), ct);
+    }
+}
+
+/// <summary>
+/// Gestisce la lettura dei codici fiscali degli enti APP IO.
+/// </summary>
+/// <param name="factory">La factory del contesto database.</param>
+public sealed class AppIoFinancialReportCodiciFiscaliQueryHandler(IFattureDbContextFactory factory)
+    : IRequestHandler<AppIoFinancialReportCodiciFiscaliQuery, IEnumerable<string>>
+{
+    private readonly IFattureDbContextFactory _factory = factory;
+
+    /// <summary>
+    /// Restituisce i codici fiscali distinti, in ordine crescente.
+    /// </summary>
+    /// <param name="command">La query.</param>
+    /// <param name="ct">Il token di annullamento.</param>
+    /// <returns>I codici fiscali.</returns>
+    public async Task<IEnumerable<string>> Handle(AppIoFinancialReportCodiciFiscaliQuery command, CancellationToken ct)
+    {
+        using var uow = await _factory.Create(cancellationToken: ct);
+        return await uow.Query(new AppIoFinancialReportCodiciFiscaliQueryPersistence(command), ct);
+    }
+}
+
+/// <summary>
+/// Gestisce la griglia dei documenti emessi APP IO: legge le righe e le raggruppa per contratto e trimestre.
 /// </summary>
 /// <param name="factory">La factory del contesto database.</param>
 public sealed class AppIoFinancialReportQueryGetByRicercaHandler(IFattureDbContextFactory factory)
@@ -39,11 +83,11 @@ public sealed class AppIoFinancialReportQueryGetByRicercaHandler(IFattureDbConte
     private readonly IFattureDbContextFactory _factory = factory;
 
     /// <summary>
-    /// Restituisce i documenti che soddisfano il filtro, con le loro posizioni.
+    /// Restituisce le righe padre che soddisfano il filtro, con le righe dei documenti.
     /// </summary>
     /// <param name="command">La query con il filtro.</param>
     /// <param name="ct">Il token di annullamento.</param>
-    /// <returns>I documenti e il loro numero.</returns>
+    /// <returns>Le righe padre e il loro numero.</returns>
     public async Task<AppIoFinancialReportListDto> Handle(AppIoFinancialReportQueryGetByRicerca command, CancellationToken ct)
     {
         using var uow = await _factory.Create(cancellationToken: ct);
@@ -75,30 +119,23 @@ public sealed class AppIoFinancialReportQueryGetByRicercaExcelHandler(IFattureDb
 }
 
 /// <summary>
-/// Gestisce il download "Financial Report" APP IO: righe del financial report e posizioni, con lo
-/// stesso filtro, nella stessa unit of work.
+/// Gestisce il dettaglio di un documento emesso APP IO (contratto e trimestre).
 /// </summary>
 /// <param name="factory">La factory del contesto database.</param>
-public sealed class AppIoFinancialReportQueryGetDettaglioExcelHandler(IFattureDbContextFactory factory)
-    : IRequestHandler<AppIoFinancialReportQueryGetDettaglioExcel, AppIoFinancialReportDettaglioDto>
+public sealed class AppIoFinancialReportQueryGetDettaglioHandler(IFattureDbContextFactory factory)
+    : IRequestHandler<AppIoFinancialReportQueryGetDettaglio, IEnumerable<AppIoFinancialReportDettaglioRigaDto>>
 {
     private readonly IFattureDbContextFactory _factory = factory;
 
     /// <summary>
-    /// Restituisce le righe del financial report e le posizioni che soddisfano il filtro.
+    /// Restituisce le righe del dettaglio.
     /// </summary>
-    /// <param name="command">La query con il filtro.</param>
+    /// <param name="command">La query con contratto e trimestre.</param>
     /// <param name="ct">Il token di annullamento.</param>
-    /// <returns>I due insiemi di righe.</returns>
-    public async Task<AppIoFinancialReportDettaglioDto> Handle(AppIoFinancialReportQueryGetDettaglioExcel command, CancellationToken ct)
+    /// <returns>Le righe del dettaglio, ordinate per documento e articolo.</returns>
+    public async Task<IEnumerable<AppIoFinancialReportDettaglioRigaDto>> Handle(AppIoFinancialReportQueryGetDettaglio command, CancellationToken ct)
     {
-        // Create(true): senza transazione la connessione si chiude dopo la prima query, e la seconda
-        // fallisce con "ConnectionString non inizializzata" (come nel gemello pagoPA)
-        using var uow = await _factory.Create(true, cancellationToken: ct);
-        return new AppIoFinancialReportDettaglioDto
-        {
-            FinancialReports = await uow.Query(new AppIoFinancialReportValoriQueryPersistence(command), ct),
-            Posizioni = await uow.Query(new AppIoFinancialReportPosizioniQueryPersistence(command), ct)
-        };
+        using var uow = await _factory.Create(cancellationToken: ct);
+        return await uow.Query(new AppIoFinancialReportDettaglioQueryPersistence(command), ct);
     }
 }

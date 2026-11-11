@@ -6,8 +6,8 @@ using PortaleFatture.BE.Infrastructure.Common.Persistence;
 namespace PortaleFatture.BE.Infrastructure.Common.AppIO.FinancialReports.Queries.Persistence;
 
 /// <summary>
-/// Legge le righe dei documenti contabili APP IO (una per posizione), ordinate per documento.
-/// Usata dalla griglia (che poi le raggruppa) e dal download "Documenti Contabili".
+/// Legge le righe dei documenti emessi APP IO da [be].[vwAppioFinalReport], ordinate per contratto
+/// e trimestre. Usata dalla griglia (che poi le raggruppa) e dal download "Documenti Contabili".
 /// </summary>
 /// <param name="filtro">Il filtro della richiesta.</param>
 public sealed class AppIoFinancialReportRigheQueryPersistence(IAppIoFinancialReportFiltro filtro) : DapperBase, IQuery<IEnumerable<AppIoFinancialReportRigaDto>>
@@ -17,7 +17,7 @@ public sealed class AppIoFinancialReportRigheQueryPersistence(IAppIoFinancialRep
     private static readonly string _orderBy = AppIoFinancialReportSQLBuilder.OrderByRighe();
 
     /// <summary>
-    /// Esegue la query con il filtro sulle posizioni.
+    /// Esegue la query con il filtro.
     /// </summary>
     /// <param name="connection">La connessione al database.</param>
     /// <param name="schema">Lo schema del contesto (non usato: le viste sono nello schema be).</param>
@@ -26,7 +26,7 @@ public sealed class AppIoFinancialReportRigheQueryPersistence(IAppIoFinancialRep
     /// <returns>Le righe dei documenti.</returns>
     public async Task<IEnumerable<AppIoFinancialReportRigaDto>> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
     {
-        var (where, parameters) = AppIoFinancialReportSQLBuilder.Where(_filtro, "p", "contract_id");
+        var (where, parameters) = AppIoFinancialReportSQLBuilder.Where(_filtro);
 
         return await ((IDatabase)this).SelectAsync<AppIoFinancialReportRigaDto>(
            connection!,

@@ -5,7 +5,7 @@ using PortaleFatture.BE.Infrastructure.Common.AppIO.FinancialReports.Dto;
 namespace PortaleFatture.BE.Infrastructure.Common.AppIO.FinancialReports.Queries;
 
 /// <summary>
-/// Documenti contabili APP IO per la griglia: righe raggruppate per documento, con le posizioni.
+/// Documenti emessi APP IO per la griglia: righe raggruppate per contratto e trimestre.
 /// </summary>
 /// <param name="authenticationInfo">Le informazioni di autenticazione dell'utente che effettua la richiesta.</param>
 public class AppIoFinancialReportQueryGetByRicerca(IAuthenticationInfo authenticationInfo)
@@ -17,7 +17,10 @@ public class AppIoFinancialReportQueryGetByRicerca(IAuthenticationInfo authentic
     public IAuthenticationInfo AuthenticationInfo { get; internal set; } = authenticationInfo;
 
     /// <inheritdoc/>
-    public string[]? ContractIds { get; set; }
+    public string[]? InstitutionIds { get; set; }
+
+    /// <inheritdoc/>
+    public string[]? CodiciFiscali { get; set; }
 
     /// <inheritdoc/>
     public string[]? YearQuarter { get; set; }
