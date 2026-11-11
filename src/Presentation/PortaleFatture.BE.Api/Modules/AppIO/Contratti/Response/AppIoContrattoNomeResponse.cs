@@ -1,22 +1,17 @@
 namespace PortaleFatture.BE.Api.Modules.AppIO.Contratti.Response;
 
 /// <summary>
-/// Voce del filtro "Nome Ente" dei contratti APP IO.
+/// Voce del filtro "Nome Ente" APP IO: una per ente.
 /// </summary>
 public class AppIoContrattoNomeResponse
 {
     /// <summary>
-    /// Identificativo del contratto, da rimandare nel filtro ContractIds della griglia.
+    /// Identificativo dell'ente, da rimandare nel filtro InstitutionIds della griglia.
     /// </summary>
-    public string? ContractId { get; set; }
+    public string? InstitutionId { get; set; }
 
     /// <summary>
-    /// Nome dell'ente titolare del contratto.
+    /// Nome dell'ente.
     /// </summary>
     public string? Name { get; set; }
-
-    /// <summary>
-    /// Anno e trimestre di riferimento, nel formato 'AAAA_T'.
-    /// </summary>
-    public string? YearQuarter { get; set; }
 }

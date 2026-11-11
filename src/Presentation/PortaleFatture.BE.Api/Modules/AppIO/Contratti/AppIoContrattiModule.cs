@@ -10,6 +10,7 @@ using PortaleFatture.BE.Api.Modules.AppIO.Contratti.Request;
 using PortaleFatture.BE.Api.Modules.AppIO.Contratti.Response;
 using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Extensions;
+using PortaleFatture.BE.Infrastructure.Common.AppIO.Contratti.Queries;
 using PortaleFatture.BE.Infrastructure.Common.Identity;
 using PortaleFatture.BE.Infrastructure.Common.pagoPA.Documenti.Common;
 using static Microsoft.AspNetCore.Http.TypedResults;
@@ -20,69 +21,34 @@ namespace PortaleFatture.BE.Api.Modules.AppIO.Contratti;
 public partial class AppIoContrattiModule : Module, IRegistrableModule
 {
     /// <summary>
-    /// Endpoint per il recupero degli anni dei contratti AppIO.
+    /// Endpoint per il recupero dei tipi ente dei contratti AppIO (filtro "Tipo Ente").
     /// </summary>
     /// <param name="context">Il contesto HTTP della richiesta.</param>
     /// <param name="handler">Il mediatore per gestire la logica della richiesta.</param>
-    /// <returns>Un risultato HTTP contenente la lista degli anni dei contratti AppIO.</returns>
+    /// <returns>Un risultato HTTP contenente i tipi ente, in ordine alfabetico.</returns>
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    private async Task<Results<Ok<List<string>>, NotFound>> GetAppIoContrattiYears(
+    private async Task<Results<Ok<List<string>>, NotFound>> GetAppIoContrattiTipiEnte(
     HttpContext context,
     [FromServices] IMediator handler)
     {
-        // Recupera gli anni dei contratti AppIO
-        var quarters = await handler.Send(new AppIoContrattiQuartersRequest().Map(context.GetAuthInfo()));
-
-        // Se non ci sono anni disponibili, restituisce NotFound
-        if (quarters.IsNullNotAny())
+        var tipi = await handler.Send(new AppIoContrattiTipiEnteQuery(context.GetAuthInfo()));
+        if (tipi.IsNullNotAny())
             return NotFound();
-
-        // Mappa gli anni dei contratti AppIO e restituisce la lista
-        return Ok(quarters.MapYears());
+        return Ok(tipi.ToList());
     }
 
     /// <summary>
-    /// Endpoint per il recupero dei trimestri dei contratti AppIO in base all'anno specificato.
-    /// </summary>
-    /// <param name="context">Il contesto HTTP della richiesta.</param>
-    /// <param name="request">La richiesta contenente i parametri per il recupero dei trimestri dei contratti AppIO.</param>
-    /// <param name="handler">Il mediatore per gestire la logica della richiesta.</param>
-    /// <returns>Un risultato HTTP contenente la lista dei trimestri dei contratti AppIO.</returns>
-    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
-    [EnableCors(CORSLabel)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    private async Task<Results<Ok<List<AppIoContrattiQuartersResponse>>, NotFound>> PostAppIoContrattiQuarters(
-    HttpContext context,
-    [FromBody] AppIoContrattiQuartersRequest request,
-    [FromServices] IMediator handler)
-    {
-        // Recupera i trimestri dei contratti AppIO per l'anno specificato
-        var quarters = await handler.Send(request.Map(context.GetAuthInfo()));
-        
-        // Se non ci sono trimestri disponibili, restituisce NotFound
-        if (quarters.IsNullNotAny())
-            return NotFound();
-
-        // Mappa i trimestri dei contratti AppIO e restituisce la lista
-        return Ok(quarters.Map());
-    }
-
-    /// <summary>
-    /// Endpoint per il recupero dei contratti AppIO in base al nome specificato.
+    /// Endpoint per la ricerca degli enti AppIO per nome (filtro "Nome Ente", usato anche dai documenti emessi).
     /// </summary>
     /// <param name="context">Il contesto HTTP della richiesta.</param>
     /// <param name="request">La richiesta contenente i parametri per il recupero dei contratti AppIO.</param>
     /// <param name="handler">Il mediatore per gestire la logica della richiesta.</param>
-    /// <returns>Un risultato HTTP contenente la lista dei contratti AppIO.</returns>
+    /// <returns>Un risultato HTTP contenente gli enti, uno per voce.</returns>
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -129,7 +95,7 @@ public partial class AppIoContrattiModule : Module, IRegistrableModule
     [FromQuery] int pageSize,
     [FromServices] IMediator handler)
     {
-        // Recupera i contratti AppIO con paginazione; body assente = nessun filtro (trimestre più recente)
+        // Recupera i contratti AppIO con paginazione; body assente = nessun filtro
         var contratti = await handler.Send((request ?? new AppIoContrattiRequest()).Map(context.GetAuthInfo(), page, pageSize));
 
         // Se non ci sono contratti disponibili, restituisce NotFound
@@ -159,7 +125,7 @@ public partial class AppIoContrattiModule : Module, IRegistrableModule
     [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] AppIoContrattiRequest? request,
     [FromServices] IMediator handler)
     {
-        // Recupera i contratti AppIO per il download; body assente = nessun filtro (trimestre più recente)
+        // Recupera i contratti AppIO per il download; body assente = nessun filtro
         var contratti = await handler.Send((request ?? new AppIoContrattiRequest()).Map(context.GetAuthInfo()));
 
         // Se non ci sono contratti disponibili, restituisce NotFound
