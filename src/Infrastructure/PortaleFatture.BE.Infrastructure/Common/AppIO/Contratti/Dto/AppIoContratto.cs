@@ -3,57 +3,52 @@ using PortaleFatture.BE.Infrastructure.Common.pagoPA.Documenti.Common;
 namespace PortaleFatture.BE.Infrastructure.Common.AppIO.Contratti.Dto;
 
 /// <summary>
-/// Contratto APP IO letto dalla vista [be].[vwAppioContracts]: una riga per contratto e trimestre.
+/// Contratto APP IO letto dalla vista [be].[vwAppioContracts]: una riga per contratto
+/// (onboardingtokenid). Dall'11/11/2026 (PF-1016) il contratto non è più storicizzato per trimestre.
 /// Gli attributi <see cref="HeaderPagoPAAttribute"/> definiscono intestazioni e ordine delle colonne
 /// dell'export Excel (rotta api/appio/contracts/download).
 /// </summary>
 public sealed class AppIoContratto
 {
     /// <summary>
-    /// Identificativo del contratto.
+    /// Identificativo del contratto (onboardingtokenid).
     /// </summary>
     [HeaderPagoPA(caption: "ContractId", Order = 1)]
     public string? ContractId { get; set; }
 
     /// <summary>
+    /// Identificativo dell'ente (internalistitutionid): è il valore del filtro "Nome Ente".
+    /// </summary>
+    [HeaderPagoPA(caption: "InstitutionId", Order = 2)]
+    public string? InstitutionId { get; set; }
+
+    /// <summary>
     /// Nome dell'ente titolare del contratto.
     /// </summary>
-    [HeaderPagoPA(caption: "Name", Order = 2)]
+    [HeaderPagoPA(caption: "Name", Order = 3)]
     public string? Name { get; set; }
 
     /// <summary>
-    /// Codice fiscale associato al contratto.
+    /// Prodotto del contratto.
     /// </summary>
-    [HeaderPagoPA(caption: "TaxCode", Order = 3)]
-    public string? TaxCode { get; set; }
+    [HeaderPagoPA(caption: "Prodotto", Order = 4)]
+    public string? Prodotto { get; set; }
 
     /// <summary>
-    /// Partita IVA associata al contratto.
+    /// Tipo dell'ente (es. PA, GSP): è il valore del filtro "Tipo Ente".
     /// </summary>
-    [HeaderPagoPA(caption: "VatCode", Order = 4)]
-    public string? VatCode { get; set; }
+    [HeaderPagoPA(caption: "InstitutionType", Order = 5)]
+    public string? InstitutionType { get; set; }
 
     /// <summary>
-    /// Gruppo IVA associato al contratto (decimal(18,2) a DB).
+    /// Indirizzo PEC dell'ente; null se assente nel contratto.
     /// </summary>
-    [HeaderPagoPA(caption: "VatGroup", Order = 5)]
-    public decimal? VatGroup { get; set; }
+    [HeaderPagoPA(caption: "EmailPec", Order = 6)]
+    public string? EmailPec { get; set; }
 
     /// <summary>
-    /// Codice SDI associato al contratto.
+    /// Stato del contratto (es. ACTIVE, SUSPENDED).
     /// </summary>
-    [HeaderPagoPA(caption: "SdiCode", Order = 6)]
-    public string? SdiCode { get; set; }
-
-    /// <summary>
-    /// Anno e mese di riferimento, nel formato 'AAAAMM' (es. 202604: il mese successivo alla fine del trimestre).
-    /// </summary>
-    [HeaderPagoPA(caption: "YearMonth", Order = 7)]
-    public string? YearMonth { get; set; }
-
-    /// <summary>
-    /// Anno e trimestre di riferimento, nel formato 'AAAA_T' (es. 2026_1).
-    /// </summary>
-    [HeaderPagoPA(caption: "YearQuarter", Order = 8)]
-    public string? YearQuarter { get; set; }
+    [HeaderPagoPA(caption: "ContractState", Order = 7)]
+    public string? ContractState { get; set; }
 }

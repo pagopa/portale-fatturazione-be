@@ -6,14 +6,20 @@ using PortaleFatture.BE.Infrastructure.Common.Persistence;
 namespace PortaleFatture.BE.Infrastructure.Common.AppIO.FinancialReports.Queries.Persistence;
 
 /// <summary>
-/// Legge i trimestri distinti dei documenti contabili APP IO, eventualmente limitati a un anno.
+/// Legge i trimestri distinti dei documenti emessi APP IO da [be].[vwAppioFinalReport],
+/// eventualmente limitati a un anno.
 /// </summary>
+/// <remarks>
+/// Non usa [be].[vwAppioFinalReportFiltroTrimestre]: quella vista restituisce i numeri di trimestre
+/// (1-4) senza anno, mentre il filtro deve proporre solo i trimestri presenti nell'anno scelto, nel
+/// formato 'AAAA_T' accettato dalla griglia.
+/// </remarks>
 /// <param name="command">La query con l'anno facoltativo.</param>
 public sealed class AppIoFinancialReportQuartersQueryPersistence(AppIoFinancialReportQuartersQuery command) : DapperBase, IQuery<IEnumerable<string>>
 {
     private readonly AppIoFinancialReportQuartersQuery _command = command;
     private static readonly string _sql = AppIoFinancialReportSQLBuilder.SelectQuarters();
-    private static readonly string _orderBy = AppIoFinancialReportSQLBuilder.OrderByQuarters();
+    private static readonly string _groupBy = AppIoFinancialReportSQLBuilder.GroupByQuarters();
 
     /// <summary>
     /// Restituisce i trimestri distinti, dal più recente; con l'anno valorizzato solo quelli che
@@ -26,19 +32,19 @@ public sealed class AppIoFinancialReportQuartersQueryPersistence(AppIoFinancialR
     /// <returns>I trimestri nel formato 'AAAA_T', in ordine decrescente.</returns>
     public async Task<IEnumerable<string>> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
     {
-        var having = string.Empty;
+        var where = string.Empty;
         dynamic parameters = new ExpandoObject();
 
-        // HAVING perché il builder termina con il GROUP BY sulla stessa colonna
         if (!string.IsNullOrEmpty(_command.Year))
         {
-            having = " HAVING year_quarter LIKE @Year + '[_]%'";
+            // '[_]' perché in LIKE il trattino basso è un jolly
+            where = " WHERE [trimestre] LIKE @Year + '[_]%'";
             parameters.Year = _command.Year;
         }
 
         return await ((IDatabase)this).SelectAsync<string>(
            connection!,
-           _sql + having + _orderBy,
+           _sql + where + _groupBy,
            parameters,
            transaction);
     }

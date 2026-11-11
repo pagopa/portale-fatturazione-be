@@ -23,8 +23,8 @@ public sealed class AppIoContrattiQueryGetByRicercaPersistence(AppIoContrattiQue
     private static readonly string _offSet = AppIoContrattiSQLBuilder.OffSet();
 
     /// <summary>
-    /// Compone il filtro (trimestri, oppure anno, oppure il trimestre più recente, ed eventuali contratti), poi
-    /// legge la pagina ordinata per contract_id e il conteggio totale.
+    /// Compone il filtro (enti e tipi ente, entrambi facoltativi), poi legge la pagina ordinata per
+    /// nome e il conteggio totale.
     /// </summary>
     /// <param name="connection">La connessione al database.</param>
     /// <param name="schema">Lo schema del contesto (non usato: la vista è nello schema be).</param>
@@ -46,28 +46,19 @@ public sealed class AppIoContrattiQueryGetByRicercaPersistence(AppIoContrattiQue
         else
             offset = string.Empty;
 
-        // periodo: trimestri richiesti > anno > trimestre più recente (come i documenti contabili APP IO)
-        if (!_command.YearQuarter.IsNullNotAny())
+        if (!_command.InstitutionIds.IsNullNotAny())
         {
-            where.Add("year_quarter IN @YearQuarter");
-            parameters.YearQuarter = _command.YearQuarter;
-        }
-        else if (!string.IsNullOrEmpty(_command.Year))
-        {
-            // year_quarter è 'AAAA_T'; '[_]' perché in LIKE il trattino basso è un jolly
-            where.Add("year_quarter LIKE @Year + '[_]%'");
-            parameters.Year = _command.Year;
-        }
-        else
-            where.Add("year_quarter = (SELECT MAX(year_quarter) FROM [be].[vwAppioContracts])");
-
-        if (!_command.ContractIds.IsNullNotAny())
-        {
-            where.Add("contract_id IN @ContractIds");
-            parameters.ContractIds = _command.ContractIds;
+            where.Add("institution_id IN @InstitutionIds");
+            parameters.InstitutionIds = _command.InstitutionIds;
         }
 
-        var sWhere = " WHERE " + string.Join(" AND ", where);
+        if (!_command.TipiEnte.IsNullNotAny())
+        {
+            where.Add("institution_type IN @TipiEnte");
+            parameters.TipiEnte = _command.TipiEnte;
+        }
+
+        var sWhere = where.Count == 0 ? string.Empty : " WHERE " + string.Join(" AND ", where);
 
         var sql = _sql + sWhere + _orderBy + offset;
         var sqlCount = _sqlCount + sWhere;

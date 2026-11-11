@@ -6,18 +6,12 @@ namespace PortaleFatture.BE.Api.Modules.AppIO.Contratti.Request;
 public class AppIoContrattiRequest
 {
     /// <summary>
-    /// Contratti da cercare; null o vuoto = nessun filtro.
+    /// Enti da cercare (institutionId del filtro "Nome Ente"); null o vuoto = nessun filtro.
     /// </summary>
-    public string[]? ContractIds { get; set; }
+    public string[]? InstitutionIds { get; set; }
 
     /// <summary>
-    /// Trimestri da cercare, nel formato 'AAAA_T'; prevalgono su Year. Null o vuoto = si usa Year.
+    /// Tipi ente da cercare (valori di api/appio/contracts/tipoente); null o vuoto = nessun filtro.
     /// </summary>
-    public string[]? Quarters { get; set; }
-
-    /// <summary>
-    /// Anno ('AAAA'), usato solo senza trimestri: tutti i trimestri dell'anno. Senza trimestri né
-    /// anno = solo il trimestre più recente.
-    /// </summary>
-    public string? Year { get; set; }
+    public string[]? TipiEnte { get; set; }
 }

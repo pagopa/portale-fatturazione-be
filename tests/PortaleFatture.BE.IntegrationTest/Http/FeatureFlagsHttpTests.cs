@@ -63,7 +63,7 @@ public class FeatureFlagsHttpTests
     // --- flag assenti = spenti ---
 
     [TestCase("api/appio/contracts")]
-    [TestCase("api/appio/contracts/quarters")]
+    [TestCase("api/appio/financialreports/detail")]
     [TestCase("api/fatture/invio-sap")]
     [TestCase("api/fatture/invio-sap/dettaglio")]
     [TestCase("api/fatture/invio-sap/mesi")]
@@ -74,7 +74,7 @@ public class FeatureFlagsHttpTests
     public async Task FlagAssente_RotteNonRegistrate_404(string rotta)
         => Assert.That(await Post(_spente, rotta), Is.EqualTo(HttpStatusCode.NotFound));
 
-    [TestCase("api/appio/contracts/years")]
+    [TestCase("api/appio/contracts/tipoente")]
     [TestCase("api/fatture/invio-sap/lock")]
     [TestCase("api/fatture/invio-sap/stati")]
     [TestCase("api/fatture/invio-sap/anni")]
@@ -214,8 +214,8 @@ public class FeatureFlagsHttpTests
 
     // --- varianti del percorso: con il flag spento nessuna strada laterale raggiunge la rotta ---
 
-    [TestCase("API/APPIO/CONTRACTS/YEARS")]
-    [TestCase("api/appio/contracts/years/")]
+    [TestCase("API/APPIO/CONTRACTS/TIPOENTE")]
+    [TestCase("api/appio/contracts/tipoente/")]
     [TestCase("Api/Fatture/Invio-Sap/Stati")]
     [TestCase("api/fatture/invio-sap/stati/")]
     [TestCase("API/FATTURE/INVIO/SAP/MULTIPLO")]
@@ -237,7 +237,7 @@ public class FeatureFlagsHttpTests
     //     senza dipendere dai dati: una POST senza body viene rifiutata prima dell'handler (400, o 500 sulle
     //     rotte che non gestiscono il body mancante), mentre una rotta non registrata da' 404. ---
 
-    [TestCase("api/appio/contracts/quarters")]
+    [TestCase("api/appio/financialreports/detail")]
     [TestCase("api/fatture/invio-sap/dettaglio")]
     [TestCase("api/fatture/invio/sap/multiplo/periodo")]
     public async Task Sonda_PostSenzaBody_FlagAccesoNon404_FlagSpento404(string rotta)

@@ -1,8 +1,12 @@
 ﻿namespace PortaleFatture.BE.Infrastructure.Common.AppIO.Contratti.Queries.Persistence.Builder;
 
+/// <summary>
+/// Query dell'anagrafica APP IO sulle viste [be].[vwAppioContracts], [be].[vwAppioContractsFiltroNome]
+/// e [be].[vwAppioContractsFiltroTipoEnte] (modello dati dell'11/11/2026, PF-1016).
+/// </summary>
 public static class AppIoContrattiSQLBuilder
 {
-    private static string _offSet = " OFFSET (@page-1)*@size ROWS FETCH NEXT @size ROWS ONLY";
+    private static readonly string _offSet = " OFFSET (@page-1)*@size ROWS FETCH NEXT @size ROWS ONLY";
 
     /// <summary>
     /// Restituisce la clausola SQL di paginazione basata su OFFSET e FETCH NEXT.
@@ -11,90 +15,73 @@ public static class AppIoContrattiSQLBuilder
     public static string OffSet() => _offSet;
 
     /// <summary>
-    /// Restituisce la clausola SQL che ordina i risultati per contract_id in ordine crescente.
+    /// Ordinamento della griglia: per nome dell'ente, poi per contratto. Il secondo criterio rende
+    /// l'ordine stabile fra le pagine anche con enti omonimi.
     /// </summary>
-    /// <returns>La clausola SQL di ordinamento per contract_id crescente.</returns>
-    public static string OrderBy() => " ORDER BY contract_id";
+    /// <returns>La clausola ORDER BY.</returns>
+    public static string OrderBy() => " ORDER BY institution_name, onboardingtokenid";
 
-    /// <summary>
-    /// Restituisce la clausola SQL che ordina i risultati per nome in ordine crescente.
-    /// </summary>
-    /// <returns>La clausola SQL di ordinamento per nome crescente.</returns>
-    public static string OrderByName() => " ORDER BY name ASC";
-
-    private static string _sql =
+    private static readonly string _sql =
     @"
         SELECT
-        [contract_id] as ContractId
-        ,[name] as Name 
-        ,[tax_code] as TaxCode
-        ,[vat_code] as VatCode
-        ,[vat_group] as VatGroup
-        ,[sdi_code] as SdiCode
-        ,[year_month] as YearMonth
-        ,[year_quarter] as YearQuarter
+         [onboardingtokenid] AS ContractId
+        ,[institution_id] AS InstitutionId
+        ,[institution_name] AS Name
+        ,[prodotto] AS Prodotto
+        ,[institution_type] AS InstitutionType
+        ,[email_PEC] AS EmailPec
+        ,[contract_state] AS ContractState
         FROM [be].[vwAppioContracts]
     ";
 
     /// <summary>
-    /// Seleziona tutti i contratti dalla vista vwAppioContracts.
+    /// Seleziona i contratti dalla vista vwAppioContracts.
     /// </summary>
-    /// <returns>La query SQL che seleziona tutti i contratti.</returns>
+    /// <returns>La query SQL, senza WHERE né ORDER BY.</returns>
     public static string SelectAll() => _sql;
 
-    private static string _sqlContractsId =
-    @"
-        SELECT
-        [contract_id] as ContractId,
-        [name] as Name,
-        MAX([year_quarter]) as YearQuarter
-        FROM [be].[vwAppioContracts]
-    ";
-
-    /// <summary>
-    /// Seleziona id, nome e trimestre più recente dei contratti dalla vista vwAppioContracts. Va
-    /// completata con il filtro e con <see cref="GroupByContractsId"/>: la vista ha una riga per
-    /// contratto e trimestre, e senza raggruppamento lo stesso ente uscirebbe una volta per trimestre.
-    /// </summary>
-    /// <returns>La query SQL che seleziona id, nome e trimestre più recente dei contratti.</returns>
-    public static string SelectContractsId() => _sqlContractsId;
-
-    /// <summary>
-    /// Restituisce la clausola che raggruppa la ricerca per nome: una riga per contratto e nome.
-    /// </summary>
-    /// <returns>La clausola SQL GROUP BY su contract_id e name.</returns>
-    public static string GroupByContractsId() => " GROUP BY [contract_id], [name]";
-
-
-    private static string _sqlCount =
+    private static readonly string _sqlCount =
     @"
         SELECT COUNT(*)
         FROM [be].[vwAppioContracts]
     ";
 
     /// <summary>
-    /// Restituisce la query SQL che conta i contratti della vista vwAppioContracts.
+    /// Conta i contratti della vista vwAppioContracts.
     /// </summary>
-    /// <returns>La query SQL di conteggio dei contratti.</returns>
+    /// <returns>La query SQL di conteggio, senza WHERE.</returns>
     public static string SelectAllCount() => _sqlCount;
 
-    private static string _sqlQuarters =
+    private static readonly string _sqlNomi =
     @"
-        SELECT  
-        [year_quarter] as YearQuarter 
-        FROM [be].[vwAppioContracts]
-        GROUP BY [year_quarter]
+        SELECT
+         [institution_id] AS InstitutionId
+        ,[institution_name] AS Name
+        FROM [be].[vwAppioContractsFiltroNome]
     ";
 
     /// <summary>
-    /// Seleziona i valori distinti di year_quarter dalla vista vwAppioContracts.
+    /// Seleziona le voci del filtro "Nome Ente" (una per ente: la vista è già DISTINCT).
     /// </summary>
-    /// <returns>La query SQL che seleziona i trimestri distinti.</returns>
-    public static string SelectQuarters() => _sqlQuarters;
+    /// <returns>La query SQL, senza WHERE né ORDER BY.</returns>
+    public static string SelectNomi() => _sqlNomi;
 
     /// <summary>
-    /// Restituisce la clausola SQL che ordina i risultati per year_quarter in ordine decrescente.
+    /// Ordinamento delle voci del filtro "Nome Ente": per nome, poi per ente.
     /// </summary>
-    /// <returns>La clausola SQL di ordinamento per year_quarter decrescente.</returns>
-    public static string OrderByQuarters() => " ORDER BY year_quarter DESC";
+    /// <returns>La clausola ORDER BY.</returns>
+    public static string OrderByName() => " ORDER BY institution_name, institution_id";
+
+    private static readonly string _sqlTipiEnte =
+    @"
+        SELECT [TipoEnte]
+        FROM [be].[vwAppioContractsFiltroTipoEnte]
+        ORDER BY [TipoEnte]
+    ";
+
+    /// <summary>
+    /// Seleziona i tipi ente distinti, in ordine alfabetico.
+    /// </summary>
+    /// <returns>La query SQL completa.</returns>
+    public static string SelectTipiEnte() => _sqlTipiEnte;
 }

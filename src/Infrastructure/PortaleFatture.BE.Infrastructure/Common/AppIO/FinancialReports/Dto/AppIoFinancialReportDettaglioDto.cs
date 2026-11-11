@@ -3,146 +3,193 @@ using PortaleFatture.BE.Infrastructure.Common.pagoPA.Documenti.Common;
 namespace PortaleFatture.BE.Infrastructure.Common.AppIO.FinancialReports.Dto;
 
 /// <summary>
-/// Contenuto del "Financial Report" APP IO (api/appio/financialreports/detail/download): le righe
-/// del financial report e le posizioni dei documenti, con lo stesso filtro.
+/// Riga di [be].[vwAppioFinalReportDetails]: anagrafica del contratto e riga del documento.
+/// È la forma piatta letta dal DB: la pagina di dettaglio la raggruppa in testata e righe
+/// (<see cref="AppIoFinancialReportDettaglioDto"/>), il download la esporta così com'è.
 /// </summary>
-public sealed class AppIoFinancialReportDettaglioDto
+public sealed class AppIoFinancialReportDettaglioRigaDto
 {
-    /// <summary>
-    /// Righe di [be].[vwAppioFinancialReport].
-    /// </summary>
-    public IEnumerable<AppIoFinancialReportValoreDto>? FinancialReports { get; set; }
-
-    /// <summary>
-    /// Righe di [be].[vwAppioFinancialReportPositions].
-    /// </summary>
-    public IEnumerable<AppIoFinancialReportPosizioneExcelDto>? Posizioni { get; set; }
-}
-
-/// <summary>
-/// Riga di [be].[vwAppioFinancialReport]: transazioni e valore per contratto, trimestre e articolo.
-/// È il foglio "financial-report" del download api/appio/financialreports/detail/download.
-/// </summary>
-public sealed class AppIoFinancialReportValoreDto
-{
-    /// <summary>Identificativo del contratto (recipient_id a DB).</summary>
-    [HeaderPagoPA(caption: "recipient_id", Order = 1)]
-    public string? RecipientId { get; set; }
-
     /// <summary>Nome dell'ente.</summary>
-    [HeaderPagoPA(caption: "name", Order = 2)]
+    [HeaderPagoPA(caption: "NomeEnte", Order = 1)]
     public string? Name { get; set; }
 
-    /// <summary>Categoria.</summary>
-    [HeaderPagoPA(caption: "category", Order = 3)]
-    public string? Category { get; set; }
-
-    /// <summary>Numero di transazioni del trimestre.</summary>
-    [HeaderPagoPA(caption: "current_trx", Order = 4)]
-    public int? CurrentTrx { get; set; }
-
-    /// <summary>Valore.</summary>
-    [HeaderPagoPA(caption: "value", Order = 5)]
-    public decimal? Value { get; set; }
-
-    /// <summary>Codice dell'articolo.</summary>
-    [HeaderPagoPA(caption: "codice_articolo", Order = 6)]
-    public string? CodiceArticolo { get; set; }
-
-    /// <summary>Anno e trimestre, nel formato 'AAAA_T': decide il foglio, non è una colonna.</summary>
-    public string? YearQuarter { get; set; }
-}
-
-/// <summary>
-/// Riga di [be].[vwAppioFinancialReportPositions] con tutte le colonne della vista, più il nome
-/// dell'ente. È il foglio "positions" del download api/appio/financialreports/detail/download.
-/// </summary>
-public sealed class AppIoFinancialReportPosizioneExcelDto
-{
-    /// <summary>Nome dell'ente (dal financial report, in mancanza dal contratto).</summary>
-    [HeaderPagoPA(caption: "name", Order = 1)]
-    public string? Name { get; set; }
-
-    /// <summary>Identificativo del contratto.</summary>
-    [HeaderPagoPA(caption: "contract_id", Order = 2)]
+    /// <summary>Identificativo del contratto (onboardingtokenid).</summary>
+    [HeaderPagoPA(caption: "ContractId", Order = 2)]
     public string? ContractId { get; set; }
 
-    /// <summary>Tipo del documento.</summary>
-    [HeaderPagoPA(caption: "tipo_doc", Order = 3)]
-    public string? TipoDoc { get; set; }
+    /// <summary>Prodotto del contratto.</summary>
+    [HeaderPagoPA(caption: "Prodotto", Order = 3)]
+    public string? Prodotto { get; set; }
+
+    /// <summary>Data di creazione del contratto.</summary>
+    [HeaderPagoPA(caption: "DataCreazione", Order = 4)]
+    public DateTime? DataCreazione { get; set; }
+
+    /// <summary>Piano tariffario.</summary>
+    [HeaderPagoPA(caption: "PricingPlan", Order = 5)]
+    public string? PricingPlan { get; set; }
 
     /// <summary>Partita IVA.</summary>
-    [HeaderPagoPA(caption: "vat_code", Order = 4)]
-    public string? VatCode { get; set; }
+    [HeaderPagoPA(caption: "PartitaIva", Order = 6)]
+    public string? PartitaIva { get; set; }
 
-    /// <summary>Codice fiscale.</summary>
-    [HeaderPagoPA(caption: "cod_fisc", Order = 5)]
-    public string? CodFisc { get; set; }
+    /// <summary>Codice fiscale (tributario) dell'ente.</summary>
+    [HeaderPagoPA(caption: "CodiceFiscale", Order = 7)]
+    public string? CodiceFiscale { get; set; }
 
-    /// <summary>Valuta.</summary>
-    [HeaderPagoPA(caption: "valuta", Order = 6)]
-    public string? Valuta { get; set; }
+    /// <summary>Data dell'ultimo aggiornamento del contratto.</summary>
+    [HeaderPagoPA(caption: "UltimoAggiornamento", Order = 8)]
+    public DateTime? UltimoAggiornamento { get; set; }
 
-    /// <summary>Identificativo del documento.</summary>
-    [HeaderPagoPA(caption: "id", Order = 7)]
-    public int? Id { get; set; }
+    /// <summary>Anno e trimestre, nel formato 'AAAA_T'.</summary>
+    [HeaderPagoPA(caption: "YearQuarter", Order = 9)]
+    public string? YearQuarter { get; set; }
+
+    /// <summary>Anno di riferimento.</summary>
+    [HeaderPagoPA(caption: "Year", Order = 10)]
+    public int? Year { get; set; }
+
+    /// <summary>Trimestre di riferimento (1-4).</summary>
+    [HeaderPagoPA(caption: "Quarter", Order = 11)]
+    public int? Quarter { get; set; }
+
+    /// <summary>Totale del contratto nel trimestre, dalla vista.</summary>
+    [HeaderPagoPA(caption: "ImportoTotale", Order = 12)]
+    public decimal? ImportoTotale { get; set; }
 
     /// <summary>Numero del documento.</summary>
-    [HeaderPagoPA(caption: "numero", Order = 8)]
+    [HeaderPagoPA(caption: "Numero", Order = 13)]
     public string? Numero { get; set; }
 
-    /// <summary>Data del documento.</summary>
-    [HeaderPagoPA(caption: "data", Order = 9)]
-    public DateTime? Data { get; set; }
+    /// <summary>Tipo del documento.</summary>
+    [HeaderPagoPA(caption: "TipoDoc", Order = 14)]
+    public string? TipoDoc { get; set; }
 
-    /// <summary>Codifica dell'articolo.</summary>
-    [HeaderPagoPA(caption: "codifica_art", Order = 10)]
-    public string? CodificaArt { get; set; }
+    /// <summary>Valuta.</summary>
+    [HeaderPagoPA(caption: "Valuta", Order = 15)]
+    public string? Valuta { get; set; }
 
-    /// <summary>Progressivo della riga.</summary>
-    [HeaderPagoPA(caption: "progressivo_riga", Order = 11)]
-    public int ProgressivoRiga { get; set; }
+    /// <summary>Codice aggiuntivo.</summary>
+    [HeaderPagoPA(caption: "CodiceAggiuntivo", Order = 16)]
+    public string? CodiceAggiuntivo { get; set; }
 
-    /// <summary>Codice dell'articolo.</summary>
-    [HeaderPagoPA(caption: "codice_articolo", Order = 12)]
+    /// <summary>Data del documento; null se a DB non è nel formato 'AAAA-MM-GG'.</summary>
+    [HeaderPagoPA(caption: "DataReport", Order = 17)]
+    public DateTime? DataReport { get; set; }
+
+    /// <summary>Data di riferimento; null se a DB non è nel formato 'AAAA-MM-GG'.</summary>
+    [HeaderPagoPA(caption: "DataRiferimento", Order = 18)]
+    public DateTime? DataRiferimento { get; set; }
+
+    /// <summary>Codice dell'articolo fatturato.</summary>
+    [HeaderPagoPA(caption: "CodiceArticolo", Order = 19)]
     public string? CodiceArticolo { get; set; }
 
-    /// <summary>Descrizione della riga.</summary>
-    [HeaderPagoPA(caption: "descrizione_riga", Order = 13)]
-    public string? DescrizioneRiga { get; set; }
-
-    /// <summary>Prezzo unitario (testo a DB).</summary>
-    [HeaderPagoPA(caption: "prezzo_unit", Order = 14)]
-    public string? PrezzoUnit { get; set; }
-
     /// <summary>Quantità.</summary>
-    [HeaderPagoPA(caption: "q_ta", Order = 15)]
-    public int? Quantita { get; set; }
+    [HeaderPagoPA(caption: "Quantita", Order = 20)]
+    public long? Quantita { get; set; }
 
-    /// <summary>Importo.</summary>
-    [HeaderPagoPA(caption: "importo", Order = 16)]
+    /// <summary>Importo della riga.</summary>
+    [HeaderPagoPA(caption: "Importo", Order = 21)]
     public decimal? Importo { get; set; }
 
     /// <summary>Codice IVA.</summary>
-    [HeaderPagoPA(caption: "cod_iva", Order = 17)]
+    [HeaderPagoPA(caption: "CodIva", Order = 22)]
     public string? CodIva { get; set; }
 
-    /// <summary>Percentuale IVA (testo a DB).</summary>
-    [HeaderPagoPA(caption: "percent_iva", Order = 18)]
-    public string? PercentIva { get; set; }
+    /// <summary>Condizioni di pagamento.</summary>
+    [HeaderPagoPA(caption: "Condizioni", Order = 23)]
+    public string? Condizioni { get; set; }
 
-    /// <summary>IVA (testo a DB).</summary>
-    [HeaderPagoPA(caption: "iva", Order = 19)]
-    public string? Iva { get; set; }
+    /// <summary>Causale.</summary>
+    [HeaderPagoPA(caption: "Causale", Order = 24)]
+    public string? Causale { get; set; }
+}
 
-    /// <summary>Codice SDI.</summary>
-    [HeaderPagoPA(caption: "codice_sdi", Order = 20)]
-    public string? CodiceSdi { get; set; }
+/// <summary>
+/// Dettaglio di un documento emesso APP IO (contratto e trimestre): testata con l'anagrafica del
+/// contratto e righe dei documenti.
+/// </summary>
+public sealed class AppIoFinancialReportDettaglioDto
+{
+    /// <summary>Nome dell'ente.</summary>
+    public string? Name { get; set; }
 
-    /// <summary>Riferimento fattura.</summary>
-    [HeaderPagoPA(caption: "rif_fattura", Order = 21)]
-    public string? RifFattura { get; set; }
+    /// <summary>Identificativo del contratto (onboardingtokenid).</summary>
+    public string? ContractId { get; set; }
 
-    /// <summary>Anno e trimestre, nel formato 'AAAA_T': decide il foglio, non è una colonna.</summary>
+    /// <summary>Prodotto del contratto.</summary>
+    public string? Prodotto { get; set; }
+
+    /// <summary>Data di creazione del contratto.</summary>
+    public DateTime? DataCreazione { get; set; }
+
+    /// <summary>Piano tariffario.</summary>
+    public string? PricingPlan { get; set; }
+
+    /// <summary>Partita IVA.</summary>
+    public string? PartitaIva { get; set; }
+
+    /// <summary>Codice fiscale (tributario) dell'ente.</summary>
+    public string? CodiceFiscale { get; set; }
+
+    /// <summary>Data dell'ultimo aggiornamento del contratto.</summary>
+    public DateTime? UltimoAggiornamento { get; set; }
+
+    /// <summary>Anno e trimestre, nel formato 'AAAA_T'.</summary>
     public string? YearQuarter { get; set; }
+
+    /// <summary>Anno di riferimento.</summary>
+    public int? Year { get; set; }
+
+    /// <summary>Trimestre di riferimento (1-4).</summary>
+    public int? Quarter { get; set; }
+
+    /// <summary>Totale del contratto nel trimestre, dalla vista.</summary>
+    public decimal? ImportoTotale { get; set; }
+
+    /// <summary>Righe dei documenti, nell'ordine di numero e articolo.</summary>
+    public List<AppIoFinancialReportDettaglioPosizioneDto> Posizioni { get; set; } = [];
+}
+
+/// <summary>
+/// Riga di documento del dettaglio di un documento emesso APP IO.
+/// </summary>
+public sealed class AppIoFinancialReportDettaglioPosizioneDto
+{
+    /// <summary>Numero del documento.</summary>
+    public string? Numero { get; set; }
+
+    /// <summary>Tipo del documento.</summary>
+    public string? TipoDoc { get; set; }
+
+    /// <summary>Valuta.</summary>
+    public string? Valuta { get; set; }
+
+    /// <summary>Codice aggiuntivo.</summary>
+    public string? CodiceAggiuntivo { get; set; }
+
+    /// <summary>Data del documento.</summary>
+    public DateTime? DataReport { get; set; }
+
+    /// <summary>Data di riferimento.</summary>
+    public DateTime? DataRiferimento { get; set; }
+
+    /// <summary>Codice dell'articolo fatturato.</summary>
+    public string? CodiceArticolo { get; set; }
+
+    /// <summary>Quantità.</summary>
+    public long? Quantita { get; set; }
+
+    /// <summary>Importo della riga.</summary>
+    public decimal? Importo { get; set; }
+
+    /// <summary>Codice IVA.</summary>
+    public string? CodIva { get; set; }
+
+    /// <summary>Condizioni di pagamento.</summary>
+    public string? Condizioni { get; set; }
+
+    /// <summary>Causale.</summary>
+    public string? Causale { get; set; }
 }

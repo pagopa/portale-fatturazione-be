@@ -5,14 +5,14 @@ using PortaleFatture.BE.Infrastructure.Common.AppIO.FinancialReports.Queries;
 namespace PortaleFatture.BE.IntegrationTest;
 
 /// <summary>
-/// Documenti contabili APP IO (PF-908): query MediatR -> handler -> persistence -> viste
-/// [be].[vwAppioFinancialReportPositions] / [be].[vwAppioFinancialReport] / [be].[vwAppioContracts]
-/// sul DB seedato (tests/Data/appio.sql). Verifica a livello di handler ciò che la rotta HTTP
-/// nasconde: tipi del DTO letti da Dapper, colonne in più del foglio "positions", le due query del
-/// Financial Report nella stessa unit of work.
+/// Documenti emessi APP IO (modello dati dell'11/11/2026, PF-1016): query MediatR -> handler ->
+/// persistence -> viste [be].[vwAppioFinalReport*] sul DB seedato (tests/Data/appio.sql). Verifica
+/// a livello di handler ciò che la rotta HTTP nasconde: i tipi letti da Dapper (date, bigint,
+/// decimal) e le conversioni TRY_CONVERT delle viste.
 ///
-/// Seed: posizioni APPIO-FR-001 (C1, due righe) e APPIO-FR-002 (C2) in 2026_2, APPIO-FR-003 (C1) in
-/// 2026_1, APPIO-FR-004 (C5) in 2025_4; financial report per C1 (2026_2 e 2026_1) e C3 (2026_2).
+/// Seed: 2026_2 → OB1 (APPIO-FR-001 con due righe da 10, APPIO-FR-002 da 5) e OB2 (APPIO-FR-003 da 2);
+/// 2026_1 → OB1 (APPIO-FR-004 da 3); 2025_4 → OB4 (APPIO-FR-005 da 1, Data con spazi e
+/// Riferimento_data '31/12/2025'); OB9 orfano, escluso dalla INNER JOIN.
 /// </summary>
 [Category("AppIO")]
 public class AppIoFinancialReportQueryIntegrationTests
@@ -23,8 +23,8 @@ public class AppIoFinancialReportQueryIntegrationTests
     public void Setup()
     {
         TestDb.SkipIfUnavailable(LocalTestDb.ConnectionString);
-        TestDb.SkipSeOggettoAssente(LocalTestDb.ConnectionString, "be.vwAppioFinancialReportPositions");
-        TestDb.SkipSeOggettoAssente(LocalTestDb.ConnectionString, "be.vwAppioFinancialReport");
+        TestDb.SkipSeOggettoAssente(LocalTestDb.ConnectionString, "be.vwAppioFinalReport");
+        TestDb.SkipSeOggettoAssente(LocalTestDb.ConnectionString, "be.vwAppioFinalReportDetails");
         _handler = ServiceProvider.GetRequiredService<IMediator>(LocalTestDb.ConnectionString);
     }
 
@@ -36,10 +36,10 @@ public class AppIoFinancialReportQueryIntegrationTests
     };
 
     /// <summary>
-    /// I trimestri vengono dalle posizioni, dal più recente; con l'anno solo quelli dell'anno.
+    /// I trimestri sono quelli con documenti, dal più recente; con l'anno solo quelli dell'anno.
     /// </summary>
     [Test]
-    public async Task Quarters_ShouldVenireDallePosizioni()
+    public async Task Quarters_ShouldEssereQuelliConDocumenti()
     {
         var tutti = await _handler.Send(new AppIoFinancialReportQuartersQuery(Auth()));
         var anno = await _handler.Send(new AppIoFinancialReportQuartersQuery(Auth()) { Year = "2026" });
@@ -52,84 +52,122 @@ public class AppIoFinancialReportQueryIntegrationTests
     }
 
     /// <summary>
-    /// La griglia legge correttamente tutti i tipi (int, datetime, decimal(38,14)) e la VatCode
-    /// ricade sul codice fiscale quando manca la partita IVA.
+    /// Anni e codici fiscali vengono dalle viste filtro, già distinti.
     /// </summary>
     [Test]
-    public async Task Griglia_ShouldMappareTuttiITipiDelDocumento()
+    public async Task AnniECodiciFiscali_ShouldVenireDalleVisteFiltro()
     {
-        var lista = await _handler.Send(new AppIoFinancialReportQueryGetByRicerca(Auth()) { YearQuarter = ["2026_2"], ContractIds = ["APPIO-C1"] });
+        TestDb.SkipSeOggettoAssente(LocalTestDb.ConnectionString, "be.vwAppioFinalReportFiltroAnno");
+        TestDb.SkipSeOggettoAssente(LocalTestDb.ConnectionString, "be.vwAppioFinalReportFiltroCodFiscaleEnte");
 
-        var doc = lista.FinancialReports!.Single();
+        var anni = await _handler.Send(new AppIoFinancialReportYearsQuery(Auth()));
+        var codici = await _handler.Send(new AppIoFinancialReportCodiciFiscaliQuery(Auth()));
+
         Assert.Multiple(() =>
         {
-            Assert.That(lista.Count, Is.EqualTo(1));
-            Assert.That(doc.Id, Is.EqualTo(1));
-            Assert.That(doc.Data, Is.EqualTo(new DateTime(2026, 7, 15)));
-            Assert.That(doc.TipoDoc, Is.EqualTo("TD01"));
-            Assert.That(doc.Valuta, Is.EqualTo("EUR"));
-            Assert.That(doc.Posizioni.Sum(p => p.Importo), Is.EqualTo(20m));
-            Assert.That(doc.Posizioni.Select(p => p.Quantita), Is.EqualTo(new int?[] { 1000, 500 }));
-        });
-    }
-
-    /// <summary>Senza partita IVA la VatCode è il codice fiscale (ISNULL nel builder).</summary>
-    [Test]
-    public async Task Griglia_SenzaPartitaIva_ShouldUsareIlCodiceFiscale()
-    {
-        var lista = await _handler.Send(new AppIoFinancialReportQueryGetByRicerca(Auth()) { YearQuarter = ["2025_4"] });
-
-        Assert.That(lista.FinancialReports!.Single().VatCode, Is.EqualTo("00000000005"));
-    }
-
-    /// <summary>
-    /// Il download "Documenti Contabili" è piatto: una riga per posizione, nello stesso ordine della griglia.
-    /// </summary>
-    [Test]
-    public async Task Excel_ShouldRestituireUnaRigaPerPosizioneInOrdine()
-    {
-        var righe = (await _handler.Send(new AppIoFinancialReportQueryGetByRicercaExcel(Auth()) { YearQuarter = ["2026_2"] })).ToList();
-
-        Assert.That(righe.Select(r => $"{r.Numero}/{r.ProgressivoRiga}"),
-            Is.EqualTo(new[] { "APPIO-FR-001/1", "APPIO-FR-001/2", "APPIO-FR-002/1" }));
-    }
-
-    /// <summary>
-    /// Il Financial Report legge report e posizioni nella stessa unit of work (era il punto del 500:
-    /// senza transazione la seconda query trovava la connessione chiusa), con le colonne in più del
-    /// foglio positions e il report anche dove non ci sono posizioni (C3).
-    /// </summary>
-    [Test]
-    public async Task Dettaglio_ShouldLeggereReportEPosizioniConLoStessoFiltro()
-    {
-        var dettaglio = await _handler.Send(new AppIoFinancialReportQueryGetDettaglioExcel(Auth()) { YearQuarter = ["2026_2"] });
-
-        var c5 = dettaglio.Posizioni!.First(p => p.ContractId == "APPIO-C1" && p.ProgressivoRiga == 1);
-        Assert.Multiple(() =>
-        {
-            Assert.That(dettaglio.FinancialReports!.Select(r => r.RecipientId).Distinct(), Is.EquivalentTo(new[] { "APPIO-C1", "APPIO-C3" }));
-            Assert.That(dettaglio.FinancialReports!.Single(r => r.RecipientId == "APPIO-C3").CurrentTrx, Is.EqualTo(50));
-            Assert.That(dettaglio.Posizioni!.Count(), Is.EqualTo(3));
-            Assert.That(c5.PrezzoUnit, Is.EqualTo("0,01"), "prezzo_unit è testo a DB");
-            Assert.That(c5.PercentIva, Is.EqualTo("22"));
-            Assert.That(c5.CodiceSdi, Is.EqualTo("AAAAAA1"));
-            Assert.That(c5.Name, Is.EqualTo("Comune Alfa AppIO FR"));
+            Assert.That(anni, Is.EqualTo(new[] { 2026, 2025 }));
+            Assert.That(codici, Is.EqualTo(new[] { "00000000001", "00000000002", "00000000003", "00000000004" }));
         });
     }
 
     /// <summary>
-    /// Il filtro per contratto sul report usa recipient_id: chiedendo C2 (senza report) il report è vuoto
-    /// ma le posizioni ci sono.
+    /// Senza filtri la griglia mostra il trimestre più recente, una riga padre per contratto, con
+    /// ImportoTotale della vista (totale del trimestre: 25 per OB1, che ha due documenti).
     /// </summary>
     [Test]
-    public async Task Dettaglio_FiltroContratto_ShouldUsareRecipientIdSulReport()
+    public async Task Griglia_SenzaFiltri_ShouldRaggruppareIlTrimestrePiuRecentePerContratto()
     {
-        var dettaglio = await _handler.Send(new AppIoFinancialReportQueryGetDettaglioExcel(Auth()) { YearQuarter = ["2026_2"], ContractIds = ["APPIO-C2"] });
+        var lista = await _handler.Send(new AppIoFinancialReportQueryGetByRicerca(Auth()));
+        var padri = lista.FinancialReports!.ToList();
 
         Assert.Multiple(() =>
         {
-            Assert.That(dettaglio.FinancialReports, Is.Empty);
-            Assert.That(dettaglio.Posizioni!.Select(p => p.Numero), Is.EqualTo(new[] { "APPIO-FR-002" }));
+            Assert.That(lista.Count, Is.EqualTo(2));
+            Assert.That(padri.Select(x => x.Key), Is.EqualTo(new[] { "APPIO-OB1|2026_2", "APPIO-OB2|2026_2" }));
+            Assert.That(padri[0].ImportoTotale, Is.EqualTo(25m));
+            Assert.That(padri[0].Posizioni.Select(x => x.Numero), Is.EqualTo(new[] { "APPIO-FR-001", "APPIO-FR-001", "APPIO-FR-002" }));
+            Assert.That(padri[1].ImportoTotale, Is.EqualTo(2m));
         });
+    }
+
+    /// <summary>
+    /// La griglia legge correttamente tutti i tipi: int per anno e trimestre, date per Data
+    /// (convertita dalla vista), bigint per la quantità, decimal per gli importi.
+    /// </summary>
+    [Test]
+    public async Task Griglia_ShouldMappareTuttiITipi()
+    {
+        var padre = (await _handler.Send(new AppIoFinancialReportQueryGetByRicerca(Auth()) { YearQuarter = ["2026_2"], InstitutionIds = ["APPIO-ENTE-1"] }))
+            .FinancialReports!.Single();
+        var prima = padre.Posizioni[0];
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(padre.ContractId, Is.EqualTo("APPIO-OB1"));
+            Assert.That(padre.InstitutionId, Is.EqualTo("APPIO-ENTE-1"));
+            Assert.That(padre.Name, Is.EqualTo("Comune Alfa AppIO Test"));
+            Assert.That(padre.Prodotto, Is.EqualTo("prod-io"));
+            Assert.That(padre.CodiceFiscale, Is.EqualTo("00000000001"));
+            Assert.That(padre.Year, Is.EqualTo(2026));
+            Assert.That(padre.Quarter, Is.EqualTo(2));
+            Assert.That(prima.Data, Is.EqualTo(new DateTime(2026, 7, 15)));
+            Assert.That(prima.CodiceArticolo, Is.EqualTo("ART-A"));
+            Assert.That(prima.Quantita, Is.EqualTo(1000L));
+            Assert.That(prima.Importo, Is.EqualTo(10m));
+            Assert.That(prima.CodIva, Is.EqualTo("IVA22"));
+            Assert.That(prima.Condizioni, Is.EqualTo("TP02"));
+            Assert.That(prima.Causale, Is.EqualTo("Servizio APP IO Q2"));
+        });
+    }
+
+    /// <summary>
+    /// Il codice fiscale filtra la griglia; il contratto orfano OB9 non compare mai.
+    /// </summary>
+    [Test]
+    public async Task Griglia_CodiceFiscale_ShouldFiltrare_SenzaOrfani()
+    {
+        var lista = await _handler.Send(new AppIoFinancialReportQueryGetByRicerca(Auth()) { Year = "2026", CodiciFiscali = ["00000000002"] });
+
+        Assert.That(lista.FinancialReports!.Select(x => x.Key), Is.EqualTo(new[] { "APPIO-OB2|2026_2" }));
+    }
+
+    /// <summary>
+    /// Il dettaglio legge anagrafica e date convertite dalla vista: Data con spazi viene letta
+    /// (TRIM), Riferimento_data in formato errato diventa null senza far fallire la query.
+    /// </summary>
+    [Test]
+    public async Task Dettaglio_ShouldLeggereAnagraficaEDateConvertite()
+    {
+        var righe = (await _handler.Send(new AppIoFinancialReportQueryGetDettaglio(Auth()) { ContractId = "APPIO-OB4", YearQuarter = "2025_4" })).ToList();
+        var riga = righe.Single();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(riga.Name, Is.EqualTo("Comune Alfa AppIO Test"));
+            Assert.That(riga.PartitaIva, Is.EqualTo("00000000004"));
+            Assert.That(riga.CodiceFiscale, Is.EqualTo("00000000004"));
+            Assert.That(riga.DataCreazione, Is.EqualTo(new DateTime(2025, 4, 10)));
+            Assert.That(riga.UltimoAggiornamento, Is.EqualTo(new DateTime(2026, 3, 4)));
+            Assert.That(riga.Year, Is.EqualTo(2025));
+            Assert.That(riga.Quarter, Is.EqualTo(4));
+            Assert.That(riga.TipoDoc, Is.EqualTo("TD01"));
+            Assert.That(riga.Valuta, Is.EqualTo("EUR"));
+            Assert.That(riga.CodiceAggiuntivo, Is.EqualTo("AGG4"));
+            Assert.That(riga.DataReport, Is.EqualTo(new DateTime(2026, 1, 15)));
+            Assert.That(riga.DataRiferimento, Is.Null);
+            Assert.That(riga.Quantita, Is.EqualTo(100L));
+        });
+    }
+
+    /// <summary>
+    /// Il dettaglio di OB1 nel 2026_2 contiene le righe dei due documenti del trimestre, ordinate.
+    /// </summary>
+    [Test]
+    public async Task Dettaglio_ShouldContenereTutteLeRigheDelTrimestre()
+    {
+        var righe = await _handler.Send(new AppIoFinancialReportQueryGetDettaglio(Auth()) { ContractId = "APPIO-OB1", YearQuarter = "2026_2" });
+
+        Assert.That(righe.Select(x => $"{x.Numero}/{x.CodiceArticolo}"),
+            Is.EqualTo(new[] { "APPIO-FR-001/ART-A", "APPIO-FR-001/ART-B", "APPIO-FR-002/ART-A" }));
     }
 }

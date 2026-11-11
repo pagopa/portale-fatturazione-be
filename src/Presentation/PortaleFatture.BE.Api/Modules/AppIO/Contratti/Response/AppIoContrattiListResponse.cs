@@ -26,9 +26,14 @@ public class AppIoContrattiListResponse
 public class AppIoContrattoResponse
 {
     /// <summary>
-    /// Identificativo del contratto.
+    /// Identificativo del contratto (onboardingtokenid).
     /// </summary>
     public string? ContractId { get; set; }
+
+    /// <summary>
+    /// Identificativo dell'ente.
+    /// </summary>
+    public string? InstitutionId { get; set; }
 
     /// <summary>
     /// Nome dell'ente titolare del contratto.
@@ -36,32 +41,22 @@ public class AppIoContrattoResponse
     public string? Name { get; set; }
 
     /// <summary>
-    /// Codice fiscale associato al contratto.
+    /// Prodotto del contratto.
     /// </summary>
-    public string? TaxCode { get; set; }
+    public string? Prodotto { get; set; }
 
     /// <summary>
-    /// Partita IVA associata al contratto.
+    /// Tipo dell'ente (es. PA, GSP).
     /// </summary>
-    public string? VatCode { get; set; }
+    public string? InstitutionType { get; set; }
 
     /// <summary>
-    /// Gruppo IVA associato al contratto.
+    /// Indirizzo PEC dell'ente; null se assente.
     /// </summary>
-    public decimal? VatGroup { get; set; }
+    public string? EmailPec { get; set; }
 
     /// <summary>
-    /// Codice SDI associato al contratto.
+    /// Stato del contratto (es. ACTIVE, SUSPENDED).
     /// </summary>
-    public string? SdiCode { get; set; }
-
-    /// <summary>
-    /// Anno e mese di riferimento, nel formato 'AAAAMM' (es. 202604: il mese successivo alla fine del trimestre).
-    /// </summary>
-    public string? YearMonth { get; set; }
-
-    /// <summary>
-    /// Anno e trimestre di riferimento, nel formato 'AAAA_T'.
-    /// </summary>
-    public string? YearQuarter { get; set; }
+    public string? ContractState { get; set; }
 }

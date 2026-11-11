@@ -1,15 +1,20 @@
 namespace PortaleFatture.BE.Infrastructure.Common.AppIO.FinancialReports.Queries;
 
 /// <summary>
-/// Filtro comune alla griglia e ai due download dei documenti contabili APP IO, così che le tre
-/// rotte selezionino sempre le stesse righe.
+/// Filtro comune alla griglia e al download dei documenti emessi APP IO, così che le due rotte
+/// selezionino sempre le stesse righe di [be].[vwAppioFinalReport].
 /// </summary>
 public interface IAppIoFinancialReportFiltro
 {
     /// <summary>
-    /// Contratti da cercare; null o vuoto = nessun filtro.
+    /// Enti da cercare (internalistitutionid, valori del filtro "Nome Ente"); null o vuoto = nessun filtro.
     /// </summary>
-    string[]? ContractIds { get; }
+    string[]? InstitutionIds { get; }
+
+    /// <summary>
+    /// Codici fiscali degli enti da cercare; null o vuoto = nessun filtro.
+    /// </summary>
+    string[]? CodiciFiscali { get; }
 
     /// <summary>
     /// Trimestri da cercare, nel formato 'AAAA_T'. Hanno la precedenza su <see cref="Year"/>.
@@ -17,8 +22,8 @@ public interface IAppIoFinancialReportFiltro
     string[]? YearQuarter { get; }
 
     /// <summary>
-    /// Anno: senza trimestri si cercano tutti i trimestri dell'anno. Se mancano anche i trimestri,
-    /// si cerca il trimestre più recente.
+    /// Anno ('AAAA'): senza trimestri si cercano tutti i trimestri dell'anno. Se mancano anche i
+    /// trimestri, si cerca il trimestre più recente.
     /// </summary>
     string? Year { get; }
 }

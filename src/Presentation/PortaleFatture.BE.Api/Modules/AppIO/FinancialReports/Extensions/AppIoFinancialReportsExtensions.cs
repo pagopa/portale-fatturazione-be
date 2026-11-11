@@ -1,11 +1,9 @@
-using System.Data;
 using PortaleFatture.BE.Api.Modules.AppIO.FinancialReports.Request;
 using PortaleFatture.BE.Api.Modules.AppIO.FinancialReports.Response;
 using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Extensions;
 using PortaleFatture.BE.Infrastructure.Common.AppIO.FinancialReports.Dto;
 using PortaleFatture.BE.Infrastructure.Common.AppIO.FinancialReports.Queries;
-using PortaleFatture.BE.Infrastructure.Common.pagoPA.Documenti.Common;
 
 namespace PortaleFatture.BE.Api.Modules.AppIO.FinancialReports.Extensions;
 
@@ -21,7 +19,7 @@ public static class AppIoFinancialReportsExtensions
     {
         return new AppIoFinancialReportQuartersQuery(authInfo)
         {
-            Year = req.Year
+            Year = string.IsNullOrWhiteSpace(req.Year) ? null : req.Year
         };
     }
 
@@ -35,9 +33,10 @@ public static class AppIoFinancialReportsExtensions
     {
         return new AppIoFinancialReportQueryGetByRicerca(authInfo)
         {
-            ContractIds = req.ContractIds.IsNullNotAny() ? null : req.ContractIds,
+            InstitutionIds = req.InstitutionIds.IsNullNotAny() ? null : req.InstitutionIds,
+            CodiciFiscali = req.CodiciFiscali.IsNullNotAny() ? null : req.CodiciFiscali,
             YearQuarter = req.Quarters.IsNullNotAny() ? null : req.Quarters,
-            Year = req.Year
+            Year = string.IsNullOrWhiteSpace(req.Year) ? null : req.Year
         };
     }
 
@@ -51,27 +50,35 @@ public static class AppIoFinancialReportsExtensions
     {
         return new AppIoFinancialReportQueryGetByRicercaExcel(authInfo)
         {
-            ContractIds = req.ContractIds.IsNullNotAny() ? null : req.ContractIds,
+            InstitutionIds = req.InstitutionIds.IsNullNotAny() ? null : req.InstitutionIds,
+            CodiciFiscali = req.CodiciFiscali.IsNullNotAny() ? null : req.CodiciFiscali,
             YearQuarter = req.Quarters.IsNullNotAny() ? null : req.Quarters,
-            Year = req.Year
+            Year = string.IsNullOrWhiteSpace(req.Year) ? null : req.Year
         };
     }
 
     /// <summary>
-    /// Converte la richiesta nella query del download "Financial Report".
+    /// Converte la richiesta del dettaglio nella query corrispondente.
     /// </summary>
-    /// <param name="req">La richiesta con i filtri.</param>
+    /// <param name="req">La richiesta con contratto e trimestre.</param>
     /// <param name="authInfo">Le informazioni di autenticazione dell'utente.</param>
-    /// <returns>La query del download.</returns>
-    public static AppIoFinancialReportQueryGetDettaglioExcel MapDettaglio(this AppIoFinancialReportsRequest req, AuthenticationInfo authInfo)
+    /// <returns>La query del dettaglio.</returns>
+    public static AppIoFinancialReportQueryGetDettaglio Map(this AppIoFinancialReportsDettaglioRequest req, AuthenticationInfo authInfo)
     {
-        return new AppIoFinancialReportQueryGetDettaglioExcel(authInfo)
+        return new AppIoFinancialReportQueryGetDettaglio(authInfo)
         {
-            ContractIds = req.ContractIds.IsNullNotAny() ? null : req.ContractIds,
-            YearQuarter = req.Quarters.IsNullNotAny() ? null : req.Quarters,
-            Year = req.Year
+            ContractId = req.ContractId,
+            YearQuarter = req.YearQuarter
         };
     }
+
+    /// <summary>
+    /// Dice se la richiesta del dettaglio indica un documento: contratto e trimestre sono entrambi obbligatori.
+    /// </summary>
+    /// <param name="req">La richiesta, eventualmente assente.</param>
+    /// <returns>true se contratto e trimestre sono valorizzati.</returns>
+    public static bool IsValida(this AppIoFinancialReportsDettaglioRequest? req)
+        => !string.IsNullOrWhiteSpace(req?.ContractId) && !string.IsNullOrWhiteSpace(req?.YearQuarter);
 
     // 2026_1 -> { Quarter = "Q1", Value = "2026_1" }
     /// <summary>
@@ -89,19 +96,17 @@ public static class AppIoFinancialReportsExtensions
     }
 
     /// <summary>
-    /// Ricava dai trimestri gli anni distinti, dal più recente.
+    /// Converte gli anni nella lista di stringhe del filtro "Anno", dal più recente.
     /// </summary>
-    /// <param name="quarters">I trimestri nel formato 'AAAA_T'.</param>
-    /// <returns>Gli anni distinti.</returns>
-    public static List<string> MapYears(this IEnumerable<string> quarters)
-    {
-        return quarters.Select(x => x.Split("_")[0]).Distinct().OrderByDescending(y => y).ToList();
-    }
+    /// <param name="years">Gli anni.</param>
+    /// <returns>Gli anni come stringhe.</returns>
+    public static List<string> MapYears(this IEnumerable<int> years)
+        => years.OrderByDescending(y => y).Select(y => y.ToString()).ToList();
 
     /// <summary>
-    /// Converte la lista dei documenti nella risposta della griglia.
+    /// Converte la lista delle righe padre nella risposta della griglia.
     /// </summary>
-    /// <param name="dto">I documenti con il loro numero.</param>
+    /// <param name="dto">Le righe padre con il loro numero.</param>
     /// <returns>La risposta della griglia.</returns>
     public static AppIoFinancialReportsListResponse Map(this AppIoFinancialReportListDto dto)
     {
@@ -111,53 +116,66 @@ public static class AppIoFinancialReportsExtensions
             FinancialReports = dto.FinancialReports?.Select(x => new AppIoFinancialReportResponse
             {
                 Key = x.Key,
-                Name = x.Name,
                 ContractId = x.ContractId,
-                TipoDoc = x.TipoDoc,
-                VatCode = x.VatCode,
-                Valuta = x.Valuta,
-                Id = x.Id,
-                Numero = x.Numero,
-                Data = x.Data,
+                InstitutionId = x.InstitutionId,
+                Name = x.Name,
+                Prodotto = x.Prodotto,
+                CodiceFiscale = x.CodiceFiscale,
+                Year = x.Year,
+                Quarter = x.Quarter,
                 YearQuarter = x.YearQuarter,
+                ImportoTotale = x.ImportoTotale,
                 Posizioni = x.Posizioni.Select(p => new AppIoFinancialReportPosizioneResponse
                 {
-                    Category = p.Category,
-                    ProgressivoRiga = p.ProgressivoRiga,
+                    Numero = p.Numero,
+                    Data = p.Data,
                     CodiceArticolo = p.CodiceArticolo,
-                    DescrizioneRiga = p.DescrizioneRiga,
                     Quantita = p.Quantita,
                     Importo = p.Importo,
-                    CodIva = p.CodIva
+                    CodIva = p.CodIva,
+                    Condizioni = p.Condizioni,
+                    Causale = p.Causale
                 })
             })
         };
     }
 
     /// <summary>
-    /// Compone il workbook del "Financial Report": per ogni trimestre un foglio con le righe del
-    /// financial report e uno con le posizioni. Il nome del foglio contiene anche l'anno, così due
-    /// trimestri omonimi di anni diversi non collidono.
+    /// Converte il dettaglio nella risposta della pagina di dettaglio.
     /// </summary>
-    /// <param name="dto">Righe del financial report e posizioni.</param>
-    /// <returns>Il DataSet, oppure null se non c'è nessuna riga.</returns>
-    public static DataSet? MapExcel(this AppIoFinancialReportDettaglioDto dto)
+    /// <param name="dto">Il dettaglio.</param>
+    /// <returns>La risposta.</returns>
+    public static AppIoFinancialReportsDettaglioResponse Map(this AppIoFinancialReportDettaglioDto dto)
     {
-        if (dto.FinancialReports.IsNullNotAny() && dto.Posizioni.IsNullNotAny())
-            return null;
-
-        var dataSet = new DataSet();
-
-        foreach (var gruppo in (dto.FinancialReports ?? []).GroupBy(x => x.YearQuarter).OrderBy(g => g.Key))
-            dataSet.Tables.Add(gruppo.FillTable(gruppo.Key.NomeFoglio("financial-report")));
-
-        foreach (var gruppo in (dto.Posizioni ?? []).GroupBy(x => x.YearQuarter).OrderBy(g => g.Key))
-            dataSet.Tables.Add(gruppo.FillTable(gruppo.Key.NomeFoglio("positions")));
-
-        return dataSet;
+        return new AppIoFinancialReportsDettaglioResponse
+        {
+            Name = dto.Name,
+            ContractId = dto.ContractId,
+            Prodotto = dto.Prodotto,
+            DataCreazione = dto.DataCreazione,
+            PricingPlan = dto.PricingPlan,
+            PartitaIva = dto.PartitaIva,
+            CodiceFiscale = dto.CodiceFiscale,
+            UltimoAggiornamento = dto.UltimoAggiornamento,
+            YearQuarter = dto.YearQuarter,
+            Year = dto.Year,
+            Quarter = dto.Quarter,
+            ImportoTotale = dto.ImportoTotale,
+            Posizioni = dto.Posizioni.Select(p => new AppIoFinancialReportsDettaglioPosizioneResponse
+            {
+                Numero = p.Numero,
+                TipoDoc = p.TipoDoc,
+                Valuta = p.Valuta,
+                CodiceAggiuntivo = p.CodiceAggiuntivo,
+                DataReport = p.DataReport,
+                DataRiferimento = p.DataRiferimento,
+                CodiceArticolo = p.CodiceArticolo,
+                Quantita = p.Quantita,
+                Importo = p.Importo,
+                CodIva = p.CodIva,
+                Condizioni = p.Condizioni,
+                Causale = p.Causale
+            })
+        };
     }
-
-    // 2026_1 + "positions" -> "2026-q1-positions" (sempre sotto i 31 caratteri di Excel)
-    private static string NomeFoglio(this string? yearQuarter, string suffisso)
-        => $"{yearQuarter?.Replace("_", "-q")}-{suffisso}";
 }
