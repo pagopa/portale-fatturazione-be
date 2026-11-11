@@ -42,13 +42,17 @@ public class InvioSapVistaIntegrationTests
     }
 
     [Test]
-    public void C1_FattureMaiInviate_ShouldMancareDalDettaglio()
+    public void C1_FattureMaiInviate_ShouldEssereNelDettaglio_SenzaStorico()
     {
+        // Vista 1.1 (11/11/2026): LEFT JOIN sullo storico, quindi anche le mai inviate. 9510 manca perche' il suo
+        // ente non e' in pfd.Enti (INNER JOIN): in griglia c'e', nel dettaglio no.
         var ids = IdNelDettaglio();
+        var senzaStorico = InvioSapTestData.Lista<long>($@"SELECT IdFattura FROM {InvioSapTestData.VistaDettaglio}
+            WHERE AnnoRiferimento = 2003 AND DataUltimaGenerazione IS NULL AND NomeFile IS NULL AND NoteInvio IS NULL ORDER BY IdFattura");
         Assert.Multiple(() =>
         {
-            Assert.That(ids, Has.None.AnyOf(9505L, 9506L, 9509L, 9510L), $"C1: una fattura mai inviata non ha storico, {Rif}");
-            Assert.That(ids, Is.EqualTo(new long[] { 9501, 9502, 9503, 9504, 9507 }), $"C1, {Rif}");
+            Assert.That(ids, Is.EqualTo(new long[] { 9501, 9502, 9503, 9504, 9505, 9506, 9507, 9508, 9509 }), $"C1, {Rif}");
+            Assert.That(senzaStorico, Is.EqualTo(new long[] { 9505, 9506, 9508, 9509 }), $"C1: le mai inviate non hanno file, data ne' note, {Rif}");
         });
     }
 

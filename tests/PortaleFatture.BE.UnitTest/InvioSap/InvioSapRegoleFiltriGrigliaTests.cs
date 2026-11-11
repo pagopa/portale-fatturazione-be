@@ -165,9 +165,10 @@ public class InvioSapRegoleFiltriGrigliaTests
     }
 
     [Test]
-    public void Dettaglio_RigoDaInviare_ShouldEssereRifiutato()
+    public void Dettaglio_RigoDaInviare_ShouldEssereValido()
     {
-        Assert.That(ValidaDettaglio(stato: "DA_INVIARE"), Is.EqualTo(new[] { InvioSapRegole.ErroreDettaglioDaInviare }));
+        // Dall'11/11/2026 (vista dettaglio 1.1) le fatture da inviare hanno il dettaglio: servono per selezionarle.
+        Assert.That(ValidaDettaglio(stato: "DA_INVIARE"), Is.Empty);
     }
 
     [TestCase(null, TestName = "Dettaglio_StatoNonDiUnRigo_ShouldEssereRifiutato(DettaglioStato: assente)")]

@@ -127,25 +127,32 @@ public class InvioSapLetturaHttpTests
     }
 
     [Test]
-    public async Task Dettaglio_RigoDaInviare_ShouldEssere400()
+    public async Task Dettaglio_RigoDaInviare_ShouldRestituireLeFattureSenzaStorico()
     {
+        // Dall'11/11/2026 (vista 1.1): il rigo da inviare ha il dettaglio, per poter selezionare le fatture.
         var resp = await Post(_factory, InvioSapTestData.RottaDettaglio,
             """{ "annoRiferimento": 2003, "meseRiferimento": 2, "tipologiaFattura": "PRIMO SALDO", "statoInvio": "DA_INVIARE" }""");
-        var testo = await resp.Content.ReadAsStringAsync();
+        var corpo = await Json(resp);
+        var fatture = corpo.GetProperty("fatture").EnumerateArray().ToList();
         Assert.Multiple(() =>
         {
-            Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
-            Assert.That(testo, Does.Contain("si genera per intero"), "C1: il rigo da inviare non ha dettaglio.");
+            Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(corpo.GetProperty("count").GetInt32(), Is.EqualTo(2));
+            Assert.That(fatture.Select(f => f.GetProperty("idFattura").GetInt64()), Is.EqualTo(new[] { 9505L, 9506L }));
+            Assert.That(fatture.Select(f => f.GetProperty("statoInvio").GetString()), Is.All.EqualTo("DA_INVIARE"));
+            Assert.That(fatture.Select(f => f.GetProperty("numeroInvii").GetInt32()), Is.All.EqualTo(0), "Mai inviate: nessuno storico.");
+            Assert.That(fatture.Select(f => f.GetProperty("nomeFile").ValueKind), Is.All.EqualTo(JsonValueKind.Null));
         });
     }
 
     [Test]
-    public async Task Dettaglio_RigoInElaborazione_ShouldEssere404_SeNessunaFatturaHaStorico()
+    public async Task Dettaglio_RigoInElaborazione_ShouldMostrareAncheLeFattureSenzaStorico()
     {
-        // 9508 e' NULL ma nel seed non ha batch: non compare nel dettaglio (C1).
-        var resp = await Post(_factory, InvioSapTestData.RottaDettaglio,
-            """{ "annoRiferimento": 2003, "meseRiferimento": 2, "tipologiaFattura": "PRIMO SALDO", "statoInvio": "IN_ELABORAZIONE" }""");
-        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+        // 9508 e' NULL e nel seed non ha batch: dalla vista 1.1 (11/11/2026) compare lo stesso, senza file ne' data.
+        var corpo = await Json(await Post(_factory, InvioSapTestData.RottaDettaglio,
+            """{ "annoRiferimento": 2003, "meseRiferimento": 2, "tipologiaFattura": "PRIMO SALDO", "statoInvio": "IN_ELABORAZIONE" }"""));
+        var ids = corpo.GetProperty("fatture").EnumerateArray().Select(f => f.GetProperty("idFattura").GetInt64()).ToList();
+        Assert.That(ids, Is.EqualTo(new[] { 9508L }));
     }
 
     [TestCase("""{ "annoRiferimento": 2003, "meseRiferimento": 1, "tipologiaFattura": "PRIMO SALDO", "statoInvio": "INVIATE", "ragioneSociale": "test 2" }""", 9503L, TestName = "Dettaglio_Filtri_ShouldRestringere_ConCountCoerente(Dettaglio: ragione sociale, case insensitive)")]

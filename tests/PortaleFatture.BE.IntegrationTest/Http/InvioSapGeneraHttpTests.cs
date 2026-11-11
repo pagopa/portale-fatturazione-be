@@ -288,11 +288,17 @@ public class InvioSapGeneraHttpTests
     }
 
     [Test]
-    public async Task ReInvio_FatturaMaiInviata_ShouldEssere404()
+    public async Task ReInvio_FatturaMaiInviata_ShouldEssere400()
     {
+        // Dalla vista 1.1 (11/11/2026) il dettaglio contiene anche le mai inviate: la fattura esiste, ma non e' re-inviabile.
         InvioSapTestData.RilasciaLockComeData();
         var resp = await Genera(BodyGenera(Anno, 2, "PRIMO SALDO", "x", [9505], "NC-1"));
-        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.NotFound), "9505 non ha storico: per il re-invio non esiste (C1).");
+        var testo = await resp.Content.ReadAsStringAsync();
+        Assert.Multiple(() =>
+        {
+            Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+            Assert.That(testo, Does.Contain("solo fatture gia' inviate"));
+        });
     }
 
     [Test]

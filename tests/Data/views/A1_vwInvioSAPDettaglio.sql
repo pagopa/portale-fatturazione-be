@@ -3,10 +3,10 @@
 
 /*
   Data creazione:        27/10/2026
-  Data ultima modifica:  27/10/2026
-  Descrizione:           Visualizza il dettaglio della fatture emesse nella pagina Invio a SAP
+  Data ultima modifica:  11/11/2026
+  Descrizione:           Visualizza il dettaglio delle fatture emesse nella pagina Invio a SAP
   Target utilizzo:       Pagina Invio a SAP
-  Versione:              1.0
+  Versione:              1.1
 */
 
 CREATE OR ALTER VIEW [be].[vwInvioSAPDettaglio]
@@ -43,10 +43,17 @@ WITH InviiOrdinati AS
     FROM pfd.FattureTestata AS ft
     INNER JOIN pfd.Enti AS e
         ON e.InternalIstitutionId = ft.FkIdEnte
-    INNER JOIN pfw.DettaglioInvioSAP AS dsap
+    LEFT JOIN pfw.DettaglioInvioSAP AS dsap
         ON dsap.FkIdFattura = ft.IdFattura
-    INNER JOIN pfw.RegistroInvioSAP AS rsap
+    LEFT JOIN pfw.RegistroInvioSAP AS rsap
         ON rsap.batchId = dsap.FkBatchId
+    WHERE NOT EXISTS                            -- Esclusione delle fatture eliminate/posticipate
+    (
+        SELECT 1
+        FROM cfg.GestioneFatture gf
+        WHERE gf.FkIdFattura = ft.IdFattura
+            AND gf.Stato IN (0,3)
+    )
 )
 SELECT
     i.IdFattura, i.FkIdTipoDocumento, i.FkTipologiaFattura, i.FkIdEnte,

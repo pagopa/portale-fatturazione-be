@@ -224,9 +224,8 @@ public class InvioSapSelezionaTuttoHttpTests
     [Test]
     public async Task SelezionaTutto_EsclusaInesistente_ShouldEssere404()
     {
-        // 9505 non ha storico (C1): per il dettaglio non esiste, come nel re-invio a elenco.
         var prima = InvioSapTestData.FotografiaTabelle();
-        var resp = await Genera(Body(escluse: [9505]));
+        var resp = await Genera(Body(escluse: [987654321]));
         Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
         NessunaScrittura(prima);
     }

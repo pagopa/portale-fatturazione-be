@@ -168,6 +168,24 @@ public static class InvioSapTestData
         Esegui($"DELETE FROM {Lock} WHERE FkBatchId = @b", ("@b", batchId));
     }
 
+    // ---- Gestione Fatture --------------------------------------------------------------------
+
+    /// <summary>Utente delle righe di <c>cfg.GestioneFatture</c> create dai test: <see cref="Pulisci"/> le toglie.</summary>
+    public const string UtenteGestioneFatture = "test-invio-sap";
+
+    /// <summary>
+    /// Mette una fattura del seed in Gestione Fatture: 0 posticipata, 1 ripristinata, 2 cancellata, 3 eliminata.
+    /// Le viste 1.1 dell'Invio a SAP escludono gli stati 0 e 3. La riga e' del test e non del seed, perche' i test
+    /// di lettura di Gestione Fatture non filtrano per anno.
+    /// </summary>
+    public static void MettiInGestioneFatture(long idFattura, int stato) =>
+        Esegui(@"INSERT INTO cfg.GestioneFatture (FkIdFattura, FkIdEnte, FkTipologiaFattura, Anno, Mese, DataInserimento, IdUtenteInserimento, Stato, Azione, Note)
+                 SELECT IdFattura, FkIdEnte, FkTipologiaFattura, AnnoRiferimento, MeseRiferimento, GETDATE(), @u, @s,
+                        CASE @s WHEN 0 THEN 'POSTICIPATA' WHEN 1 THEN 'RIPRISTINATA' WHEN 2 THEN 'CANCELLATA' ELSE 'ELIMINATA' END,
+                        N'{""Data"":""2003-01-01T00:00:00"",""Testo"":""test invio sap""}'
+                   FROM pfd.FattureTestata WHERE IdFattura = @id",
+            ("@u", UtenteGestioneFatture), ("@s", stato), ("@id", idFattura));
+
     // ---- Prova "nessuna riga estranea toccata" -----------------------------------------------
 
     /// <summary>
@@ -227,6 +245,7 @@ public static class InvioSapTestData
                 DELETE FROM {Registro} WHERE BatchId IN (SELECT BatchId FROM @b);
                 DELETE FROM pfw.Log WHERE IdUtente = @u AND DescrizioneEvento = 'ISAP';",
                 ("@u", UtenteTest));
+            Esegui("DELETE FROM cfg.GestioneFatture WHERE IdUtenteInserimento = @u", ("@u", UtenteGestioneFatture));
             foreach (var (id, inviata) in StatoSeed)
                 Esegui("UPDATE pfd.FattureTestata SET FatturaInviata = @v WHERE IdFattura = @id", ("@v", inviata), ("@id", id));
             Esegui($"IF NOT EXISTS (SELECT 1 FROM {TipoAzione} WHERE IdAzione = @a) INSERT INTO {TipoAzione} VALUES (@a, 'GeneraJsonFatture', 3600000)", ("@a", IdAzione));

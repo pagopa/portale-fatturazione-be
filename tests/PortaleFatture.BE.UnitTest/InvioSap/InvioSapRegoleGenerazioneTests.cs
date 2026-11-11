@@ -230,14 +230,14 @@ public class InvioSapRegoleGenerazioneTests
     [Test]
     public void ReInvio_TutteInviateNelGruppo_ShouldPassare()
     {
-        Assert.That(InvioSapRegole.ValidaReInvio(ReInvio(), [Fattura(9502), Fattura(9503)]), Is.Null);
+        Assert.That(InvioSapRegole.ValidaSelezione(ReInvio(), [Fattura(9502), Fattura(9503)]), Is.Null);
     }
 
     [Test]
     public void ReInvio_FatturaAssenteDallaVista_ShouldEssere404_ConLeSoleMancanti()
     {
         // 9505 non e' mai stata inviata: non ha dettaglio (C1), quindi per il re-invio non esiste.
-        var esito = InvioSapRegole.ValidaReInvio(ReInvio(ids: [9502, 9505]), [Fattura(9502)]);
+        var esito = InvioSapRegole.ValidaSelezione(ReInvio(ids: [9502, 9505]), [Fattura(9502)]);
         Assert.Multiple(() =>
         {
             Assert.That(esito!.Tipo, Is.EqualTo(InvioSapGeneraEsitoTipo.NonTrovate));
@@ -250,7 +250,7 @@ public class InvioSapRegoleGenerazioneTests
     [TestCase(Anno, Mese, "SECONDO SALDO", TestName = "ReInvio_FatturaDiUnAltroRigo_ShouldEssere400(FuoriGruppo: tipologia)")]
     public void ReInvio_FatturaDiUnAltroRigo_ShouldEssere400(int anno, int mese, string tipologia)
     {
-        var esito = InvioSapRegole.ValidaReInvio(ReInvio(), [Fattura(9502), Fattura(9503, anno: anno, mese: mese, tipologia: tipologia)]);
+        var esito = InvioSapRegole.ValidaSelezione(ReInvio(), [Fattura(9502), Fattura(9503, anno: anno, mese: mese, tipologia: tipologia)]);
         Assert.Multiple(() =>
         {
             Assert.That(esito!.Tipo, Is.EqualTo(InvioSapGeneraEsitoTipo.NonValida));
@@ -262,14 +262,14 @@ public class InvioSapRegoleGenerazioneTests
     [Test]
     public void ReInvio_TipologiaConMaiuscoleESpazi_ShouldEssereNelGruppo()
     {
-        Assert.That(InvioSapRegole.ValidaReInvio(ReInvio(tipologia: " primo saldo "), [Fattura(9502), Fattura(9503)]), Is.Null);
+        Assert.That(InvioSapRegole.ValidaSelezione(ReInvio(tipologia: " primo saldo "), [Fattura(9502), Fattura(9503)]), Is.Null);
     }
 
     [TestCase(false, TestName = "ReInvio_FatturaNonInviata_ShouldEssere400(NonInviata: FatturaInviata = 0)")]
     [TestCase(null, TestName = "ReInvio_FatturaNonInviata_ShouldEssere400(NonInviata: FatturaInviata = NULL, in elaborazione)")]
     public void ReInvio_FatturaNonInviata_ShouldEssere400(bool? inviata)
     {
-        var esito = InvioSapRegole.ValidaReInvio(ReInvio(), [Fattura(9502), Fattura(9503, inviata: inviata)]);
+        var esito = InvioSapRegole.ValidaSelezione(ReInvio(), [Fattura(9502), Fattura(9503, inviata: inviata)]);
         Assert.Multiple(() =>
         {
             Assert.That(esito!.Tipo, Is.EqualTo(InvioSapGeneraEsitoTipo.NonValida));
@@ -284,9 +284,9 @@ public class InvioSapRegoleGenerazioneTests
         var correnti = new[] { Fattura(1, inviata: null), Fattura(2, anno: 2092) };
         Assert.Multiple(() =>
         {
-            Assert.That(InvioSapRegole.ValidaReInvio(ReInvio(ids: [1, 2, 3]), correnti)!.Tipo, Is.EqualTo(InvioSapGeneraEsitoTipo.NonTrovate));
-            Assert.That(InvioSapRegole.ValidaReInvio(ReInvio(ids: [1, 2]), correnti)!.Errori, Is.EqualTo(new[] { InvioSapRegole.ErroreFuoriGruppo }));
-            Assert.That(InvioSapRegole.ValidaReInvio(ReInvio(ids: [1]), correnti)!.Errori, Is.EqualTo(new[] { InvioSapRegole.ErroreNonInviate }));
+            Assert.That(InvioSapRegole.ValidaSelezione(ReInvio(ids: [1, 2, 3]), correnti)!.Tipo, Is.EqualTo(InvioSapGeneraEsitoTipo.NonTrovate));
+            Assert.That(InvioSapRegole.ValidaSelezione(ReInvio(ids: [1, 2]), correnti)!.Errori, Is.EqualTo(new[] { InvioSapRegole.ErroreFuoriGruppo }));
+            Assert.That(InvioSapRegole.ValidaSelezione(ReInvio(ids: [1]), correnti)!.Errori, Is.EqualTo(new[] { InvioSapRegole.ErroreNonInviate }));
         });
     }
 
@@ -294,7 +294,7 @@ public class InvioSapRegoleGenerazioneTests
     public void ReInvio_RigheDuplicateDallaVista_ShouldEssereTollerate()
     {
         // Un ente con piu' contratti potrebbe duplicare righe nella vista (caso manuale BE-SAP-M9).
-        Assert.That(InvioSapRegole.ValidaReInvio(ReInvio(), [Fattura(9502), Fattura(9502), Fattura(9503)]), Is.Null);
+        Assert.That(InvioSapRegole.ValidaSelezione(ReInvio(), [Fattura(9502), Fattura(9502), Fattura(9503)]), Is.Null);
     }
 
     [Test]
