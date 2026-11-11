@@ -23,8 +23,10 @@ namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.CommandHandlers;
 /// "Genera JSON", passo per passo come in be-invio-sap.md §8.5:
 /// 1. lock sulla vista (409 senza altre letture ne' scritture);
 /// 2. validazione formale (400);
-/// 3. letture dalle viste: <c>NumeroFatture</c> del rigo (primo invio), stato delle fatture scelte (re-invio) oppure,
-///    con "seleziona tutto", controllo delle escluse e numero delle inviate del rigo che restano;
+/// 3. letture dalle viste: <c>NumeroFatture</c> del rigo (primo invio del rigo intero), stato delle fatture scelte
+///    (elenco) oppure, con "seleziona tutto", controllo delle escluse e numero delle fatture del rigo che restano.
+///    Elenco e "seleziona tutto" valgono sia per il re-invio (fatture inviate) sia, con <c>statoInvio</c>
+///    <c>DA_INVIARE</c>, per il primo invio (fatture da inviare);
 /// 4. transazione (ordine deciso con DATA il 10/11/2026): Lock per primo, Registro, Dettaglio,
 ///    <c>FatturaInviata = NULL</c> sulle fatture del batch, Log, Messaggi; poi COMMIT;
 /// 5. <c>createRun</c> DOPO il commit: la pipeline legge sempre righe confermate.
@@ -67,7 +69,10 @@ public sealed class InvioSapGeneraCommandHandler(
         IReadOnlyList<long> idSelezionati = [];
         IReadOnlyList<long> idEsclusi = [];
         var selezioneTotale = InvioSapRegole.SelezioneTotale(richiesta);
-        if (modalita == InvioSapModalita.PrimoInvio)
+        var rigoIntero = InvioSapRegole.RigoIntero(richiesta);
+        var inviate = modalita == InvioSapModalita.ReInvio; // stato delle fatture da prendere: inviate o da inviare
+        var storno = inviate ? richiesta.NumeroDocumentoStorno!.Trim() : null;
+        if (rigoIntero)
         {
             var numero = await mediator.Send(new InvioSapRigoDaInviareQuery(authInfo)
             {
@@ -88,9 +93,9 @@ public sealed class InvioSapGeneraCommandHandler(
                 if (esitoEscluse is not null)
                     return esitoEscluse;
             }
-            numeroAtteso = await mediator.Send(new InvioSapConteggioReInvioTotaleQuery(authInfo)
+            numeroAtteso = await mediator.Send(new InvioSapConteggioSelezioneTotaleQuery(authInfo)
             {
-                Anno = anno, Mese = mese, TipologiaFattura = tipologia, IdFattureEscluse = idEsclusi
+                Anno = anno, Mese = mese, TipologiaFattura = tipologia, IdFattureEscluse = idEsclusi, Inviata = inviate
             }, ct);
             if (numeroAtteso <= 0)
                 return idEsclusi.Count > 0
@@ -101,9 +106,9 @@ public sealed class InvioSapGeneraCommandHandler(
         {
             idSelezionati = richiesta.IdFatture!;
             var correnti = await mediator.Send(new InvioSapStatoFattureQuery(authInfo) { IdFatture = idSelezionati }, ct);
-            var esitoReInvio = InvioSapRegole.ValidaReInvio(richiesta, correnti.Select(c => c.ToCorrente()).ToList());
-            if (esitoReInvio is not null)
-                return esitoReInvio;
+            var esitoSelezione = InvioSapRegole.ValidaSelezione(richiesta, correnti.Select(c => c.ToCorrente()).ToList());
+            if (esitoSelezione is not null)
+                return esitoSelezione;
             numeroAtteso = idSelezionati.Count;
         }
 
@@ -134,15 +139,15 @@ public sealed class InvioSapGeneraCommandHandler(
             batch = await uow.Execute(new InvioSapCreaBatchCommandPersistence(authInfo.Id!, numeroAtteso), ct);
             await uow.Execute(new InvioSapAssegnaBatchAlLockCommandPersistence(InvioSapRegole.IdAzioneGeneraJson, batch.BatchId), ct);
 
-            if (modalita == InvioSapModalita.PrimoInvio)
+            if (rigoIntero)
                 inseriti = await uow.Execute(new InvioSapDettaglioPrimoInvioCommandPersistence(batch.BatchId, anno, mese, tipologia, notaJson), ct);
             else if (selezioneTotale)
-                inseriti = await uow.Execute(new InvioSapDettaglioReInvioTotaleCommandPersistence(
-                    batch.BatchId, anno, mese, tipologia, idEsclusi, richiesta.NumeroDocumentoStorno!.Trim(), notaJson), ct);
+                inseriti = await uow.Execute(new InvioSapDettaglioSelezioneTotaleCommandPersistence(
+                    batch.BatchId, anno, mese, tipologia, idEsclusi, inviate, storno, notaJson), ct);
             else
-                inseriti = await uow.Execute(new InvioSapDettaglioReInvioCommandPersistence(batch.BatchId, idSelezionati, richiesta.NumeroDocumentoStorno!.Trim(), notaJson), ct);
+                inseriti = await uow.Execute(new InvioSapDettaglioSelezioneCommandPersistence(batch.BatchId, idSelezionati, inviate, storno, notaJson), ct);
 
-            if (inseriti.Count == 0 && modalita == InvioSapModalita.PrimoInvio)
+            if (inseriti.Count == 0 && rigoIntero)
             {
                 uow.Rollback();
                 return InvioSapGeneraEsito.NonTrovate();

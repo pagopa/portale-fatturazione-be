@@ -63,12 +63,12 @@ public sealed class InvioSapDettaglioQueryHandler(IFattureDbContextFactory facto
     }
 }
 
-public sealed class InvioSapConteggioReInvioTotaleQueryHandler(IFattureDbContextFactory factory) : IRequestHandler<InvioSapConteggioReInvioTotaleQuery, int>
+public sealed class InvioSapConteggioSelezioneTotaleQueryHandler(IFattureDbContextFactory factory) : IRequestHandler<InvioSapConteggioSelezioneTotaleQuery, int>
 {
-    public async Task<int> Handle(InvioSapConteggioReInvioTotaleQuery request, CancellationToken ct)
+    public async Task<int> Handle(InvioSapConteggioSelezioneTotaleQuery request, CancellationToken ct)
     {
         using var rs = await factory.Create(cancellationToken: ct);
-        return await rs.Query(new InvioSapConteggioReInvioTotaleQueryPersistence(request), ct);
+        return await rs.Query(new InvioSapConteggioSelezioneTotaleQueryPersistence(request), ct);
     }
 }
 

@@ -68,18 +68,19 @@ internal static class InvioSapQueryBuilder
          WHERE IdFattura IN @IdFatture";
 
     /// <summary>
-    /// "Seleziona tutto": le fatture inviate del rigo, senza le escluse. La stessa condizione e' usata per contarle
-    /// (prima della transazione) e per inserirle nel dettaglio del batch: i due numeri devono coincidere.
+    /// "Seleziona tutto": le fatture del rigo nello stato richiesto (<c>@Inviata</c>: 1 inviate, 0 da inviare), senza
+    /// le escluse. La stessa condizione e' usata per contarle (prima della transazione) e per inserirle nel dettaglio
+    /// del batch: i due numeri devono coincidere.
     /// </summary>
-    public const string CountReInvioTotale = @"
+    public const string CountSelezioneTotale = @"
         SELECT COUNT(*)
           FROM [be].[vwInvioSAPDettaglio] v";
 
-    public static string WhereReInvioTotale(bool conEscluse) => @"
+    public static string WhereSelezioneTotale(bool conEscluse) => @"
          WHERE v.AnnoRiferimento = @Anno
            AND v.MeseRiferimento = @Mese
            AND v.FkTipologiaFattura = @TipologiaFattura
-           AND v.FatturaInviata = 1" + (conEscluse ? @"
+           AND v.FatturaInviata = @Inviata" + (conEscluse ? @"
            AND v.IdFattura NOT IN @IdFattureEscluse" : string.Empty);
 
     public const string SelectReinviate = @"

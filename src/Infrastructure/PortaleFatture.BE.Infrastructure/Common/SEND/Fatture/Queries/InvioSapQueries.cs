@@ -70,14 +70,16 @@ public sealed class InvioSapStatoFattureQuery(IAuthenticationInfo authentication
     public IReadOnlyList<long> IdFatture { get; init; } = [];
 }
 
-/// <summary>"Seleziona tutto": quante fatture inviate ha il rigo, tolte le escluse (vista dettaglio).</summary>
-public sealed class InvioSapConteggioReInvioTotaleQuery(IAuthenticationInfo authenticationInfo) : IRequest<int>
+/// <summary>"Seleziona tutto": quante fatture ha il rigo nello stato richiesto, tolte le escluse (vista dettaglio).</summary>
+public sealed class InvioSapConteggioSelezioneTotaleQuery(IAuthenticationInfo authenticationInfo) : IRequest<int>
 {
     public IAuthenticationInfo AuthenticationInfo { get; internal set; } = authenticationInfo;
     public int Anno { get; init; }
     public int Mese { get; init; }
     public string TipologiaFattura { get; init; } = string.Empty;
     public IReadOnlyList<long> IdFattureEscluse { get; init; } = [];
+    /// <summary><c>true</c> = fatture inviate (re-invio), <c>false</c> = fatture da inviare (primo invio).</summary>
+    public bool Inviata { get; init; } = true;
 }
 
 /// <summary>Download delle re-inviate: <c>be.vwInvioSAPReportFattureReInviate</c>.</summary>

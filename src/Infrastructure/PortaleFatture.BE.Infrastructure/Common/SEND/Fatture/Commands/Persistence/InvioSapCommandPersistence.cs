@@ -91,8 +91,11 @@ public sealed class InvioSapMarcaInElaborazioneCommandPersistence(int batchId) :
 }
 
 /// <summary>
-/// Primo invio: tutte le fatture del rigo <c>DA_INVIARE</c> (chiave D10: Tipologia, Anno, Mese,
+/// Primo invio del rigo intero: tutte le fatture del rigo <c>DA_INVIARE</c> (chiave D10: Tipologia, Anno, Mese,
 /// <c>FatturaInviata = 0</c>), da NON INVIATA (4) a INVIATA (5), senza storno. Restituisce gli id inseriti.
+/// Le fatture posticipate (0) o eliminate (3) in Gestione Fatture restano fuori, con la stessa condizione di
+/// <c>be.vwInvioSAPGriglia</c> e <c>be.vwInvioSAPDettaglio</c> (versione 1.1 di DATA): il numero inserito deve
+/// coincidere con il <c>NumeroFatture</c> del rigo, altrimenti il Genera risponde 409 GRUPPO_CAMBIATO.
 /// </summary>
 public sealed class InvioSapDettaglioPrimoInvioCommandPersistence(int batchId, int anno, int mese, string tipologia, string notaJson)
     : DapperBase, ICommand<IReadOnlyList<long>>
@@ -108,7 +111,11 @@ public sealed class InvioSapDettaglioPrimoInvioCommandPersistence(int batchId, i
          WHERE ft.AnnoRiferimento = @Anno
            AND ft.MeseRiferimento = @Mese
            AND ft.FkTipologiaFattura = @TipologiaFattura
-           AND ft.FatturaInviata = 0;
+           AND ft.FatturaInviata = 0
+           AND NOT EXISTS (SELECT 1
+                             FROM [cfg].[GestioneFatture] gf
+                            WHERE gf.FkIdFattura = ft.IdFattura
+                              AND gf.Stato IN (0, 3));
         SELECT IdFattura FROM @Inseriti;";
 
     public async Task<IReadOnlyList<long>> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken ct = default)
@@ -125,11 +132,12 @@ public sealed class InvioSapDettaglioPrimoInvioCommandPersistence(int batchId, i
 }
 
 /// <summary>
-/// Re-invio: le fatture scelte, da INVIATA (5) a INVIATA (5), con lo storno. Le righe si prendono dalla vista
-/// dettaglio con <c>FatturaInviata = 1</c>: se nel frattempo una fattura e' cambiata, non viene inserita e
-/// l'handler se ne accorge dal numero di righe.
+/// Le fatture scelte una per una. Re-invio (<c>inviate = true</c>): da INVIATA (5) a INVIATA (5), con lo storno.
+/// Primo invio (<c>inviate = false</c>): da NON INVIATA (4) a INVIATA (5), senza storno. Le righe si prendono dalla
+/// vista dettaglio nello stato richiesto: se nel frattempo una fattura e' cambiata, non viene inserita e l'handler
+/// se ne accorge dal numero di righe.
 /// </summary>
-public sealed class InvioSapDettaglioReInvioCommandPersistence(int batchId, IReadOnlyList<long> idFatture, string storno, string notaJson)
+public sealed class InvioSapDettaglioSelezioneCommandPersistence(int batchId, IReadOnlyList<long> idFatture, bool inviate, string? storno, string notaJson)
     : DapperBase, ICommand<IReadOnlyList<long>>
 {
     public bool RequiresTransaction => true;
@@ -141,29 +149,31 @@ public sealed class InvioSapDettaglioReInvioCommandPersistence(int batchId, IRea
         SELECT @BatchId, v.IdFattura, @StatoPrecedente, @Stato, @NumeroDocStorno, @Nota
           FROM [be].[vwInvioSAPDettaglio] v
          WHERE v.IdFattura IN @IdFatture
-           AND v.FatturaInviata = 1;
+           AND v.FatturaInviata = @Inviata;
         SELECT IdFattura FROM @Inseriti;";
 
     public async Task<IReadOnlyList<long>> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken ct = default)
         => (await ((IDatabase)this).SelectAsync<long>(connection!, Sql, new
         {
             BatchId = batchId,
-            StatoPrecedente = StatoFatturaSap.Inviata,
+            StatoPrecedente = inviate ? StatoFatturaSap.Inviata : StatoFatturaSap.NonInviata,
             Stato = StatoFatturaSap.Inviata,
-            NumeroDocStorno = storno,
+            NumeroDocStorno = inviate ? storno : null,
             Nota = notaJson,
+            Inviata = inviate,
             IdFatture = idFatture.Distinct().ToArray()
         }, transaction)).OrderBy(id => id).ToList();
 }
 
 /// <summary>
-/// Re-invio con "seleziona tutto": tutte le fatture inviate del rigo tranne le escluse, da INVIATA (5) a INVIATA (5),
-/// con lo storno. Stessa condizione del conteggio fatto prima della transazione (<c>WhereReInvioTotale</c>): se il
-/// rigo e' cambiato nel frattempo l'handler se ne accorge dal numero di righe. Nessun elenco di id da passare,
-/// quindi nessun tetto sul numero di fatture.
+/// "Seleziona tutto": tutte le fatture del rigo nello stato richiesto tranne le escluse. Re-invio
+/// (<c>inviate = true</c>): 5 → 5 con lo storno; primo invio (<c>inviate = false</c>): 4 → 5 senza storno. Stessa
+/// condizione del conteggio fatto prima della transazione (<c>WhereSelezioneTotale</c>): se il rigo e' cambiato nel
+/// frattempo l'handler se ne accorge dal numero di righe. Nessun elenco di id da passare, quindi nessun tetto sul
+/// numero di fatture.
 /// </summary>
-public sealed class InvioSapDettaglioReInvioTotaleCommandPersistence(
-    int batchId, int anno, int mese, string tipologia, IReadOnlyList<long> idFattureEscluse, string storno, string notaJson)
+public sealed class InvioSapDettaglioSelezioneTotaleCommandPersistence(
+    int batchId, int anno, int mese, string tipologia, IReadOnlyList<long> idFattureEscluse, bool inviate, string? storno, string notaJson)
     : DapperBase, ICommand<IReadOnlyList<long>>
 {
     public bool RequiresTransaction => true;
@@ -176,16 +186,17 @@ public sealed class InvioSapDettaglioReInvioTotaleCommandPersistence(
         INSERT INTO [pfw].[DettaglioInvioSAP] (FkBatchId, FkIdFattura, FkStatoPrecedente, FkStato, NumeroDocStorno, Nota)
         OUTPUT INSERTED.FkIdFattura INTO @Inseriti
         SELECT @BatchId, v.IdFattura, @StatoPrecedente, @Stato, @NumeroDocStorno, @Nota
-          FROM [be].[vwInvioSAPDettaglio] v" + InvioSapQueryBuilder.WhereReInvioTotale(escluse.Length > 0) + @";
+          FROM [be].[vwInvioSAPDettaglio] v" + InvioSapQueryBuilder.WhereSelezioneTotale(escluse.Length > 0) + @";
         SELECT IdFattura FROM @Inseriti;";
 
         return (await ((IDatabase)this).SelectAsync<long>(connection!, sql, new
         {
             BatchId = batchId,
-            StatoPrecedente = StatoFatturaSap.Inviata,
+            StatoPrecedente = inviate ? StatoFatturaSap.Inviata : StatoFatturaSap.NonInviata,
             Stato = StatoFatturaSap.Inviata,
-            NumeroDocStorno = storno,
+            NumeroDocStorno = inviate ? storno : null,
             Nota = notaJson,
+            Inviata = inviate,
             Anno = anno,
             Mese = mese,
             TipologiaFattura = tipologia,
