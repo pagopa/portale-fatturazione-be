@@ -52,10 +52,12 @@ public class AppIoFinancialReportQueryIntegrationTests
     }
 
     /// <summary>
-    /// Anni e codici fiscali vengono dalle viste filtro, già distinti.
+    /// Anni e codici fiscali vengono dalle viste filtro. Dal 12/11/2026 la vista dei codici fiscali
+    /// elenca i soli enti con documenti: 00000000003 (OB3) è in anagrafica ma non ha documenti,
+    /// quindi il filtro non lo propone.
     /// </summary>
     [Test]
-    public async Task AnniECodiciFiscali_ShouldVenireDalleVisteFiltro()
+    public async Task AnniECodiciFiscali_ShouldEssereQuelliDeiDocumenti()
     {
         TestDb.SkipSeOggettoAssente(LocalTestDb.ConnectionString, "be.vwAppioFinalReportFiltroAnno");
         TestDb.SkipSeOggettoAssente(LocalTestDb.ConnectionString, "be.vwAppioFinalReportFiltroCodFiscaleEnte");
@@ -66,7 +68,7 @@ public class AppIoFinancialReportQueryIntegrationTests
         Assert.Multiple(() =>
         {
             Assert.That(anni, Is.EqualTo(new[] { 2026, 2025 }));
-            Assert.That(codici, Is.EqualTo(new[] { "00000000001", "00000000002", "00000000003", "00000000004" }));
+            Assert.That(codici, Is.EqualTo(new[] { "00000000001", "00000000002", "00000000004" }));
         });
     }
 
@@ -129,6 +131,85 @@ public class AppIoFinancialReportQueryIntegrationTests
         var lista = await _handler.Send(new AppIoFinancialReportQueryGetByRicerca(Auth()) { Year = "2026", CodiciFiscali = ["00000000002"] });
 
         Assert.That(lista.FinancialReports!.Select(x => x.Key), Is.EqualTo(new[] { "APPIO-OB2|2026_2" }));
+    }
+
+    /// <summary>
+    /// Il percorso del file del financial report è uno per trimestre (ripetuto su tutte le righe):
+    /// la query restituisce quello del trimestre chiesto, null dove non ci sono documenti.
+    /// </summary>
+    [TestCase(2026, 2, "abfss://appioexport@stappioseed.dfs.core.windows.net/export/sap/2026/2/appio-final_report-2026-q2.csv")]
+    [TestCase(2026, 1, "abfss://appioexport@stappioseed.dfs.core.windows.net/export/sap/2026/1/appio-final_report-2026-q1.csv")]
+    [TestCase(2025, 4, "abfss://appioexport@stappioseed.dfs.core.windows.net/export/sap/2025/4/appio-final_report-2025-q4.csv")]
+    [TestCase(2026, 3, null)]
+    [TestCase(2025, 2, null)]
+    public async Task FilePath_ShouldEssereQuelloDelTrimestre(int year, int quarter, string? atteso)
+    {
+        var path = await _handler.Send(new AppIoFinancialReportFilePathQuery(Auth()) { Year = year, Quarter = quarter });
+
+        Assert.That(path, Is.EqualTo(atteso));
+    }
+
+    /// <summary>
+    /// La garanzia che il filtro "Codice Fiscale" deve dare: ogni codice proposto trova almeno una
+    /// riga di documento in uno degli anni proposti. Con i codici presi dall'anagrafica non era vero
+    /// (00000000003 non trovava nulla).
+    /// </summary>
+    [Test]
+    public async Task CodiciFiscali_OgniCodiceProposto_ShouldTrovareAlmenoUnDocumento()
+    {
+        TestDb.SkipSeOggettoAssente(LocalTestDb.ConnectionString, "be.vwAppioFinalReportFiltroAnno");
+        var anni = await _handler.Send(new AppIoFinancialReportYearsQuery(Auth()));
+        var codici = (await _handler.Send(new AppIoFinancialReportCodiciFiscaliQuery(Auth()))).ToList();
+
+        Assert.That(codici, Is.Not.Empty);
+        foreach (var codice in codici)
+        {
+            var righe = 0;
+            foreach (var anno in anni)
+                righe += (await _handler.Send(new AppIoFinancialReportQueryGetByRicercaExcel(Auth()) { Year = anno.ToString(), CodiciFiscali = [codice] }))?.Count() ?? 0;
+            Assert.That(righe, Is.GreaterThan(0), $"il codice {codice} è proposto dal filtro ma non ha documenti");
+        }
+    }
+
+    /// <summary>
+    /// Il filtro segue i documenti, non l'anagrafica: appena OB3 (00000000003) riceve un documento il
+    /// suo codice compare, mentre un documento di OB5, che non ha codice fiscale, non aggiunge un
+    /// valore nullo. Le righe inserite vengono rimosse a fine test.
+    /// </summary>
+    [Test]
+    public async Task CodiciFiscali_NuoviDocumenti_ShouldSeguireIDocumentiESaltareINull()
+    {
+        const string numero = "APPIO-FR-TMP-CF";
+        await using var conn = new Microsoft.Data.SqlClient.SqlConnection(LocalTestDb.ConnectionString);
+        await conn.OpenAsync();
+
+        async Task Esegui(string sql)
+        {
+            await using var cmd = new Microsoft.Data.SqlClient.SqlCommand(sql, conn);
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        try
+        {
+            var prima = await _handler.Send(new AppIoFinancialReportCodiciFiscaliQuery(Auth()));
+            Assert.That(prima, Does.Not.Contain("00000000003"), "contro-prova: prima dell'inserimento OB3 non ha documenti");
+
+            await Esegui($"""
+                INSERT INTO appio.messages_final_report ([year], [quarter], contract_id, Numero, Importo, file_path) VALUES
+                 (2026, 2, 'APPIO-OB3', '{numero}', 1.00, 'appio/tmp.csv'),
+                 (2026, 2, 'APPIO-OB3', '{numero}', 1.00, 'appio/tmp.csv'),
+                 (2026, 2, 'APPIO-OB5', '{numero}', 1.00, 'appio/tmp.csv')
+                """);
+
+            var dopo = await _handler.Send(new AppIoFinancialReportCodiciFiscaliQuery(Auth()));
+
+            Assert.That(dopo, Is.EqualTo(new[] { "00000000001", "00000000002", "00000000003", "00000000004" }),
+                "OB3 compare una volta sola anche con due righe; OB5 (codice fiscale NULL) non aggiunge nulla");
+        }
+        finally
+        {
+            await Esegui($"DELETE FROM appio.messages_final_report WHERE Numero = '{numero}'");
+        }
     }
 
     /// <summary>

@@ -238,6 +238,7 @@ public class FeatureFlagsHttpTests
     //     rotte che non gestiscono il body mancante), mentre una rotta non registrata da' 404. ---
 
     [TestCase("api/appio/financialreports/detail")]
+    [TestCase("api/appio/financialreports/blob/download")]
     [TestCase("api/fatture/invio-sap/dettaglio")]
     [TestCase("api/fatture/invio/sap/multiplo/periodo")]
     public async Task Sonda_PostSenzaBody_FlagAccesoNon404_FlagSpento404(string rotta)
