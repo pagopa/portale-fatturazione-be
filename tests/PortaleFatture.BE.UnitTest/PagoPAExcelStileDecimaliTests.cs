@@ -153,19 +153,19 @@ public class PagoPAExcelStileDecimaliTests
     }
 
     /// <summary>
-    /// Nei due export dei documenti contabili APP IO ImportoTotale chiede il formato valuta; Importo
-    /// (importo di riga) no, e resta a 14 decimali.
+    /// Nei due export dei documenti contabili APP IO ImportoTotale e Importo (importo di riga) chiedono
+    /// entrambi il formato valuta: nessuna colonna di importo resta a 14 decimali.
     /// </summary>
     [TestCase(typeof(AppIoFinancialReportDettaglioRigaDto))]
     [TestCase(typeof(AppIoFinancialReportRigaDto))]
-    public void DtoAppIo_ImportoTotale_ShouldChiedereIlFormatoValuta(Type dto)
+    public void DtoAppIo_ImportoTotaleEImporto_ShouldChiedereIlFormatoValuta(Type dto)
     {
         XCellStyle StileDi(string proprieta) => dto.GetProperty(proprieta)!.GetCustomAttribute<HeaderPagoPAAttribute>()!.Style;
 
         Assert.Multiple(() =>
         {
             Assert.That(StileDi("ImportoTotale"), Is.EqualTo(XCellStyle.StandardNumberDecimal));
-            Assert.That(StileDi("Importo"), Is.EqualTo(XCellStyle.None));
+            Assert.That(StileDi("Importo"), Is.EqualTo(XCellStyle.StandardNumberDecimal));
         });
     }
 }
