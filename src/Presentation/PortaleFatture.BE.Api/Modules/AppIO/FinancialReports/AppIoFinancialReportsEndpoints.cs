@@ -57,5 +57,11 @@ public partial class AppIoFinancialReportsModule
            .WithName("Permette di scaricare il dettaglio di un documento contabile AppIO.")
            .SetOpenApi(Module.DatiFattureLabelAppIO)
            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
+           .MapPost("api/appio/financialreports/blob/download", PostAppIoFinancialReportsFileDownload)
+           .WithName("Permette di scaricare il file del financial report AppIO di un trimestre.")
+           .SetOpenApi(Module.DatiFattureLabelAppIO)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
     }
 }

@@ -14,6 +14,7 @@ using PortaleFatture.BE.Infrastructure.Common.AppIO.FinancialReports.Extensions;
 using PortaleFatture.BE.Infrastructure.Common.AppIO.FinancialReports.Queries;
 using PortaleFatture.BE.Infrastructure.Common.Identity;
 using PortaleFatture.BE.Infrastructure.Common.pagoPA.Documenti.Common;
+using PortaleFatture.BE.Infrastructure.Gateway.Storage.AppIO;
 using static Microsoft.AspNetCore.Http.TypedResults;
 
 namespace PortaleFatture.BE.Api.Modules.AppIO.FinancialReports;
@@ -201,5 +202,43 @@ public partial class AppIoFinancialReportsModule : Module, IRegistrableModule
         var content = righe.FillPagoPAOneSheet("Dettaglio").ToExcel();
         content.Seek(0, SeekOrigin.Begin);
         return Results.Stream(content, _mimeExcel, $"{Guid.NewGuid()}.xlsx");
+    }
+
+    /// <summary>
+    /// Endpoint per il download del file del financial report AppIO di un trimestre, letto dal blob
+    /// storage. Il percorso del file (file_path) resta nel backend: al client arriva solo il contenuto.
+    /// </summary>
+    /// <param name="context">Il contesto HTTP della richiesta.</param>
+    /// <param name="request">La richiesta con anno e trimestre, entrambi obbligatori.</param>
+    /// <param name="handler">Il mediatore per gestire la logica della richiesta.</param>
+    /// <param name="storage">Il servizio di lettura dal blob storage AppIO.</param>
+    /// <returns>Il file; 404 se il trimestre non ha documenti o il file non c'è, 503 se lo storage non è configurato per quel percorso.</returns>
+    [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+    private async Task<IResult> PostAppIoFinancialReportsFileDownload(
+    HttpContext context,
+    [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] AppIoFinancialReportsFileRequest? request,
+    [FromServices] IMediator handler,
+    [FromServices] IAppIoFinancialReportStorageService storage)
+    {
+        if (!request.IsValida())
+            return Results.BadRequest();
+
+        var filePath = await handler.Send(request!.Map(context.GetAuthInfo()));
+        if (string.IsNullOrWhiteSpace(filePath))
+            return NotFound();
+        if (!storage.CanRead(filePath))
+            return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+
+        var content = await storage.OpenReadAsync(filePath, context.RequestAborted);
+        if (content == null)
+            return NotFound();
+        return Results.Stream(content, filePath.MimeType(), request.FileName(filePath));
     }
 }
