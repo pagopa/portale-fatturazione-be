@@ -27,4 +27,5 @@ public interface IPortaleFattureOptions
     public AzureFunction? AzureFunction { get; set; } 
     public StorageRelDownload? StorageRelDownload { get; set; }
     public Language? Language { get; set; }
+    public StorageAppIO? StorageAppIO { get; set; }
 }
