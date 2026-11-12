@@ -295,8 +295,8 @@ public class AppIoFinancialReportsHttpTests
     }
 
     /// <summary>
-    /// Anche nell'Excel "Documenti Contabili" ImportoTotale è a due decimali (stile 3) e Importo a
-    /// 14 (stile 9): quattro righe di dati per ENTE-1 nel 2026, quattro celle per stile.
+    /// Nell'Excel "Documenti Contabili" ImportoTotale e Importo sono a due decimali (stile 3) e nessuna
+    /// cella resta a 14 (stile 9): quattro righe di dati per ENTE-1 nel 2026, otto celle in formato valuta.
     /// </summary>
     [Test]
     public async Task Document_ImportoTotale_ShouldAvereDueDecimali()
@@ -307,8 +307,8 @@ public class AppIoFinancialReportsHttpTests
         var testo = await TestoExcel(resp);
         Assert.Multiple(() =>
         {
-            Assert.That(System.Text.RegularExpressions.Regex.Matches(testo, "s=\"3\"").Count, Is.EqualTo(4), "ImportoTotale");
-            Assert.That(System.Text.RegularExpressions.Regex.Matches(testo, "s=\"9\"").Count, Is.EqualTo(4), "Importo");
+            Assert.That(System.Text.RegularExpressions.Regex.Matches(testo, "s=\"3\"").Count, Is.EqualTo(8), "ImportoTotale e Importo");
+            Assert.That(System.Text.RegularExpressions.Regex.Matches(testo, "s=\"9\"").Count, Is.EqualTo(0), "nessuna cella a 14 decimali");
         });
     }
 
@@ -409,8 +409,8 @@ public class AppIoFinancialReportsHttpTests
 
     /// <summary>
     /// Nell'Excel del dettaglio ImportoTotale è in formato valuta a due decimali (stile 3,
-    /// '#,##0.00'); Importo, che non lo chiede, resta a 14 decimali (stile 9). Una riga di dati:
-    /// una cella per stile.
+    /// '#,##0.00'), come Importo: nessuna cella resta a 14 decimali (stile 9). Una riga di dati,
+    /// due celle in formato valuta.
     /// </summary>
     [Test]
     public async Task DetailDownload_ImportoTotale_ShouldAvereDueDecimali()
@@ -421,8 +421,8 @@ public class AppIoFinancialReportsHttpTests
         var testo = await TestoExcel(resp);
         Assert.Multiple(() =>
         {
-            Assert.That(System.Text.RegularExpressions.Regex.Matches(testo, "s=\"3\"").Count, Is.EqualTo(1), "ImportoTotale");
-            Assert.That(System.Text.RegularExpressions.Regex.Matches(testo, "s=\"9\"").Count, Is.EqualTo(1), "Importo");
+            Assert.That(System.Text.RegularExpressions.Regex.Matches(testo, "s=\"3\"").Count, Is.EqualTo(2), "ImportoTotale e Importo");
+            Assert.That(System.Text.RegularExpressions.Regex.Matches(testo, "s=\"9\"").Count, Is.EqualTo(0), "nessuna cella a 14 decimali");
         });
     }
 }
