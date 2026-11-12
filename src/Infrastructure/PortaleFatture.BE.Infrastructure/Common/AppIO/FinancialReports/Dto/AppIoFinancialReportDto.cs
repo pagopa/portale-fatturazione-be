@@ -80,6 +80,11 @@ public sealed class AppIoFinancialReportPosizioneDto
     public DateTime? Data { get; set; }
 
     /// <summary>
+    /// Data e ora dell'ultimo aggiornamento della riga da parte di DATA (gold_updated_at).
+    /// </summary>
+    public DateTime? GoldUpdatedAt { get; set; }
+
+    /// <summary>
     /// Codice dell'articolo fatturato.
     /// </summary>
     public string? CodiceArticolo { get; set; }
