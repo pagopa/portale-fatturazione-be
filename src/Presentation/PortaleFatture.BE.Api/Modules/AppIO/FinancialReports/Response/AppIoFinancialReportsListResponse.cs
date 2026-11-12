@@ -71,6 +71,12 @@ public class AppIoFinancialReportPosizioneResponse
     /// <summary>Data del documento.</summary>
     public DateTime? Data { get; set; }
 
+    /// <summary>
+    /// Data del report: data e ora dell'ultimo aggiornamento della riga da parte di DATA
+    /// (gold_updated_at della vista). Al frontend arriva come <c>dataReport</c>.
+    /// </summary>
+    public DateTime? DataReport { get; set; }
+
     /// <summary>Codice dell'articolo fatturato.</summary>
     public string? CodiceArticolo { get; set; }
 
