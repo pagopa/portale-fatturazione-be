@@ -97,7 +97,7 @@ public sealed class AppIoFinancialReportRigaDto
     /// <summary>
     /// Importo della riga.
     /// </summary>
-    [HeaderPagoPA(caption: "Importo", Order = 14)]
+    [HeaderPagoPA(caption: "Importo", Order = 14, Style = XCellStyle.StandardNumberDecimal)]
     public decimal? Importo { get; set; }
 
     /// <summary>
