@@ -214,6 +214,14 @@ public static class ModuleExtensions
         model.AzureFunction.NotificheUri    = azureFunctionNotificheUri;
         model.AzureFunction.AppKey = azureFunctionAppKey;
 
+        // Financial report APP IO: facoltativo. Senza STORAGE_APPIO_ACCOUNTNAME e STORAGE_APPIO_ACCOUNTKEY
+        // il download del file risponde 503. Il container viene da file_path (abfss://container@account…);
+        // STORAGE_APPIO_CONTAINERNAME serve solo se file_path fosse un percorso relativo.
+        model.StorageAppIO ??= new();
+        model.StorageAppIO.AccountName = Environment.GetEnvironmentVariable("STORAGE_APPIO_ACCOUNTNAME");
+        model.StorageAppIO.AccountKey = Environment.GetEnvironmentVariable("STORAGE_APPIO_ACCOUNTKEY");
+        model.StorageAppIO.BlobContainerName = Environment.GetEnvironmentVariable("STORAGE_APPIO_CONTAINERNAME");
+
         model.Language.ApplyEnvironmentOverrides();
         return model;
     }
