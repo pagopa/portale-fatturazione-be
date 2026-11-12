@@ -89,6 +89,60 @@ public class AppIoFinancialReportsAdversarialHttpTests
         Assert.That((int)(await cmd.ExecuteScalarAsync())!, Is.EqualTo(705));
     }
 
+    // --- filtro "Codice Fiscale" ---
+
+    private static readonly string[] CodiciDelSeed = ["00000000001", "00000000002", "00000000004"];
+
+    private async Task<HttpResponseMessage> GetCodFiscale(string query = "", string prodottoNonce = "prod-pn")
+    {
+        var rotta = _factory.WithNonce($"{Base}/codfiscale", prodotto: prodottoNonce);
+        return await _factory.CreateClientAs(Ruolo.ADMIN).GetAsync(rotta + query);
+    }
+
+    /// <summary>
+    /// La rotta non ha parametri: una query string ostile viene ignorata e l'elenco resta quello dei
+    /// codici con documenti.
+    /// </summary>
+    [TestCase("&codiciFiscali=' OR 1=1 --")]
+    [TestCase("&institution_taxcode=00000000003")]
+    [TestCase("&x='; DROP VIEW be.vwAppioFinalReport; --")]
+    public async Task CodFiscale_QueryStringOstile_ShouldEssereIgnorata(string query)
+    {
+        var resp = await GetCodFiscale(Uri.EscapeUriString(query));
+
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        var codici = JsonDocument.Parse(await resp.Content.ReadAsStringAsync()).RootElement.EnumerateArray().Select(x => x.GetString());
+        Assert.That(codici, Is.EqualTo(CodiciDelSeed));
+    }
+
+    /// <summary>
+    /// Un nonce emesso per un altro prodotto viene rifiutato con 419 anche sul filtro.
+    /// </summary>
+    [Test]
+    public async Task CodFiscale_NonceDiUnAltroProdotto_ShouldReturn419()
+    {
+        var resp = await GetCodFiscale(prodottoNonce: "prod-appio");
+
+        Assert.That((int)resp.StatusCode, Is.EqualTo(419));
+    }
+
+    /// <summary>
+    /// Un codice che il filtro non propone più (00000000003: contratto senza documenti), mandato
+    /// comunque a mano, non trova righe: 404 su griglia e download, in ogni anno.
+    /// </summary>
+    [TestCase("2026")]
+    [TestCase("2025")]
+    public async Task Griglia_CodiceFiscaleSenzaDocumenti_ShouldReturn404(string year)
+    {
+        var body = Json(new { year, codiciFiscali = new[] { "00000000003" } });
+
+        Assert.Multiple(async () =>
+        {
+            Assert.That((await Post(Base, body)).StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+            Assert.That((await Post($"{Base}/document", body)).StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+        });
+    }
+
     // --- jolly del LIKE sull'anno ---
 
     /// <summary>

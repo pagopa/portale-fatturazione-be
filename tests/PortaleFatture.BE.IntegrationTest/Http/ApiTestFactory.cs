@@ -93,6 +93,10 @@ public class ApiTestFactory : WebApplicationFactory<Program>
             services.RemoveAll<ISynapseService>();
             services.AddSingleton<ISynapseService>(FakeSynapseService.Instance);
 
+            // 1c) Blob storage dei financial report APP IO: nessun test deve chiamare Azure.
+            services.RemoveAll<PortaleFatture.BE.Infrastructure.Gateway.Storage.AppIO.IAppIoFinancialReportStorageService>();
+            services.AddSingleton<PortaleFatture.BE.Infrastructure.Gateway.Storage.AppIO.IAppIoFinancialReportStorageService>(FakeAppIoFinancialReportStorageService.Instance);
+
             // 2) Autenticazione di test come schema di default (sostituisce JWT/api-key).
             services.AddAuthentication(o =>
             {

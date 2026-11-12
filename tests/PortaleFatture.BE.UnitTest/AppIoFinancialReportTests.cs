@@ -100,6 +100,87 @@ public class AppIoFinancialReportTests
         });
     }
 
+    /// <summary>
+    /// Il filtro "Codice Fiscale" legge dalla vista filtro dedicata, in ordine crescente: la regola
+    /// "solo enti con documenti" è della vista, il backend non la ricostruisce su altre viste.
+    /// </summary>
+    [Test]
+    public void SelectCodiciFiscali_ShouldLeggereDallaVistaFiltroInOrdine()
+    {
+        var sql = AppIoFinancialReportSQLBuilder.SelectCodiciFiscali();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(sql, Does.Contain("FROM [be].[vwAppioFinalReportFiltroCodFiscaleEnte]"));
+            Assert.That(sql, Does.Not.Contain("JOIN"));
+            Assert.That(sql, Does.Not.Contain("WHERE"), "documenti e NULL li filtra la vista");
+            Assert.That(sql, Does.EndWith("ORDER BY [CodFiscaleEnte]"));
+        });
+    }
+
+    /// <summary>
+    /// La griglia legge gold_updated_at dalla vista ma non file_path: il percorso del file sul blob
+    /// storage non deve arrivare al client.
+    /// </summary>
+    [Test]
+    public void SelectRighe_ShouldLeggereGoldUpdatedAtENonFilePath()
+    {
+        var sql = AppIoFinancialReportSQLBuilder.SelectRighe();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(sql, Does.Contain("f.[gold_updated_at] AS GoldUpdatedAt"));
+            Assert.That(sql, Does.Not.Contain("file_path"));
+        });
+    }
+
+    /// <summary>
+    /// Raggruppando, gold_updated_at resta sulla singola riga di documento (posizione).
+    /// </summary>
+    [Test]
+    public void Raggruppa_ShouldPortareGoldUpdatedAtSullePosizioni()
+    {
+        var aggiornato = new DateTime(2026, 7, 16, 8, 0, 0);
+        AppIoFinancialReportRigaDto[] righe =
+        [
+            new() { ContractId = "C1", YearQuarter = "2026_2", Numero = "N1", GoldUpdatedAt = aggiornato },
+            new() { ContractId = "C1", YearQuarter = "2026_2", Numero = "N2", GoldUpdatedAt = null }
+        ];
+
+        var posizioni = righe.Raggruppa().FinancialReports!.Single().Posizioni;
+
+        Assert.That(posizioni.Select(x => x.GoldUpdatedAt), Is.EqualTo(new DateTime?[] { aggiornato, null }));
+    }
+
+    /// <summary>
+    /// Né la risposta della griglia né i DTO espongono il percorso del file: nessuna proprietà
+    /// FilePath, a nessun livello.
+    /// </summary>
+    [TestCase(typeof(PortaleFatture.BE.Api.Modules.AppIO.FinancialReports.Response.AppIoFinancialReportResponse))]
+    [TestCase(typeof(PortaleFatture.BE.Api.Modules.AppIO.FinancialReports.Response.AppIoFinancialReportPosizioneResponse))]
+    [TestCase(typeof(AppIoFinancialReportRigaDto))]
+    public void Tipi_ShouldNonEsporreIlPercorsoDelFile(Type tipo)
+        => Assert.That(tipo.GetProperties().Select(p => p.Name), Has.None.Contains("FilePath").IgnoreCase);
+
+    /// <summary>
+    /// Nella pagina di dettaglio ImportoTotale è in formato valuta: due decimali, arrotondando il
+    /// mezzo centesimo per eccesso in valore assoluto; null resta null.
+    /// </summary>
+    [TestCase("25.000000", "25.00")]
+    [TestCase("10.123456", "10.12")]
+    [TestCase("10.125", "10.13")]
+    [TestCase("-10.125", "-10.13")]
+    [TestCase("0.004999", "0.00")]
+    [TestCase(null, null)]
+    public void MapDettaglio_ImportoTotale_ShouldAvereDueDecimali(string? valore, string? atteso)
+    {
+        static decimal? D(string? s) => s is null ? null : decimal.Parse(s, System.Globalization.CultureInfo.InvariantCulture);
+
+        var risposta = new AppIoFinancialReportDettaglioDto { ImportoTotale = D(valore) }.Map();
+
+        Assert.That(risposta.ImportoTotale, Is.EqualTo(D(atteso)));
+    }
+
     // --- Raggruppa ---
 
     private static AppIoFinancialReportRigaDto Riga(string contratto, string trimestre, string numero, string articolo, decimal totale = 25m)

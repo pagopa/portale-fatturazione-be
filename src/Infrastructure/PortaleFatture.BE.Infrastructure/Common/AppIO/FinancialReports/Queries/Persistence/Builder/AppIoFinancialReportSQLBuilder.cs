@@ -28,6 +28,7 @@ public static class AppIoFinancialReportSQLBuilder
         ,f.[ImportoTotale] AS ImportoTotale
         ,f.[Numero] AS Numero
         ,f.[Data] AS Data
+        ,f.[gold_updated_at] AS GoldUpdatedAt
         ,f.[Codice_articolo] AS CodiceArticolo
         ,f.[Q_ta] AS Quantita
         ,f.[Importo] AS Importo
@@ -115,11 +116,34 @@ public static class AppIoFinancialReportSQLBuilder
     public static string SelectYears() => " SELECT [Anno] FROM [be].[vwAppioFinalReportFiltroAnno] ORDER BY [Anno] DESC";
 
     /// <summary>
-    /// Codici fiscali distinti degli enti, in ordine crescente.
+    /// Codici fiscali distinti degli enti che hanno almeno un documento emesso, in ordine crescente.
     /// </summary>
+    /// <remarks>
+    /// Le regole stanno nella vista [be].[vwAppioFinalReportFiltroCodFiscaleEnte], non qui: dal
+    /// 12/11/2026 fa la join con i documenti (solo enti con documenti) e scarta i codici fiscali nulli.
+    /// </remarks>
     /// <returns>La query SQL completa.</returns>
     public static string SelectCodiciFiscali()
         => " SELECT [CodFiscaleEnte] FROM [be].[vwAppioFinalReportFiltroCodFiscaleEnte] ORDER BY [CodFiscaleEnte]";
+
+    /// <summary>
+    /// Percorso sul blob storage del file del financial report di un trimestre (parametri @Year e
+    /// @Quarter). Serve solo al backend per scaricare il file: non va esposto al client.
+    /// </summary>
+    /// <remarks>
+    /// Il file è uno per trimestre e file_path è ripetuto uguale su tutte le righe: basta la prima.
+    /// L'ordinamento serve solo a rendere stabile il risultato se un giorno i percorsi differissero
+    /// (riga aggiornata più di recente, a parità il maggiore in ordine alfabetico).
+    /// </remarks>
+    /// <returns>La query SQL completa.</returns>
+    public static string SelectFilePath() => @"
+        SELECT TOP 1 f.[file_path]
+        FROM [be].[vwAppioFinalReport] f
+        WHERE f.[year] = @Year
+        AND f.[quarter] = @Quarter
+        AND f.[file_path] IS NOT NULL
+        ORDER BY f.[gold_updated_at] DESC, f.[file_path] DESC
+    ";
 
     /// <summary>
     /// Compone la WHERE comune alla griglia e al download "Documenti Contabili".

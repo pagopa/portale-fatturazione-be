@@ -54,7 +54,7 @@ public sealed class AppIoFinancialReportDettaglioRigaDto
     public int? Quarter { get; set; }
 
     /// <summary>Totale del contratto nel trimestre, dalla vista.</summary>
-    [HeaderPagoPA(caption: "ImportoTotale", Order = 12)]
+    [HeaderPagoPA(caption: "ImportoTotale", Order = 12, Style = XCellStyle.StandardNumberDecimal)]
     public decimal? ImportoTotale { get; set; }
 
     /// <summary>Numero del documento.</summary>

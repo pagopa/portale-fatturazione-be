@@ -16,8 +16,8 @@ public class AppIoFinancialReportYearsQuery(IAuthenticationInfo authenticationIn
 }
 
 /// <summary>
-/// Codici fiscali distinti degli enti APP IO, da [be].[vwAppioFinalReportFiltroCodFiscaleEnte]
-/// (filtro "Codice Fiscale").
+/// Codici fiscali distinti degli enti APP IO che hanno documenti emessi, da
+/// [be].[vwAppioFinalReportFiltroCodFiscaleEnte] (filtro "Codice Fiscale").
 /// </summary>
 /// <param name="authenticationInfo">Le informazioni di autenticazione dell'utente che effettua la richiesta.</param>
 public class AppIoFinancialReportCodiciFiscaliQuery(IAuthenticationInfo authenticationInfo) : IRequest<IEnumerable<string>>
@@ -26,4 +26,23 @@ public class AppIoFinancialReportCodiciFiscaliQuery(IAuthenticationInfo authenti
     /// Le informazioni di autenticazione dell'utente che effettua la richiesta.
     /// </summary>
     public IAuthenticationInfo AuthenticationInfo { get; internal set; } = authenticationInfo;
+}
+
+/// <summary>
+/// Percorso sul blob storage del file del financial report APP IO di un trimestre, da
+/// [be].[vwAppioFinalReport]. Uso interno del download: il percorso non va restituito al client.
+/// </summary>
+/// <param name="authenticationInfo">Le informazioni di autenticazione dell'utente che effettua la richiesta.</param>
+public class AppIoFinancialReportFilePathQuery(IAuthenticationInfo authenticationInfo) : IRequest<string?>
+{
+    /// <summary>
+    /// Le informazioni di autenticazione dell'utente che effettua la richiesta.
+    /// </summary>
+    public IAuthenticationInfo AuthenticationInfo { get; internal set; } = authenticationInfo;
+
+    /// <summary>Anno di riferimento.</summary>
+    public int Year { get; set; }
+
+    /// <summary>Trimestre di riferimento (1-4).</summary>
+    public int Quarter { get; set; }
 }

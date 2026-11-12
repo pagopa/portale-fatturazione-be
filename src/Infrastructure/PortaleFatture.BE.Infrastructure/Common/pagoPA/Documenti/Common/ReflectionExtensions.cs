@@ -113,7 +113,11 @@ public static class ReflectionExtensions
                         else if (type == typeof(decimal))
                         {
                             cellvalues = CellValues.Number;
-                            styleIndex = Convert.ToUInt32(XCellStyle.Digit14);
+                            // Di norma 14 decimali; due (formato '#,##0.00') solo per le colonne che lo
+                            // chiedono con Style = StandardNumberDecimal, cioè gli importi in valuta.
+                            styleIndex = Convert.ToUInt32(col.Value == XCellStyle.StandardNumberDecimal
+                                ? XCellStyle.StandardNumberDecimal
+                                : XCellStyle.Digit14);
                             cellvalue = new CellValue(Convert.ToDecimal(value));
                         }
                         else if (type == typeof(DateTime))

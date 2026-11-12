@@ -61,7 +61,7 @@ public sealed class AppIoFinancialReportRigaDto
     /// Totale del contratto nel trimestre, calcolato dalla vista: è lo stesso su tutte le righe del
     /// trimestre, anche di documenti (Numero) diversi.
     /// </summary>
-    [HeaderPagoPA(caption: "ImportoTotale", Order = 9)]
+    [HeaderPagoPA(caption: "ImportoTotale", Order = 9, Style = XCellStyle.StandardNumberDecimal)]
     public decimal? ImportoTotale { get; set; }
 
     /// <summary>
@@ -75,6 +75,12 @@ public sealed class AppIoFinancialReportRigaDto
     /// </summary>
     [HeaderPagoPA(caption: "Data", Order = 11)]
     public DateTime? Data { get; set; }
+
+    /// <summary>
+    /// Data e ora dell'ultimo aggiornamento della riga da parte di DATA (gold_updated_at). Senza
+    /// attributo Header: va alla griglia, non nell'Excel.
+    /// </summary>
+    public DateTime? GoldUpdatedAt { get; set; }
 
     /// <summary>
     /// Codice dell'articolo fatturato.

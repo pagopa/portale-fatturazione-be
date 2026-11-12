@@ -38,6 +38,7 @@ public static class AppIoFinancialReportExtensions
             {
                 Numero = riga.Numero,
                 Data = riga.Data,
+                GoldUpdatedAt = riga.GoldUpdatedAt,
                 CodiceArticolo = riga.CodiceArticolo,
                 Quantita = riga.Quantita,
                 Importo = riga.Importo,

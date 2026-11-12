@@ -74,6 +74,28 @@ public sealed class AppIoFinancialReportCodiciFiscaliQueryHandler(IFattureDbCont
 }
 
 /// <summary>
+/// Gestisce la lettura del percorso del file del financial report APP IO di un trimestre.
+/// </summary>
+/// <param name="factory">La factory del contesto database.</param>
+public sealed class AppIoFinancialReportFilePathQueryHandler(IFattureDbContextFactory factory)
+    : IRequestHandler<AppIoFinancialReportFilePathQuery, string?>
+{
+    private readonly IFattureDbContextFactory _factory = factory;
+
+    /// <summary>
+    /// Restituisce il percorso del file sul blob storage.
+    /// </summary>
+    /// <param name="command">La query con anno e trimestre.</param>
+    /// <param name="ct">Il token di annullamento.</param>
+    /// <returns>Il percorso, oppure null se il trimestre non ha documenti.</returns>
+    public async Task<string?> Handle(AppIoFinancialReportFilePathQuery command, CancellationToken ct)
+    {
+        using var uow = await _factory.Create(cancellationToken: ct);
+        return await uow.Query(new AppIoFinancialReportFilePathQueryPersistence(command), ct);
+    }
+}
+
+/// <summary>
 /// Gestisce la griglia dei documenti emessi APP IO: legge le righe e le raggruppa per contratto e trimestre.
 /// </summary>
 /// <param name="factory">La factory del contesto database.</param>

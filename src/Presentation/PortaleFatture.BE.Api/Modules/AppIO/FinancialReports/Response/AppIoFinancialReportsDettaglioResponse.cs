@@ -38,7 +38,7 @@ public class AppIoFinancialReportsDettaglioResponse
     /// <summary>Trimestre di riferimento (1-4).</summary>
     public int? Quarter { get; set; }
 
-    /// <summary>Totale del contratto nel trimestre, dalla vista.</summary>
+    /// <summary>Totale del contratto nel trimestre, dalla vista, arrotondato a due decimali.</summary>
     public decimal? ImportoTotale { get; set; }
 
     /// <summary>Righe dei documenti.</summary>

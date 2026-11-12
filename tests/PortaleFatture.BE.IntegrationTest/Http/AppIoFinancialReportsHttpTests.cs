@@ -107,16 +107,52 @@ public class AppIoFinancialReportsHttpTests
     }
 
     /// <summary>
-    /// Il filtro "Codice Fiscale" restituisce i codici fiscali distinti, in ordine.
+    /// Il filtro "Codice Fiscale" restituisce, in ordine, i codici fiscali distinti dei soli enti con
+    /// documenti emessi: 00000000003 (OB3) ha un contratto ma nessun documento, e non compare.
     /// </summary>
     [Test]
-    public async Task CodFiscale_ShouldRestituireICodiciDistinti()
+    public async Task CodFiscale_ShouldRestituireSoloICodiciConDocumenti()
     {
         var resp = await Get($"{Base}/codfiscale");
 
         Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
         Assert.That((await Json(resp)).EnumerateArray().Select(x => x.GetString()),
-            Is.EqualTo(new[] { "00000000001", "00000000002", "00000000003", "00000000004" }));
+            Is.EqualTo(new[] { "00000000001", "00000000002", "00000000004" }));
+    }
+
+    /// <summary>
+    /// Il filtro "Codice Fiscale" è una lettura: risponde anche all'OPERATOR, e 401 senza autenticazione.
+    /// </summary>
+    [Test]
+    public async Task CodFiscale_Ruoli_ShouldEssereApertoAOperatorEChiusoAgliAnonimi()
+    {
+        var operatore = await Get($"{Base}/codfiscale", Ruolo.OPERATOR);
+        var anonimo = await Get($"{Base}/codfiscale", ruolo: null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(operatore.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(anonimo.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+        });
+    }
+
+    /// <summary>
+    /// Ogni codice proposto dal filtro, rimandato alla griglia con uno degli anni proposti, trova
+    /// almeno una riga: il filtro non offre valori che portano a una griglia vuota.
+    /// </summary>
+    [Test]
+    public async Task CodFiscale_OgniCodice_ShouldTrovareRigheInGriglia()
+    {
+        var codici = (await Json(await Get($"{Base}/codfiscale"))).EnumerateArray().Select(x => x.GetString()!).ToList();
+        var anni = (await Json(await Get($"{Base}/years"))).EnumerateArray().Select(x => x.GetString()!).ToList();
+
+        foreach (var codice in codici)
+        {
+            var esiti = new List<HttpStatusCode>();
+            foreach (var anno in anni)
+                esiti.Add((await Post(Base, $$"""{ "year": "{{anno}}", "codiciFiscali": ["{{codice}}"] }""")).StatusCode);
+            Assert.That(esiti, Has.Some.EqualTo(HttpStatusCode.OK), $"il codice {codice} non trova documenti in nessun anno");
+        }
     }
 
     // --- griglia ---
@@ -211,6 +247,30 @@ public class AppIoFinancialReportsHttpTests
         Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
     }
 
+    /// <summary>
+    /// Dal 12/11/2026 la vista porta gold_updated_at e file_path: la griglia espone il primo, col
+    /// nome dataReport, su ogni riga di documento (null dove a DB è NULL, APPIO-FR-005) e non lascia
+    /// uscire il secondo.
+    /// </summary>
+    [Test]
+    public async Task Griglia_ShouldEsporreGoldUpdatedAtENonIlPercorsoDelFile()
+    {
+        var resp2026 = await Post(Base, """{ "year": "2026", "institutionIds": ["APPIO-ENTE-2"] }""");
+        var resp2025 = await Post(Base, """{ "year": "2025" }""");
+        var testo = await resp2026.Content.ReadAsStringAsync() + await resp2025.Content.ReadAsStringAsync();
+        var riga2026 = JsonDocument.Parse(await resp2026.Content.ReadAsStringAsync()).RootElement.GetProperty("financialReports")[0].GetProperty("posizioni")[0];
+        var riga2025 = JsonDocument.Parse(await resp2025.Content.ReadAsStringAsync()).RootElement.GetProperty("financialReports")[0].GetProperty("posizioni")[0];
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(riga2026.GetProperty("dataReport").GetDateTime(), Is.EqualTo(new DateTime(2026, 7, 16, 8, 0, 0)));
+            Assert.That(riga2025.GetProperty("dataReport").ValueKind, Is.EqualTo(JsonValueKind.Null));
+            Assert.That(testo, Does.Not.Contain("goldUpdatedAt").IgnoreCase, "al frontend il campo si chiama dataReport");
+            Assert.That(testo, Does.Not.Contain("filePath").IgnoreCase);
+            Assert.That(testo, Does.Not.Contain(".csv"), "nessun percorso del blob storage nella risposta");
+        });
+    }
+
     // --- download "Documenti Contabili" ---
 
     /// <summary>
@@ -229,6 +289,26 @@ public class AppIoFinancialReportsHttpTests
             Assert.That(testo, Does.Contain("APPIO-FR-001"));
             Assert.That(testo, Does.Contain("APPIO-FR-004"));
             Assert.That(testo, Does.Not.Contain("APPIO-FR-003"), "FR-003 è di ENTE-2");
+            Assert.That(testo, Does.Not.Contain("GoldUpdatedAt"), "gold_updated_at va alla griglia, non nell'Excel");
+            Assert.That(testo, Does.Not.Contain(".csv"), "il percorso del file non finisce nell'Excel");
+        });
+    }
+
+    /// <summary>
+    /// Anche nell'Excel "Documenti Contabili" ImportoTotale è a due decimali (stile 3) e Importo a
+    /// 14 (stile 9): quattro righe di dati per ENTE-1 nel 2026, quattro celle per stile.
+    /// </summary>
+    [Test]
+    public async Task Document_ImportoTotale_ShouldAvereDueDecimali()
+    {
+        var resp = await Post($"{Base}/document", """{ "year": "2026", "institutionIds": ["APPIO-ENTE-1"] }""");
+
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        var testo = await TestoExcel(resp);
+        Assert.Multiple(() =>
+        {
+            Assert.That(System.Text.RegularExpressions.Regex.Matches(testo, "s=\"3\"").Count, Is.EqualTo(4), "ImportoTotale");
+            Assert.That(System.Text.RegularExpressions.Regex.Matches(testo, "s=\"9\"").Count, Is.EqualTo(4), "Importo");
         });
     }
 
@@ -324,6 +404,25 @@ public class AppIoFinancialReportsHttpTests
         {
             Assert.That(testo, Does.Contain("APPIO-FR-004"));
             Assert.That(testo, Does.Not.Contain("APPIO-FR-001"), "FR-001 è del 2026_2");
+        });
+    }
+
+    /// <summary>
+    /// Nell'Excel del dettaglio ImportoTotale è in formato valuta a due decimali (stile 3,
+    /// '#,##0.00'); Importo, che non lo chiede, resta a 14 decimali (stile 9). Una riga di dati:
+    /// una cella per stile.
+    /// </summary>
+    [Test]
+    public async Task DetailDownload_ImportoTotale_ShouldAvereDueDecimali()
+    {
+        var resp = await Post($"{Base}/detail/download", """{ "contractId": "APPIO-OB1", "yearQuarter": "2026_1" }""");
+
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        var testo = await TestoExcel(resp);
+        Assert.Multiple(() =>
+        {
+            Assert.That(System.Text.RegularExpressions.Regex.Matches(testo, "s=\"3\"").Count, Is.EqualTo(1), "ImportoTotale");
+            Assert.That(System.Text.RegularExpressions.Regex.Matches(testo, "s=\"9\"").Count, Is.EqualTo(1), "Importo");
         });
     }
 }

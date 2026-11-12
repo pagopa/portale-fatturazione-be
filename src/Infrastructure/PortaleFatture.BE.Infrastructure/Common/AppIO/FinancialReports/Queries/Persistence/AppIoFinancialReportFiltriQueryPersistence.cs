@@ -47,6 +47,27 @@ public sealed class AppIoFinancialReportCodiciFiscaliQueryPersistence(AppIoFinan
 }
 
 /// <summary>
+/// Legge da [be].[vwAppioFinalReport] il percorso del file del financial report di un trimestre.
+/// </summary>
+/// <param name="command">La query con anno e trimestre.</param>
+public sealed class AppIoFinancialReportFilePathQueryPersistence(AppIoFinancialReportFilePathQuery command) : DapperBase, IQuery<string?>
+{
+    private readonly AppIoFinancialReportFilePathQuery _command = command;
+    private static readonly string _sql = AppIoFinancialReportSQLBuilder.SelectFilePath();
+
+    /// <summary>
+    /// Restituisce il percorso del file, oppure null se il trimestre non ha documenti.
+    /// </summary>
+    /// <param name="connection">La connessione al database.</param>
+    /// <param name="schema">Lo schema del contesto (non usato: la vista è nello schema be).</param>
+    /// <param name="transaction">La transazione corrente, se presente.</param>
+    /// <param name="cancellationToken">Il token di annullamento.</param>
+    /// <returns>Il percorso del file sul blob storage.</returns>
+    public async Task<string?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
+        => (await ((IDatabase)this).SelectAsync<string>(connection!, _sql, new { _command.Year, _command.Quarter }, transaction)).FirstOrDefault();
+}
+
+/// <summary>
 /// Legge le righe del dettaglio di un contratto in un trimestre da [be].[vwAppioFinalReportDetails].
 /// </summary>
 /// <param name="command">La query con contratto e trimestre.</param>

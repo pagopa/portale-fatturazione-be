@@ -169,6 +169,7 @@ public static class ConfigurationExtensions
         services.AddSingleton<IDocumentStorageService, DocumentStorageService>();
         services.AddSingleton<IDocumentStorageSASService, DocumentStorageSASService>();
         services.AddSingleton<IContestazioniStorageService, ContestazioniStorageService>();
+        services.AddSingleton<PortaleFatture.BE.Infrastructure.Gateway.Storage.AppIO.IAppIoFinancialReportStorageService, PortaleFatture.BE.Infrastructure.Gateway.Storage.AppIO.AppIoFinancialReportStorageService>();
 
 
         // rel righe storage

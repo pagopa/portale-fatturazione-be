@@ -29,6 +29,21 @@ public sealed class PortaleFattureOptions : IPortaleFattureOptions
     public AzureFunction? AzureFunction { get; set; } 
     public StorageRelDownload? StorageRelDownload { get; set; }  
     public Language? Language { get; set; }
+    public StorageAppIO? StorageAppIO { get; set; }
+}
+
+/// <summary>
+/// Blob storage dei financial report APP IO (i file indicati da <c>file_path</c> di
+/// <c>appio.messages_final_report</c>, nella forma <c>abfss://container@account.dfs.core.windows.net/percorso</c>).
+/// È facoltativo: senza <see cref="AccountName"/> e <see cref="AccountKey"/> il download del file
+/// risponde 503, il resto di APP IO funziona. <see cref="BlobContainerName"/> serve solo per un
+/// file_path relativo, che non indica il container.
+/// </summary>
+public class StorageAppIO()
+{
+    public string? AccountName { get; set; }
+    public string? AccountKey { get; set; }
+    public string? BlobContainerName { get; set; }
 }
 
 public class StorageRelDownload()

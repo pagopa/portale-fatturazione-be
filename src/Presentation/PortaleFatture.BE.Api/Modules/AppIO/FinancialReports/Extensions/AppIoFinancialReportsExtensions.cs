@@ -80,6 +80,55 @@ public static class AppIoFinancialReportsExtensions
     public static bool IsValida(this AppIoFinancialReportsDettaglioRequest? req)
         => !string.IsNullOrWhiteSpace(req?.ContractId) && !string.IsNullOrWhiteSpace(req?.YearQuarter);
 
+    /// <summary>
+    /// Converte la richiesta del file del financial report nella query MediatR.
+    /// </summary>
+    /// <param name="req">La richiesta, già validata con <see cref="IsValida(AppIoFinancialReportsFileRequest?)"/>.</param>
+    /// <param name="authInfo">Le informazioni di autenticazione dell'utente.</param>
+    /// <returns>La query.</returns>
+    public static AppIoFinancialReportFilePathQuery Map(this AppIoFinancialReportsFileRequest req, AuthenticationInfo authInfo)
+        => new(authInfo) { Year = req.Year!.Value, Quarter = req.Quarter!.Value };
+
+    /// <summary>
+    /// Dice se la richiesta del file indica un trimestre: anno positivo e trimestre da 1 a 4.
+    /// </summary>
+    /// <param name="req">La richiesta, eventualmente assente.</param>
+    /// <returns>true se anno e trimestre sono validi.</returns>
+    public static bool IsValida(this AppIoFinancialReportsFileRequest? req)
+        => req?.Year is > 0 && req.Quarter is >= 1 and <= 4;
+
+    /// <summary>
+    /// Nome con cui il file viene consegnato al client: costruito dal trimestre, non dal percorso sul
+    /// blob storage, di cui conserva solo l'estensione.
+    /// </summary>
+    /// <param name="req">La richiesta con anno e trimestre.</param>
+    /// <param name="filePath">Il percorso del file sul blob storage.</param>
+    /// <returns>Il nome del file.</returns>
+    public static string FileName(this AppIoFinancialReportsFileRequest req, string filePath)
+        => $"financial-report-appio-{req.Year}_{req.Quarter}{Estensione(filePath)}";
+
+    /// <summary>
+    /// Tipo di contenuto del file, dall'estensione del percorso.
+    /// </summary>
+    /// <param name="filePath">Il percorso del file sul blob storage.</param>
+    /// <returns>Il MIME type.</returns>
+    public static string MimeType(this string filePath) => Estensione(filePath) switch
+    {
+        ".xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        ".xls" => "application/vnd.ms-excel",
+        ".csv" => "text/csv",
+        _ => "application/octet-stream"
+    };
+
+    // Solo estensioni brevi e alfanumeriche: il nome del file non deve portarsi dietro pezzi del percorso
+    private static string Estensione(string filePath)
+    {
+        var path = filePath.Trim();
+        var query = path.IndexOf('?');
+        var ext = Path.GetExtension(query >= 0 ? path[..query] : path).ToLowerInvariant();
+        return ext.Length is > 1 and <= 6 && ext.Skip(1).All(char.IsAsciiLetterOrDigit) ? ext : string.Empty;
+    }
+
     // 2026_1 -> { Quarter = "Q1", Value = "2026_1" }
     /// <summary>
     /// Converte i trimestri nelle voci del filtro "Trimestre", ordinate per valore.
@@ -129,6 +178,7 @@ public static class AppIoFinancialReportsExtensions
                 {
                     Numero = p.Numero,
                     Data = p.Data,
+                    DataReport = p.GoldUpdatedAt,
                     CodiceArticolo = p.CodiceArticolo,
                     Quantita = p.Quantita,
                     Importo = p.Importo,
@@ -160,7 +210,10 @@ public static class AppIoFinancialReportsExtensions
             YearQuarter = dto.YearQuarter,
             Year = dto.Year,
             Quarter = dto.Quarter,
-            ImportoTotale = dto.ImportoTotale,
+            // Formato valuta: la vista somma decimal(18,6), la pagina mostra due decimali
+            ImportoTotale = dto.ImportoTotale.HasValue
+                ? Math.Round(dto.ImportoTotale.Value, 2, MidpointRounding.AwayFromZero)
+                : null,
             Posizioni = dto.Posizioni.Select(p => new AppIoFinancialReportsDettaglioPosizioneResponse
             {
                 Numero = p.Numero,

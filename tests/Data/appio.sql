@@ -160,15 +160,20 @@ GO
 --   TRY_CONVERT(date, TRIM(x), 23), cioè 'AAAA-MM-GG'. APPIO-FR-005 ha apposta Data con spazi
 --   (' 2026-01-15 ' -> 2026-01-15, prova del TRIM) e Riferimento_data in formato errato
 --   ('31/12/2025' -> NULL: la vista non si rompe).
+--   file_path (dal 12/11/2026 nella vista, NON esposto dall'API): un file per trimestre, ripetuto
+--   uguale su tutte le righe, nella forma abfss://container@account.dfs.core.windows.net/percorso
+--   (account sintetico). Lo legge solo il download api/appio/financialreports/blob/download.
+--   gold_updated_at (dal 12/11/2026 nella vista vwAppioFinalReport, esposto dall'API) vale
+--   2026-07-16 08:00 su tutte le righe tranne APPIO-FR-005, che lo ha NULL apposta.
 IF NOT EXISTS (SELECT 1 FROM appio.messages_final_report WHERE contract_id LIKE 'APPIO-OB%')
 INSERT INTO appio.messages_final_report
  ([year], [quarter], contract_id, Tipo_doc, CODICE_AGGIUNTIVO, Valuta, ID, Numero, [Data], Progressivo_Riga, Codice_articolo,
-  Descrizione_riga, Q_ta, Importo, Cod_iva, Condizioni, CAUSALE, Riferimento_data, internalistitutionid, billing_iteration, file_path) VALUES
- (2026, 2, 'APPIO-OB1', 'TD01', 'AGG1', 'EUR', 1, 'APPIO-FR-001', '2026-07-15', 1, 'ART-A', 'Messaggi',  1000, 10.00, 'IVA22', 'TP02', 'Servizio APP IO Q2', '2026-06-30', 'APPIO-ENTE-1', 1, 'appio/2026/2/fr-001.csv'),
- (2026, 2, 'APPIO-OB1', 'TD01', 'AGG1', 'EUR', 1, 'APPIO-FR-001', '2026-07-15', 2, 'ART-B', 'Pagamenti',  500, 10.00, 'IVA22', 'TP02', 'Servizio APP IO Q2', '2026-06-30', 'APPIO-ENTE-1', 1, 'appio/2026/2/fr-001.csv'),
- (2026, 2, 'APPIO-OB1', 'TD04', 'AGG1', 'EUR', 2, 'APPIO-FR-002', '2026-07-20', 1, 'ART-A', 'Rettifica',  500,  5.00, 'IVA22', 'TP02', 'Nota Q2',            '2026-06-30', 'APPIO-ENTE-1', 1, 'appio/2026/2/fr-002.csv'),
- (2026, 2, 'APPIO-OB2', 'TD01', 'AGG2', 'EUR', 3, 'APPIO-FR-003', '2026-07-15', 1, 'ART-A', 'Messaggi',   200,  2.00, 'IVA22', 'TP02', 'Servizio APP IO Q2', '2026-06-30', 'APPIO-ENTE-2', 1, 'appio/2026/2/fr-003.csv'),
- (2026, 1, 'APPIO-OB1', 'TD01', 'AGG1', 'EUR', 4, 'APPIO-FR-004', '2026-04-15', 1, 'ART-A', 'Messaggi',   300,  3.00, 'IVA22', 'TP02', 'Servizio APP IO Q1', '2026-03-31', 'APPIO-ENTE-1', 1, 'appio/2026/1/fr-004.csv'),
- (2025, 4, 'APPIO-OB4', 'TD01', 'AGG4', 'EUR', 5, 'APPIO-FR-005', ' 2026-01-15 ', 1, 'ART-A', 'Messaggi',   100,  1.00, 'IVA22', 'TP02', 'Servizio APP IO Q4', '31/12/2025', 'APPIO-ENTE-4', 1, 'appio/2025/4/fr-005.csv'),
- (2026, 2, 'APPIO-OB9', 'TD01', 'AGG9', 'EUR', 9, 'APPIO-FR-009', '2026-07-15', 1, 'ART-A', 'Messaggi',   100,  1.00, 'IVA22', 'TP02', 'Orfano',             '2026-06-30', 'APPIO-ENTE-9', 1, 'appio/2026/2/fr-009.csv');
+  Descrizione_riga, Q_ta, Importo, Cod_iva, Condizioni, CAUSALE, Riferimento_data, internalistitutionid, billing_iteration, file_path, gold_updated_at) VALUES
+ (2026, 2, 'APPIO-OB1', 'TD01', 'AGG1', 'EUR', 1, 'APPIO-FR-001', '2026-07-15', 1, 'ART-A', 'Messaggi',  1000, 10.00, 'IVA22', 'TP02', 'Servizio APP IO Q2', '2026-06-30', 'APPIO-ENTE-1', 1, 'abfss://appioexport@stappioseed.dfs.core.windows.net/export/sap/2026/2/appio-final_report-2026-q2.csv', '2026-07-16T08:00:00'),
+ (2026, 2, 'APPIO-OB1', 'TD01', 'AGG1', 'EUR', 1, 'APPIO-FR-001', '2026-07-15', 2, 'ART-B', 'Pagamenti',  500, 10.00, 'IVA22', 'TP02', 'Servizio APP IO Q2', '2026-06-30', 'APPIO-ENTE-1', 1, 'abfss://appioexport@stappioseed.dfs.core.windows.net/export/sap/2026/2/appio-final_report-2026-q2.csv', '2026-07-16T08:00:00'),
+ (2026, 2, 'APPIO-OB1', 'TD04', 'AGG1', 'EUR', 2, 'APPIO-FR-002', '2026-07-20', 1, 'ART-A', 'Rettifica',  500,  5.00, 'IVA22', 'TP02', 'Nota Q2',            '2026-06-30', 'APPIO-ENTE-1', 1, 'abfss://appioexport@stappioseed.dfs.core.windows.net/export/sap/2026/2/appio-final_report-2026-q2.csv', '2026-07-16T08:00:00'),
+ (2026, 2, 'APPIO-OB2', 'TD01', 'AGG2', 'EUR', 3, 'APPIO-FR-003', '2026-07-15', 1, 'ART-A', 'Messaggi',   200,  2.00, 'IVA22', 'TP02', 'Servizio APP IO Q2', '2026-06-30', 'APPIO-ENTE-2', 1, 'abfss://appioexport@stappioseed.dfs.core.windows.net/export/sap/2026/2/appio-final_report-2026-q2.csv', '2026-07-16T08:00:00'),
+ (2026, 1, 'APPIO-OB1', 'TD01', 'AGG1', 'EUR', 4, 'APPIO-FR-004', '2026-04-15', 1, 'ART-A', 'Messaggi',   300,  3.00, 'IVA22', 'TP02', 'Servizio APP IO Q1', '2026-03-31', 'APPIO-ENTE-1', 1, 'abfss://appioexport@stappioseed.dfs.core.windows.net/export/sap/2026/1/appio-final_report-2026-q1.csv', '2026-07-16T08:00:00'),
+ (2025, 4, 'APPIO-OB4', 'TD01', 'AGG4', 'EUR', 5, 'APPIO-FR-005', ' 2026-01-15 ', 1, 'ART-A', 'Messaggi',   100,  1.00, 'IVA22', 'TP02', 'Servizio APP IO Q4', '31/12/2025', 'APPIO-ENTE-4', 1, 'abfss://appioexport@stappioseed.dfs.core.windows.net/export/sap/2025/4/appio-final_report-2025-q4.csv', NULL),
+ (2026, 2, 'APPIO-OB9', 'TD01', 'AGG9', 'EUR', 9, 'APPIO-FR-009', '2026-07-15', 1, 'ART-A', 'Messaggi',   100,  1.00, 'IVA22', 'TP02', 'Orfano',             '2026-06-30', 'APPIO-ENTE-9', 1, 'abfss://appioexport@stappioseed.dfs.core.windows.net/export/sap/2026/2/appio-final_report-2026-q2.csv', '2026-07-16T08:00:00');
 GO
