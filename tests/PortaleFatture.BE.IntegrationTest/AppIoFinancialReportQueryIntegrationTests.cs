@@ -135,19 +135,32 @@ public class AppIoFinancialReportQueryIntegrationTests
 
     /// <summary>
     /// Il percorso del file del financial report è uno per trimestre (ripetuto su tutte le righe):
-    /// la query restituisce quello del trimestre chiesto, null dove non ci sono documenti.
+    /// la query restituisce un percorso per ciascun trimestre chiesto che ha documenti, e salta gli altri.
     /// </summary>
-    [TestCase(2026, 2, "abfss://appioexport@stappioseed.dfs.core.windows.net/export/sap/2026/2/appio-final_report-2026-q2.csv")]
-    [TestCase(2026, 1, "abfss://appioexport@stappioseed.dfs.core.windows.net/export/sap/2026/1/appio-final_report-2026-q1.csv")]
-    [TestCase(2025, 4, "abfss://appioexport@stappioseed.dfs.core.windows.net/export/sap/2025/4/appio-final_report-2025-q4.csv")]
-    [TestCase(2026, 3, null)]
-    [TestCase(2025, 2, null)]
-    public async Task FilePath_ShouldEssereQuelloDelTrimestre(int year, int quarter, string? atteso)
+    [Test]
+    public async Task FilePaths_ShouldEssereUnoPerTrimestreConDocumenti()
     {
-        var path = await _handler.Send(new AppIoFinancialReportFilePathQuery(Auth()) { Year = year, Quarter = quarter });
+        const string radice = "abfss://appioexport@stappioseed.dfs.core.windows.net/export/sap/";
 
-        Assert.That(path, Is.EqualTo(atteso));
+        var paths = await _handler.Send(new AppIoFinancialReportFilePathsQuery(Auth())
+        {
+            YearQuarters = ["2026_2", "2026_1", "2025_4", "2026_3", "2025_2"]
+        });
+
+        Assert.That(paths, Is.EquivalentTo(new Dictionary<string, string>
+        {
+            ["2026_2"] = radice + "2026/2/appio-final_report-2026-q2.csv",
+            ["2026_1"] = radice + "2026/1/appio-final_report-2026-q1.csv",
+            ["2025_4"] = radice + "2025/4/appio-final_report-2025-q4.csv",
+        }));
     }
+
+    /// <summary>
+    /// Nessun trimestre chiesto: nessun percorso, senza interrogare il database con una IN vuota.
+    /// </summary>
+    [Test]
+    public async Task FilePaths_SenzaTrimestri_ShouldEssereVuoto()
+        => Assert.That(await _handler.Send(new AppIoFinancialReportFilePathsQuery(Auth())), Is.Empty);
 
     /// <summary>
     /// La garanzia che il filtro "Codice Fiscale" deve dare: ogni codice proposto trova almeno una
