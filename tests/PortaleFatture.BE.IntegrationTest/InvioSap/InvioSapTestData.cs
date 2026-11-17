@@ -16,6 +16,7 @@ public static class InvioSapTestData
     public const string RottaDownload = "/api/fatture/invio-sap/download";
     public const string RottaDownloadReinviate = "/api/fatture/invio-sap/download/reinviate";
     public const string RottaGenera = "/api/fatture/invio-sap/genera";
+    public const string RottaReinvia = "/api/fatture/invio-sap/reinvia";
     public const string RottaLock = "/api/fatture/invio-sap/lock";
     public const string RottaStati = "/api/fatture/invio-sap/stati";
     public const string RottaAnni = "/api/fatture/invio-sap/anni";

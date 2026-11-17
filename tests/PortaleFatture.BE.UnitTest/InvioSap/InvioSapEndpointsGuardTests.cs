@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 namespace PortaleFatture.BE.UnitTest.InvioSap;
 
 /// <summary>
-/// Gemello di <c>FattureCriticalEndpointsGuardTests</c> per le dieci rotte di PF-735 (be-invio-sap.md §3):
+/// Gemello di <c>FattureCriticalEndpointsGuardTests</c> per le undici rotte di PF-735 (be-invio-sap.md §3):
 /// nessuno deve poterle togliere o rinominare per sbaglio da <c>FattureEndpoints.cs</c>, e
 /// <c>generazioni/*</c> non deve tornare (D2 ritirata: l'avanzamento si legge dalle viste).
 /// </summary>
@@ -17,6 +17,7 @@ public class InvioSapEndpointsGuardTests
         "api/fatture/invio-sap/download",
         "api/fatture/invio-sap/download/reinviate",
         "api/fatture/invio-sap/genera",
+        "api/fatture/invio-sap/reinvia",
         "api/fatture/invio-sap/lock",
         "api/fatture/invio-sap/stati",
         "api/fatture/invio-sap/anni",
