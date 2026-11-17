@@ -3,16 +3,17 @@ using System.Text.Json.Serialization;
 namespace PortaleFatture.BE.Infrastructure.Common.SEND.Fatture.Dto;
 
 /// <summary>
-/// Body di <c>createRun</c> per la generazione JSON (be-invio-sap.md §8.7). DATA chiede sicuramente
-/// <c>batchId</c> e <c>idMessaggio</c>; <c>parametri</c> (tipologia e mese nel formato legacy) resta finche'
+/// Body di <c>createRun</c> per la generazione JSON (be-invio-sap.md §8.7). I nomi sono quelli dei parametri
+/// della pipeline, maiuscole comprese: <c>BatchId</c> e <c>MessageId</c> (una chiave diversa Synapse la ignora
+/// e il parametro arriva vuoto: è successo il 17/11/2026). <c>parametri</c> (tipologia e mese nel formato legacy) resta finche'
 /// DATA non conferma di non usarlo (punto D-c).
 /// </summary>
 public sealed class InvioSapPipelineRequest
 {
-    [JsonPropertyName("batchId")]
+    [JsonPropertyName("BatchId")]
     public int BatchId { get; init; }
 
-    [JsonPropertyName("idMessaggio")]
+    [JsonPropertyName("MessageId")]
     public long IdMessaggio { get; init; }
 
     [JsonPropertyName("parametri")]
