@@ -37,13 +37,16 @@ public sealed class PortaleFattureOptions : IPortaleFattureOptions
 /// <c>appio.messages_final_report</c>, nella forma <c>abfss://container@account.dfs.core.windows.net/percorso</c>).
 /// È facoltativo: senza <see cref="AccountName"/> e <see cref="AccountKey"/> il download del file
 /// risponde 503, il resto di APP IO funziona. <see cref="BlobContainerName"/> serve solo per un
-/// file_path relativo, che non indica il container.
+/// file_path relativo, che non indica il container. <see cref="Endpoint"/> è l'URL del servizio blob
+/// (es. un private endpoint o un DNS personalizzato): se assente vale
+/// <c>https://&lt;AccountName&gt;.blob.core.windows.net</c>.
 /// </summary>
 public class StorageAppIO()
 {
     public string? AccountName { get; set; }
     public string? AccountKey { get; set; }
     public string? BlobContainerName { get; set; }
+    public string? Endpoint { get; set; }
 }
 
 public class StorageRelDownload()

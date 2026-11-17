@@ -69,10 +69,34 @@ public sealed class AppIoFinancialReportStorageService(IPortaleFattureOptions op
 {
     private readonly StorageAppIO? _storage = options.StorageAppIO;
 
+    /// <summary>
+    /// L'URL del servizio blob: <see cref="StorageAppIO.Endpoint"/> se valorizzato (con o senza schema,
+    /// es. un private endpoint o un DNS personalizzato), altrimenti
+    /// <c>https://&lt;AccountName&gt;.blob.core.windows.net</c>. Anche un data lake (abfss, endpoint dfs)
+    /// espone gli stessi file dall'endpoint blob.
+    /// </summary>
+    /// <param name="storage">La configurazione dello storage.</param>
+    /// <returns>L'URL, oppure null se l'endpoint configurato non è un URL https valido.</returns>
+    public static Uri? BlobServiceUri(StorageAppIO storage)
+    {
+        var endpoint = storage.Endpoint?.Trim();
+        if (string.IsNullOrEmpty(endpoint))
+            return new Uri($"https://{storage.AccountName}.blob.core.windows.net");
+
+        if (!endpoint.Contains("://"))
+            endpoint = "https://" + endpoint;
+        return Uri.TryCreate(endpoint.TrimEnd('/'), UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps
+            ? uri
+            : null;
+    }
+
     /// <inheritdoc/>
     public bool CanRead(string filePath)
     {
         if (string.IsNullOrWhiteSpace(_storage?.AccountName) || string.IsNullOrWhiteSpace(_storage.AccountKey))
+            return false;
+        // Un endpoint configurato ma non valido equivale a storage non configurato (503), non a un 500
+        if (BlobServiceUri(_storage) is null)
             return false;
 
         var file = AppIoFilePath.Parse(filePath);
@@ -87,8 +111,7 @@ public sealed class AppIoFinancialReportStorageService(IPortaleFattureOptions op
     {
         var file = AppIoFilePath.Parse(filePath);
         var credential = new StorageSharedKeyCredential(_storage!.AccountName, _storage.AccountKey);
-        // Anche un data lake (abfss, endpoint dfs) espone gli stessi file dall'endpoint blob
-        var service = new BlobServiceClient(new Uri($"https://{_storage.AccountName}.blob.core.windows.net"), credential);
+        var service = new BlobServiceClient(BlobServiceUri(_storage)!, credential);
         var blob = service.GetBlobContainerClient(file.Container ?? _storage.BlobContainerName).GetBlobClient(file.BlobName);
         try
         {

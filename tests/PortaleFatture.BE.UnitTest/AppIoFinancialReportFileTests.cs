@@ -93,44 +93,136 @@ public class AppIoFinancialReportFileTests
     public void CanRead_PercorsoSenzaFile_ShouldEssereFalse(string filePath)
         => Assert.That(Servizio().CanRead(filePath), Is.False);
 
+    // --- Endpoint ---
+
+    /// <summary>
+    /// Senza Endpoint vale l'endpoint blob pubblico dell'account; con Endpoint vale quello, con o senza
+    /// schema e senza la barra finale.
+    /// </summary>
+    [TestCase(null, "https://stappio.blob.core.windows.net/")]
+    [TestCase("  ", "https://stappio.blob.core.windows.net/")]
+    [TestCase("https://stappio.privatelink.blob.core.windows.net", "https://stappio.privatelink.blob.core.windows.net/")]
+    [TestCase("https://storage.uat.example.it/", "https://storage.uat.example.it/")]
+    [TestCase("storage.uat.example.it", "https://storage.uat.example.it/")]
+    public void BlobServiceUri_ShouldUsareEndpointSeConfigurato(string? endpoint, string atteso)
+        => Assert.That(AppIoFinancialReportStorageService.BlobServiceUri(new StorageAppIO { AccountName = "stappio", Endpoint = endpoint })!.ToString(),
+            Is.EqualTo(atteso));
+
+    /// <summary>
+    /// Un Endpoint non https o non valido non viene usato: il file risulta non leggibile (503), non si
+    /// tenta una connessione in chiaro né si va in eccezione.
+    /// </summary>
+    [TestCase("http://storage.uat.example.it")]
+    [TestCase("https://")]
+    [TestCase("ftp://storage.uat.example.it")]
+    public void CanRead_EndpointNonValido_ShouldEssereFalse(string endpoint)
+    {
+        var servizio = new AppIoFinancialReportStorageService(new PortaleFattureOptions
+        {
+            StorageAppIO = new StorageAppIO { AccountName = "stappio", AccountKey = "Y2hpYXZl", Endpoint = endpoint }
+        });
+        Assert.That(servizio.CanRead(Abfss), Is.False);
+    }
+
+    /// <summary>
+    /// Con un Endpoint valido resta il controllo sull'account di file_path: la chiave vale per un solo account.
+    /// </summary>
+    [TestCase("stappio", true)]
+    [TestCase("altroaccount", false)]
+    public void CanRead_EndpointValido_ShouldMantenereIlControlloSullAccount(string account, bool atteso)
+    {
+        var servizio = new AppIoFinancialReportStorageService(new PortaleFattureOptions
+        {
+            StorageAppIO = new StorageAppIO { AccountName = account, AccountKey = "Y2hpYXZl", Endpoint = "https://storage.uat.example.it" }
+        });
+        Assert.That(servizio.CanRead(Abfss), Is.EqualTo(atteso));
+    }
+
+
     // --- richiesta ---
 
-    private static AppIoFinancialReportsFileRequest Richiesta(int? year, int? quarter) => new() { Year = year, Quarter = quarter };
+    private static AppIoFinancialReportsFileRequest Richiesta(int? year, params string?[]? quarters) => new() { Year = year, Quarters = quarters! };
+
+    private static readonly object[] RichiesteNonValide =
+    [
+        new object?[] { null, new string?[] { "2026_1" } },
+        new object?[] { 0, new string?[] { "2026_1" } },
+        new object?[] { -2026, Array.Empty<string?>() },
+        new object?[] { 26, Array.Empty<string?>() },
+        new object?[] { 20260, Array.Empty<string?>() },
+        new object?[] { 2026, new string?[] { "2026" } },
+        new object?[] { 2026, new string?[] { "2026_0" } },
+        new object?[] { 2026, new string?[] { "2026_5" } },
+        new object?[] { 2026, new string?[] { "2026-1" } },
+        new object?[] { 2026, new string?[] { "2026_1", "" } },
+        new object?[] { 2026, new string?[] { "2026_1", null } },
+        new object?[] { 2026, new string?[] { "2026_1' OR 1=1 --" } },
+        new object?[] { 2026, new string?[] { "2025_4" } },
+        new object?[] { 2026, new string?[] { "2026_1", "2025_4" } },
+    ];
 
     /// <summary>
-    /// Anno positivo e trimestre da 1 a 4, entrambi obbligatori.
+    /// Trimestri dell'anno nel formato 'AAAA_T' con T da 1 a 4: spazi tolti, ripetizioni eliminate,
+    /// ordine crescente.
     /// </summary>
-    [TestCase(2026, 1, true)]
-    [TestCase(2026, 4, true)]
-    [TestCase(2026, 0, false)]
-    [TestCase(2026, 5, false)]
-    [TestCase(0, 1, false)]
-    [TestCase(-1, 1, false)]
-    [TestCase(null, 1, false)]
-    [TestCase(2026, null, false)]
-    public void IsValida_ShouldRichiedereAnnoPositivoETrimestreDa1A4(int? year, int? quarter, bool atteso)
-        => Assert.That(Richiesta(year, quarter).IsValida(), Is.EqualTo(atteso));
+    [TestCase(new[] { "2026_1" }, new[] { "2026_1" })]
+    [TestCase(new[] { "2026_2", "2026_1" }, new[] { "2026_1", "2026_2" })]
+    [TestCase(new[] { " 2026_1 ", "2026_1", "2026_4" }, new[] { "2026_1", "2026_4" })]
+    public void Trimestri_Validi_ShouldEssereNormalizzati(string[] quarters, string[] attesi)
+        => Assert.That(Richiesta(2026, quarters).Trimestri(), Is.EqualTo(attesi));
 
     /// <summary>
-    /// Una richiesta assente non è valida.
+    /// Senza trimestri (lista assente o vuota) si chiedono tutti i trimestri dell'anno: la rotta poi
+    /// scarica quelli che hanno un file.
     /// </summary>
     [Test]
-    public void IsValida_RichiestaAssente_ShouldEssereFalse()
-        => Assert.That(((AppIoFinancialReportsFileRequest?)null).IsValida(), Is.False);
-
-    /// <summary>
-    /// La richiesta diventa la query con anno e trimestre.
-    /// </summary>
-    [Test]
-    public void Map_ShouldPortareAnnoETrimestre()
+    public void Trimestri_Assenti_ShouldEssereTuttiQuelliDellAnno()
     {
-        var query = Richiesta(2026, 2).Map(new AuthenticationInfo { Id = "utente-test", Prodotto = "prod-appio", Ruolo = Ruolo.ADMIN });
+        var attesi = new[] { "2026_1", "2026_2", "2026_3", "2026_4" };
 
         Assert.Multiple(() =>
         {
-            Assert.That(query.Year, Is.EqualTo(2026));
-            Assert.That(query.Quarter, Is.EqualTo(2));
+            Assert.That(Richiesta(2026, null).Trimestri(), Is.EqualTo(attesi));
+            Assert.That(Richiesta(2026).Trimestri(), Is.EqualTo(attesi));
         });
+    }
+
+    /// <summary>
+    /// Anno assente o non di quattro cifre, trimestre non nel formato 'AAAA_T', fuori da 1-4 o di un
+    /// altro anno: richiesta non valida.
+    /// </summary>
+    [TestCaseSource(nameof(RichiesteNonValide))]
+    public void Trimestri_NonValidi_ShouldEssereNull(int? year, string?[] quarters)
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(Richiesta(year, quarters).Trimestri(), Is.Null);
+            Assert.That(Richiesta(year, quarters).IsValida(), Is.False);
+        });
+    }
+
+    /// <summary>
+    /// Richiesta assente o senza anno: non valida.
+    /// </summary>
+    [Test]
+    public void IsValida_RichiestaAssenteOSenzaAnno_ShouldEssereFalse()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(((AppIoFinancialReportsFileRequest?)null).IsValida(), Is.False);
+            Assert.That(new AppIoFinancialReportsFileRequest().IsValida(), Is.False);
+        });
+    }
+
+    /// <summary>
+    /// La richiesta diventa la query con i trimestri normalizzati.
+    /// </summary>
+    [Test]
+    public void Map_ShouldPortareITrimestri()
+    {
+        var query = Richiesta(2026, "2026_2", " 2026_1").Map(new AuthenticationInfo { Id = "utente-test", Prodotto = "prod-appio", Ruolo = Ruolo.ADMIN });
+
+        Assert.That(query.YearQuarters, Is.EqualTo(new[] { "2026_1", "2026_2" }));
     }
 
     // --- nome e tipo del file ---
@@ -147,7 +239,14 @@ public class AppIoFinancialReportFileTests
     [TestCase("export/x.c$v", "financial-report-appio-2026_1")]
     [TestCase("export/x.csv/../../etc/passwd", "financial-report-appio-2026_1")]
     public void FileName_ShouldUsareIlTrimestreESoloLEstensioneDelPercorso(string filePath, string atteso)
-        => Assert.That(Richiesta(2026, 1).FileName(filePath), Is.EqualTo(atteso));
+        => Assert.That(AppIoFinancialReportsExtensions.FileName("2026_1", filePath), Is.EqualTo(atteso));
+
+    /// <summary>
+    /// Lo ZIP prende il nome dal primo e dall'ultimo trimestre chiesto.
+    /// </summary>
+    [Test]
+    public void ZipName_ShouldIndicareIlPrimoEUltimoTrimestre()
+        => Assert.That(AppIoFinancialReportsExtensions.ZipName(["2025_4", "2026_1", "2026_2"]), Is.EqualTo("financial-report-appio-2025_4-2026_2.zip"));
 
     /// <summary>
     /// Il tipo di contenuto viene dall'estensione; se non è riconosciuta, è un file binario generico.
@@ -163,20 +262,20 @@ public class AppIoFinancialReportFileTests
     // --- query ---
 
     /// <summary>
-    /// Il percorso si legge dalla vista, una sola riga (il dato è ripetuto uguale su tutte le righe
-    /// del trimestre), filtrando per anno e trimestre con parametri.
+    /// I percorsi si leggono dalla vista, uno per trimestre (il dato è ripetuto uguale su tutte le righe
+    /// del trimestre), filtrando i trimestri con un parametro.
     /// </summary>
     [Test]
-    public void SelectFilePath_ShouldLeggereUnaRigaDallaVistaPerAnnoETrimestre()
+    public void SelectFilePaths_ShouldLeggereUnaRigaPerTrimestreDallaVista()
     {
-        var sql = AppIoFinancialReportSQLBuilder.SelectFilePath();
+        var sql = AppIoFinancialReportSQLBuilder.SelectFilePaths();
 
         Assert.Multiple(() =>
         {
-            Assert.That(sql, Does.Contain("SELECT TOP 1 f.[file_path]"));
             Assert.That(sql, Does.Contain("FROM [be].[vwAppioFinalReport] f"));
-            Assert.That(sql, Does.Contain("f.[year] = @Year"));
-            Assert.That(sql, Does.Contain("f.[quarter] = @Quarter"));
+            Assert.That(sql, Does.Contain("f.[trimestre] IN @YearQuarters"));
+            Assert.That(sql, Does.Contain("PARTITION BY f.[trimestre]"));
+            Assert.That(sql, Does.Contain("p.Riga = 1"));
             Assert.That(sql, Does.Not.Contain("appio."));
         });
     }

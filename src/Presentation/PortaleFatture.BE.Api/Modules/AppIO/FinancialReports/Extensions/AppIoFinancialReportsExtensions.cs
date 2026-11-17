@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using PortaleFatture.BE.Api.Modules.AppIO.FinancialReports.Request;
 using PortaleFatture.BE.Api.Modules.AppIO.FinancialReports.Response;
 using PortaleFatture.BE.Core.Auth;
@@ -86,26 +87,55 @@ public static class AppIoFinancialReportsExtensions
     /// <param name="req">La richiesta, già validata con <see cref="IsValida(AppIoFinancialReportsFileRequest?)"/>.</param>
     /// <param name="authInfo">Le informazioni di autenticazione dell'utente.</param>
     /// <returns>La query.</returns>
-    public static AppIoFinancialReportFilePathQuery Map(this AppIoFinancialReportsFileRequest req, AuthenticationInfo authInfo)
-        => new(authInfo) { Year = req.Year!.Value, Quarter = req.Quarter!.Value };
+    public static AppIoFinancialReportFilePathsQuery Map(this AppIoFinancialReportsFileRequest req, AuthenticationInfo authInfo)
+        => new(authInfo) { YearQuarters = [.. req.Trimestri()!] };
+
+    private static readonly Regex _trimestre = new(@"^\d{4}_[1-4]$", RegexOptions.CultureInvariant);
 
     /// <summary>
-    /// Dice se la richiesta del file indica un trimestre: anno positivo e trimestre da 1 a 4.
+    /// I trimestri della richiesta, senza spazi e senza ripetizioni, in ordine crescente; senza
+    /// trimestri, i quattro trimestri dell'anno. Null se la richiesta non è valida: anno assente o non
+    /// di quattro cifre, oppure un trimestre non nel formato 'AAAA_T' (T da 1 a 4) o di un altro anno.
     /// </summary>
     /// <param name="req">La richiesta, eventualmente assente.</param>
-    /// <returns>true se anno e trimestre sono validi.</returns>
-    public static bool IsValida(this AppIoFinancialReportsFileRequest? req)
-        => req?.Year is > 0 && req.Quarter is >= 1 and <= 4;
+    /// <returns>I trimestri, oppure null.</returns>
+    public static IReadOnlyList<string>? Trimestri(this AppIoFinancialReportsFileRequest? req)
+    {
+        if (req?.Year is not { } year || year is < 1000 or > 9999)
+            return null;
+        if (req.Quarters is not { Length: > 0 } quarters)
+            return [.. Enumerable.Range(1, 4).Select(q => $"{year}_{q}")];
+
+        var trimestri = quarters.Select(q => q?.Trim() ?? string.Empty).ToList();
+        if (trimestri.Any(t => !_trimestre.IsMatch(t) || !t.StartsWith($"{year}_", StringComparison.Ordinal)))
+            return null;
+        return [.. trimestri.Distinct().Order(StringComparer.Ordinal)];
+    }
 
     /// <summary>
-    /// Nome con cui il file viene consegnato al client: costruito dal trimestre, non dal percorso sul
-    /// blob storage, di cui conserva solo l'estensione.
+    /// Dice se la richiesta del file è valida (v. <see cref="Trimestri"/>).
     /// </summary>
-    /// <param name="req">La richiesta con anno e trimestre.</param>
+    /// <param name="req">La richiesta, eventualmente assente.</param>
+    /// <returns>true se i trimestri sono validi.</returns>
+    public static bool IsValida(this AppIoFinancialReportsFileRequest? req) => req.Trimestri() is not null;
+
+    /// <summary>
+    /// Nome con cui il file di un trimestre viene consegnato al client (o messo nello ZIP): costruito dal
+    /// trimestre, non dal percorso sul blob storage, di cui conserva solo l'estensione.
+    /// </summary>
+    /// <param name="yearQuarter">Il trimestre nel formato 'AAAA_T'.</param>
     /// <param name="filePath">Il percorso del file sul blob storage.</param>
     /// <returns>Il nome del file.</returns>
-    public static string FileName(this AppIoFinancialReportsFileRequest req, string filePath)
-        => $"financial-report-appio-{req.Year}_{req.Quarter}{Estensione(filePath)}";
+    public static string FileName(string yearQuarter, string filePath)
+        => $"financial-report-appio-{yearQuarter}{Estensione(filePath)}";
+
+    /// <summary>
+    /// Nome dello ZIP con i file di più trimestri: dal primo all'ultimo trimestre dei file contenuti.
+    /// </summary>
+    /// <param name="trimestri">I trimestri dei file nello ZIP, in ordine crescente.</param>
+    /// <returns>Il nome dello ZIP.</returns>
+    public static string ZipName(IReadOnlyList<string> trimestri)
+        => $"financial-report-appio-{trimestri[0]}-{trimestri[^1]}.zip";
 
     /// <summary>
     /// Tipo di contenuto del file, dall'estensione del percorso.
