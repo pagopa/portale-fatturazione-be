@@ -26,10 +26,6 @@ on:
         type: boolean
         default: false
 
-concurrency:
-  group: version-promote
-  cancel-in-progress: false
-
 jobs:
   scope:
     name: Resolve components
@@ -78,6 +74,9 @@ jobs:
     name: Compute version
     needs: scope
     runs-on: ubuntu-24.04
+    concurrency:
+      group: version-promote
+      cancel-in-progress: false
     permissions:
       contents: write
       issues: write
