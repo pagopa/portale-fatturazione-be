@@ -47,24 +47,24 @@ public sealed class AppIoFinancialReportCodiciFiscaliQueryPersistence(AppIoFinan
 }
 
 /// <summary>
-/// Legge da [be].[vwAppioFinalReport] il percorso del file del financial report di un trimestre.
+/// Legge da [be].[vwAppioFinalReport] il percorso del file del financial report di ciascun trimestre chiesto.
 /// </summary>
-/// <param name="command">La query con anno e trimestre.</param>
-public sealed class AppIoFinancialReportFilePathQueryPersistence(AppIoFinancialReportFilePathQuery command) : DapperBase, IQuery<string?>
+/// <param name="command">La query con i trimestri.</param>
+public sealed class AppIoFinancialReportFilePathsQueryPersistence(AppIoFinancialReportFilePathsQuery command) : DapperBase, IQuery<IEnumerable<Dto.AppIoFinancialReportFilePathDto>>
 {
-    private readonly AppIoFinancialReportFilePathQuery _command = command;
-    private static readonly string _sql = AppIoFinancialReportSQLBuilder.SelectFilePath();
+    private readonly AppIoFinancialReportFilePathsQuery _command = command;
+    private static readonly string _sql = AppIoFinancialReportSQLBuilder.SelectFilePaths();
 
     /// <summary>
-    /// Restituisce il percorso del file, oppure null se il trimestre non ha documenti.
+    /// Restituisce un percorso per trimestre; i trimestri senza documenti non compaiono.
     /// </summary>
     /// <param name="connection">La connessione al database.</param>
     /// <param name="schema">Lo schema del contesto (non usato: la vista è nello schema be).</param>
     /// <param name="transaction">La transazione corrente, se presente.</param>
     /// <param name="cancellationToken">Il token di annullamento.</param>
-    /// <returns>Il percorso del file sul blob storage.</returns>
-    public async Task<string?> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
-        => (await ((IDatabase)this).SelectAsync<string>(connection!, _sql, new { _command.Year, _command.Quarter }, transaction)).FirstOrDefault();
+    /// <returns>Le coppie trimestre-percorso.</returns>
+    public async Task<IEnumerable<Dto.AppIoFinancialReportFilePathDto>> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken cancellationToken = default)
+        => await ((IDatabase)this).SelectAsync<Dto.AppIoFinancialReportFilePathDto>(connection!, _sql, new { _command.YearQuarters }, transaction);
 }
 
 /// <summary>

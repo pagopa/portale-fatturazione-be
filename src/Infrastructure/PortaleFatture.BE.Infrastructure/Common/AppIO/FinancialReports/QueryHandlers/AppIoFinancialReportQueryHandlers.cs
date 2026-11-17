@@ -74,24 +74,28 @@ public sealed class AppIoFinancialReportCodiciFiscaliQueryHandler(IFattureDbCont
 }
 
 /// <summary>
-/// Gestisce la lettura del percorso del file del financial report APP IO di un trimestre.
+/// Gestisce la lettura dei percorsi dei file dei financial report APP IO di uno o più trimestri.
 /// </summary>
 /// <param name="factory">La factory del contesto database.</param>
-public sealed class AppIoFinancialReportFilePathQueryHandler(IFattureDbContextFactory factory)
-    : IRequestHandler<AppIoFinancialReportFilePathQuery, string?>
+public sealed class AppIoFinancialReportFilePathsQueryHandler(IFattureDbContextFactory factory)
+    : IRequestHandler<AppIoFinancialReportFilePathsQuery, IReadOnlyDictionary<string, string>>
 {
     private readonly IFattureDbContextFactory _factory = factory;
 
     /// <summary>
-    /// Restituisce il percorso del file sul blob storage.
+    /// Restituisce i percorsi dei file sul blob storage, per trimestre.
     /// </summary>
-    /// <param name="command">La query con anno e trimestre.</param>
+    /// <param name="command">La query con i trimestri.</param>
     /// <param name="ct">Il token di annullamento.</param>
-    /// <returns>Il percorso, oppure null se il trimestre non ha documenti.</returns>
-    public async Task<string?> Handle(AppIoFinancialReportFilePathQuery command, CancellationToken ct)
+    /// <returns>Trimestre → percorso; i trimestri senza documenti non compaiono.</returns>
+    public async Task<IReadOnlyDictionary<string, string>> Handle(AppIoFinancialReportFilePathsQuery command, CancellationToken ct)
     {
+        if (command.YearQuarters.Length == 0)
+            return new Dictionary<string, string>();
+
         using var uow = await _factory.Create(cancellationToken: ct);
-        return await uow.Query(new AppIoFinancialReportFilePathQueryPersistence(command), ct);
+        var righe = await uow.Query(new AppIoFinancialReportFilePathsQueryPersistence(command), ct);
+        return righe.ToDictionary(r => r.YearQuarter, r => r.FilePath, StringComparer.OrdinalIgnoreCase);
     }
 }
 
