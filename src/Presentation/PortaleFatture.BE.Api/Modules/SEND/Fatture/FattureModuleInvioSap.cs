@@ -58,6 +58,19 @@ public partial class FattureModule
 
     [Authorize(Roles = $"{Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
     [EnableCors(CORSLabel)]
+    [ProducesResponseType(typeof(InvioSapGeneraResponse), StatusCodes.Status202Accepted)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(InvioSapConflittoResponse), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    private async Task<IResult> PutInvioSapReinviaAsync(HttpContext context, [FromBody] InvioSapReinviaRequest? request, [FromServices] IMediator handler)
+    {
+        var esito = await handler.Send(request.Map(context.GetAuthInfo()));
+        return esito.ToResult();
+    }
+
+    [Authorize(Roles = $"{Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
+    [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
