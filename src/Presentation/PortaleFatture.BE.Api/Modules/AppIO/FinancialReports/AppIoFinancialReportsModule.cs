@@ -205,14 +205,15 @@ public partial class AppIoFinancialReportsModule : Module, IRegistrableModule
     }
 
     /// <summary>
-    /// Endpoint per il download del file del financial report AppIO di un trimestre, letto dal blob
-    /// storage. Il percorso del file (file_path) resta nel backend: al client arriva solo il contenuto.
+    /// Endpoint per il download dei file dei financial report AppIO dei trimestri chiesti, letti dal blob
+    /// storage: con un trimestre il file, con più trimestri uno ZIP con un file per trimestre. I percorsi
+    /// dei file (file_path) restano nel backend: al client arriva solo il contenuto.
     /// </summary>
     /// <param name="context">Il contesto HTTP della richiesta.</param>
-    /// <param name="request">La richiesta con anno e trimestre, entrambi obbligatori.</param>
+    /// <param name="request">La richiesta con i trimestri ('AAAA_T'), almeno uno.</param>
     /// <param name="handler">Il mediatore per gestire la logica della richiesta.</param>
     /// <param name="storage">Il servizio di lettura dal blob storage AppIO.</param>
-    /// <returns>Il file; 404 se il trimestre non ha documenti o il file non c'è, 503 se lo storage non è configurato per quel percorso.</returns>
+    /// <returns>Il file o lo ZIP; 400 se i trimestri non sono validi, 404 se nessun trimestre ha un file, 503 se lo storage non è configurato per quei percorsi.</returns>
     [Authorize(Roles = $"{Ruolo.OPERATOR}, {Ruolo.ADMIN}", Policy = Module.PagoPAPolicy)]
     [EnableCors(CORSLabel)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -227,18 +228,10 @@ public partial class AppIoFinancialReportsModule : Module, IRegistrableModule
     [FromServices] IMediator handler,
     [FromServices] IAppIoFinancialReportStorageService storage)
     {
-        if (!request.IsValida())
+        if (request.Trimestri() is not { } trimestri)
             return Results.BadRequest();
 
-        var filePath = await handler.Send(request!.Map(context.GetAuthInfo()));
-        if (string.IsNullOrWhiteSpace(filePath))
-            return NotFound();
-        if (!storage.CanRead(filePath))
-            return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
-
-        var content = await storage.OpenReadAsync(filePath, context.RequestAborted);
-        if (content == null)
-            return NotFound();
-        return Results.Stream(content, filePath.MimeType(), request.FileName(filePath));
+        var percorsi = await handler.Send(request!.Map(context.GetAuthInfo()));
+        return await trimestri.ToDownload(percorsi, storage, context.RequestAborted);
     }
 }
