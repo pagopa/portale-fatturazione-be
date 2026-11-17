@@ -430,6 +430,12 @@ public partial class FattureModule : Module, IRegistrableModule
            .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
 
         endpointRouteBuilder
+           .MapPut("api/fatture/invio-sap/reinvia", PutInvioSapReinviaAsync)
+           .WithName("Invio a SAP: re-invia fatture gia' inviate di un rigo, con nota e storno per fattura")
+           .SetOpenApi(Module.DatiFattureLabel)
+           .WithMetadata(new EnableCorsAttribute(policyName: Module.CORSLabel));
+
+        endpointRouteBuilder
            .MapPost("api/fatture/invio-sap/download", PostInvioSapDownloadAsync)
            .WithName("Invio a SAP: Excel della griglia")
            .SetOpenApi(Module.DatiFattureLabel)

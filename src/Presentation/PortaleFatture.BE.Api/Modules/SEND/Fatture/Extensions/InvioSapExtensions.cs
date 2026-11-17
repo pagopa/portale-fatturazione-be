@@ -112,6 +112,25 @@ public static class InvioSapExtensions
         };
     }
 
+    public static InvioSapReinviaCommand Map(this InvioSapReinviaRequest? request, IAuthenticationInfo authInfo)
+    {
+        request ??= new();
+        return new InvioSapReinviaCommand(authInfo)
+        {
+            Anno = request.Anno,
+            Mese = request.Mese,
+            TipologiaFattura = request.TipologiaFattura,
+            Fatture = request.Fatture?
+                .Select(f => f is null ? null : new InvioSapFatturaDaReinviare
+                {
+                    IdFattura = f.IdFattura,
+                    Nota = f.Nota,
+                    NumeroDocumentoStorno = f.NumeroDocumentoStorno
+                })
+                .ToList()
+        };
+    }
+
     public static IReadOnlyList<InvioSapGrigliaResponse> Map(this IEnumerable<InvioSapGrigliaDto> righe) =>
         righe.Select(r => new InvioSapGrigliaResponse
         {
