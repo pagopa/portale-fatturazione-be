@@ -732,9 +732,19 @@ public static class FattureExtensions
                         var relNonFirmate = await handler.Send(new RelNonFatturateQuery(authInfo));
                         relNonFirmate = relNonFirmate!.Where(x => x.TipologiaFattura == tipologia && x.Anno == request.Anno && x.Mese == request.Mese).ToList();
 
-                        var gestioneFattureTipologia = gestioneFattureReport?.Where(x => x.TipologiaFattura == tipologia).MapExport();
+                        var gestioneFattureTipologia = gestioneFattureReport.NonFatturatePerReport(tipologia, request.Anno, request.Mese);
 
-                        reports.Add($"Lista {tipologia} {year} {month}", fatture!.ReportFattureRel(fattureSospese, relNonFirmate, gestioneFattureTipologia, month, tipologia));
+                        // PF-1029: sheet "Quadrature Reg Esecuzione", stessa query del report di quadratura
+                        // (api/rel/pagopa/quadratura/ricerca) sul periodo e sugli enti del report.
+                        var quadratura = await handler.Send(new RelTestataQueryGetByListaEntiQuadratura(authInfo)
+                        {
+                            Anno = request.Anno,
+                            Mese = request.Mese,
+                            TipologiaFattura = tipologia,
+                            EntiIds = request.IdEnti
+                        });
+
+                        reports.Add($"Lista {tipologia} {year} {month}", fatture!.ReportFattureRel(fattureSospese, relNonFirmate, gestioneFattureTipologia, month, tipologia, quadratura?.Quadratura ?? []));
                         // TODO: "Fatture Posicipate {tipologia}" sheet dedicato => [vwReportFatturePosticipate]
                     }
                     break;
@@ -746,7 +756,7 @@ public static class FattureExtensions
                         var relNonFirmate = await handler.Send(new RelNonFatturateQuery(authInfo));
                         relNonFirmate = relNonFirmate!.Where(x => x.TipologiaFattura == tipologia && x.Anno == request.Anno && x.Mese == request.Mese).ToList();
 
-                        var gestioneFattureTipologia = gestioneFattureReport?.Where(x => x.TipologiaFattura == tipologia).MapExport();
+                        var gestioneFattureTipologia = gestioneFattureReport.NonFatturatePerReport(tipologia, request.Anno, request.Mese);
 
                         reports.Add($"Lista {tipologia} {year} {month}", fatture!.ReportFattureRel(fattureSospese, relNonFirmate, gestioneFattureTipologia, request.Mese.GetMonth(), tipologia));
                         // TODO: "Fatture Posicipate {tipologia}" sheet dedicato => [vwReportFatturePosticipate]
@@ -761,7 +771,7 @@ public static class FattureExtensions
                         var relNonFirmate = await handler.Send(new RelNonFatturateQuery(authInfo));
                         relNonFirmate = relNonFirmate!.Where(x => x.TipologiaFattura == tipologia && x.Anno == request.Anno && x.Mese == request.Mese).ToList();
 
-                        var gestioneFattureTipologia = gestioneFattureReport?.Where(x => x.TipologiaFattura == tipologia).MapExport();
+                        var gestioneFattureTipologia = gestioneFattureReport.NonFatturatePerReport(tipologia, request.Anno, request.Mese);
 
                         reports.Add($"Lista {tipologia} {year} {month}", fatture!.ReportFattureRel(fattureSospese, relNonFirmate, gestioneFattureTipologia, request.Mese.GetMonth(), tipologia));
                         // TODO: "Fatture Posicipate {tipologia}" sheet dedicato => [vwReportFatturePosticipate]
@@ -772,7 +782,7 @@ public static class FattureExtensions
                     if (commesse.IsNotEmpty())
                     {
                         // PF-984: sheet "Non Fatturate {mese}" anche per l'anticipo, come per i saldi
-                        var gestioneFattureTipologia = gestioneFattureReport?.Where(x => x.TipologiaFattura == tipologia).MapExport();
+                        var gestioneFattureTipologia = gestioneFattureReport.NonFatturatePerReport(tipologia, request.Anno, request.Mese);
                         reports.Add($"Lista ANTICIPO {year} {month}", commesse!.ReportFattureModuloCommessa(request.Mese.GetMonth(), gestioneFattureTipologia));
                     }
                     break;
@@ -781,7 +791,7 @@ public static class FattureExtensions
                     if (acconto.IsNotEmpty())
                     {
                         // PF-984: sheet "Non Fatturate {mese}" anche per l'acconto, come per i saldi
-                        var gestioneFattureTipologia = gestioneFattureReport?.Where(x => x.TipologiaFattura == tipologia).MapExport();
+                        var gestioneFattureTipologia = gestioneFattureReport.NonFatturatePerReport(tipologia, request.Anno, request.Mese);
                         reports.Add($"Lista ACCONTO {year} {month}", acconto!.ReportFattureAcconto(request.Mese.GetMonth(), gestioneFattureTipologia));
                     }
                     break;
@@ -1157,64 +1167,156 @@ public static class FattureExtensions
         return true;
     }
 
+    /// <summary>
+    /// Valore di <c>Stato</c> (cioè <c>gf.Azione</c> di <c>be.vwGestioneFattureReport</c>) di una fattura eliminata
+    /// dalla pagina Gestione Fatture. L'altro valore possibile nello sheet è <c>POSTICIPATA</c>.
+    /// </summary>
+    internal const string AzioneEliminata = "ELIMINATA";
+
+    /// <summary>
+    /// PF-753: righe dello sheet "Non Fatturate" per il report di una tipologia e di un periodo. Le posticipate
+    /// restano tutte, di qualunque periodo; le eliminate solo quelle del mese di competenza del report
+    /// (<c>Anno</c>/<c>Mese</c> della vista sono il periodo di riferimento della fattura in Gestione Fatture).
+    /// </summary>
+    /// <param name="righe">Righe di <c>be.vwGestioneFattureReport</c>, di tutte le tipologie; <c>null</c> se la query non ha restituito nulla.</param>
+    /// <param name="tipologia">Tipologia del report (es. <c>PRIMO SALDO</c>, <c>ANTICIPO</c>).</param>
+    /// <param name="anno">Anno del report.</param>
+    /// <param name="mese">Mese del report.</param>
+    /// <returns>Righe pronte per l'export, oppure <c>null</c> se <paramref name="righe"/> è <c>null</c>.
+    /// Una sequenza vuota fa sì che lo sheet non venga prodotto.</returns>
+    /// <remarks>
+    /// Il confronto sullo stato ignora maiuscole e spazi: il dato è testuale e un valore come <c>" eliminata "</c>
+    /// non deve sfuggire al filtro. Uno stato <c>null</c> o diverso da ELIMINATA è trattato come posticipata
+    /// (entra sempre), come prima del PF-753. Il report delle non inviate non passa da qui: non ha un mese, e lì
+    /// le eliminate entrano tutte (confermato dal prodotto il 20/11/2026).
+    /// </remarks>
+    internal static IEnumerable<GestioneFattureReportExcelDto>? NonFatturatePerReport(this IEnumerable<GestioneFattureReportDto>? righe, string tipologia, int? anno, int? mese)
+        => righe?
+            // Solo la tipologia del report: ogni report ha il proprio sheet "Non Fatturate".
+            .Where(x => x.TipologiaFattura == tipologia)
+            // Posticipate (e stati diversi da ELIMINATA): sempre; eliminate: solo del periodo del report.
+            .Where(x => !string.Equals(x.Stato?.Trim(), AzioneEliminata, StringComparison.OrdinalIgnoreCase)
+                     || (x.Anno == anno && x.Mese == mese))
+            .MapExport();
+
     // PF-984: sheet "Non Fatturate {mese}" (posticipate + eliminate) per anticipo e acconto. Senza mese,
     // come nel report delle non inviate, il nome resta "Non Fatturate" come per i saldi.
     private static void AddNonFatturate(this DataSet dataSet, IEnumerable<GestioneFattureReportExcelDto>? gestioneFatture, string month)
     {
         if (gestioneFatture is not null && gestioneFatture.Any())
-            dataSet.Tables.Add(gestioneFatture.FillOneTable($"Non Fatturate {month}".Trim()));
+            dataSet.Tables.Add(gestioneFatture.NonFatturateTable($"Non Fatturate {month}".Trim()));
     }
 
+    /// <summary>
+    /// PF-1029: indice (base 0) della prima colonna sommata nello sheet "Non Fatturate": "Totale Notifiche
+    /// Analogiche" (Order 11 di <see cref="GestioneFattureReportExcelDto"/>). Le colonne prima sono testo, il numero
+    /// fattura (long, non sommato), Anno e Mese, che non vanno sommati.
+    /// </summary>
+    internal const int NonFatturateStartToSum = 10;
+
+    /// <summary>PF-1029: prima colonna sommata nello sheet "Quadrature Reg Esecuzione": la stessa del download di
+    /// quadratura (default 6 di <c>FillOneSheetWithTotalsRel</c>), così i due file hanno gli stessi totali.</summary>
+    internal const int QuadratureStartToSum = 6;
+
+    /// <summary>
+    /// PF-1029: totali (SUBTOTAL) di una tabella di <see cref="RelNonFatturataDto"/>: imponibile e ivato. Anno e Mese no.
+    /// Usata dallo sheet "Reg. Esec. PAC non firmate" dei saldi e dal report "Reg Esecuzioni non fatturate".
+    /// </summary>
+    public static DataTable AddTotaliRelNonFatturate(this DataTable table)
+        => table.AddTotali(nameof(RelNonFatturataDto.Totale), nameof(RelNonFatturataDto.TotaleIva));
+
+    /// <summary>PF-1029: Excel del report "Reg Esecuzioni non fatturate" (<c>api/rel/pagopa/nonfatturate</c>): Legenda e
+    /// foglio dati con i totali.</summary>
+    public static DataSet ReportRelNonFatturate(this IEnumerable<RelNonFatturataDto> rel)
+    {
+        var dataSet = new DataSet().AddLegenda(ReportLegende.RelNonFatturate, null);
+        dataSet.Tables.Add(rel.FillOneTable(ReportLegende.SheetRelNonFatturate).AddTotaliRelNonFatturate());
+        return dataSet;
+    }
+
+    /// <summary>
+    /// PF-1029: Excel del report Andamento Credito Sospeso: Legenda e foglio dati con i totali (SUBTOTAL) sul solo
+    /// "Imponibile Fattura €". "Credito Cumulato €" è un saldo progressivo per ente: sommarlo non ha significato.
+    /// Anno, Mese e numero fattura no.
+    /// </summary>
+    public static DataSet ReportAndamentoCreditoSospeso(this IEnumerable<ReportAndamentoCreditoSospesoExcelDto> righe)
+    {
+        var dataSet = new DataSet().AddLegenda(ReportLegende.AndamentoCreditoSospeso, null);
+        dataSet.Tables.Add(righe.FillOneTable(ReportLegende.SheetAndamentoCreditoSospeso)
+            .AddTotali(nameof(ReportAndamentoCreditoSospesoExcelDto.ImponibileFattura)));
+        return dataSet;
+    }
+
+    /// <summary>
+    /// PF-1029: Excel del report Quadrature Regolare Esecuzione (<c>api/rel/pagopa/quadratura/ricerca</c>): Legenda e
+    /// foglio dati con i totali, sulle stesse colonne dello sheet di quadratura del report PRIMO SALDO.
+    /// </summary>
+    public static DataSet ReportQuadratureRel(this IEnumerable<RelQuadraturaDto> quadratura)
+    {
+        var dataSet = new DataSet().AddLegenda(ReportLegende.QuadratureRel, null);
+        dataSet.Tables.Add(quadratura.FillTableWithTotalsRel(QuadratureStartToSum, ReportLegende.SheetQuadratureRel));
+        return dataSet;
+    }
+
+    /// <summary>
+    /// PF-753: tabella dello sheet "Non Fatturate", con le colonne ridimensionate sul contenuto invece che sulla
+    /// sola intestazione (ragione sociale, id ente e note restano leggibili senza allargarle a mano). Va usata in
+    /// tutti i punti che producono lo sheet, così la resa è la stessa in ogni report.
+    /// </summary>
+    /// <param name="gestioneFatture">Righe già filtrate (v. <see cref="NonFatturatePerReport"/>).</param>
+    /// <param name="nome">Nome del foglio, es. <c>Non Fatturate</c> o <c>Non Fatturate FEBBRAIO</c>.</param>
+    /// <remarks>PF-1029: con la riga "Totali:" (formule SUBTOTAL), sommata dalla colonna
+    /// <see cref="NonFatturateStartToSum"/> in poi, cioè dai totali notifiche e importi: Anno e Mese restano fuori.</remarks>
+    internal static DataTable NonFatturateTable(this IEnumerable<GestioneFattureReportExcelDto> gestioneFatture, string nome)
+    {
+        var table = gestioneFatture.FillTableWithTotalsRel(NonFatturateStartToSum, nome);
+        table.ExtendedProperties[ExcelExtensions.AutoFitProperty] = true;
+        return table;
+    }
+
+    // PF-753: dei sei gruppi restituiti da FattureCommessaExcelQuery restano nel report solo 0 (Com.),
+    // 3 (Com. fatt.) e 4 (Com. non fatt.). Gli sheet "Com. stimate", "Com. stimate fatt." e
+    // "Com. eliminate fatt." (gruppi 1, 2 e 5) non vengono più prodotti.
     public static byte[] ReportFattureModuloCommessa(this List<IEnumerable<FattureCommessaExcelDto>> commesse, string month, IEnumerable<GestioneFattureReportExcelDto>? gestioneFatture = null)
     {
-        DataSet? dataSet = new();
+        DataSet? dataSet = new DataSet().AddLegenda(ReportLegende.Anticipo, month);
         for (var i = 0; i < commesse.Count; i++)
         {
             if (i == 0)
                 dataSet.Tables.Add(commesse[i]!.FillTableWithTotalsRel(0, $"Com. {month}"));
-            else if (i == 1)
-                dataSet.Tables.Add(commesse[i]!.FillTableWithTotalsRel(0, $"Com. stimate {month}"));
-            else if (i == 2)
-                dataSet.Tables.Add(commesse[i]!.FillTableWithTotalsRel(0, $"Com. stimate fatt. {month}"));
             else if (i == 3)
                 dataSet.Tables.Add(commesse[i]!.FillTableWithTotalsRel(0, $"Com. fatt. {month}"));
             else if (i == 4)
                 dataSet.Tables.Add(commesse[i]!.FillTableWithTotalsRel(0, $"Com. non fatt. {month}"));
-            else
-                dataSet.Tables.Add(commesse[i]!.FillTableWithTotalsRel(0, $"Com. eliminate fatt. {month}"));
         }
         dataSet.AddNonFatturate(gestioneFatture, month);
 
-        using var memory = dataSet!.ToExcel();
+        using var memory = dataSet!.NormalizzaNomiSheet().ToExcel();
         return memory.ToArray();
     }
 
-public static byte[] ReportFattureSospeseModuloCommessa(this List<IEnumerable<FattureCommessaExcelDto>> commesse, string month)
+    // PF-753: come per l'anticipo emesso, la legenda dell'anticipo sospeso prevede solo "Com. Sospese",
+    // "Com. fatt. Sospese" e "Com. non fatt. Sosp." (gruppi 0, 3 e 4): stimate ed eliminate non più prodotte.
+    public static byte[] ReportFattureSospeseModuloCommessa(this List<IEnumerable<FattureCommessaExcelDto>> commesse, string month)
     {
-        DataSet? dataSet = new();
+        DataSet? dataSet = new DataSet().AddLegenda(ReportLegende.AnticipoSospeso, month);
         for (var i = 0; i < commesse.Count; i++)
         {
             if (i == 0)
                 dataSet.Tables.Add(commesse[i]!.FillTableWithTotalsRel(0, $"Com. Sospese {month}"));
-            else if (i == 1)
-                dataSet.Tables.Add(commesse[i]!.FillTableWithTotalsRel(0, $"Com. stimate Sospese {month}"));
-            else if (i == 2)
-                dataSet.Tables.Add(commesse[i]!.FillTableWithTotalsRel(0, $"Com. stim. fatt Sosp. {month}"));
             else if (i == 3)
                 dataSet.Tables.Add(commesse[i]!.FillTableWithTotalsRel(0, $"Com. fatt. Sospese {month}"));
             else if (i == 4)
                 dataSet.Tables.Add(commesse[i]!.FillTableWithTotalsRel(0, $"Com. non fatt. Sosp. {month}"));
-            else
-                dataSet.Tables.Add(commesse[i]!.FillTableWithTotalsRel(0, $"Com. elim. fatt Sosp. {month}"));
         }
 
-        using var memory = dataSet!.ToExcel();
+        using var memory = dataSet!.NormalizzaNomiSheet().ToExcel();
         return memory.ToArray();
     }
 
     public static byte[] ReportFattureAcconto(this List<IEnumerable<FattureAccontoExcelDto>> commesse, string month, IEnumerable<GestioneFattureReportExcelDto>? gestioneFatture = null)
     {
-        DataSet? dataSet = new();
+        DataSet? dataSet = new DataSet().AddLegenda(ReportLegende.Acconto, month);
         for (var i = 0; i < commesse.Count; i++)
         {
             var fattureNONzero = commesse[i].Where(x => x.TotaleFattura != 0);
@@ -1225,13 +1327,13 @@ public static byte[] ReportFattureSospeseModuloCommessa(this List<IEnumerable<Fa
                 dataSet.Tables.Add(fatturezero!.FillTableWithTotalsRel(0, $"Acconto a zero {month}"));
         }
         dataSet.AddNonFatturate(gestioneFatture, month);
-        using var memory = dataSet!.ToExcel();
+        using var memory = dataSet!.NormalizzaNomiSheet().ToExcel();
         return memory.ToArray();
     }
 
     public static byte[] ReportFattureSospeseAcconto(this List<IEnumerable<FattureAccontoExcelDto>> commesse, string month, IEnumerable<GestioneFattureReportExcelDto>? gestioneFatture = null)
     {
-        DataSet? dataSet = new();
+        DataSet? dataSet = new DataSet().AddLegenda(ReportLegende.AccontoSospeso, month);
         for (var i = 0; i < commesse.Count; i++)
         {
             var fattureNONzero = commesse[i].Where(x => x.TotaleFattura != 0);
@@ -1242,13 +1344,16 @@ public static byte[] ReportFattureSospeseModuloCommessa(this List<IEnumerable<Fa
                 dataSet.Tables.Add(fatturezero!.FillTableWithTotalsRel(0, $"Acconto a zero Sosp. {month}"));
         }
         dataSet.AddNonFatturate(gestioneFatture, month);
-        using var memory = dataSet!.ToExcel();
+        using var memory = dataSet!.NormalizzaNomiSheet().ToExcel();
         return memory.ToArray();
     }
 
-    public static byte[] ReportFattureRel(this List<IEnumerable<FattureRelExcelDto>> fatture, List<IEnumerable<FattureRelSospeseExcelDto>>? fattureSospese, IEnumerable<RelNonFatturataDto>? relNonFirmate, IEnumerable<GestioneFattureReportExcelDto>? gestioneFatture, string month, string tipologia)
+    /// <param name="quadrature">PF-1029: righe dello sheet "Quadrature Reg Esecuzione". Le passa solo il report
+    /// PRIMO SALDO per periodo; <c>null</c> (saldi diversi, report delle non inviate) = legenda e fogli come prima.
+    /// Una sequenza vuota sceglie la legenda del primo saldo ma non produce lo sheet.</param>
+    public static byte[] ReportFattureRel(this List<IEnumerable<FattureRelExcelDto>> fatture, List<IEnumerable<FattureRelSospeseExcelDto>>? fattureSospese, IEnumerable<RelNonFatturataDto>? relNonFirmate, IEnumerable<GestioneFattureReportExcelDto>? gestioneFatture, string month, string tipologia, IEnumerable<RelQuadraturaDto>? quadrature = null)
     {
-        DataSet? dataSet = new();
+        DataSet? dataSet = new DataSet().AddLegenda(quadrature is null ? ReportLegende.FattureEmesse : ReportLegende.FattureEmessePrimoSaldo, month);
         for (var i = 0; i < fatture.Count; i++)
         {
             if (i == 0)
@@ -1259,7 +1364,11 @@ public static byte[] ReportFattureSospeseModuloCommessa(this List<IEnumerable<Fa
                              && x.TipoContratto.Contains("PAC", StringComparison.InvariantCultureIgnoreCase));
                              //&& x.Caricata != 1); // esclusione REL PAC non firmate non più necessaria. 2026-10-13
                 //if (!pacNonFirmate.IsNullNotAny())
-                    dataSet.Tables.Add(pacNonFirmate!.FillOneTable($"Reg. Esec. PAC non firmate"));
+                    dataSet.Tables.Add(pacNonFirmate!.FillOneTable($"Reg. Esec. PAC non firmate").AddTotaliRelNonFatturate());
+
+                // PF-1029: subito dopo le REL, nello stesso ordine della legenda; totali come nel report di quadratura.
+                if (quadrature is not null && quadrature.Any())
+                    dataSet.Tables.Add(quadrature.FillTableWithTotalsRel(QuadratureStartToSum, ReportLegende.SheetQuadratureRel));
             }
             else if (i == 1)
             {
@@ -1283,15 +1392,15 @@ public static byte[] ReportFattureSospeseModuloCommessa(this List<IEnumerable<Fa
         // gruppi in 'fatture'. Prima era nel ramo else del loop (indice >= 2), quindi compariva solo
         // con >= 3 gruppi e spariva silenziosamente con meno. Spostato fuori dal loop.
         if (gestioneFatture is not null && gestioneFatture.Any())
-            dataSet.Tables.Add(gestioneFatture.FillOneTable("Non Fatturate"));
+            dataSet.Tables.Add(gestioneFatture.NonFatturateTable("Non Fatturate"));
 
-        using var memory = dataSet!.ToExcel();
+        using var memory = dataSet!.NormalizzaNomiSheet().ToExcel();
         return memory.ToArray();
     }
 
     public static byte[] ReportFattureSospeseRel(this List<IEnumerable<FattureRelSospeseExcelDto>> fatture, string month, string tipologia)
     {
-        DataSet? dataSet = new();
+        DataSet? dataSet = new DataSet().AddLegenda(ReportLegende.FattureSospese, month);
         for (var i = 0; i < fatture.Count; i++)
         {
             if (i == 0)
@@ -1308,14 +1417,13 @@ public static byte[] ReportFattureSospeseModuloCommessa(this List<IEnumerable<Fa
             //    dataSet.Tables.Add(fatture[i]!.FillTableWithTotalsRel(9, $"Note di Credito Sosp. {month}"));
         }
 
-        using var memory = dataSet!.ToExcel();
+        using var memory = dataSet!.NormalizzaNomiSheet().ToExcel();
         return memory.ToArray();
     }
 
     public static byte[] ReportFattureSospeseRel(this List<IEnumerable<FattureRelSospeseExcelDto>> fatture, FattureListaDto fattureSospeseDettaglio, string month, string tipologia)
     {
-        
-        DataSet? dataSet = new();
+        DataSet? dataSet = new DataSet().AddLegenda(ReportLegende.FattureSospese, month);
         for (var i = 0; i < fatture.Count; i++)
         {
             if (i == 0)
@@ -1331,9 +1439,13 @@ public static byte[] ReportFattureSospeseModuloCommessa(this List<IEnumerable<Fa
         }
 
         // aggiunta sheet: dettaglio fatture sospese
+        // PF-1029: niente riga "Totali:" qui, di proposito. MapDettaglioFattSospese chiude ogni fattura con una riga
+        // "totale:" che ripete la somma delle sue posizioni: un SUBTOTAL sull'intera colonna conterebbe ogni importo
+        // due volte. Deciso il 23/11/2026 di lasciarlo senza totale di colonna (valutate e scartate: SUBTOTAL annidati
+        // sulle righe "totale:" e SUMPRODUCT(SUBTOTAL(OFFSET)) che esclude quelle righe).
         dataSet.Tables.Add(fattureSospeseDettaglio.MapDettaglioFattSospese()!.FillOneTable($"Dett Fatt Sosp {month}"));
 
-        using var memory = dataSet!.ToExcel();
+        using var memory = dataSet!.NormalizzaNomiSheet().ToExcel();
         return memory.ToArray();
     }
 
