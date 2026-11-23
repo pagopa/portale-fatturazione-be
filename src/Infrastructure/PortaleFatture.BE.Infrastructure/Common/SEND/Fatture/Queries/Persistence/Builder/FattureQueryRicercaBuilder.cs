@@ -236,9 +236,20 @@ SELECT listaFatture = (
          ELSE CONVERT(INT, FT.FatturaInviata) 
      END AS 'fattura.inviata',
      ISNULL(FT.Sollecito, '') AS 'fattura.sollecito',
+     CASE
+         WHEN NOT EXISTS (
+             SELECT 1
+             FROM [be].[vwGestioneFattureFormAnniMesi] vam
+             WHERE vam.tipologia_fattura = FT.FkTipologiaFattura
+               AND vam.anno = FT.AnnoRiferimento
+               AND vam.mese = FT.MeseRiferimento
+         ) THEN NULL
+         WHEN FT.FkTipologiaFattura IN ('ANTICIPO', 'ACCONTO') THEN 'ELIMINA'
+         ELSE 'POSTICIPA'
+     END AS 'fattura.azione',
      (
          SELECT
-             ISNULL(tC.[Descrizione],'') AS 'tipologia',  
+             ISNULL(tC.[Descrizione],'') AS 'tipologia',
              '' AS 'riferimentoNumeroLinea',
              ISNULL(FTn.IdDocumento,'') AS 'idDocumento',
              CONVERT(VARCHAR,FTn.DataDocumento, 23) AS 'data',
