@@ -264,13 +264,16 @@ public static class ReflectionExtensions
             }
         }
         table.Rows.Add(rowTot);
+        table.ExtendedProperties[ExcelExtensions.SubtotalRowProperty] = true; // PF-753: totali scritti con SUBTOTAL
         return table;
     }
 
-    public static DataSet FillOneSheetWithTotalsRel<T>(this IEnumerable<T> data, int startToSum = 6)
+    /// <param name="dataTableName">Nome del foglio. Senza, il foglio si chiama <c>"T"</c> (<c>nameof(T)</c> in
+    /// <see cref="ToTablev2{T}"/>): PF-1029 lo passa per i report REL.</param>
+    public static DataSet FillOneSheetWithTotalsRel<T>(this IEnumerable<T> data, int startToSum = 6, string? dataTableName = null)
     {
         var ds = new DataSet();
-        var (table, headers) = ToTablev2<T>();
+        var (table, headers) = ToTablev2<T>(dataTableName);
         DataRow row;
         foreach (var d in data)
         {
@@ -305,6 +308,7 @@ public static class ReflectionExtensions
             }
         }
         table.Rows.Add(rowTot);
+        table.ExtendedProperties[ExcelExtensions.SubtotalRowProperty] = true; // PF-753: totali scritti con SUBTOTAL
         ds.Tables.Add(table);
         return ds;
     }
@@ -325,6 +329,39 @@ public static class ReflectionExtensions
         }
         ds.Tables.Add(table);
         return ds;
+    }
+
+    /// <summary>
+    /// PF-1029: aggiunge in coda a una tabella già riempita (<see cref="FillOneTable{T}"/>, <see cref="FillOneSheetv2{T}"/>)
+    /// la riga vuota e la riga "Totali:", come <see cref="FillTableWithTotalsRel{T}"/>, ma sommando <b>solo</b> le colonne
+    /// indicate. Serve dove fra le colonne numeriche ce ne sono che non vanno sommate (anni, mesi, numeri fattura, saldi
+    /// progressivi come il credito cumulato). La tabella è marcata per la scrittura con SUBTOTAL.
+    /// </summary>
+    /// <param name="table">Tabella con la prima colonna di testo, dove va l'etichetta "Totali:".</param>
+    /// <param name="colonne">Nomi delle proprietà (= colonne) da sommare, di tipo decimal o int.</param>
+    /// <exception cref="ArgumentException">Colonna assente o non numerica, o prima colonna non di testo: è un errore di
+    /// programmazione, meglio un'eccezione che un totale che sparisce in silenzio.</exception>
+    public static DataTable AddTotali(this DataTable table, params string[] colonne)
+    {
+        if (table.Columns.Count == 0 || table.Columns[0].DataType != typeof(string))
+            throw new ArgumentException($"La prima colonna di '{table.TableName}' deve essere di testo per l'etichetta \"Totali:\".", nameof(table));
+
+        var colonneDaSommare = colonne.Select(nome => table.Columns[nome]
+            ?? throw new ArgumentException($"Colonna '{nome}' assente in '{table.TableName}'.", nameof(colonne))).ToList();
+        foreach (var col in colonneDaSommare.Where(c => c.DataType != typeof(decimal) && c.DataType != typeof(int)))
+            throw new ArgumentException($"Colonna '{col.ColumnName}' di '{table.TableName}' non numerica: non si può sommare.", nameof(colonne));
+
+        var righeDati = table.AsEnumerable().ToList();
+        table.Rows.Add(table.NewRow());
+        var rowTot = table.NewRow();
+        rowTot[0] = "Totali:";
+        foreach (var col in colonneDaSommare)
+            rowTot[col] = col.DataType == typeof(decimal)
+                ? righeDati.Sum(r => r.Field<decimal?>(col) ?? 0m)
+                : righeDati.Sum(r => r.Field<int?>(col) ?? 0);
+        table.Rows.Add(rowTot);
+        table.ExtendedProperties[ExcelExtensions.SubtotalRowProperty] = true;
+        return table;
     }
 
     public static DataTable FillOneTable<T>(this IEnumerable<T> data, string? dataTableName = null)
