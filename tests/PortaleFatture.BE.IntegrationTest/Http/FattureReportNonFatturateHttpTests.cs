@@ -1,4 +1,5 @@
 ﻿using System.IO.Compression;
+using ClosedXML.Excel;
 using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -246,10 +247,10 @@ public class FattureReportNonFatturateHttpTests
     private const string EnteAnticipo = "33333333-3333-3333-3333-333333333333";
 
     /// <summary>
-    /// Il report per tipologia legge TUTTO lo staging, senza filtro sull'anno: nel seed statico c'e' una
-    /// ANTICIPO 2025/3 ELIMINATA dell'ente 3, quindi nel report ANTICIPO lo sheet "Non Fatturate" c'e'
-    /// sempre, ed e' giusto cosi'. I test "nessuno sheet" verificano allora che lo sheet non contenga lo
-    /// staging seminato da loro, che sta sull'anno riservato AnnoStaging.
+    /// Il report per tipologia legge tutte le POSTICIPATE, di qualunque periodo, e dal PF-753 le sole
+    /// ELIMINATE del mese del report. I test "nessuno sheet" verificano che lo sheet non contenga lo
+    /// staging seminato da loro, che sta sull'anno riservato AnnoStaging: altre righe statiche del seed
+    /// (posticipate di altri periodi) possono legittimamente farlo comparire.
     /// </summary>
     private static bool ContieneStagingDelTest(Dictionary<string, string> perFoglio) =>
         perFoglio.Any(f => f.Key.StartsWith("Non Fatturate") && f.Value.Contains(AnnoStaging.ToString()));
@@ -271,17 +272,87 @@ public class FattureReportNonFatturateHttpTests
 
     [TestCase("ANTICIPO")]
     [TestCase("ACCONTO")]
-    public async Task AnticipoAcconto_ConEliminata_SheetNonFatturate(string tipologia)
+    public async Task AnticipoAcconto_EliminataDelMeseDelReport_SheetNonFatturate(string tipologia)
     {
         SkipSeMancanoLeVistePf984();
-        SeminaStaging(tipologia, 2, stato: 3, azione: "ELIMINATA");
+        SeminaStaging(tipologia, MeseAnticipo, stato: 3, azione: "ELIMINATA", anno: AnnoAnticipo);
 
         var (stato, fogli, _, perFoglio) = await ReportPeriodo(AnnoAnticipo, MeseAnticipo, tipologia);
 
         Assert.That(stato, Is.EqualTo(HttpStatusCode.OK));
         var nome = $"Non Fatturate {MeseAnticipoNome}";
         Assert.That(fogli, Does.Contain(nome));
-        Assert.That(perFoglio[nome], Does.Contain("ELIMINATA"), "Le eliminate entrano come le posticipate.");
+        Assert.That(perFoglio[nome], Does.Contain("ELIMINATA"), "PF-753: l'eliminata del mese del report entra.");
+    }
+
+    [TestCase("ANTICIPO")]
+    [TestCase("ACCONTO")]
+    public async Task AnticipoAcconto_EliminataDiAltroPeriodo_NonEntra(string tipologia)
+    {
+        SkipSeMancanoLeVistePf984();
+        // PF-753: le eliminate sono limitate al mese di competenza del report; prima entravano tutte.
+        SeminaStaging(tipologia, MeseAnticipo, stato: 3, azione: "ELIMINATA");
+
+        var (stato, _, _, perFoglio) = await ReportPeriodo(AnnoAnticipo, MeseAnticipo, tipologia);
+
+        Assert.That(stato, Is.EqualTo(HttpStatusCode.OK));
+        Assert.That(ContieneStagingDelTest(perFoglio), Is.False,
+            $"Eliminata {AnnoStaging}/{MeseAnticipo}: nel report {AnnoAnticipo}/{MeseAnticipo} non deve comparire.");
+    }
+
+    /// <summary>
+    /// PF-753 sui saldi: nello stesso report le posticipate restano tutte (anche di altri periodi), le
+    /// eliminate solo quelle del mese del report. Si confrontano i periodi (Anno, Mese) delle righe
+    /// seminate, distinti dal resto del seed per ente e anno.
+    /// </summary>
+    // PF-1029 (PF-753): il requisito vale per le quattro tipologie di saldo; il seed ha fatture 2026/2 per
+    // tutte, quindi ogni report esiste e la regola si verifica su ciascuna con le query vere.
+    [TestCase("PRIMO SALDO")]
+    [TestCase("SECONDO SALDO")]
+    [TestCase("VAR. SEMESTRALE")]
+    [TestCase("SEM. SOSPESI")]
+    public async Task Saldo_PosticipateTutte_EliminateSoloDelMese(string tipologia)
+    {
+        SeminaStaging(tipologia, 4);                                                   // posticipata 2028/4
+        SeminaStaging(tipologia, 6, stato: 3, azione: "ELIMINATA");                    // eliminata 2028/6
+        SeminaStaging(tipologia, Mese, stato: 3, azione: "ELIMINATA", anno: Anno);     // eliminata 2026/2
+
+        var (stato, _, contenuti, _) = await ReportNonFatturateConRighe(tipologia);
+
+        Assert.That(stato, Is.EqualTo(HttpStatusCode.OK));
+        Assert.Multiple(() =>
+        {
+            Assert.That(contenuti, Does.Contain(($"{AnnoStaging}", "4", "POSTICIPATA")), "Posticipata di un altro periodo: resta.");
+            Assert.That(contenuti, Does.Contain(($"{Anno}", $"{Mese}", "ELIMINATA")), "Eliminata del mese del report: entra.");
+            Assert.That(contenuti, Does.Not.Contain(($"{AnnoStaging}", "6", "ELIMINATA")), "Eliminata di un altro periodo: esclusa.");
+        });
+    }
+
+    /// <summary>
+    /// PF-1029 (PF-753): nel file scaricato il report ANTICIPO ha solo i fogli della sua legenda; "Com.
+    /// stimate", "Com. stimate fatt." e "Com. eliminate fatt." non ci sono più. Che i gruppi restino
+    /// agganciati al proprio indice (nessuno slittamento di dati) lo verifica il test unit
+    /// Anticipo_GruppiConservanoIlContenuto, con tutti e sei i gruppi valorizzati: qui il seed non
+    /// garantisce dati in ogni gruppo, quindi si verifica l'insieme dei fogli, non il loro contenuto.
+    /// </summary>
+    [Test]
+    public async Task Anticipo_SoloFogliDellaLegenda_SenzaStimateEdEliminate()
+    {
+        SkipSeMancanoLeVistePf984();
+        SeminaStaging("ANTICIPO", 1); // fa comparire anche "Non Fatturate {mese}", l'unico foglio facoltativo
+
+        var (stato, fogli, _, _) = await ReportPeriodo(AnnoAnticipo, MeseAnticipo, "ANTICIPO");
+
+        var previsti = new[] { "Legenda", $"Com. {MeseAnticipoNome}", $"Com. fatt. {MeseAnticipoNome}",
+            $"Com. non fatt. {MeseAnticipoNome}", $"Non Fatturate {MeseAnticipoNome}" };
+        Assert.That(stato, Is.EqualTo(HttpStatusCode.OK));
+        Assert.Multiple(() =>
+        {
+            Assert.That(fogli, Is.SubsetOf(previsti), "Ogni foglio del file deve essere uno di quelli della legenda dell'anticipo.");
+            Assert.That(fogli, Does.Contain($"Com. {MeseAnticipoNome}"), "Il foglio principale c'e': il confronto e' significativo.");
+            Assert.That(fogli.Where(f => f.Contains("stimate") || f.Contains("eliminate")), Is.Empty,
+                "PF-753: 'Com. stimate', 'Com. stimate fatt.' e 'Com. eliminate fatt.' non vanno piu' prodotti.");
+        });
     }
 
     [TestCase("ANTICIPO", "ACCONTO")]
@@ -307,7 +378,7 @@ public class FattureReportNonFatturateHttpTests
     {
         SkipSeMancanoLeVistePf984();
         SeminaStaging("ANTICIPO", 1);
-        SeminaStaging("ACCONTO", 2, stato: 3, azione: "ELIMINATA");
+        SeminaStaging("ACCONTO", MeseAnticipo, stato: 3, azione: "ELIMINATA", anno: AnnoAnticipo);
 
         var (stato, fogli, _, _) = await ReportPeriodo(AnnoAnticipo, MeseAnticipo, "ANTICIPO", "ACCONTO");
 
@@ -379,6 +450,44 @@ public class FattureReportNonFatturateHttpTests
     {
         var elenco = string.Join(",", tipologie.Select(t => $"\"{t}\""));
         return Scarica(RottaNonInviate, $$"""{ "tipologiaFattura": [{{elenco}}], "inviata": 0 }""");
+    }
+
+    /// <summary>
+    /// PF-753: righe dello sheet "Non Fatturate" dell'ente di staging come (Anno, Mese, Stato), lette
+    /// per colonna dall'intestazione. Il confronto sul testo XML del foglio non basta qui: serve sapere
+    /// a quale periodo appartiene ciascuno stato.
+    /// </summary>
+    private async Task<(HttpStatusCode stato, List<string> fogli, List<(string Anno, string Mese, string Stato)> righe,
+        Dictionary<string, string> perFoglio)> ReportNonFatturateConRighe(string tipologia)
+    {
+        var client = _factory.CreateClientAs(Ruolo.ADMIN);
+        var body = $$"""{ "anno": {{Anno}}, "mese": {{Mese}}, "tipologiaFattura": ["{{tipologia}}"] }""";
+        var resp = await client.PostAsync(_factory.WithNonce(Rotta),
+            new StringContent(body, Encoding.UTF8, "application/json"));
+        if (resp.StatusCode != HttpStatusCode.OK) return (resp.StatusCode, [], [], []);
+
+        var fogli = new List<string>();
+        var righe = new List<(string, string, string)>();
+        using var zip = new ZipArchive(new MemoryStream(await resp.Content.ReadAsByteArrayAsync()), ZipArchiveMode.Read);
+        foreach (var xlsx in zip.Entries.Where(e => e.FullName.EndsWith(".xlsx")))
+        {
+            using var buffer = new MemoryStream();
+            await xlsx.Open().CopyToAsync(buffer);
+            buffer.Position = 0;
+            using var wb = new XLWorkbook(buffer);
+            fogli.AddRange(wb.Worksheets.Select(w => w.Name));
+            if (!wb.TryGetWorksheet("Non Fatturate", out var ws)) continue;
+
+            var intestazioni = ws.Row(1).CellsUsed().ToDictionary(c => c.GetString(), c => c.Address.ColumnNumber);
+            foreach (var r in ws.RowsUsed().Skip(1))
+            {
+                if (r.Cell(intestazioni["Id Ente"]).GetString() != IdEnte) continue;
+                righe.Add((r.Cell(intestazioni["Anno"]).GetString(), r.Cell(intestazioni["Mese"]).GetString(),
+                    r.Cell(intestazioni["Stato"]).GetString()));
+            }
+        }
+        TestContext.Out.WriteLine($"  righe ente staging: {string.Join(" | ", righe)}");
+        return (resp.StatusCode, fogli, righe, []);
     }
 
     private async Task<(HttpStatusCode stato, List<string> fogli, string testo,
@@ -479,18 +588,23 @@ public class FattureReportNonFatturateHttpTests
                 1000.00, 1000.00, 10, 10, 2000.00, 1220.00, 1220.00, 2440.00, 1, 0,
                 0, 0, 0, 0, 0, 0, 0, 0);");
 
+    // `anno` diverso da AnnoStaging serve ai casi PF-753 (eliminata del mese del report): quelle righe
+    // sono riconoscibili dall'utente di inserimento e Pulisci le toglie per quello.
     private static void SeminaStaging(string tipologia, int mese, int stato = 0,
-        string azione = "POSTICIPATA", string? ente = null) => Esegui($@"
+        string azione = "POSTICIPATA", string? ente = null, int anno = AnnoStaging) => Esegui($@"
         IF NOT EXISTS (SELECT 1 FROM cfg.GestioneFatture
                        WHERE FkIdEnte='{ente ?? IdEnte}' AND FkTipologiaFattura='{tipologia}'
-                         AND Anno={AnnoStaging} AND Mese={mese})
+                         AND Anno={anno} AND Mese={mese})
         INSERT INTO cfg.GestioneFatture
             (FkIdEnte, FkTipologiaFattura, Anno, Mese, DataInserimento, IdUtenteInserimento, Stato, Azione, Note)
-        VALUES ('{ente ?? IdEnte}', '{tipologia}', {AnnoStaging}, {mese}, GETDATE(), 'integration-test-user',
+        VALUES ('{ente ?? IdEnte}', '{tipologia}', {anno}, {mese}, GETDATE(), '{UtenteTest}',
                 {stato}, '{azione}', N'[]');");
+
+    private const string UtenteTest = "integration-test-user";
 
     private static void Pulisci() => Esegui($@"
         DELETE FROM cfg.GestioneFatture WHERE FkIdEnte='{IdEnte}' AND Anno={AnnoStaging};
+        DELETE FROM cfg.GestioneFatture WHERE FkIdEnte='{IdEnte}' AND IdUtenteInserimento='{UtenteTest}';
         DELETE FROM cfg.GestioneFatture WHERE FkIdEnte='{EnteNonInviata}' AND Anno={AnnoStaging};
         DELETE FROM pfd.FattureRighe WHERE FkIdFattura = {IdFatturaNonInviata};
         DELETE FROM pfd.RelTestata

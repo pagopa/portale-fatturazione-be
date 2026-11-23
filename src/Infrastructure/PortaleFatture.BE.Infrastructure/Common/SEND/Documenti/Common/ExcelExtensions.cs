@@ -284,6 +284,93 @@ public static class ExcelExtensions
         return false;
     }
 
+    /// <summary>
+    /// PF-753: proprietà estesa di una <see cref="DataTable"/> che indica che l'ultima riga è quella dei
+    /// totali (impostata da <c>FillTableWithTotalsRel</c>). <see cref="ToExcel"/> la scrive con
+    /// <c>SUBTOTAL(9, …)</c>, così i totali seguono i filtri applicati in Excel.
+    /// </summary>
+    public const string SubtotalRowProperty = "SubtotalRow";
+
+    /// <summary>PF-753: proprietà estesa di una <see cref="DataColumn"/> con la larghezza fissa (double) della colonna.</summary>
+    public const string ColumnWidthProperty = "Width";
+
+    /// <summary>
+    /// PF-753: proprietà estesa di una <see cref="DataTable"/> che chiede il ridimensionamento automatico delle
+    /// colonne sul contenuto. Open XML non ha un "autofit": la larghezza è stimata in <see cref="ToExcel"/> dal
+    /// testo più lungo fra intestazione e celle (per i testi multiriga, la riga più lunga), con un massimo di
+    /// <see cref="AutoFitMaxChars"/> caratteri. Oltre, la colonna va a capo se ha lo stile Wrapper.
+    /// </summary>
+    public const string AutoFitProperty = "AutoFit";
+
+    /// <summary>
+    /// PF-753: limite, in caratteri, della larghezza calcolata da <see cref="AutoFitProperty"/>. Un testo anomalo
+    /// (es. una ragione sociale di centinaia di caratteri) non deve produrre una colonna enorme.
+    /// </summary>
+    public const int AutoFitMaxChars = 80;
+
+    /// <summary>
+    /// PF-753: numero di caratteri con cui una cella viene mostrata in Excel, usato per stimare la larghezza della
+    /// colonna quando la tabella chiede <see cref="AutoFitProperty"/>. La stima segue il modo in cui
+    /// <see cref="ToExcel"/> scrive il valore:
+    /// <list type="bullet">
+    /// <item>stringa: la riga più lunga (le note sono multiriga, separate da <c>\n</c>, eventualmente <c>\r\n</c>);</item>
+    /// <item>decimale: il numero con separatore delle migliaia e due decimali, più due caratteri di margine
+    /// per il simbolo di valuta o il segno;</item>
+    /// <item>data: 19 caratteri, cioè <c>yyyy/MM/dd HH:mm:ss</c>;</item>
+    /// <item>valore nullo: 0, così una colonna vuota resta larga quanto la sua intestazione.</item>
+    /// </list>
+    /// </summary>
+    public static int DisplayLength(object? value) => value switch
+    {
+        null or DBNull => 0,
+        // Multiriga: conta la riga più lunga, non la somma (la cella va a capo sulle altre righe).
+        string s => s.Split('\n').Max(l => l.TrimEnd('\r').Length),
+        decimal d => d.ToString("#,##0.00", System.Globalization.CultureInfo.InvariantCulture).Length + 2,
+        double d => d.ToString("#,##0.00", System.Globalization.CultureInfo.InvariantCulture).Length + 2,
+        DateTime => 19,
+        _ => value.ToString()?.Length ?? 0,
+    };
+
+    /// <summary>
+    /// PF-753: lettera Excel della colonna a partire dall'indice 0-based (0 → A, 25 → Z, 26 → AA, 701 → ZZ,
+    /// 702 → AAA). Serve a comporre l'intervallo della formula <c>SUBTOTAL</c>. È la numerazione biiettiva in
+    /// base 26: non esiste la "cifra zero", per questo si sottrae 1 a ogni passo.
+    /// </summary>
+    public static string ColumnLetter(int zeroBasedIndex)
+    {
+        var letters = string.Empty;
+        var n = zeroBasedIndex + 1;
+        while (n > 0)
+        {
+            var rem = (n - 1) % 26;
+            letters = (char)('A' + rem) + letters;
+            n = (n - 1) / 26;
+        }
+        return letters;
+    }
+
+    /// <summary>
+    /// PF-753: cella del totale di una colonna scritta come <c>SUBTOTAL(9, X2:Xn)</c>. La funzione 9 è la somma
+    /// che ignora le righe nascoste dai filtri, quindi il totale segue i filtri applicati in Excel. Il valore già
+    /// calcolato viene scritto anche come cache (<see cref="CellValue"/>): chi legge il file senza ricalcolare le
+    /// formule (librerie, anteprime di posta) vede lo stesso numero di prima.
+    /// </summary>
+    /// <param name="zeroBasedColumn">Indice 0-based della colonna nel foglio.</param>
+    /// <param name="lastDataExcelRow">Ultima riga Excel con dati (la riga 1 è l'intestazione).</param>
+    /// <param name="cachedValue">Totale già calcolato da <c>FillTableWithTotalsRel</c>.</param>
+    /// <param name="styleIndex">Stile della colonna, lo stesso delle celle dati.</param>
+    private static Cell SubtotalCell(int zeroBasedColumn, int lastDataExcelRow, decimal cachedValue, uint styleIndex)
+    {
+        var letter = ColumnLetter(zeroBasedColumn);
+        return new Cell
+        {
+            DataType = CellValues.Number,
+            CellFormula = new CellFormula($"SUBTOTAL(9,{letter}2:{letter}{lastDataExcelRow})"),
+            CellValue = new CellValue(cachedValue),
+            StyleIndex = styleIndex,
+        };
+    }
+
     public static MemoryStream ToExcel(this DataSet ds)
     {
         var memoryStream = new MemoryStream();
@@ -313,6 +400,22 @@ public static class ExcelExtensions
                         numbersOfChars[j] = len;
                 }
 
+                // PF-753: ridimensionamento automatico sul contenuto, solo per le tabelle che lo chiedono
+                // (es. sheet "Non Fatturate"). Per ogni colonna si parte dalla lunghezza dell'intestazione,
+                // calcolata sopra, e la si allarga fino alla cella più lunga, senza superare AutoFitMaxChars.
+                // Il limite si applica alle celle e non all'intestazione: una colonna non è mai più stretta
+                // del proprio titolo. La conversione da caratteri a larghezza resta quella qui sotto.
+                if (table.ExtendedProperties[AutoFitProperty] is true)
+                {
+                    for (var j = 0; j < table.Columns.Count; j++)
+                    {
+                        var max = numbersOfChars[j]!.Value;
+                        foreach (DataRow r in table.Rows)
+                            max = Math.Max(max, Math.Min(DisplayLength(r[j]), AutoFitMaxChars));
+                        numbersOfChars[j] = max;
+                    }
+                }
+
                 var lp = 1;
 
                 var sheetPart = workbook.WorkbookPart.AddNewPart<WorksheetPart>();
@@ -337,12 +440,16 @@ public static class ExcelExtensions
                 {
                     columns.Add(column.ColumnName, (XCellStyle)column.ExtendedProperties["Style"]!);
                     var widthPixels = Math.Truncate((256 * numbersOfChars[index]!.Value + Math.Truncate(128f / maxDigitFont)) / 256f * maxDigitFont);
-                    var width = Math.Truncate(((widthPixels - 5f) / maxDigitFont * 100f + 0.5f) / 100f);
+                    var width = Math.Truncate(((widthPixels - 5f) / maxDigitFont * 100f + 0.5f) / 100f) + 5;
+                    // PF-753: larghezza esplicita (es. colonna "Descrizione" della Legenda), altrimenti
+                    // calcolata dalla sola intestazione come prima.
+                    if (column.ExtendedProperties[ColumnWidthProperty] is double fixedWidth)
+                        width = fixedWidth;
                     var cln = new Column
                     {
                         Min = Convert.ToUInt32(index + 1),
                         Max = Convert.ToUInt32(index + 1),
-                        Width = width + 5,
+                        Width = width,
                         CustomWidth = true,
                         Style = Convert.ToUInt32(0),
                     };
@@ -366,11 +473,33 @@ public static class ExcelExtensions
                 }
                 sheetData.AppendChild(headerRow);
 
+                // PF-753: la riga "Totali:" prodotta da FillTableWithTotalsRel è l'ultima della tabella,
+                // preceduta da una riga vuota; le righe dati vanno quindi dalla riga Excel 2 alla (righe - 2) + 1.
+                var hasSubtotalRow = table.ExtendedProperties[SubtotalRowProperty] is true;
+                var dataRowCount = table.Rows.Count - 2;
+                var lastDataExcelRow = dataRowCount + 1;
+
+                var rowIndex = 0;
                 foreach (DataRow dsrow in table.Rows)
                 {
+                    rowIndex++;
+                    // Solo l'ultima riga di una tabella marcata, e solo se ci sono righe dati: senza dati
+                    // l'intervallo sarebbe "X2:X1" (comprenderebbe l'intestazione), quindi restano i valori statici.
+                    var isSubtotalRow = hasSubtotalRow && dataRowCount > 0 && rowIndex == table.Rows.Count;
                     var newRow = new Row();
+                    var colIndex = -1;
                     foreach (var col in columns)
                     {
+                        colIndex++;
+                        // Nella riga dei totali: la prima colonna è l'etichetta "Totali:"; le colonne numeriche
+                        // (decimal o int, cioè quelle che FillTableWithTotalsRel ha sommato) diventano SUBTOTAL;
+                        // le altre (DBNull, testi) passano dal ramo normale qui sotto.
+                        if (isSubtotalRow && colIndex > 0 && dsrow[col.Key] is decimal or int)
+                        {
+                            newRow.AppendChild(SubtotalCell(colIndex, lastDataExcelRow, Convert.ToDecimal(dsrow[col.Key]), Convert.ToUInt32(col.Value)));
+                            continue;
+                        }
+
                         var (cellType, value, type) = TypeFinder.Get(dsrow[col.Key]!);
 
                         CellValue? cellvalue = null;

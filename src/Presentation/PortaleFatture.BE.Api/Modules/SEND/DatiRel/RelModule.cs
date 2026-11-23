@@ -11,6 +11,7 @@ using PortaleFatture.BE.Api.Modules.SEND.DatiFatturazioni.Payload.Request;
 using PortaleFatture.BE.Api.Modules.SEND.DatiRel.Extensions;
 using PortaleFatture.BE.Api.Modules.SEND.DatiRel.Payload.Request;
 using PortaleFatture.BE.Api.Modules.SEND.DatiRel.Payload.Response;
+using PortaleFatture.BE.Api.Modules.SEND.Fatture.Extensions;
 using PortaleFatture.BE.Api.Modules.SEND.Notifiche.Extensions;
 using PortaleFatture.BE.Core.Auth;
 using PortaleFatture.BE.Core.Entities.SEND.DatiRel;
@@ -124,7 +125,7 @@ public partial class RelModule
         var mime = "application/vnd.ms-excel";
         var filename = $"{Guid.NewGuid()}.xlsx";
 
-        var dataSet = rel.FillOneSheetv2();
+        var dataSet = rel.ReportRelNonFatturate();
         var content = dataSet.ToExcel();
         var result = new DisposableStreamResult(content, mime)
         {
@@ -388,7 +389,7 @@ public partial class RelModule
         var mime = "application/vnd.ms-excel";
         var filename = $"{Guid.NewGuid()}.xlsx";
 
-        var dataSet = rels.Quadratura!.FillOneSheetWithTotalsRel();
+        var dataSet = rels.Quadratura!.ReportQuadratureRel();
         var content = dataSet.ToExcel();
         if (binary == null)
             return Ok(new DocumentDto() { Documento = Convert.ToBase64String(content.ToArray()) });

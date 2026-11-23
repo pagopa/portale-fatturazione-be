@@ -126,10 +126,10 @@ public class FattureReportExcelExportTests
         {
             Assert.That(HasColumn(wb, "Non Fatturate", "Stato"), Is.True, "colonna Stato attesa");
             Assert.That(HasColumn(wb, "Non Fatturate", "Id Ente"), Is.True);
-            // due righe dati + intestazione
-            Assert.That(ws.RangeUsed().RowCount(), Is.EqualTo(3));
+            // intestazione + due righe dati + riga vuota + "Totali:" (PF-1029: lo sheet ha la riga dei totali)
+            Assert.That(ws.RangeUsed().RowCount(), Is.EqualTo(5));
             var statiInFoglio = ws.Column(ColIndex(ws, "Stato")).CellsUsed()
-                .Skip(1).Select(c => c.GetString()).ToList();
+                .Skip(1).Select(c => c.GetString()).Where(s => s != "Totali:").ToList();
             Assert.That(statiInFoglio, Is.EquivalentTo(new[] { "POSTICIPATA", "ELIMINATA" }),
                 "Il foglio deve contenere sia le posticipate sia le eliminate (requisito 24/07).");
         });
@@ -258,8 +258,8 @@ public class FattureReportExcelExportTests
 
         Assert.That(wb.TryGetWorksheet("Reg. Esec. PAC non firmate", out var ws), Is.True,
             "Il foglio PAC non firmate e' creato sempre (guard commentato).");
-        // FillOneTable: intestazione + righe dati.
-        Assert.That(ws.RangeUsed()!.RowCount(), Is.EqualTo(3),
+        // Intestazione + due righe dati + riga vuota + "Totali:" (PF-1029: SUBTOTAL su tutte le sheet).
+        Assert.That(ws.RangeUsed()!.RowCount(), Is.EqualTo(5),
             "Le due PAC (firmata e non) devono comparire, la PAL no.");
 
         var valori = ws.CellsUsed().Select(c => c.GetString()).ToList();
