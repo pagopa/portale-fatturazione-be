@@ -153,7 +153,7 @@ public class GestioneFattureFormAggiungiHttpTests
     [Test]
     public async Task Form_LaFinestraDeiMesi_ShouldDipendereDallaTipologia()
     {
-        // Le finestre partono da mesi diversi a seconda della tipologia (anticipo dal mese corrente,
+        // Le finestre partono da mesi diversi a seconda della tipologia (anticipo -2, come in PROD,
         // acconto -1, primo saldo -2, secondo saldo -3) e arrivano tutte a dicembre dell'anno prossimo.
         // Sull'anno corrente questo si vede come un numero di mesi diverso.
         var anno = DateTime.Now.Year;
@@ -163,7 +163,7 @@ public class GestioneFattureFormAggiungiHttpTests
         Assert.That(anticipo, Is.Not.Null);
         Assert.That(secondoSaldo, Is.Not.Null);
         Assert.That(secondoSaldo!.Count, Is.GreaterThan(anticipo!.Count),
-            "Il secondo saldo guarda piu' indietro dell'anticipo (-3 mesi contro 0), quindi sull'anno "
+            "Il secondo saldo guarda piu' indietro dell'anticipo (-3 mesi contro -2), quindi sull'anno "
             + "corrente offre piu' mesi. Se le due finestre coincidessero, la differenziazione per "
             + "tipologia sarebbe andata persa.");
     }
@@ -177,7 +177,7 @@ public class GestioneFattureFormAggiungiHttpTests
     //
     //     da  (mese corrente − offset della tipologia)   a   dicembre dell'anno PROSSIMO
     //
-    // con offset 0 per ANTICIPO, 1 per ACCONTO / VAR. SEMESTRALE / SEM. SOSPESI, 2 per PRIMO SALDO,
+    // con offset 1 per ACCONTO / VAR. SEMESTRALE / SEM. SOSPESI, 2 per ANTICIPO e PRIMO SALDO (ANTICIPO allineato a PROD il 24/11/2026, PF-1003; prima era 0),
     // 3 per SECONDO SALDO — cioè tanto più indietro quanto più tardi arriva il documento nel ciclo.
     //
     // Le attese sono **calcolate** da DateTime.Now come fa la vista, non scritte a mano: una lista di
@@ -185,7 +185,7 @@ public class GestioneFattureFormAggiungiHttpTests
     // invece di segnalare qualcosa.
     // =============================================================================================
 
-    [TestCase("ELIMINA", "ANTICIPO", 0, TestName = "Form_IlPrimoMeseOfferto_ShouldDipendereDallaTipologia(PrimoMeseOfferto: ANTICIPO, dal mese corrente)")]
+    [TestCase("ELIMINA", "ANTICIPO", 2, TestName = "Form_IlPrimoMeseOfferto_ShouldDipendereDallaTipologia(PrimoMeseOfferto: ANTICIPO, -2)")]
     [TestCase("ELIMINA", "ACCONTO", 1, TestName = "Form_IlPrimoMeseOfferto_ShouldDipendereDallaTipologia(PrimoMeseOfferto: ACCONTO, -1)")]
     [TestCase("POSTICIPA", "PRIMO SALDO", 2, TestName = "Form_IlPrimoMeseOfferto_ShouldDipendereDallaTipologia(PrimoMeseOfferto: PRIMO SALDO, -2)")]
     [TestCase("POSTICIPA", "SECONDO SALDO", 3, TestName = "Form_IlPrimoMeseOfferto_ShouldDipendereDallaTipologia(PrimoMeseOfferto: SECONDO SALDO, -3)")]

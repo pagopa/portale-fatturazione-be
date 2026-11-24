@@ -36,6 +36,10 @@ public class FattureRicercaHttpTestsConFlagSpenti : FattureRicercaHttpTests { }
 
 [Property(ApiTestFactory.ProprietaFlagSpenti, "true")]
 [Category("FeatureFlags")]
+public class FattureRicercaAzioneHttpTestsConFlagSpenti : FattureRicercaAzioneHttpTests { }
+
+[Property(ApiTestFactory.ProprietaFlagSpenti, "true")]
+[Category("FeatureFlags")]
 public class FattureWhiteListHttpTestsConFlagSpenti : FattureWhiteListHttpTests { }
 
 [Property(ApiTestFactory.ProprietaFlagSpenti, "true")]
