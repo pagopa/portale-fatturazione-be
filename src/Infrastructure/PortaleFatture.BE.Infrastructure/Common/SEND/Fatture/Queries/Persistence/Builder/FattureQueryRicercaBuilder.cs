@@ -236,16 +236,18 @@ SELECT listaFatture = (
          ELSE CONVERT(INT, FT.FatturaInviata) 
      END AS 'fattura.inviata',
      ISNULL(FT.Sollecito, '') AS 'fattura.sollecito',
+     -- PF-1003: azione disponibile sulla fattura. Regola (ELIMINA per Anticipo/Acconto, POSTICIPA per le altre
+     -- tipologie) e finestra di periodo vengono dalla vista (join vam piu' sotto): NULL fuori finestra.
+     -- Nessuna azione se la fattura:
+     --  * e' gia' inviata a SAP: la Posticipa la accetterebbe comunque (il suo controllo sulle gia' inviate e' inattivo) e
+     --    l'Elimina registrerebbe una pre-eliminazione, entrambe scritture sbagliate;
+     --  * e' posticipata (0) o eliminata (3): il MERGE delle SP sovrascriverebbe lo stato e chi/quando.
+     --    Le posticipate sono gia' escluse dal WHERE: la condizione rende esplicita la regola.
+     -- Ripristinate (1) e cancellate (2) restano con l'azione della vista: posticipare di nuovo e' previsto.
      CASE
-         WHEN NOT EXISTS (
-             SELECT 1
-             FROM [be].[vwGestioneFattureFormAnniMesi] vam
-             WHERE vam.tipologia_fattura = FT.FkTipologiaFattura
-               AND vam.anno = FT.AnnoRiferimento
-               AND vam.mese = FT.MeseRiferimento
-         ) THEN NULL
-         WHEN FT.FkTipologiaFattura IN ('ANTICIPO', 'ACCONTO') THEN 'ELIMINA'
-         ELSE 'POSTICIPA'
+         WHEN FT.FatturaInviata = 1 THEN NULL
+         WHEN gf.Stato IN (0,3) THEN NULL
+         ELSE vam.Azione
      END AS 'fattura.azione',
      (
          SELECT
@@ -299,15 +301,24 @@ ORDER BY CM.Ordinamento
         AND gf.FkTipologiaFattura = ft.FkTipologiaFattura
         AND gf.Anno = ft.AnnoRiferimento
         AND gf.Mese = ft.MeseRiferimento
- where 
+    -- PF-1003: vista letta una sola volta, filtrata sul periodo della ricerca e non correlata alla riga:
+    -- con la subquery correlata la ricorsione della vista veniva ricalcolata per ogni fattura (piano PROD).
+    -- Una riga per tipologia/anno/mese (estratto PROD del 24/11/2026), quindi nessuna duplicazione.
+    LEFT JOIN (
+        SELECT v.tipologia_fattura, v.Azione
+          FROM [be].[vwGestioneFattureFormAnniMesi] v
+         WHERE v.anno = @AnnoRiferimento
+           AND v.mese = @MeseRiferimento
+    ) vam ON vam.tipologia_fattura = FT.FkTipologiaFattura
+ where
     (gf.Stato <> 0 OR  gf.Stato IS NULL) -- Esclusione delle fatture Posticipate
-    AND    
+    AND
     FT.AnnoRiferimento = @AnnoRiferimento
 	and FT.MeseRiferimento = @MeseRiferimento
 	[condition_tipologiafattura]
 	and FT.FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865' --esclusione pagopa
 	and FT.TotaleFattura > 0
-    AND (@FkIdTipoContratto IS NULL OR c.FkIdTipoContratto = @FkIdTipoContratto)  
+    AND (@FkIdTipoContratto IS NULL OR c.FkIdTipoContratto = @FkIdTipoContratto)
     AND (
         @FatturaInviata IS NULL  -- Se NULL, mostra tutte
         OR (@FatturaInviata = 2 AND FT.FatturaInviata IS NULL)  -- In elaborazione
