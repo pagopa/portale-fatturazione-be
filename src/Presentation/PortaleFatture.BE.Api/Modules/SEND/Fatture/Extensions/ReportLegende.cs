@@ -31,13 +31,25 @@ public static class ReportLegende
     // Testi: documento "Legende dei report Excel" (LegendeReport_BE.md) aggiornato il 20/11/2026, riportati as-is
     // (PF-1029, voce 10 della checklist). Il nome dello sheet di quadratura segue invece la checklist (v. SheetQuadratureRel).
 
+    /// <summary>
+    /// PF-1029 (segnalazione del 24/11/2026, decisione del 25/11): fogli che il report può ancora produrre ma che la
+    /// legenda NON elenca. Sono i fogli delle fatture con imponibile zero dei saldi, emessi e sospesi: nei dati reali
+    /// non compaiono mai, e in legenda risultavano fogli "fantasma". Il codice che li genera resta, così una fattura a
+    /// zero, se mai arrivasse, finisce comunque nel report invece di sparire. Eccezione deliberata alla regola
+    /// "la legenda elenca tutti i fogli previsti". Gli "a zero" dell'acconto restano in legenda.
+    /// </summary>
+    public static readonly IReadOnlyList<string> FogliNonInLegenda =
+    [
+        "Enti Fatt. a Zero {mese}",
+        "Fatt. a Zero Sosp. {mese}",
+    ];
+
     /// <summary>Fatture emesse di PRIMO SALDO, SECONDO SALDO, VAR. SEMESTRALE, SEM. SOSPESI (anche per le non inviate).</summary>
     public static readonly IReadOnlyList<Voce> FattureEmesse =
     [
         new("Regolari Esecuzioni {mese}", "REL associate alle fatture, della tipologia del report del mese di riferimento del report."),
         new("Reg. Esec. PAC non firmate", "REL degli enti PAC che non hanno firmato e caricato la REL, del mese di riferimento del report."),
         new("Enti Fatt. {mese}", "Fatture emesse, della tipologia del report, con imponibile diverso da zero del mese di riferimento del report."),
-        new("Enti Fatt. a Zero {mese}", "Fatture, della tipologia del report, con imponibile pari a zero del mese di riferimento del report."),
         new("Enti Fatt. {mese} Sospesi", "Fatture sospese e imponibile diverso da zero, del mese di riferimento del report."),
         new("Non Fatturate", "Mostra le fatture, della tipologia del report, posticipate di qualsiasi periodo; mostra le fatture eliminate del solo mese di riferimento del report."),
     ];
@@ -79,7 +91,6 @@ public static class ReportLegende
     [
         new("Reg. Esec. Sospese {mese}", "REL associate alle fatture sospese, della tipologia del report del mese di riferimento del report."),
         new("Enti Fatt. Sospese {mese}", "Fatture emesse, della tipologia del report, con imponibile diverso da zero del mese di riferimento del report."),
-        new("Fatt. a Zero Sosp. {mese}", "Fatture, della tipologia del report, con imponibile pari a zero del mese di riferimento del report."),
         new("Dett Fatt Sosp {mese}", "Mostra il dettaglio delle posizioni delle fatture sospese del mese di riferimento del report."),
     ];
 

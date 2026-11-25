@@ -179,17 +179,64 @@ public class ReportMiglioramentiPf753Tests
     }
 
     [TestCaseSource(nameof(ReportConLegenda))]
-    public void Legenda_OgniFoglioGeneratoEDescritto(Func<byte[]> genera, IReadOnlyList<ReportLegende.Voce> _, string __)
+    public void Legenda_OgniFoglioGeneratoEDescritto(Func<byte[]> genera, IReadOnlyList<ReportLegende.Voce> _, string month)
     {
         // Contro-prova di coerenza fra codice e documento: un foglio prodotto ma assente dalla legenda
         // vuol dire che e' cambiato il nome di uno sheet senza aggiornare ReportLegende (o viceversa).
         // Confronto ESATTO, senza normalizzare: una prima versione normalizzava gli spazi e nascondeva che
         // nel report delle non inviate (senza mese) i fogli si chiamavano "Regolari Esecuzioni " con lo
         // spazio in coda, diversi dalla voce della legenda. Oggi i builder chiamano NormalizzaNomiSheet.
+        // Eccezione deliberata: i fogli "a zero" dei saldi (ReportLegende.FogliNonInLegenda, 25/11/2026) possono
+        // comparire senza riga in legenda. Le fixture li producono di proposito, vedi i test sotto.
         var xlsx = genera();
         var descritti = RigheLegenda(xlsx).Select(r => r.Nome).ToHashSet();
+        var esclusi = ReportLegende.FogliNonInLegenda.Select(m => Atteso(m, month)).ToHashSet();
 
-        Assert.That(Fogli(xlsx), Is.SubsetOf(descritti));
+        Assert.That(Fogli(xlsx).Where(f => !esclusi.Contains(f)), Is.SubsetOf(descritti));
+    }
+
+    // ------------------------------------------------------------------ Fogli "a zero" fuori dalla legenda (25/11/2026)
+
+    public static IEnumerable<TestCaseData> ReportSaldi()
+    {
+        var gestione = new[] { GfExcel("POSTICIPATA") };
+        yield return new TestCaseData((Func<byte[]>)(() => RelCompleta().ReportFattureRel(SospeseComplete(), [], gestione, Mese, "SECONDO SALDO")), "Enti Fatt. a Zero {mese}", Mese)
+            .SetName("FattAZero_Emesse");
+        yield return new TestCaseData((Func<byte[]>)(() => RelCompleta().ReportFattureRel(SospeseComplete(), [], gestione, Mese, "PRIMO SALDO", Quadrature())), "Enti Fatt. a Zero {mese}", Mese)
+            .SetName("FattAZero_EmessePrimoSaldo");
+        yield return new TestCaseData((Func<byte[]>)(() => RelCompleta().ReportFattureRel(SospeseComplete(), [], gestione, "", "SECONDO SALDO")), "Enti Fatt. a Zero {mese}", "")
+            .SetName("FattAZero_EmesseNonInviate");
+        yield return new TestCaseData((Func<byte[]>)(() => SospeseComplete().ReportFattureSospeseRel(Mese, "SECONDO SALDO")), "Fatt. a Zero Sosp. {mese}", Mese)
+            .SetName("FattAZero_Sospese");
+        yield return new TestCaseData((Func<byte[]>)(() => SospeseComplete().ReportFattureSospeseRel(DettaglioSospese(), Mese, "PRIMO SALDO")), "Fatt. a Zero Sosp. {mese}", Mese)
+            .SetName("FattAZero_SospeseConDettaglio");
+    }
+
+    [TestCaseSource(nameof(ReportSaldi))]
+    public void FattAZero_NonCompareInLegenda(Func<byte[]> genera, string modello, string month)
+    {
+        // Segnalazione PF-1029 del 24/11/2026: la legenda elencava un foglio che nei report reali non c'e' mai.
+        Assert.That(RigheLegenda(genera()).Select(r => r.Nome), Does.Not.Contain(Atteso(modello, month)));
+    }
+
+    [TestCaseSource(nameof(ReportSaldi))]
+    public void FattAZero_ConUnaFatturaAZero_IlFoglioVieneAncoraGenerato(Func<byte[]> genera, string modello, string month)
+    {
+        // Decisione del 25/11/2026 (strada A): si toglie solo la riga di legenda. Se arriva una fattura a zero il
+        // foglio c'e' ancora, cosi' il dato non sparisce dal report. Le fixture contengono una fattura a zero.
+        Assert.That(Fogli(genera()), Does.Contain(Atteso(modello, month)),
+            "La fixture deve contenere una fattura a zero: senza, questo test non dimostra nulla.");
+    }
+
+    [Test]
+    public void FattAZero_AccontoResta_InLegenda()
+    {
+        // Le voci "a zero" dell'acconto non erano nella segnalazione: restano.
+        Assert.Multiple(() =>
+        {
+            Assert.That(ReportLegende.Acconto.Select(v => v.NomeSheet), Does.Contain("Acconto a zero {mese}"));
+            Assert.That(ReportLegende.AccontoSospeso.Select(v => v.NomeSheet), Does.Contain("Acconto a zero Sosp. {mese}"));
+        });
     }
 
     [Test]
