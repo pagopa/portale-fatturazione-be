@@ -437,6 +437,11 @@ GO
 -- NON in cfg.GestioneFatture. Periodo dedicato 2024/3.
 UPDATE pfd.Contratti SET onboardingtokenid = 'TOKEN-E1'
  WHERE internalistitutionid = '11111111-1111-1111-1111-111111111111' AND onboardingtokenid IS NULL;
+-- PF-1003: contratto per l'ente INPS, cosi' le sue fatture di test (FattureAzioneTestData, CodiceContratto
+-- TOKEN-INPS) passano la INNER JOIN con pfd.Contratti di _sqlView. La 3001 del seed ha CodiceContratto NULL
+-- e non ne e' toccata.
+UPDATE pfd.Contratti SET onboardingtokenid = 'TOKEN-INPS'
+ WHERE internalistitutionid = '53b40136-65f2-424b-acfb-7fae17e35c60' AND onboardingtokenid IS NULL;
 GO
 SET IDENTITY_INSERT pfd.FattureTestata ON;
 IF NOT EXISTS (SELECT 1 FROM pfd.FattureTestata WHERE IdFattura = 6001)

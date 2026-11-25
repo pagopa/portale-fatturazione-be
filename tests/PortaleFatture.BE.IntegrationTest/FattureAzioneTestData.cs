@@ -12,9 +12,15 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// mese è fuori. Ogni caso ha un <b>offset in mesi</b> rispetto al mese corrente <b>del DB</b> (lo stesso
 /// orologio della vista: niente scarti di fuso fra C# e SQL Server).
 ///
-/// Regola attesa: nessuna azione (<c>NULL</c>) se la fattura è già inviata a SAP o è posticipata/eliminata in
-/// <c>cfg.GestioneFatture</c> (Stato 0 o 3); altrimenti l'azione della vista (ELIMINA per ANTICIPO/ACCONTO, POSTICIPA per
-/// le altre), <c>NULL</c> fuori finestra. Le posticipate (Stato 0) non compaiono proprio.
+/// Regola attesa (query del 25/11/2026, commit "aggiunta eccezione inps"), nell'ordine del CASE:
+/// <list type="number">
+/// <item>posticipata o eliminata in <c>cfg.GestioneFatture</c> (Stato 0 o 3) → <c>NULL</c>;</item>
+/// <item>ente INPS e tipologia PRIMO SALDO → <c>ELIMINA</c> sempre, anche fuori finestra e anche se inviata;</item>
+/// <item>altrimenti l'azione della vista (ELIMINA per ANTICIPO/ACCONTO, POSTICIPA per le altre), <c>NULL</c> fuori
+/// finestra. <b>Lo stato di invio non conta più</b>: anche una fattura già inviata a SAP ha l'azione.</item>
+/// </list>
+/// Le posticipate (Stato 0) non compaiono proprio. In più il campo <c>fattura.stato</c> riporta
+/// <c>gf.Stato</c> così com'è (<c>NULL</c> se la fattura non è in Gestione Fatture).
 ///
 /// Pulizia per marcatori, non per elenco di id: <c>IdentificativoFattura LIKE 'PF1003-%'</c>,
 /// <c>IdUtenteInserimento = 'PF1003-TEST'</c>, <c>Causale = 'PF1003-TEST'</c>. Così anche un'esecuzione
@@ -28,6 +34,9 @@ public static class FattureAzioneTestData
     // Ente 1: contratto TOKEN-E1, tipo contratto 2 (PAC). Ente 3: TOKEN-E3, tipo contratto 1 (PAL).
     public const string Ente1 = "11111111-1111-1111-1111-111111111111";
     public const string Ente3 = "33333333-3333-3333-3333-333333333333";
+    // INPS: contratto TOKEN-INPS (dal seed gestione_fatture.sql), tipo contratto 2 (PAC). L'eccezione
+    // PRIMO SALDO → ELIMINA è scritta con questo GUID nella query.
+    public const string Inps = "53b40136-65f2-424b-acfb-7fae17e35c60";
 
     public const string Elimina = "ELIMINA";
     public const string Posticipa = "POSTICIPA";
@@ -48,6 +57,9 @@ public static class FattureAzioneTestData
     private static Caso E3(long id, string tip, int off, string? atteso, string descr, bool? inviata = false, int? stato = null)
         => new(id, Ente3, "TOKEN-E3", tip, off, inviata, stato, atteso, descr);
 
+    private static Caso In(long id, string tip, int off, string? atteso, string descr, bool? inviata = false, int? stato = null)
+        => new(id, Inps, "TOKEN-INPS", tip, off, inviata, stato, atteso, descr);
+
     /// <summary>Mesi dal mese corrente a gennaio dell'anno dopo il prossimo, cioè il primo mese fuori dalla
     /// finestra in avanti (la vista arriva a dicembre dell'anno prossimo).</summary>
     public static int OffsetOltreFinestra(DateTime oggi) => -(25 - oggi.Month);
@@ -64,9 +76,11 @@ public static class FattureAzioneTestData
         // Seconda fattura sullo stesso ente/tipologia/periodo di 7804: nessuna duplicazione dalla join.
         E1(7807, "SECONDO SALDO", 0, Posticipa, "stesso periodo di 7804"),
 
-        // --- Stato di invio ---
-        E1(7811, "SECONDO SALDO", 1, null, "gia' inviata a SAP", inviata: true),
+        // --- Stato di invio: dal 25/11/2026 non toglie piu' l'azione ---
+        E1(7811, "SECONDO SALDO", 1, Posticipa, "gia' inviata a SAP", inviata: true),
         E1(7812, "PRIMO SALDO", 1, Posticipa, "in elaborazione (FatturaInviata NULL)", inviata: null),
+        E1(7813, "ANTICIPO", 1, Elimina, "gia' inviata a SAP (ente 1: su ente 3 c'e' la riga Stato 1 di 7821)", inviata: true),
+        E1(7814, "SECONDO SALDO", 4, null, "gia' inviata e fuori finestra: decide la finestra", inviata: true),
 
         // --- Stato in cfg.GestioneFatture ---
         E3(7821, "ANTICIPO", 1, Elimina, "ripristinata (Stato 1): si puo' agire di nuovo", stato: 1),
@@ -89,6 +103,19 @@ public static class FattureAzioneTestData
         E1(7841, "SECONDO SALDO", -1, Posticipa, "mese prossimo"),
         E3(7842, "ANTICIPO", OffsetOltreFinestra(oggi) + 1, Elimina, "dicembre dell'anno prossimo (ultimo mese)"),
         E3(7843, "ANTICIPO", OffsetOltreFinestra(oggi), null, "gennaio fra due anni (oltre la finestra)"),
+
+        // --- Eccezione INPS: PRIMO SALDO -> sempre ELIMINA. Un periodo per caso: cfg.GestioneFatture si
+        //     aggancia per ente+tipologia+anno+mese, due casi sullo stesso periodo si influenzerebbero. ---
+        In(7851, "PRIMO SALDO", 0, Elimina, "INPS mese corrente: ELIMINA invece di POSTICIPA (cfr. 7803)"),
+        In(7852, "PRIMO SALDO", 3, Elimina, "INPS fuori finestra: l'eccezione non guarda la vista (cfr. 7837)"),
+        In(7853, "PRIMO SALDO", 1, Elimina, "INPS gia' inviata a SAP", inviata: true),
+        In(7854, "PRIMO SALDO", 4, null, "INPS eliminata (Stato 3): lo stato vince sull'eccezione", stato: 3),
+        In(7855, "PRIMO SALDO", 5, null, "INPS posticipata (Stato 0): fuori dalla griglia", stato: 0),
+        In(7856, "PRIMO SALDO", 6, Elimina, "INPS ripristinata (Stato 1)", stato: 1),
+        In(7857, "PRIMO SALDO", 7, Elimina, "INPS cancellata (Stato 2)", stato: 2),
+        In(7858, "SECONDO SALDO", 0, Posticipa, "INPS altra tipologia di saldo: niente eccezione"),
+        In(7859, "ANTICIPO", 0, Elimina, "INPS anticipo: ELIMINA dalla vista"),
+        In(7860, "SECONDO SALDO", 4, null, "INPS altra tipologia fuori finestra: niente eccezione"),
     ];
 
     /// <summary>Periodo (anno, mese) di un caso, calcolato dal mese corrente.</summary>
@@ -109,7 +136,8 @@ public static class FattureAzioneTestData
 
     // Tipologie che nel seed non hanno configurazione per il tipo contratto 2: senza, l'INNER JOIN con
     // pfw.FatturaTestataConfig scarterebbe le fatture prima ancora di calcolare l'azione.
-    private static readonly string[] ConfigDaAggiungere = ["PRIMO SALDO", "VAR. SEMESTRALE", "SEM. SOSPESI"];
+    // ANTICIPO serve per 7859 (INPS, tipo contratto 2); l'IF NOT EXISTS lascia stare una config gia' presente.
+    private static readonly string[] ConfigDaAggiungere = ["PRIMO SALDO", "VAR. SEMESTRALE", "SEM. SOSPESI", "ANTICIPO"];
 
     public static void Inserisci(string connectionString, DateTime oggi)
     {

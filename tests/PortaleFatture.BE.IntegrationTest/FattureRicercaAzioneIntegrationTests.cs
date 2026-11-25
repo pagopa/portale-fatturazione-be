@@ -14,10 +14,11 @@ namespace PortaleFatture.BE.IntegrationTest;
 /// l'azione che il frontend mostra su ogni fattura della pagina Documenti Emessi. Catena reale:
 /// FattureQueryRicerca → handler → FattureQueryRicercaPersistence → <c>FattureQueryRicercaBuilder._sqlView</c>.
 ///
-/// Regola: <c>NULL</c> se la fattura è già inviata a SAP o è posticipata/eliminata (Stato 0 o 3) in <c>cfg.GestioneFatture</c>;
-/// altrimenti l'azione di <c>be.vwGestioneFattureFormAnniMesi</c> per tipologia/anno/mese (ELIMINA su
-/// ANTICIPO/ACCONTO, POSTICIPA sulle altre), <c>NULL</c> fuori finestra. Dati e motivazione delle date
-/// relative in <see cref="FattureAzioneTestData"/>.
+/// Regola (dal 25/11/2026): <c>NULL</c> se posticipata/eliminata (Stato 0 o 3) in <c>cfg.GestioneFatture</c>;
+/// <c>ELIMINA</c> per il PRIMO SALDO dell'ente INPS; altrimenti l'azione di <c>be.vwGestioneFattureFormAnniMesi</c>
+/// per tipologia/anno/mese (ELIMINA su ANTICIPO/ACCONTO, POSTICIPA sulle altre), <c>NULL</c> fuori finestra.
+/// Lo stato di invio a SAP non conta. Il campo <c>fattura.stato</c> riporta <c>gf.Stato</c>. Dati e motivazione
+/// delle date relative in <see cref="FattureAzioneTestData"/>.
 /// </summary>
 [Category("Fatture")]
 [NonParallelizable] // scrive (e poi cancella) righe di configurazione condivise con le altre suite
@@ -75,16 +76,22 @@ public class FattureRicercaAzioneIntegrationTests
         var fattura = (await Query(periodo)).SingleOrDefault(x => x.IdFattura == id);
 
         Assert.That(fattura, Is.Not.Null, $"{caso}: la fattura deve comparire tra le emesse di {periodo.Mese}/{periodo.Anno}.");
-        Assert.That(fattura!.Azione, Is.EqualTo(caso.AzioneAttesa),
-            $"{caso} ({periodo.Mese}/{periodo.Anno}, oggi {_oggi:MM/yyyy}): azione sbagliata.");
+        Assert.Multiple(() =>
+        {
+            Assert.That(fattura!.Azione, Is.EqualTo(caso.AzioneAttesa),
+                $"{caso} ({periodo.Mese}/{periodo.Anno}, oggi {_oggi:MM/yyyy}): azione sbagliata.");
+            Assert.That(fattura.Stato, Is.EqualTo(caso.StatoGestione),
+                $"{caso}: fattura.stato deve essere lo Stato di cfg.GestioneFatture, NULL se la fattura non c'e'.");
+        });
     }
 
-    [Test]
-    public async Task Posticipata_ShouldNonComparireNellaGriglia_NeConNeSenzaAzione()
+    [TestCase(7824)]
+    [TestCase(7855)] // INPS PRIMO SALDO: l'eccezione non riporta in griglia una posticipata
+    public async Task Posticipata_ShouldNonComparireNellaGriglia_NeConNeSenzaAzione(long id)
     {
-        var caso = CasoDi(7824);
+        var caso = CasoDi(id);
         var righe = await Query(Periodo(_oggi, caso));
-        Assert.That(righe.Select(x => x.IdFattura), Does.Not.Contain(7824L),
+        Assert.That(righe.Select(x => x.IdFattura), Does.Not.Contain(id),
             "Le posticipate (Stato 0) restano escluse dalla griglia emesse, come prima della modifica.");
     }
 
@@ -98,25 +105,78 @@ public class FattureRicercaAzioneIntegrationTests
     [TestCase("SEM. SOSPESI", Posticipa)]
     public async Task Azione_MeseCorrente_ShouldDipendereSoloDallaTipologia(string tipologia, string attesa)
     {
+        // L'ente INPS e' escluso: il suo PRIMO SALDO ha l'eccezione, coperta piu' sotto.
+        var inps = Casi(_oggi).Where(c => c.Ente == Inps).Select(c => c.Id).ToHashSet();
         var righe = (await Query((_oggi.Year, _oggi.Month), tipologia: [tipologia]))
-            .Where(x => x.IdFattura is >= 7801 and <= 7899).ToList();
+            .Where(x => x.IdFattura is >= 7801 and <= 7899 && !inps.Contains(x.IdFattura)).ToList();
 
         Assert.That(righe, Is.Not.Empty, $"Nessuna fattura di test {tipologia} nel mese corrente.");
         Assert.That(righe.Select(x => x.Azione), Is.All.EqualTo(attesa),
             "ELIMINA solo su ANTICIPO e ACCONTO, POSTICIPA su tutte le altre tipologie.");
     }
 
-    // ============================== Stato di invio ==============================
+    // ============================== Eccezione INPS ==============================
 
     [Test]
-    public async Task FiltroInviate_ShouldRestituireLaFatturaInviataSenzaAzione()
+    public async Task PrimoSaldo_StessoMese_ShouldEssereEliminaPerInps_EPosticipaPerGliAltri()
     {
-        var periodo = Periodo(_oggi, CasoDi(7811));
-        var inviate = await Query(periodo, fatturaInviata: 1);
-        var f = inviate.SingleOrDefault(x => x.IdFattura == 7811);
+        // Il contrasto rende il test significativo: stessa tipologia, stesso periodo, enti diversi.
+        var righe = await Query((_oggi.Year, _oggi.Month), tipologia: ["PRIMO SALDO"]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(righe.Single(x => x.IdFattura == 7851).Azione, Is.EqualTo(Elimina), "INPS: eccezione.");
+            Assert.That(righe.Single(x => x.IdFattura == 7803).Azione, Is.EqualTo(Posticipa), "Altro ente: la vista.");
+        });
+    }
+
+    [Test]
+    public async Task EccezioneInps_ShouldValereSoloPerIlPrimoSaldo()
+    {
+        var righe = (await Query((_oggi.Year, _oggi.Month))).ToDictionary(x => x.IdFattura, x => x.Azione);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(righe[7858], Is.EqualTo(Posticipa), "SECONDO SALDO INPS: niente eccezione.");
+            Assert.That(righe[7859], Is.EqualTo(Elimina), "ANTICIPO INPS: ELIMINA dalla vista, come per tutti.");
+        });
+    }
+
+    [Test]
+    public async Task EccezioneInps_FuoriFinestra_ShouldDareComunqueElimina()
+    {
+        // Comportamento del codice al 25/11/2026: la condizione INPS viene prima di vam.Azione e non guarda la
+        // finestra. Il commento nella query parla di "ELIMINA se non esiste la REL", ma la REL non e' verificata:
+        // se la regola va ristretta, questo test va aggiornato insieme alla query.
+        var periodo = Periodo(_oggi, CasoDi(7852));
+        var f = (await Query(periodo)).Single(x => x.IdFattura == 7852);
+        Assert.That(f.Azione, Is.EqualTo(Elimina));
+    }
+
+    // ============================== Stato di invio ==============================
+
+    [TestCase(7811, Posticipa)]
+    [TestCase(7813, Elimina)]
+    [TestCase(7853, Elimina)] // INPS PRIMO SALDO
+    public async Task FiltroInviate_ShouldRestituireLaFatturaInviataConLAzione(long id, string attesa)
+    {
+        // Fino al 25/11/2026 una fattura gia' inviata a SAP non aveva azione; la regola e' stata tolta.
+        var periodo = Periodo(_oggi, CasoDi(id));
+        var f = (await Query(periodo, fatturaInviata: 1)).SingleOrDefault(x => x.IdFattura == id);
 
         Assert.That(f, Is.Not.Null);
-        Assert.That(f!.Azione, Is.Null, "Una fattura gia' inviata a SAP non si posticipa ne' si elimina.");
+        Assert.Multiple(() =>
+        {
+            Assert.That(f!.Inviata, Is.EqualTo(1));
+            Assert.That(f.Azione, Is.EqualTo(attesa), "Lo stato di invio non toglie piu' l'azione.");
+        });
+    }
+
+    [Test]
+    public async Task Inviata_FuoriFinestra_ShouldRestareSenzaAzione()
+    {
+        var f = (await Query(Periodo(_oggi, CasoDi(7814)), fatturaInviata: 1)).Single(x => x.IdFattura == 7814);
+        Assert.That(f.Azione, Is.Null, "Togliere il controllo sull'invio non apre la finestra: decide ancora la vista.");
     }
 
     [Test]
@@ -151,8 +211,8 @@ public class FattureRicercaAzioneIntegrationTests
     [Test]
     public async Task FatturaDelSeed2024_ShouldNonAvereAzione_PercheFuoriFinestra()
     {
-        // 6001 (SECONDO SALDO 2024/3, gia' inviata): doppio motivo per NULL. Resta un controllo di regressione
-        // sul seed storico, che non deve "acquistare" un'azione.
+        // 6001 (SECONDO SALDO 2024/3, gia' inviata): dal 25/11/2026 l'invio non conta, resta NULL perche' fuori
+        // finestra. Controllo di regressione sul seed storico, che non deve "acquistare" un'azione.
         var f = (await Query((2024, 3))).Single(x => x.IdFattura == 6001);
         Assert.That(f.Azione, Is.Null);
     }

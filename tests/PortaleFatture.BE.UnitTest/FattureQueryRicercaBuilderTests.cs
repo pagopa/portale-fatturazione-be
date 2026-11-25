@@ -88,18 +88,54 @@ public class FattureQueryRicercaBuilderTests
         });
     }
 
+    /// <summary>Il CASE di fattura.azione senza i commenti SQL, compattato.</summary>
+    private static string CaseAzione()
+    {
+        var senzaCommenti = Regex.Replace(Emesse(), @"--[^\r\n]*", "");
+        var m = Regex.Match(Compatta(senzaCommenti), @"CASE WHEN gf\.Stato.*?END AS 'fattura\.azione'");
+        Assert.That(m.Success, Is.True, "CASE di fattura.azione non trovato.");
+        return m.Value;
+    }
+
     [Test]
-    public void Azione_ShouldEssereNullPerInviateEPerStato0e3_PrimaDellaVista()
+    public void Azione_ShouldAvereStato0e3_PoiEccezioneInps_PoiLaVista()
+    {
+        // Query del 25/11/2026: l'ordine conta. Lo Stato 0/3 viene per primo, quindi anche il PRIMO SALDO INPS
+        // posticipato o eliminato resta senza azione.
+        Assert.That(CaseAzione(), Does.Match(
+            @"^CASE WHEN gf\.Stato IN \(\s?0,\s?3\s?\) THEN NULL "
+            + @"WHEN FT\.FkIdEnte = '53b40136-65f2-424b-acfb-7fae17e35c60' AND FT\.FkTipologiaFattura = 'PRIMO SALDO' THEN 'ELIMINA' "
+            + @"ELSE vam\.Azione END AS 'fattura\.azione'$"));
+    }
+
+    [Test]
+    public void Azione_ShouldNonDipenderePiuDalloStatoDiInvio()
+    {
+        // Dal 25/11/2026 una fattura gia' inviata a SAP ha l'azione: se la condizione torna, aggiornare i test
+        // integration (FattureAzioneTestData, casi 7811/7813/7853) insieme a questo.
+        Assert.That(CaseAzione(), Does.Not.Contain("FatturaInviata"));
+    }
+
+    [Test]
+    public void Azione_ShouldNonEscludereRipristinateECancellate()
+        => Assert.That(Compatta(Emesse()), Does.Not.Contain("WHEN gf.Stato IS NOT NULL THEN NULL"),
+            "Escludere tutti gli stati toglierebbe l'azione a ripristinate e cancellate, su cui si puo' agire di nuovo.");
+
+    [Test]
+    public void Stato_RamoEmesse_ShouldEsporreGfStatoUnaVolta()
     {
         var sql = Compatta(Emesse());
-        var caseAzione = Regex.Match(sql, @"CASE WHEN FT\.FatturaInviata = 1 THEN NULL WHEN gf\.Stato IN \(\s?0,\s?3\s?\) THEN NULL ELSE vam\.Azione END AS 'fattura\.azione'");
-
-        Assert.That(caseAzione.Success, Is.True,
-            "Ordine e condizioni: gia' inviata -> NULL, posticipata/eliminata -> NULL, altrimenti la vista. "
-            + "Ripristinate (1) e cancellate (2) non vanno escluse.");
-        Assert.That(sql, Does.Not.Contain("WHEN gf.Stato IS NOT NULL THEN NULL"),
-            "Escludere tutti gli stati toglierebbe l'azione a ripristinate e cancellate, su cui si puo' agire di nuovo.");
+        Assert.Multiple(() =>
+        {
+            Assert.That(Regex.Matches(sql, Regex.Escape("AS 'fattura.stato'")), Has.Count.EqualTo(1));
+            Assert.That(sql, Does.Contain("gf.Stato AS 'fattura.stato'"));
+        });
     }
+
+    [Test]
+    public void Stato_RamoNonFatturate_ShouldNonEssereCalcolato()
+        => Assert.That(FattureQueryRicercaBuilder.SelectFattureRicerca(cancellata: true, hasTipologia: false),
+            Does.Not.Contain("fattura.stato"));
 
     [Test]
     public void Azione_JoinConLaVista_ShouldStareDopoGestioneFattureEPrimaDelWhere()
