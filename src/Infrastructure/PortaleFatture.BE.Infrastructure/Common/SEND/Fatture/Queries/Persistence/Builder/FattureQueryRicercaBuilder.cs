@@ -237,10 +237,12 @@ SELECT listaFatture = (
      END AS 'fattura.inviata',
      ISNULL(FT.Sollecito, '') AS 'fattura.sollecito',
      CASE
-         WHEN FT.FatturaInviata = 1 THEN NULL
          WHEN gf.Stato IN (0,3) THEN NULL
+         -- eccezione ente specifico: solo 'ELIMINA' (se non esiste la REL) oppure NULL, mai vam.Azione
+         WHEN FT.FkIdEnte = '53b40136-65f2-424b-acfb-7fae17e35c60' AND FT.FkTipologiaFattura = 'PRIMO SALDO' THEN 'ELIMINA'
          ELSE vam.Azione
      END AS 'fattura.azione',
+     gf.Stato AS 'fattura.stato',
      (
          SELECT
              ISNULL(tC.[Descrizione],'') AS 'tipologia',

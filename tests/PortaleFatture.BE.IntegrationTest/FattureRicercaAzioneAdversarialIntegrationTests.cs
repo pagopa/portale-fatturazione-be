@@ -148,6 +148,81 @@ public class FattureRicercaAzioneAdversarialIntegrationTests
         }
     }
 
+    // ============================== Eccezione INPS: confini ==============================
+
+    [Test]
+    public async Task EccezioneInps_ConGuidEnteMaiuscolo_ShouldValereLoStesso()
+    {
+        // Il GUID dell'eccezione e' scritto in minuscolo nella query: se FkIdEnte arrivasse in maiuscolo, il
+        // confronto deve reggere per la collation case-insensitive (CI_AS), come la join con Gestione Fatture.
+        await Esegui("UPDATE pfd.FattureTestata SET FkIdEnte = UPPER(FkIdEnte) WHERE IdFattura = 7851", new { });
+        try
+        {
+            var f = (await MeseCorrente()).Single(x => x.IdFattura == 7851);
+            Assert.That(f.Azione, Is.EqualTo(Elimina));
+        }
+        finally
+        {
+            await Esegui("UPDATE pfd.FattureTestata SET FkIdEnte = LOWER(FkIdEnte) WHERE IdFattura = 7851", new { });
+        }
+    }
+
+    [Test]
+    public async Task EccezioneInps_ConTipologiaMinuscola_ShouldValereLoStesso()
+    {
+        await Esegui("UPDATE pfd.FattureTestata SET FkTipologiaFattura = 'primo saldo' WHERE IdFattura = 7851", new { });
+        try
+        {
+            var f = (await MeseCorrente()).Single(x => x.IdFattura == 7851);
+            Assert.That(f.Azione, Is.EqualTo(Elimina));
+        }
+        finally
+        {
+            await Esegui("UPDATE pfd.FattureTestata SET FkTipologiaFattura = 'PRIMO SALDO' WHERE IdFattura = 7851", new { });
+        }
+    }
+
+    [Test]
+    public async Task EccezioneInps_StatoGestioneDiUnAltroEnte_ShouldNonTogliereLaEccezione()
+    {
+        // Eliminata (Stato 3) sul PRIMO SALDO del mese corrente, ma dell'ente 1: tocca 7803, non 7851 (INPS).
+        await Esegui("""
+            INSERT INTO cfg.GestioneFatture (FkIdEnte, FkTipologiaFattura, Anno, Mese, IdUtenteInserimento, Stato, Azione)
+            VALUES (@ente, 'PRIMO SALDO', @anno, @mese, @marcatore, 3, 'ELIMINATA')
+            """, new { ente = Ente1, anno = _oggi.Year, mese = _oggi.Month, marcatore = Marcatore });
+        try
+        {
+            var righe = (await MeseCorrente()).ToDictionary(x => x.IdFattura);
+            Assert.Multiple(() =>
+            {
+                Assert.That(righe[7851].Azione, Is.EqualTo(Elimina), "INPS: la riga e' di un altro ente.");
+                Assert.That(righe[7851].Stato, Is.Null);
+                Assert.That(righe[7803].Azione, Is.Null, "Ente 1: la sua riga Stato 3 toglie l'azione.");
+                Assert.That(righe[7803].Stato, Is.EqualTo(3));
+            });
+        }
+        finally
+        {
+            await Esegui("DELETE FROM cfg.GestioneFatture WHERE FkIdEnte = @ente AND FkTipologiaFattura = 'PRIMO SALDO' AND Anno = @anno AND Mese = @mese AND IdUtenteInserimento = @marcatore",
+                new { ente = Ente1, anno = _oggi.Year, mese = _oggi.Month, marcatore = Marcatore });
+        }
+    }
+
+    // ============================== Campo stato ==============================
+
+    [Test]
+    public async Task Stato_ShouldEssereNullSoloSeLaFatturaNonEInGestione()
+    {
+        // Su tutti i periodi di test: stato valorizzato se e solo se il caso ha una riga in cfg.GestioneFatture.
+        var attesi = Casi(_oggi).Where(c => c.StatoGestione != 0).ToDictionary(c => c.Id, c => c.StatoGestione);
+        var visti = new Dictionary<long, int?>();
+        foreach (var (anno, mese) in Casi(_oggi).Select(c => Periodo(_oggi, c)).Distinct())
+            foreach (var f in (await Query(anno, mese)).Where(x => attesi.ContainsKey(x.IdFattura)))
+                visti[f.IdFattura] = f.Stato;
+
+        Assert.That(visti, Is.EquivalentTo(attesi));
+    }
+
     // ============================== Formato del valore ==============================
 
     [Test]

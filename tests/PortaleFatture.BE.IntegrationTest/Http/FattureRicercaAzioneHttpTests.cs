@@ -60,7 +60,10 @@ public class FattureRicercaAzioneHttpTests
     /// Per ogni oggetto del JSON che ha un <c>idFattura</c>: se ha la proprietà <c>azione</c> e il suo valore
     /// (null compreso). Distingue "azione assente" da "azione null", che per il frontend non sono la stessa cosa.
     /// </summary>
-    private static Dictionary<long, (bool Presente, string? Valore)> Azioni(string corpo)
+    private static Dictionary<long, (bool Presente, string? Valore)> Azioni(string corpo) => Campo(corpo, "azione");
+
+    /// <summary>Come <see cref="Azioni"/>, per un campo qualsiasi dell'oggetto fattura (valore come testo).</summary>
+    private static Dictionary<long, (bool Presente, string? Valore)> Campo(string corpo, string nome)
     {
         var mappa = new Dictionary<long, (bool, string?)>();
         using var doc = JsonDocument.Parse(corpo);
@@ -77,8 +80,13 @@ public class FattureRicercaAzioneHttpTests
                 {
                     if (p.Name.Equals("idFattura", StringComparison.OrdinalIgnoreCase) && p.Value.TryGetInt64(out var v))
                         id = v;
-                    if (p.Name == "azione")
-                        azione = (true, p.Value.ValueKind == JsonValueKind.Null ? null : p.Value.GetString());
+                    if (p.Name == nome)
+                        azione = (true, p.Value.ValueKind switch
+                        {
+                            JsonValueKind.Null => null,
+                            JsonValueKind.String => p.Value.GetString(),
+                            _ => p.Value.GetRawText()
+                        });
                     Visita(p.Value);
                 }
                 if (id is long trovato)
@@ -110,8 +118,8 @@ public class FattureRicercaAzioneHttpTests
     [Test]
     public async Task SenzaAzione_ShouldArrivareComeNullEsplicito_NonComeCampoAssente()
     {
-        // Mese -1: 7811 gia' inviata e 7823 eliminata (Stato 3) -> nessuna azione. 7821 ripristinata e 7822
-        // cancellata conservano invece l'azione della vista.
+        // Mese -1: 7823 eliminata (Stato 3) -> nessuna azione. 7821 ripristinata e 7822 cancellata conservano
+        // l'azione della vista; 7811 e 7813, gia' inviate, dal 25/11/2026 hanno l'azione anche loro.
         // Il campo deve esserci comunque (INCLUDE_NULL_VALUES + serializzazione senza WhenWritingNull):
         // il frontend legge "azione": null come "nessun pulsante".
         var (status, corpo) = await PostPeriodo(1);
@@ -120,12 +128,47 @@ public class FattureRicercaAzioneHttpTests
 
         Assert.Multiple(() =>
         {
-            foreach (var id in new long[] { 7811, 7823 })
-                Assert.That(azioni[id], Is.EqualTo((true, (string?)null)), $"{id}: atteso \"azione\": null.");
+            Assert.That(azioni[7823], Is.EqualTo((true, (string?)null)), "7823 eliminata: atteso \"azione\": null.");
             Assert.That(azioni[7821], Is.EqualTo((true, Elimina)), "7821 ripristinata: si puo' agire di nuovo.");
             Assert.That(azioni[7822], Is.EqualTo((true, Elimina)), "7822 cancellata: si puo' agire di nuovo.");
             Assert.That(azioni[7812], Is.EqualTo((true, Posticipa)), "7812 in elaborazione: azione disponibile.");
+            Assert.That(azioni[7811], Is.EqualTo((true, Posticipa)), "7811 gia' inviata: azione disponibile.");
+            Assert.That(azioni[7813], Is.EqualTo((true, Elimina)), "7813 anticipo gia' inviato: azione disponibile.");
+            Assert.That(azioni[7853], Is.EqualTo((true, Elimina)), "7853 INPS PRIMO SALDO inviato: eccezione.");
             Assert.That(azioni.ContainsKey(7824), Is.False, "7824 posticipata: fuori dalla griglia.");
+        });
+    }
+
+    [Test]
+    public async Task Stato_ShouldArrivareNelJson_ComeNumeroONullEsplicito()
+    {
+        // fattura.stato = cfg.GestioneFatture.Stato. Mese -1: 7821 = 1, 7822 = 2, 7823 = 3, le altre null.
+        var (status, corpo) = await PostPeriodo(1);
+        Assert.That(status, Is.EqualTo(HttpStatusCode.OK), corpo);
+        var stati = Campo(corpo, "stato");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(stati[7821], Is.EqualTo((true, (string?)"1")), "ripristinata");
+            Assert.That(stati[7822], Is.EqualTo((true, (string?)"2")), "cancellata");
+            Assert.That(stati[7823], Is.EqualTo((true, (string?)"3")), "eliminata");
+            foreach (var id in new long[] { 7811, 7812, 7813 })
+                Assert.That(stati[id], Is.EqualTo((true, (string?)null)), $"{id}: non in Gestione Fatture, \"stato\": null.");
+        });
+    }
+
+    [Test]
+    public async Task EccezioneInps_ShouldArrivareNelJson()
+    {
+        var (status, corpo) = await PostPeriodo(0);
+        Assert.That(status, Is.EqualTo(HttpStatusCode.OK), corpo);
+        var azioni = Azioni(corpo);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(azioni[7851], Is.EqualTo((true, Elimina)), "INPS PRIMO SALDO -> ELIMINA");
+            Assert.That(azioni[7803], Is.EqualTo((true, Posticipa)), "PRIMO SALDO di un altro ente -> POSTICIPA");
+            Assert.That(azioni[7858], Is.EqualTo((true, Posticipa)), "INPS SECONDO SALDO -> POSTICIPA");
         });
     }
 
