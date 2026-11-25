@@ -236,14 +236,6 @@ SELECT listaFatture = (
          ELSE CONVERT(INT, FT.FatturaInviata) 
      END AS 'fattura.inviata',
      ISNULL(FT.Sollecito, '') AS 'fattura.sollecito',
-     -- PF-1003: azione disponibile sulla fattura. Regola (ELIMINA per Anticipo/Acconto, POSTICIPA per le altre
-     -- tipologie) e finestra di periodo vengono dalla vista (join vam piu' sotto): NULL fuori finestra.
-     -- Nessuna azione se la fattura:
-     --  * e' gia' inviata a SAP: la Posticipa la accetterebbe comunque (il suo controllo sulle gia' inviate e' inattivo) e
-     --    l'Elimina registrerebbe una pre-eliminazione, entrambe scritture sbagliate;
-     --  * e' posticipata (0) o eliminata (3): il MERGE delle SP sovrascriverebbe lo stato e chi/quando.
-     --    Le posticipate sono gia' escluse dal WHERE: la condizione rende esplicita la regola.
-     -- Ripristinate (1) e cancellate (2) restano con l'azione della vista: posticipare di nuovo e' previsto.
      CASE
          WHEN FT.FatturaInviata = 1 THEN NULL
          WHEN gf.Stato IN (0,3) THEN NULL
@@ -301,9 +293,6 @@ ORDER BY CM.Ordinamento
         AND gf.FkTipologiaFattura = ft.FkTipologiaFattura
         AND gf.Anno = ft.AnnoRiferimento
         AND gf.Mese = ft.MeseRiferimento
-    -- PF-1003: vista letta una sola volta, filtrata sul periodo della ricerca e non correlata alla riga:
-    -- con la subquery correlata la ricorsione della vista veniva ricalcolata per ogni fattura (piano PROD).
-    -- Una riga per tipologia/anno/mese (estratto PROD del 24/11/2026), quindi nessuna duplicazione.
     LEFT JOIN (
         SELECT v.tipologia_fattura, v.Azione
           FROM [be].[vwGestioneFattureFormAnniMesi] v
