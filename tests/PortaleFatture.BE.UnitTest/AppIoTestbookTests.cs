@@ -483,15 +483,14 @@ public class AppIoTestbookTests
 
     /// <summary>
     /// T25 — Download Financial Report dal blob storage: il trimestre del documento aperto
-    /// ('AAAA_T') diventa anno e trimestre della richiesta, e il file è consegnato con un nome
-    /// costruito dal trimestre.
+    /// ('AAAA_T', lo stesso valore del filtro "Trimestre") va nella richiesta così com'è, e il file è
+    /// consegnato con un nome costruito dal trimestre.
     /// </summary>
     [TestCase("2026_1", 2026, 1)]
     [TestCase("2025_4", 2025, 4)]
-    public void T25_DownloadDalBlob_ShouldUsareAnnoETrimestreDelDocumento(string yearQuarter, int anno, int trimestre)
+    public void T25_DownloadDalBlob_ShouldUsareIlTrimestreDelDocumento(string yearQuarter, int anno, int trimestre)
     {
-        var parti = yearQuarter.Split('_');
-        var richiesta = new AppIoFinancialReportsFileRequest { Year = int.Parse(parti[0]), Quarter = int.Parse(parti[1]) };
+        var richiesta = new AppIoFinancialReportsFileRequest { Year = anno, Quarters = [yearQuarter] };
         var percorso = $"abfss://appioexport@account.dfs.core.windows.net/export/sap/{anno}/{trimestre}/appio-final_report-{anno}-q{trimestre}.csv";
 
         var query = richiesta.Map(Admin());
@@ -499,9 +498,8 @@ public class AppIoTestbookTests
         Assert.Multiple(() =>
         {
             Assert.That(richiesta.IsValida(), Is.True);
-            Assert.That(query.Year, Is.EqualTo(anno));
-            Assert.That(query.Quarter, Is.EqualTo(trimestre));
-            Assert.That(richiesta.FileName(percorso), Is.EqualTo($"financial-report-appio-{yearQuarter}.csv"));
+            Assert.That(query.YearQuarters, Is.EqualTo(new[] { yearQuarter }));
+            Assert.That(AppIoFinancialReportsExtensions.FileName(yearQuarter, percorso), Is.EqualTo($"financial-report-appio-{yearQuarter}.csv"));
             Assert.That(percorso.MimeType(), Is.EqualTo("text/csv"));
         });
     }

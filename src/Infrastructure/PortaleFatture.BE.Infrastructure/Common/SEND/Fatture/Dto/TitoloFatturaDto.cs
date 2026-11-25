@@ -64,6 +64,9 @@ public class TitoloFatturaDto
     [JsonPropertyName("sollecito")]
     public string? Sollecito { get; set; }
 
+    [JsonPropertyName("azione")]
+    public string? Azione { get; set; }
+
     [JsonPropertyName("datiGeneraliDocumento")]
     public List<DatiGeneraliDocumentoDto>? DatiGeneraliDocumento { get; set; }
 

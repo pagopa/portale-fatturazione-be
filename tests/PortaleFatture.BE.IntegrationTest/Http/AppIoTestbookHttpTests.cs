@@ -564,7 +564,7 @@ public class AppIoTestbookHttpTests
         var contratto = riga.GetProperty("contractId").GetString();
 
         var excel = await Post($"{Documenti}/detail/download", $$"""{ "contractId": "{{contratto}}", "yearQuarter": "2026_2" }""");
-        var blob = await Post($"{Documenti}/blob/download", """{ "year": 2026, "quarter": 2 }""");
+        var blob = await Post($"{Documenti}/blob/download", """{ "year": 2026, "quarters": ["2026_2"] }""");
 
         Assert.That(excel.StatusCode, Is.EqualTo(HttpStatusCode.OK));
         Assert.That(blob.StatusCode, Is.EqualTo(HttpStatusCode.OK));
@@ -590,7 +590,7 @@ public class AppIoTestbookHttpTests
     {
         FakeAppIoFinancialReportStorageService.Instance.Leggibile = false;
 
-        var blob = await Post($"{Documenti}/blob/download", """{ "year": 2026, "quarter": 2 }""");
+        var blob = await Post($"{Documenti}/blob/download", """{ "year": 2026, "quarters": ["2026_2"] }""");
         var excel = await Post($"{Documenti}/detail/download", """{ "contractId": "APPIO-OB1", "yearQuarter": "2026_2" }""");
 
         Assert.Multiple(() =>

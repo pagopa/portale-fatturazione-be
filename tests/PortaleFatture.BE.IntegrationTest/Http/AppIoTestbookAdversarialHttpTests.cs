@@ -506,7 +506,7 @@ public class AppIoTestbookAdversarialHttpTests
     public async Task T25_DownloadConPercorsoIndicatoDalClient_ShouldUsareSoloQuelloDellaVista()
     {
         var resp = await Post($"{Documenti}/blob/download",
-            """{ "year": 2026, "quarter": 1, "filePath": "abfss://altro@altro.dfs.core.windows.net/x.csv", "contractId": "APPIO-OB9" }""");
+            """{ "year": 2026, "quarters": ["2026_1"], "filePath": "abfss://altro@altro.dfs.core.windows.net/x.csv", "contractId": "APPIO-OB9" }""");
 
         Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
         Assert.That(FakeAppIoFinancialReportStorageService.Instance.Richieste.Single(), Does.EndWith("export/sap/2026/1/appio-final_report-2026-q1.csv"));
@@ -527,7 +527,7 @@ public class AppIoTestbookAdversarialHttpTests
         ("POST", $"{Documenti}/document", "{}", ""),
         ("POST", $"{Documenti}/detail", """{ "contractId": "APPIO-OB1", "yearQuarter": "2026_2" }""", ""),
         ("POST", $"{Documenti}/detail/download", """{ "contractId": "APPIO-OB1", "yearQuarter": "2026_2" }""", ""),
-        ("POST", $"{Documenti}/blob/download", """{ "year": 2026, "quarter": 2 }""", "")
+        ("POST", $"{Documenti}/blob/download", """{ "year": 2026, "quarters": ["2026_2"] }""", "")
     ];
 
     private async Task<List<(string Rotta, HttpStatusCode Esito)>> ChiamaTutte(HttpClient client, string prodottoNonce = "prod-pn")

@@ -90,6 +90,30 @@ CREATE TABLE [pfd].[NotificheCount](
 );
 GO
 
+-- PF-1029: storico contestazioni per periodo, letto dalla quadratura REL (RelTestataQuadraturaSQLBuilder:
+-- api/rel/pagopa/quadratura/ricerca e sheet "Quadrature Reg Esecuzione" del report PRIMO SALDO).
+-- DDL reale dal progetto DB (PagopaDBproj/pfd/Tables/ContestazioniStorico.sql), as-is. Nessuna riga di seed:
+-- i test che ne hanno bisogno la scrivono e la ripuliscono.
+IF OBJECT_ID('pfd.ContestazioniStorico', 'U') IS NULL
+CREATE TABLE [pfd].[ContestazioniStorico] (
+    [internal_organization_id]  NVARCHAR (50)  NOT NULL,
+    [contract_id]               NVARCHAR (200) NOT NULL,
+    [year]                      INT            NOT NULL,
+    [month]                     INT            NOT NULL,
+    [TotaleAnalogico]           DECIMAL (9, 2) NULL,
+    [TotaleDigitale]            DECIMAL (9, 2) NULL,
+    [TotaleNotificheAnalogiche] INT            NULL,
+    [TotaleNotificheDigitali]   INT            NULL,
+    [Totale]                    DECIMAL (9, 2) NULL,
+    [Iva]                       DECIMAL (4, 2) NOT NULL,
+    [TotaleAnalogicoIva]        DECIMAL (9, 2) NULL,
+    [TotaleDigitaleIva]         DECIMAL (9, 2) NULL,
+    [TotaleIva]                 DECIMAL (9, 2) NULL,
+    [TipologiaFattura]          NVARCHAR (60)  NOT NULL,
+    CONSTRAINT [PK_ContestazioniStorico] PRIMARY KEY CLUSTERED ([internal_organization_id] ASC, [contract_id] ASC, [year] ASC, [month] ASC, [TipologiaFattura] ASC)
+);
+GO
+
 -- Versione e' un rowversion (timestamp): generata dal motore, mai valorizzata negli INSERT.
 IF OBJECT_ID('pfw.FlagContestazione', 'U') IS NULL
 CREATE TABLE [pfw].[FlagContestazione](

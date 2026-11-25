@@ -127,8 +127,9 @@ public static class AppIoFinancialReportSQLBuilder
         => " SELECT [CodFiscaleEnte] FROM [be].[vwAppioFinalReportFiltroCodFiscaleEnte] ORDER BY [CodFiscaleEnte]";
 
     /// <summary>
-    /// Percorso sul blob storage del file del financial report di un trimestre (parametri @Year e
-    /// @Quarter). Serve solo al backend per scaricare il file: non va esposto al client.
+    /// Percorsi sul blob storage dei file dei financial report dei trimestri chiesti (parametro
+    /// @YearQuarters, valori 'AAAA_T'): una riga per trimestre con documenti. Serve solo al backend per
+    /// scaricare i file: non va esposto al client.
     /// </summary>
     /// <remarks>
     /// Il file è uno per trimestre e file_path è ripetuto uguale su tutte le righe: basta la prima.
@@ -136,13 +137,18 @@ public static class AppIoFinancialReportSQLBuilder
     /// (riga aggiornata più di recente, a parità il maggiore in ordine alfabetico).
     /// </remarks>
     /// <returns>La query SQL completa.</returns>
-    public static string SelectFilePath() => @"
-        SELECT TOP 1 f.[file_path]
-        FROM [be].[vwAppioFinalReport] f
-        WHERE f.[year] = @Year
-        AND f.[quarter] = @Quarter
-        AND f.[file_path] IS NOT NULL
-        ORDER BY f.[gold_updated_at] DESC, f.[file_path] DESC
+    public static string SelectFilePaths() => @"
+        SELECT p.YearQuarter, p.FilePath
+        FROM (
+            SELECT
+             f.[trimestre] AS YearQuarter
+            ,f.[file_path] AS FilePath
+            ,ROW_NUMBER() OVER (PARTITION BY f.[trimestre] ORDER BY f.[gold_updated_at] DESC, f.[file_path] DESC) AS Riga
+            FROM [be].[vwAppioFinalReport] f
+            WHERE f.[trimestre] IN @YearQuarters
+            AND f.[file_path] IS NOT NULL
+        ) p
+        WHERE p.Riga = 1
     ";
 
     /// <summary>

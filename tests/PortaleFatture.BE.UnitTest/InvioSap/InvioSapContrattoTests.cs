@@ -107,15 +107,15 @@ public class InvioSapContrattoTests
     // =============================================================================================
 
     [Test]
-    public void BodyPipeline_ShouldContenereBatchIdEIdMessaggio_ConQueiNomi()
+    public void BodyPipeline_ShouldContenereBatchIdEMessageId_ConINomiDellaPipeline()
     {
         var json = JsonSerializer.Serialize(InvioSapPipelineRequest.Crea(9312, 48211, "PRIMO SALDO", 2093, 2));
         using var doc = JsonDocument.Parse(json);
         var root = doc.RootElement;
         Assert.Multiple(() =>
         {
-            Assert.That(root.GetProperty("batchId").GetInt32(), Is.EqualTo(9312));
-            Assert.That(root.GetProperty("idMessaggio").GetInt64(), Is.EqualTo(48211));
+            Assert.That(root.GetProperty("BatchId").GetInt32(), Is.EqualTo(9312));
+            Assert.That(root.GetProperty("MessageId").GetInt64(), Is.EqualTo(48211));
             var p = root.GetProperty("parametri")[0];
             Assert.That(p.GetProperty("tipoFattura").GetString(), Is.EqualTo("PRIMO SALDO"));
             Assert.That(p.GetProperty("MesidaFatturare")[0].GetString(), Is.EqualTo("209302"), "Mese a due cifre, formato legacy.");

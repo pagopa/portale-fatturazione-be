@@ -28,7 +28,15 @@ public class FattureReportNonFatturateHttpTestsConFlagSpenti : FattureReportNonF
 
 [Property(ApiTestFactory.ProprietaFlagSpenti, "true")]
 [Category("FeatureFlags")]
+public class FattureReportPf753HttpTestsConFlagSpenti : FattureReportPf753HttpTests { }
+
+[Property(ApiTestFactory.ProprietaFlagSpenti, "true")]
+[Category("FeatureFlags")]
 public class FattureRicercaHttpTestsConFlagSpenti : FattureRicercaHttpTests { }
+
+[Property(ApiTestFactory.ProprietaFlagSpenti, "true")]
+[Category("FeatureFlags")]
+public class FattureRicercaAzioneHttpTestsConFlagSpenti : FattureRicercaAzioneHttpTests { }
 
 [Property(ApiTestFactory.ProprietaFlagSpenti, "true")]
 [Category("FeatureFlags")]

@@ -18,11 +18,12 @@ public sealed class FakeAppIoFinancialReportStorageService : IAppIoFinancialRepo
 
     private readonly object _lock = new();
     private readonly List<string> _richieste = [];
+    private readonly HashSet<string> _assenti = [];
 
     /// <summary>false simula lo storage non configurato per il percorso (la rotta risponde 503).</summary>
     public bool Leggibile { get; set; } = true;
 
-    /// <summary>true simula il blob assente (la rotta risponde 404).</summary>
+    /// <summary>true simula il blob assente per ogni percorso.</summary>
     public bool Assente { get; set; }
 
     /// <summary>I percorsi di cui è stata chiesta l'apertura, in ordine.</summary>
@@ -31,12 +32,19 @@ public sealed class FakeAppIoFinancialReportStorageService : IAppIoFinancialRepo
         get { lock (_lock) return _richieste.ToList(); }
     }
 
+    /// <summary>Simula il blob assente solo per i percorsi che finiscono con <paramref name="coda"/>.</summary>
+    public void RendiAssente(string coda)
+    {
+        lock (_lock) _assenti.Add(coda);
+    }
+
     public void Reset()
     {
         lock (_lock)
         {
             Leggibile = true;
             Assente = false;
+            _assenti.Clear();
             _richieste.Clear();
         }
     }
@@ -45,7 +53,12 @@ public sealed class FakeAppIoFinancialReportStorageService : IAppIoFinancialRepo
 
     public Task<Stream?> OpenReadAsync(string filePath, CancellationToken cancellationToken = default)
     {
-        lock (_lock) _richieste.Add(filePath);
-        return Task.FromResult<Stream?>(Assente ? null : new MemoryStream(Encoding.UTF8.GetBytes(Contenuto)));
+        bool assente;
+        lock (_lock)
+        {
+            _richieste.Add(filePath);
+            assente = Assente || _assenti.Any(filePath.EndsWith);
+        }
+        return Task.FromResult<Stream?>(assente ? null : new MemoryStream(Encoding.UTF8.GetBytes(Contenuto)));
     }
 }

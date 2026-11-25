@@ -29,20 +29,17 @@ public class AppIoFinancialReportCodiciFiscaliQuery(IAuthenticationInfo authenti
 }
 
 /// <summary>
-/// Percorso sul blob storage del file del financial report APP IO di un trimestre, da
-/// [be].[vwAppioFinalReport]. Uso interno del download: il percorso non va restituito al client.
+/// Percorsi sul blob storage dei file dei financial report APP IO di uno o più trimestri, da
+/// [be].[vwAppioFinalReport]. Uso interno del download: i percorsi non vanno restituiti al client.
 /// </summary>
 /// <param name="authenticationInfo">Le informazioni di autenticazione dell'utente che effettua la richiesta.</param>
-public class AppIoFinancialReportFilePathQuery(IAuthenticationInfo authenticationInfo) : IRequest<string?>
+public class AppIoFinancialReportFilePathsQuery(IAuthenticationInfo authenticationInfo) : IRequest<IReadOnlyDictionary<string, string>>
 {
     /// <summary>
     /// Le informazioni di autenticazione dell'utente che effettua la richiesta.
     /// </summary>
     public IAuthenticationInfo AuthenticationInfo { get; internal set; } = authenticationInfo;
 
-    /// <summary>Anno di riferimento.</summary>
-    public int Year { get; set; }
-
-    /// <summary>Trimestre di riferimento (1-4).</summary>
-    public int Quarter { get; set; }
+    /// <summary>Trimestri nel formato 'AAAA_T'.</summary>
+    public string[] YearQuarters { get; set; } = [];
 }

@@ -31,18 +31,20 @@ public class InvioSapAutorizzazioneHttpTests
     [OneTimeTearDown]
     public void TearDown() => _factory?.Dispose();
 
-    /// <summary>Le dieci rotte con verbo e body minimo (l'autorizzazione non legge il body).</summary>
+    /// <summary>Le undici rotte con verbo e body minimo (l'autorizzazione non legge il body).</summary>
     public static IEnumerable<TestCaseData> Rotte()
     {
         const string griglia = """{ "anno": 2003 }""";
         const string dettaglio = """{ "annoRiferimento": 2003, "meseRiferimento": 1, "tipologiaFattura": "PRIMO SALDO", "statoInvio": "INVIATE" }""";
         const string genera = """{ "anno": 2003, "mese": 2, "tipologiaFattura": "PRIMO SALDO" }""";
+        const string reinvia = """{ "anno": 2003, "mese": 1, "tipologiaFattura": "PRIMO SALDO" }""";
 
         yield return new TestCaseData(HttpMethod.Post, InvioSapTestData.RottaGriglia, griglia).SetArgDisplayNames("griglia");
         yield return new TestCaseData(HttpMethod.Post, InvioSapTestData.RottaDettaglio, dettaglio).SetArgDisplayNames("dettaglio");
         yield return new TestCaseData(HttpMethod.Post, InvioSapTestData.RottaDownload, griglia).SetArgDisplayNames("download");
         yield return new TestCaseData(HttpMethod.Post, InvioSapTestData.RottaDownloadReinviate, griglia).SetArgDisplayNames("download reinviate");
         yield return new TestCaseData(HttpMethod.Put, InvioSapTestData.RottaGenera, genera).SetArgDisplayNames("genera");
+        yield return new TestCaseData(HttpMethod.Put, InvioSapTestData.RottaReinvia, reinvia).SetArgDisplayNames("reinvia");
         yield return new TestCaseData(HttpMethod.Get, InvioSapTestData.RottaLock, null).SetArgDisplayNames("lock");
         yield return new TestCaseData(HttpMethod.Get, InvioSapTestData.RottaStati, null).SetArgDisplayNames("stati");
         yield return new TestCaseData(HttpMethod.Get, InvioSapTestData.RottaAnni, null).SetArgDisplayNames("anni");

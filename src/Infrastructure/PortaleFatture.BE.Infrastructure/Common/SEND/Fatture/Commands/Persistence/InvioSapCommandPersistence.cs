@@ -205,6 +205,53 @@ public sealed class InvioSapDettaglioSelezioneTotaleCommandPersistence(
     }
 }
 
+/// <summary>Una riga del re-invio: la fattura, il suo storno e la sua nota gia' nel formato JSON di DATA.</summary>
+public sealed record InvioSapRigaReinvio(long IdFattura, string NumeroDocumentoStorno, string NotaJson);
+
+/// <summary>
+/// Re-invio (<c>PUT …/reinvia</c>): le fatture scelte, da INVIATA (5) a INVIATA (5), ognuna con il proprio storno e la
+/// propria nota. Le righe viaggiano in un solo parametro JSON letto con <c>OPENJSON</c> (funzione di sistema): un
+/// parametro per valore sarebbero tre per fattura, oltre il limite di 2100 di SQL Server gia' con 700 fatture.
+/// Le righe si prendono dalla vista dettaglio fra le fatture inviate: se nel frattempo una e' cambiata, non viene
+/// inserita e l'handler se ne accorge dal numero di righe (409 GRUPPO_CAMBIATO).
+/// </summary>
+public sealed class InvioSapDettaglioReinvioCommandPersistence(int batchId, IReadOnlyList<InvioSapRigaReinvio> righe)
+    : DapperBase, ICommand<IReadOnlyList<long>>
+{
+    public bool RequiresTransaction => true;
+
+    private const string Sql = @"
+        DECLARE @Inseriti TABLE (IdFattura BIGINT);
+        INSERT INTO [pfw].[DettaglioInvioSAP] (FkBatchId, FkIdFattura, FkStatoPrecedente, FkStato, NumeroDocStorno, Nota)
+        OUTPUT INSERTED.FkIdFattura INTO @Inseriti
+        SELECT @BatchId, v.IdFattura, @StatoPrecedente, @Stato, j.NumeroDocStorno, j.Nota
+          FROM OPENJSON(@Righe) WITH (
+                   IdFattura       BIGINT         '$.idFattura',
+                   NumeroDocStorno NVARCHAR(255)  '$.numeroDocumentoStorno',
+                   Nota            NVARCHAR(MAX)  '$.nota') j
+          JOIN [be].[vwInvioSAPDettaglio] v ON v.IdFattura = j.IdFattura
+         WHERE v.FatturaInviata = 1;
+        SELECT IdFattura FROM @Inseriti;";
+
+    /// <summary>Il JSON del parametro <c>@Righe</c>: esposto per i test.</summary>
+    public static string Serializza(IReadOnlyList<InvioSapRigaReinvio> righe) =>
+        System.Text.Json.JsonSerializer.Serialize(righe.Select(r => new
+        {
+            idFattura = r.IdFattura,
+            numeroDocumentoStorno = r.NumeroDocumentoStorno,
+            nota = r.NotaJson
+        }));
+
+    public async Task<IReadOnlyList<long>> Execute(IDbConnection? connection, string schema, IDbTransaction? transaction, CancellationToken ct = default)
+        => (await ((IDatabase)this).SelectAsync<long>(connection!, Sql, new
+        {
+            BatchId = batchId,
+            StatoPrecedente = StatoFatturaSap.Inviata,
+            Stato = StatoFatturaSap.Inviata,
+            Righe = Serializza(righe)
+        }, transaction)).OrderBy(id => id).ToList();
+}
+
 /// <summary>
 /// Messaggio della generazione in <c>pfd.Messaggi</c>, con <c>OUTPUT INSERTED.IdMessaggio</c>: l'id va nel
 /// body della pipeline, e DATA aggiorna il messaggio tramite quello (D3). <c>Hash</c> (NOT NULL) = BatchId.

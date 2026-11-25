@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Net;
 using System.Text;
 using PortaleFatture.BE.Core.Auth;
@@ -5,9 +6,11 @@ using PortaleFatture.BE.Core.Auth;
 namespace PortaleFatture.BE.IntegrationTest.Http;
 
 /// <summary>
-/// End-to-end della rotta POST api/appio/financialreports/blob/download (12/11/2026): scarica il file
-/// del financial report di un trimestre. Il percorso viene da file_path di [be].[vwAppioFinalReport]
-/// e resta nel backend; il blob storage è sostituito da <see cref="FakeAppIoFinancialReportStorageService"/>.
+/// End-to-end della rotta POST api/appio/financialreports/blob/download (12/11/2026, body con
+/// "quarters" dal 16/11/2026): scarica i file dei financial report dei trimestri chiesti — un trimestre
+/// il file, più trimestri uno ZIP con un file per trimestre. I percorsi vengono da file_path di
+/// [be].[vwAppioFinalReport] e restano nel backend; il blob storage è sostituito da
+/// <see cref="FakeAppIoFinancialReportStorageService"/>.
 ///
 /// Seed (tests/Data/appio.sql): un file per trimestre, file_path ripetuto uguale su tutte le righe,
 /// nella forma abfss://appioexport@stappioseed.dfs.core.windows.net/export/sap/AAAA/T/appio-final_report-AAAA-qT.csv.
@@ -48,16 +51,27 @@ public class AppIoFinancialReportsFileHttpTests
         return resp;
     }
 
-    // --- percorso felice ---
+    private static async Task<Dictionary<string, string>> VociZip(HttpResponseMessage resp)
+    {
+        using var zip = new ZipArchive(new MemoryStream(await resp.Content.ReadAsByteArrayAsync()), ZipArchiveMode.Read);
+        var voci = new Dictionary<string, string>();
+        foreach (var voce in zip.Entries)
+        {
+            using var lettore = new StreamReader(voce.Open(), Encoding.UTF8);
+            voci[voce.FullName] = await lettore.ReadToEndAsync();
+        }
+        return voci;
+    }
+
+    // --- un trimestre: il file ---
 
     /// <summary>
-    /// Anno e trimestre con documenti: 200 con il contenuto del file, tipo text/csv e un nome
-    /// costruito dal trimestre. Al servizio di storage arriva il file_path di quel trimestre.
+    /// Un trimestre: si riceve il suo file, non uno ZIP, con il nome costruito dal trimestre.
     /// </summary>
     [Test]
-    public async Task Download_TrimestreConDocumenti_ShouldRestituireIlFile()
+    public async Task Download_UnTrimestre_ShouldRestituireIlFile()
     {
-        var resp = await Post("""{ "year": 2026, "quarter": 2 }""");
+        var resp = await Post("""{ "year": 2026, "quarters": ["2026_2"] }""");
 
         Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
         Assert.Multiple(async () =>
@@ -69,29 +83,143 @@ public class AppIoFinancialReportsFileHttpTests
         });
     }
 
-    /// <summary>
-    /// Ogni trimestre ha il suo file: il percorso chiesto allo storage cambia con anno e trimestre.
-    /// </summary>
-    [TestCase(2026, 1, "export/sap/2026/1/appio-final_report-2026-q1.csv")]
-    [TestCase(2025, 4, "export/sap/2025/4/appio-final_report-2025-q4.csv")]
-    public async Task Download_AltriTrimestri_ShouldChiedereIlFileDelTrimestre(int year, int quarter, string coda)
+    [TestCase("2026_1", "export/sap/2026/1/appio-final_report-2026-q1.csv")]
+    [TestCase("2025_4", "export/sap/2025/4/appio-final_report-2025-q4.csv")]
+    public async Task Download_AltriTrimestri_ShouldChiedereIlFileDelTrimestre(string trimestre, string coda)
     {
-        var resp = await Post($$"""{ "year": {{year}}, "quarter": {{quarter}} }""");
+        var resp = await Post($$"""{ "year": {{trimestre[..4]}}, "quarters": ["{{trimestre}}"] }""");
 
         Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
         Assert.That(Storage.Richieste.Single(), Does.EndWith(coda));
     }
 
     /// <summary>
-    /// Il percorso sul blob storage non esce dal backend: né nelle intestazioni né nel corpo della
-    /// risposta compaiono account, container o cartelle.
+    /// Lo stesso trimestre ripetuto, o con spazi, è un trimestre solo: file singolo, non ZIP.
     /// </summary>
+    [Test]
+    public async Task Download_TrimestreRipetuto_ShouldContareUnaVolta()
+    {
+        var resp = await Post("""{ "year": 2026, "quarters": ["2026_2", " 2026_2 "] }""");
+
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        Assert.That(resp.Content.Headers.ContentType?.MediaType, Is.EqualTo("text/csv"));
+        Assert.That(Storage.Richieste, Is.EqualTo(new[] { Path2026Q2 }));
+    }
+
+    // --- più trimestri: lo ZIP ---
+
+    /// <summary>
+    /// Più file: uno ZIP con un file per trimestre, ciascuno col proprio nome e contenuto, e il nome
+    /// dello ZIP dal primo all'ultimo trimestre (in ordine crescente, qualunque sia quello del body).
+    /// </summary>
+    [Test]
+    public async Task Download_PiuTrimestri_ShouldRestituireUnoZipConUnFilePerTrimestre()
+    {
+        var resp = await Post("""{ "year": 2026, "quarters": ["2026_2", "2026_1"] }""");
+
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        var voci = await VociZip(resp);
+        Assert.Multiple(() =>
+        {
+            Assert.That(resp.Content.Headers.ContentType?.MediaType, Is.EqualTo("application/zip"));
+            Assert.That(resp.Content.Headers.ContentDisposition?.FileName?.Trim('"'), Is.EqualTo("financial-report-appio-2026_1-2026_2.zip"));
+            Assert.That(voci.Keys, Is.EqualTo(new[] { "financial-report-appio-2026_1.csv", "financial-report-appio-2026_2.csv" }));
+            Assert.That(voci.Values, Is.All.EqualTo(FakeAppIoFinancialReportStorageService.Contenuto));
+            Assert.That(Storage.Richieste, Has.Count.EqualTo(2));
+        });
+    }
+
+    /// <summary>
+    /// Anno senza trimestri (lista assente o vuota): si scaricano tutti i trimestri dell'anno che hanno
+    /// un file. Nel seed il 2026 ne ha due (ZIP), il 2025 uno solo (il CSV).
+    /// </summary>
+    [TestCase("""{ "year": 2026 }""")]
+    [TestCase("""{ "year": 2026, "quarters": [] }""")]
+    [TestCase("""{ "year": "2026", "quarters": null }""")]
+    public async Task Download_AnnoSenzaTrimestri_ShouldScaricareTuttiQuelliDisponibili(string body)
+    {
+        var resp = await Post(body);
+
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        Assert.That((await VociZip(resp)).Keys, Is.EqualTo(new[] { "financial-report-appio-2026_1.csv", "financial-report-appio-2026_2.csv" }));
+    }
+
+    [Test]
+    public async Task Download_AnnoSenzaTrimestri_UnSoloFile_ShouldRestituireIlCsv()
+    {
+        var resp = await Post("""{ "year": 2025 }""");
+
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        Assert.Multiple(() =>
+        {
+            Assert.That(resp.Content.Headers.ContentType?.MediaType, Is.EqualTo("text/csv"));
+            Assert.That(resp.Content.Headers.ContentDisposition?.FileName?.Trim('"'), Is.EqualTo("financial-report-appio-2025_4.csv"));
+        });
+    }
+
+    /// <summary>
+    /// Conta il numero di file disponibili, non quello dei trimestri chiesti: due trimestri, uno senza
+    /// documenti, danno il CSV dell'altro e non uno ZIP con un solo file.
+    /// </summary>
+    [Test]
+    public async Task Download_PiuTrimestri_UnoSenzaDocumenti_ShouldRestituireIlCsvDellAltro()
+    {
+        var resp = await Post("""{ "year": 2026, "quarters": ["2026_1", "2026_3"] }""");
+
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        Assert.Multiple(() =>
+        {
+            Assert.That(resp.Content.Headers.ContentType?.MediaType, Is.EqualTo("text/csv"));
+            Assert.That(resp.Content.Headers.ContentDisposition?.FileName?.Trim('"'), Is.EqualTo("financial-report-appio-2026_1.csv"));
+        });
+    }
+
+    /// <summary>
+    /// Lo stesso vale per un file in vista ma assente sul blob storage.
+    /// </summary>
+    [Test]
+    public async Task Download_PiuTrimestri_UnFileAssente_ShouldRestituireIlCsvDellAltro()
+    {
+        Storage.RendiAssente("2026-q1.csv");
+
+        var resp = await Post("""{ "year": 2026, "quarters": ["2026_1", "2026_2"] }""");
+
+        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        Assert.Multiple(async () =>
+        {
+            Assert.That(resp.Content.Headers.ContentType?.MediaType, Is.EqualTo("text/csv"));
+            Assert.That(resp.Content.Headers.ContentDisposition?.FileName?.Trim('"'), Is.EqualTo("financial-report-appio-2026_2.csv"));
+            Assert.That(await resp.Content.ReadAsStringAsync(), Is.EqualTo(FakeAppIoFinancialReportStorageService.Contenuto));
+        });
+    }
+
+    /// <summary>
+    /// Più trimestri, nessuno con un file: 404, non uno ZIP vuoto.
+    /// </summary>
+    [Test]
+    public async Task Download_PiuTrimestri_NessunFile_ShouldReturn404()
+    {
+        var senzaDocumenti = await Post("""{ "year": 2026, "quarters": ["2026_3", "2026_4"] }""");
+        Storage.Assente = true;
+        var fileAssenti = await Post("""{ "year": 2026, "quarters": ["2026_1", "2026_2"] }""");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(senzaDocumenti.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+            Assert.That(fileAssenti.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+        });
+    }
+
+    // --- percorso e ruoli ---
+
     [Test]
     public async Task Download_ShouldNonEsporreIlPercorsoDelFile()
     {
-        var resp = await Post("""{ "year": 2026, "quarter": 2 }""");
+        var singolo = await Post("""{ "year": 2026, "quarters": ["2026_2"] }""");
+        var zip = await Post("""{ "year": 2026, "quarters": ["2026_1", "2026_2"] }""");
 
-        var tutto = resp.Headers + resp.Content.Headers.ToString() + await resp.Content.ReadAsStringAsync();
+        var tutto = singolo.Headers + singolo.Content.Headers.ToString() + await singolo.Content.ReadAsStringAsync()
+            + zip.Headers + zip.Content.Headers + string.Join("|", (await VociZip(zip)).Keys);
         Assert.Multiple(() =>
         {
             Assert.That(tutto, Does.Not.Contain("abfss"));
@@ -101,14 +229,11 @@ public class AppIoFinancialReportsFileHttpTests
         });
     }
 
-    /// <summary>
-    /// È una lettura: aperta a OPERATOR e ADMIN, 401 senza autenticazione.
-    /// </summary>
     [Test]
     public async Task Download_Ruoli_ShouldEssereApertoAOperatorEChiusoAgliAnonimi()
     {
-        var operatore = await Post("""{ "year": 2026, "quarter": 2 }""", Ruolo.OPERATOR);
-        var anonimo = await Post("""{ "year": 2026, "quarter": 2 }""", ruolo: null);
+        var operatore = await Post("""{ "year": 2026, "quarters": ["2026_2"] }""", Ruolo.OPERATOR);
+        var anonimo = await Post("""{ "year": 2026, "quarters": ["2026_2"] }""", ruolo: null);
 
         Assert.Multiple(() =>
         {
@@ -117,35 +242,30 @@ public class AppIoFinancialReportsFileHttpTests
         });
     }
 
-    /// <summary>
-    /// Anno e trimestre arrivano anche come stringhe numeriche (i filtri del frontend sono stringhe):
-    /// il binding JSON li accetta.
-    /// </summary>
-    [Test]
-    public async Task Download_AnnoETrimestreComeStringhe_ShouldEssereAccettati()
-    {
-        var resp = await Post("""{ "year": "2026", "quarter": "2" }""");
-
-        Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-        Assert.That(Storage.Richieste, Is.EqualTo(new[] { Path2026Q2 }));
-    }
-
     // --- validazione ---
 
     /// <summary>
-    /// Anno e trimestre sono obbligatori, il trimestre va da 1 a 4: altrimenti 400, senza toccare lo storage.
+    /// Body assente, senza anno, con trimestri non nel formato 'AAAA_T' o di un altro anno: 400, e lo
+    /// storage non viene toccato. Il vecchio campo "quarter" (fino al 16/11/2026) è ignorato.
     /// </summary>
     [TestCase("")]
     [TestCase("null")]
     [TestCase("{}")]
-    [TestCase("""{ "year": 2026 }""")]
+    [TestCase("""{ "quarters": ["2026_2"] }""")]
+    [TestCase("""{ "year": null, "quarters": ["2026_2"] }""")]
+    [TestCase("""{ "year": 0, "quarters": ["2026_2"] }""")]
+    [TestCase("""{ "year": 26 }""")]
     [TestCase("""{ "quarter": 2 }""")]
-    [TestCase("""{ "year": 2026, "quarter": 0 }""")]
-    [TestCase("""{ "year": 2026, "quarter": 5 }""")]
-    [TestCase("""{ "year": 2026, "quarter": -1 }""")]
-    [TestCase("""{ "year": 0, "quarter": 2 }""")]
-    [TestCase("""{ "year": -2026, "quarter": 2 }""")]
-    [TestCase("""{ "year": null, "quarter": null }""")]
+    [TestCase("""{ "year": 2026, "quarters": ["2025_4"] }""")]
+    [TestCase("""{ "year": 2026, "quarters": ["2026_2", "2025_4"] }""")]
+    [TestCase("""{ "year": 2026, "quarters": ["2026"] }""")]
+    [TestCase("""{ "year": 2026, "quarters": ["2026_5"] }""")]
+    [TestCase("""{ "year": 2026, "quarters": ["2026_0"] }""")]
+    [TestCase("""{ "year": 2026, "quarters": ["2026-2"] }""")]
+    [TestCase("""{ "year": 2026, "quarters": ["2026_2", ""] }""")]
+    [TestCase("""{ "year": 2026, "quarters": ["2026_2", null] }""")]
+    [TestCase("""{ "year": 2026, "quarters": ["2026_2' OR 1=1 --"] }""")]
+    [TestCase("""{ "year": 2026, "quarters": ["2026_2; DROP TABLE appio.messages_final_report"] }""")]
     public async Task Download_RichiestaNonValida_ShouldReturn400(string body)
     {
         var resp = await Post(body);
@@ -156,50 +276,45 @@ public class AppIoFinancialReportsFileHttpTests
 
     // --- 404 e 503 ---
 
-    /// <summary>
-    /// Un trimestre senza documenti non ha un file: 404, senza toccare lo storage.
-    /// </summary>
-    [TestCase(2026, 3)]
-    [TestCase(2026, 4)]
-    [TestCase(1999, 1)]
-    [TestCase(2147483647, 4)]
-    public async Task Download_TrimestreSenzaDocumenti_ShouldReturn404(int year, int quarter)
+    [TestCase("2026_3")]
+    [TestCase("2026_4")]
+    [TestCase("1999_1")]
+    public async Task Download_TrimestreSenzaDocumenti_ShouldReturn404(string trimestre)
     {
-        var resp = await Post($$"""{ "year": {{year}}, "quarter": {{quarter}} }""");
+        var resp = await Post($$"""{ "year": {{trimestre[..4]}}, "quarters": ["{{trimestre}}"] }""");
 
         Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
         Assert.That(Storage.Richieste, Is.Empty);
     }
 
-    /// <summary>
-    /// Il trimestre ha documenti ma il file non è sul blob storage: 404.
-    /// </summary>
     [Test]
     public async Task Download_FileAssenteSulBlobStorage_ShouldReturn404()
     {
         Storage.Assente = true;
 
-        var resp = await Post("""{ "year": 2026, "quarter": 2 }""");
+        var resp = await Post("""{ "year": 2026, "quarters": ["2026_2"] }""");
 
         Assert.That(resp.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
         Assert.That(Storage.Richieste, Has.Count.EqualTo(1));
     }
 
     /// <summary>
-    /// Storage non configurato (o configurato per un altro account): 503, senza tentare la lettura.
-    /// Un trimestre senza documenti resta 404 anche così: prima si guarda il dato.
+    /// Storage non configurato: 503 se c'è almeno un file da leggere (anche con più trimestri), 404 se
+    /// nessun trimestre chiesto ha documenti.
     /// </summary>
     [Test]
     public async Task Download_StorageNonConfigurato_ShouldReturn503()
     {
         Storage.Leggibile = false;
 
-        var conDocumenti = await Post("""{ "year": 2026, "quarter": 2 }""");
-        var senzaDocumenti = await Post("""{ "year": 2026, "quarter": 3 }""");
+        var conDocumenti = await Post("""{ "year": 2026, "quarters": ["2026_2"] }""");
+        var piuTrimestri = await Post("""{ "year": 2026, "quarters": ["2026_1", "2026_2"] }""");
+        var senzaDocumenti = await Post("""{ "year": 2026, "quarters": ["2026_3"] }""");
 
         Assert.Multiple(() =>
         {
             Assert.That(conDocumenti.StatusCode, Is.EqualTo(HttpStatusCode.ServiceUnavailable));
+            Assert.That(piuTrimestri.StatusCode, Is.EqualTo(HttpStatusCode.ServiceUnavailable));
             Assert.That(senzaDocumenti.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
             Assert.That(Storage.Richieste, Is.Empty);
         });
@@ -208,15 +323,13 @@ public class AppIoFinancialReportsFileHttpTests
     // --- input ostili ---
 
     /// <summary>
-    /// Anno e trimestre sono numeri: un testo (injection compresa) non supera il binding. L'errore
-    /// viene appiattito a 500 dal gestore globale, come per gli altri body malformati dell'area.
+    /// Body che non si legge come { year: int, quarters: string[] }: il binding fallisce (500, comportamento
+    /// della pipeline comune, caratterizzato e non corretto qui) e lo storage non viene toccato.
     /// </summary>
-    [TestCase("""{ "year": "2026' OR 1=1 --", "quarter": 2 }""")]
-    [TestCase("""{ "year": 2026, "quarter": "2; DROP TABLE appio.messages_final_report" }""")]
-    [TestCase("""{ "year": 2026.5, "quarter": 2 }""")]
-    [TestCase("""{ "year": 99999999999, "quarter": 2 }""")]
+    [TestCase("""{ "year": 2026, "quarters": "2026_2" }""")]
+    [TestCase("""{ "year": 2026, "quarters": [2026] }""")]
     [TestCase("{ malformato")]
-    public async Task Download_ValoriNonNumerici_ShouldReturn500_Caratterizzazione(string body)
+    public async Task Download_BodyNonLeggibile_ShouldReturn500_Caratterizzazione(string body)
     {
         var resp = await Post(body);
 
@@ -224,15 +337,11 @@ public class AppIoFinancialReportsFileHttpTests
         Assert.That(Storage.Richieste, Is.Empty);
     }
 
-    /// <summary>
-    /// Il client non può indicare il file: campi in più nel body (percorsi, account) vengono ignorati
-    /// e allo storage arriva solo il file_path letto dalla vista.
-    /// </summary>
     [Test]
     public async Task Download_PercorsoIndicatoDalClient_ShouldEssereIgnorato()
     {
         var resp = await Post("""
-            { "year": 2026, "quarter": 2,
+            { "year": 2026, "quarters": ["2026_2"],
               "filePath": "abfss://altro@altroaccount.dfs.core.windows.net/segreti.csv",
               "file_path": "../../etc/passwd", "path": "https://example.test/x.csv" }
             """);
@@ -241,13 +350,10 @@ public class AppIoFinancialReportsFileHttpTests
         Assert.That(Storage.Richieste, Is.EqualTo(new[] { Path2026Q2 }));
     }
 
-    /// <summary>
-    /// Un nonce emesso per un altro prodotto viene rifiutato con 419.
-    /// </summary>
     [Test]
     public async Task Download_NonceDiUnAltroProdotto_ShouldReturn419()
     {
-        var resp = await Post("""{ "year": 2026, "quarter": 2 }""", prodottoNonce: "prod-appio");
+        var resp = await Post("""{ "year": 2026, "quarters": ["2026_2"] }""", prodottoNonce: "prod-appio");
 
         Assert.That((int)resp.StatusCode, Is.EqualTo(419));
         Assert.That(Storage.Richieste, Is.Empty);
