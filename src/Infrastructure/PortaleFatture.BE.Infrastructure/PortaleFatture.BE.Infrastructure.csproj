@@ -48,6 +48,8 @@
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
         <PackageReference Include="Microsoft.Extensions.Localization" Version="8.0.8" />
         <PackageReference Include="System.IO.Packaging" Version="8.0.1" />
+        <!-- Pin di sicurezza: Pkcs arriva transitivo da MailKit (MimeKit) alla 8.0.1, con advisory. Nessun codice lo usa. -->
+        <PackageReference Include="System.Security.Cryptography.Pkcs" Version="8.0.2" />
         <PackageReference Include="System.Text.Json" Version="8.0.5" />
     </ItemGroup>
 
