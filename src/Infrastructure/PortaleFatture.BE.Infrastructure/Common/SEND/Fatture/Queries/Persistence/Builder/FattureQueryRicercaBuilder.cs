@@ -236,9 +236,14 @@ SELECT listaFatture = (
          ELSE CONVERT(INT, FT.FatturaInviata) 
      END AS 'fattura.inviata',
      ISNULL(FT.Sollecito, '') AS 'fattura.sollecito',
+     CASE
+         WHEN FT.FatturaInviata = 1 THEN NULL
+         WHEN gf.Stato IN (0,3) THEN NULL
+         ELSE vam.Azione
+     END AS 'fattura.azione',
      (
          SELECT
-             ISNULL(tC.[Descrizione],'') AS 'tipologia',  
+             ISNULL(tC.[Descrizione],'') AS 'tipologia',
              '' AS 'riferimentoNumeroLinea',
              ISNULL(FTn.IdDocumento,'') AS 'idDocumento',
              CONVERT(VARCHAR,FTn.DataDocumento, 23) AS 'data',
@@ -288,15 +293,21 @@ ORDER BY CM.Ordinamento
         AND gf.FkTipologiaFattura = ft.FkTipologiaFattura
         AND gf.Anno = ft.AnnoRiferimento
         AND gf.Mese = ft.MeseRiferimento
- where 
+    LEFT JOIN (
+        SELECT v.tipologia_fattura, v.Azione
+          FROM [be].[vwGestioneFattureFormAnniMesi] v
+         WHERE v.anno = @AnnoRiferimento
+           AND v.mese = @MeseRiferimento
+    ) vam ON vam.tipologia_fattura = FT.FkTipologiaFattura
+ where
     (gf.Stato <> 0 OR  gf.Stato IS NULL) -- Esclusione delle fatture Posticipate
-    AND    
+    AND
     FT.AnnoRiferimento = @AnnoRiferimento
 	and FT.MeseRiferimento = @MeseRiferimento
 	[condition_tipologiafattura]
 	and FT.FkIdEnte <> '4a4149af-172e-4950-9cc8-63ccc9a6d865' --esclusione pagopa
 	and FT.TotaleFattura > 0
-    AND (@FkIdTipoContratto IS NULL OR c.FkIdTipoContratto = @FkIdTipoContratto)  
+    AND (@FkIdTipoContratto IS NULL OR c.FkIdTipoContratto = @FkIdTipoContratto)
     AND (
         @FatturaInviata IS NULL  -- Se NULL, mostra tutte
         OR (@FatturaInviata = 2 AND FT.FatturaInviata IS NULL)  -- In elaborazione

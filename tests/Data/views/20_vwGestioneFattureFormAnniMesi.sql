@@ -5,7 +5,9 @@
 CREATE OR ALTER VIEW [be].[vwGestioneFattureFormAnniMesi] AS
 WITH
 mesi_anticipo AS (
-    SELECT DATEFROMPARTS(YEAR(GETDATE()), MONTH(GETDATE()), 1) AS d
+    -- Primo mese gestibile = mese corrente - 2, come la vista reale (estratto PROD del 24/11/2026, PF-1003).
+    -- Prima partiva dal mese corrente: sugli Anticipi dei due mesi precedenti i test davano un esito diverso da PROD.
+    SELECT DATEADD(MONTH, -2, DATEFROMPARTS(YEAR(GETDATE()), MONTH(GETDATE()), 1)) AS d
     UNION ALL SELECT DATEADD(MONTH, 1, d) FROM mesi_anticipo WHERE d < DATEFROMPARTS(YEAR(GETDATE()) + 1, 12, 1)
 ),
 mesi_acconto AS (
