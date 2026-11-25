@@ -67,6 +67,9 @@ public class TitoloFatturaDto
     [JsonPropertyName("azione")]
     public string? Azione { get; set; }
 
+    [JsonPropertyName("stato")]
+    public int? Stato { get; set; }
+
     [JsonPropertyName("datiGeneraliDocumento")]
     public List<DatiGeneraliDocumentoDto>? DatiGeneraliDocumento { get; set; }
 
